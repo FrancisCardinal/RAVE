@@ -34,8 +34,8 @@ def create_images_dataset_with_LPW_videos():
     for video_file_name in tqdm(VIDEOS_FILES_NAMES) : 
         video_path = os.path.join(VIDEOS_PATH, video_file_name)
 
-        file_name = os.path.splitext( os.path.basename(video_file_name) )[0] + ANNOTATION_EXTENSION
-        annotations_file = open(os.path.join(ANNOTATIONS_PATH, file_name), 'r')
+        file_name = os.path.splitext( os.path.basename(video_file_name) )[0] 
+        annotations_file = open(os.path.join(ANNOTATIONS_PATH, file_name + ANNOTATION_EXTENSION), 'r')
         annotations = annotations_file.readlines()
 
         create_images_dataset_with_of_one_video(file_name, video_path, annotations)
