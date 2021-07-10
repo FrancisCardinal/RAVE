@@ -6,35 +6,28 @@ from tqdm import tqdm
 
 from videos_and_dataset_association import TRAINING_VIDEOS, VALIDATION_VIDEOS, TEST_VIDEOS
 
-OUTPUT_IMAGE_WIDTH, OUTPUT_IMAGE_HEIGHT = 128, 96 
+from EyeTrackerDataset import EyeTrackerDataset, IMAGE_DIMENSIONS
+DATASET_DIR , IMAGES_DIR, LABELS_DIR, TRAINING_DIR, VALIDATION_DIR, TEST_DIR, IMAGES_FILE_EXTENSION = EyeTrackerDataset.DATASET_DIR ,EyeTrackerDataset.IMAGES_DIR,EyeTrackerDataset.LABELS_DIR,EyeTrackerDataset.TRAINING_DIR,EyeTrackerDataset.VALIDATION_DIR,EyeTrackerDataset.TEST_DIR, EyeTrackerDataset.IMAGES_FILE_EXTENSION
+
+OUTPUT_IMAGE_DIMENSIONS = IMAGE_DIMENSIONS
 SOURCE_DIR = 'LPW'
-DESTINATION_DIR = 'dataset'
 VIDEOS_DIR = 'videos'
 ANNOTATIONS_DIR = 'annotations'
-
-IMAGES_DIR = 'images'
-LABELS_DIR = 'labels'
-
-TRAINING_DIR   = 'training'
-VALIDATION_DIR = 'validation'
-TEST_DIR       = 'test'
 
 ROOT_PATH = os.getcwd()
 VIDEOS_PATH      = os.path.join(ROOT_PATH, SOURCE_DIR, VIDEOS_DIR)
 ANNOTATIONS_PATH = os.path.join(ROOT_PATH, SOURCE_DIR, ANNOTATIONS_DIR)
 
-TRAINING_PATH   = os.path.join(ROOT_PATH, DESTINATION_DIR, TRAINING_DIR)
-VALIDATION_PATH = os.path.join(ROOT_PATH, DESTINATION_DIR, VALIDATION_DIR)
-TEST_PATH       = os.path.join(ROOT_PATH, DESTINATION_DIR, TEST_DIR)
-
-OUTPUT_VIDEO_FILE_EXTENSION = 'png'
+TRAINING_PATH   = os.path.join(ROOT_PATH, DATASET_DIR, TRAINING_DIR)
+VALIDATION_PATH = os.path.join(ROOT_PATH, DATASET_DIR, VALIDATION_DIR)
+TEST_PATH       = os.path.join(ROOT_PATH, DATASET_DIR, TEST_DIR)
 
 VIDEO_GROUPS = [[TRAINING_VIDEOS, TRAINING_PATH], [VALIDATION_VIDEOS, VALIDATION_PATH], [TEST_VIDEOS, TEST_PATH]]
 
 def create_images_dataset_with_LPW_videos():
     ANNOTATION_EXTENSION = '.txt'
 
-    for VIDEO_GROUP in VIDEO_GROUPS : 
+    for VIDEO_GROUP in tqdm(VIDEO_GROUPS, leave=False) : 
         VIDEOS, OUTPUT_DIR_PATH = VIDEO_GROUP
         for video_file_name in tqdm(VIDEOS, leave=False) : 
             video_path = os.path.join(VIDEOS_PATH, video_file_name)
@@ -85,9 +78,9 @@ def create_images_dataset_with_of_one_video(file_name, video_path, annotations, 
         
         output_file_name = file_name + '_' + str(video_frame_id).zfill(4)
 
-        output_frame = cv2.resize(frame, (OUTPUT_IMAGE_WIDTH, OUTPUT_IMAGE_HEIGHT)) 
+        output_frame = cv2.resize(frame, OUTPUT_IMAGE_DIMENSIONS) 
         
-        video_output_file_path = os.path.join(OUTPUT_IMAGES_PATH, output_file_name + '.' + OUTPUT_VIDEO_FILE_EXTENSION)
+        video_output_file_path = os.path.join(OUTPUT_IMAGES_PATH, output_file_name + '.' + IMAGES_FILE_EXTENSION)
         cv2.imwrite(video_output_file_path, output_frame)
 
         h, k = center_x/INPUT_IMAGE_WIDTH, center_y/INPUT_IMAGE_HEIGHT
