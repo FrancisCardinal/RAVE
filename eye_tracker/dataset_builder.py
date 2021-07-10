@@ -4,6 +4,8 @@ import numpy as np
 import pickle 
 from tqdm import tqdm
 
+from videos_and_dataset_association import TRAINING_VIDEOS, VALIDATION_VIDEOS, TEST_VIDEOS
+
 OUTPUT_IMAGE_WIDTH, OUTPUT_IMAGE_HEIGHT = 128, 96 
 SOURCE_DIR = 'LPW'
 DESTINATION_DIR = 'dataset'
@@ -13,32 +15,35 @@ ANNOTATIONS_DIR = 'annotations'
 IMAGES_DIR = 'images'
 LABELS_DIR = 'labels'
 
+TRAINING_DIR   = 'training'
+VALIDATION_DIR = 'validation'
+TEST_DIR       = 'test'
+
 ROOT_PATH = os.getcwd()
 VIDEOS_PATH      = os.path.join(ROOT_PATH, SOURCE_DIR, VIDEOS_DIR)
 ANNOTATIONS_PATH = os.path.join(ROOT_PATH, SOURCE_DIR, ANNOTATIONS_DIR)
 
-IMAGES_PATH = os.path.join(ROOT_PATH, DESTINATION_DIR, IMAGES_DIR)
-LABELS_PATH = os.path.join(ROOT_PATH, DESTINATION_DIR, LABELS_DIR)
+TRAINING_PATH   = os.path.join(ROOT_PATH, DESTINATION_DIR, TRAINING_DIR)
+VALIDATION_PATH = os.path.join(ROOT_PATH, DESTINATION_DIR, VALIDATION_DIR)
+TEST_PATH       = os.path.join(ROOT_PATH, DESTINATION_DIR, TEST_DIR)
 
 OUTPUT_VIDEO_FILE_EXTENSION = 'png'
 
+VIDEO_GROUPS = [[TRAINING_VIDEOS, TRAINING_PATH], [VALIDATION_VIDEOS, VALIDATION_PATH], [TEST_VIDEOS, TEST_PATH]]
+
 def create_images_dataset_with_LPW_videos():
-    create_directory_if_does_not_exist(IMAGES_PATH)
-    create_directory_if_does_not_exist(LABELS_PATH)
-
-    VIDEOS_FILES_NAMES = os.listdir(VIDEOS_PATH)
-    ANNOTATIONS_FILES_NAMES = os.listdir(ANNOTATIONS_PATH)
-    assert( len(VIDEOS_FILES_NAMES) == len(ANNOTATIONS_FILES_NAMES) ) # Chaque vidéo devrait avoir son fichier d'annotation
-
     ANNOTATION_EXTENSION = '.txt'
-    for video_file_name in tqdm(VIDEOS_FILES_NAMES) : 
-        video_path = os.path.join(VIDEOS_PATH, video_file_name)
 
-        file_name = os.path.splitext( os.path.basename(video_file_name) )[0] 
-        annotations_file = open(os.path.join(ANNOTATIONS_PATH, file_name + ANNOTATION_EXTENSION), 'r')
-        annotations = annotations_file.readlines()
+    for VIDEO_GROUP in VIDEO_GROUPS : 
+        VIDEOS, OUTPUT_DIR_PATH = VIDEO_GROUP
+        for video_file_name in tqdm(VIDEOS, leave=False) : 
+            video_path = os.path.join(VIDEOS_PATH, video_file_name)
 
-        create_images_dataset_with_of_one_video(file_name, video_path, annotations)
+            file_name = os.path.splitext( os.path.basename(video_file_name) )[0] 
+            annotations_file = open(os.path.join(ANNOTATIONS_PATH, file_name + ANNOTATION_EXTENSION), 'r')
+            annotations = annotations_file.readlines()
+
+            create_images_dataset_with_of_one_video(file_name, video_path, annotations, OUTPUT_DIR_PATH)
 
 
 def create_directory_if_does_not_exist(path): 
@@ -46,11 +51,18 @@ def create_directory_if_does_not_exist(path):
         os.makedirs(path) 
 
 
-def create_images_dataset_with_of_one_video(file_name, video_path, annotations): 
+def create_images_dataset_with_of_one_video(file_name, video_path, annotations, OUTPUT_DIR_PATH): 
     cap = cv2.VideoCapture(video_path)
 
     INPUT_IMAGE_WIDTH  = cap.get(cv2.CAP_PROP_FRAME_WIDTH)   
     INPUT_IMAGE_HEIGHT = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)  
+
+    OUTPUT_IMAGES_PATH = os.path.join(OUTPUT_DIR_PATH, IMAGES_DIR)
+    OUTPUT_LABELS_PATH = os.path.join(OUTPUT_DIR_PATH, LABELS_DIR)
+
+    create_directory_if_does_not_exist(OUTPUT_DIR_PATH)
+    create_directory_if_does_not_exist(OUTPUT_IMAGES_PATH)
+    create_directory_if_does_not_exist(OUTPUT_LABELS_PATH)
 
     annotation_line_index = 0 
     video_frame_id = 0
@@ -75,7 +87,7 @@ def create_images_dataset_with_of_one_video(file_name, video_path, annotations):
 
         output_frame = cv2.resize(frame, (OUTPUT_IMAGE_WIDTH, OUTPUT_IMAGE_HEIGHT)) 
         
-        video_output_file_path = os.path.join(IMAGES_PATH, output_file_name + '.' + OUTPUT_VIDEO_FILE_EXTENSION)
+        video_output_file_path = os.path.join(OUTPUT_IMAGES_PATH, output_file_name + '.' + OUTPUT_VIDEO_FILE_EXTENSION)
         cv2.imwrite(video_output_file_path, output_frame)
 
         h, k = center_x/INPUT_IMAGE_WIDTH, center_y/INPUT_IMAGE_HEIGHT
@@ -84,7 +96,7 @@ def create_images_dataset_with_of_one_video(file_name, video_path, annotations):
 
         label = [h, k, a, b, theta]
 
-        label_output_file_path = os.path.join(LABELS_PATH, output_file_name + '.bin')
+        label_output_file_path = os.path.join(OUTPUT_LABELS_PATH, output_file_name + '.bin')
         pickle.dump( label, open( label_output_file_path, "wb" ) )
 
     cap.release()
