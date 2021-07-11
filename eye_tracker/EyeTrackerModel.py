@@ -16,7 +16,7 @@ class EyeTrackerModel(nn.Module):
         self.conv_block_4 = self.get_convolutionnal_block(3, 512)
 
         self.fully_connected_layers = nn.Sequential()
-        self.fully_connected_layers.add_module('fc1', nn.Linear(17920, 1024) ) #int(self.current_image_size[0] * self.current_image_size[1] * self.current_number_of_channels)
+        self.fully_connected_layers.add_module('fc1', nn.Linear(int(self.current_image_size[0] * self.current_image_size[1] * self.current_number_of_channels), 1024) )
         self.fully_connected_layers.add_module('relu1', nn.ReLU() )
         self.fully_connected_layers.add_module('dropout1', nn.Dropout() )
         
@@ -69,7 +69,7 @@ class EyeTrackerModel(nn.Module):
         height_in, width_in = input_dimensions
         height_out, width_out = output_dimensions
 
-        height_padding = ( (height_out - 1)*stride - height_in + dilatation*(kernel_size-1)+1 )//2
-        width_padding = ( (width_out - 1)*stride   - width_in  + dilatation*(kernel_size-1)+1 )//2
+        height_padding = ( (height_out - 1)*stride - height_in + dilatation*(kernel_size-1)+2 )//2 
+        width_padding = ( (width_out - 1)*stride   - width_in  + dilatation*(kernel_size-1)+2 )//2 
 
         return ( int(height_padding), int(width_padding) )
