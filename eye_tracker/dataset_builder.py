@@ -9,7 +9,7 @@ from videos_and_dataset_association import TRAINING_VIDEOS, VALIDATION_VIDEOS, T
 from EyeTrackerDataset import EyeTrackerDataset, IMAGE_DIMENSIONS
 DATASET_DIR , IMAGES_DIR, LABELS_DIR, TRAINING_DIR, VALIDATION_DIR, TEST_DIR, IMAGES_FILE_EXTENSION = EyeTrackerDataset.DATASET_DIR ,EyeTrackerDataset.IMAGES_DIR,EyeTrackerDataset.LABELS_DIR,EyeTrackerDataset.TRAINING_DIR,EyeTrackerDataset.VALIDATION_DIR,EyeTrackerDataset.TEST_DIR, EyeTrackerDataset.IMAGES_FILE_EXTENSION
 
-OUTPUT_IMAGE_DIMENSIONS = IMAGE_DIMENSIONS
+OUTPUT_IMAGE_DIMENSIONS = (IMAGE_DIMENSIONS[2], IMAGE_DIMENSIONS[1]) # opencv s'attend à recevoir (Width, Height) (i.e, le sens contraire de pytorch)
 SOURCE_DIR = 'LPW'
 VIDEOS_DIR = 'videos'
 ANNOTATIONS_DIR = 'annotations'
