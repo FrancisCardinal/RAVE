@@ -52,15 +52,15 @@ def get_points_of_an_ellipse(h, k, a, b, theta, device, NUMBER_OF_POINTS):
     return output_points
 
 
-def draw_ellipse_on_image(image, ellipse, color=(255, 0, 0), thickness=2):
-    _, HEIGHT, WIDTH = image.shape
+def draw_ellipse_on_image(image, ellipse, color=(255, 0, 0), thickness=1):
+    HEIGHT, WIDTH, _ = image.shape
     h, k, a, b, theta = ellipse 
     h, k, a, b = h*WIDTH, k*HEIGHT, a*WIDTH, b*HEIGHT
     theta = theta*2*pi 
     points = get_points_of_an_ellipse(h, k, a, b, theta, ellipse.device, 360)
     points = points.cpu().numpy()
 
-    image = cv2.polylines(image, np.int32([points]), True, color, thickness)
+    image = cv2.polylines(image, np.int32([points]), False, color, thickness)
 
     return image
 
