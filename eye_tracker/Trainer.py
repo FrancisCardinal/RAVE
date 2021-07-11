@@ -1,9 +1,15 @@
 import torch 
+import os 
+from time import localtime, strftime, time
+from datetime import timedelta
 import numpy as np
 from tqdm import tqdm
+
 import matplotlib.pyplot as plt
+plt.ion()
 
 class Trainer():
+    TRAINING_SESSIONS_DIR = 'training_sessions'
     def __init__(self, 
                 training_loader, 
                 validation_loader, 
@@ -22,9 +28,9 @@ class Trainer():
 
 
     def train_with_validation(self): 
-        NB_EPOCHS = 50
+        NB_EPOCHS = 750
         min_validation_loss = np.inf
-        logs = {}
+        start_time = time()
         
         for epoch in range(NB_EPOCHS):
             current_training_loss   = self.compute_training_loss()
@@ -40,6 +46,13 @@ class Trainer():
                 
                 # Saving State Dict
                 torch.save(self.model.state_dict(), 'saved_model.pth')
+        
+        min_training_loss   = min(self.training_losses)
+        time_of_completion = strftime("%Y-%m-%d %H:%M:%S", localtime())
+        ellapsed_time = str( timedelta( seconds=(time() - start_time) ) )
+        figure_title = f'{time_of_completion:s} | ellapsed_time={ellapsed_time:s} | min_validation_loss={min_validation_loss:.6f} | min_training_loss={min_training_loss:.6f}.png'
+
+        plt.savefig(os.path.join(os.getcwd(), Trainer.TRAINING_SESSIONS_DIR, figure_title), dpi = 200)
 
     
     def compute_training_loss(self):
@@ -93,4 +106,5 @@ class Trainer():
         plt.plot(range(len(self.validation_losses)), self.validation_losses, label='validation loss')
         plt.legend(loc="upper left")
         plt.draw()
-        plt.pause(0.001)
+        plt.gcf().canvas.draw_idle() #Pour éviter que le graphique "vole" le focus et nous empêche de faire autre chose pendant que le réseau s'entraîne
+        plt.gcf().canvas.start_event_loop(0.001)
