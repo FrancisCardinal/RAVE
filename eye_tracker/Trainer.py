@@ -1,4 +1,6 @@
 import torch 
+import numpy as np
+from tqdm import tqdm
 from livelossplot import PlotLosses
 
 class Trainer():
@@ -15,7 +17,8 @@ class Trainer():
         self.device = device
         self.model = model
         self.optimizer = optimizer
-        self.liveloss = PlotLosses()
+        self.liveloss = PlotLosses(mode='script')
+
 
     def train_with_validation(self): 
         NB_EPOCHS = 50
@@ -44,8 +47,9 @@ class Trainer():
         self.model.train()
 
         training_loss = 0.0
-        for images, labels in self.training_loader:
-            images, labels = images.device(self.device), labels.device(self.device)
+        number_of_images = 0 
+        for images, labels in tqdm(self.training_loader, 'training', leave=False):
+            images, labels = images.to(self.device), labels.to(self.device)
             
             # Clear the gradients
             self.optimizer.zero_grad()
@@ -58,9 +62,10 @@ class Trainer():
             # Update Weights
             self.optimizer.step()
             # Calculate Loss
-            training_loss += loss.item().cpu()
+            training_loss += loss.item()
+            number_of_images += len(images)
 
-        return training_loss
+        return training_loss/number_of_images
     
 
     def compute_validation_loss(self):
@@ -68,14 +73,16 @@ class Trainer():
             self.model.eval() 
 
             validation_loss = 0.0  
-            for images, labels in self.validation_loader:
-                images, labels = images.device(self.device), labels.device(self.device)
+            number_of_images = 0 
+            for images, labels in tqdm(self.validation_loader, 'validation', leave=False):
+                images, labels = images.to(self.device), labels.to(self.device)
                 
                 # Forward Pass
                 target = self.model(images)
                 # Find the Loss
                 loss = self.loss_function(target,labels)
                 # Calculate Loss
-                validation_loss += loss.item().cpu()
+                validation_loss += loss.item()
+                number_of_images += len(images)
 
-            return validation_loss
+            return validation_loss/number_of_images
