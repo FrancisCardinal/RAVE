@@ -1,7 +1,10 @@
 import torch
+import cv2
+import numpy as np
+from time import sleep
 
 from EyeTrackerModel import EyeTrackerModel
-from ellipse_util import ellipse_loss_function
+from ellipse_util import ellipse_loss_function, draw_ellipse_on_image
 
 from Trainer import Trainer
 from EyeTrackerDataset import EyeTrackerDataset
@@ -34,8 +37,28 @@ def main():
     
     trainer.train_with_validation()
 
+    visualize_predictions(eye_tracker_model, validation_loader, DEVICE)
+
     test_sub_dataset = EyeTrackerDataset.get_test_sub_dataset
     test_loader = torch.utils.data.DataLoader(test_sub_dataset, batch_size=BATCH_SIZE, shuffle=False,
                                                   num_workers=8, pin_memory=True, persistent_workers=True )
+
+def visualize_predictions(model, data_loader, DEVICE):
+    with torch.no_grad():
+        for images, labels in data_loader:
+            images, labels = images.to(DEVICE), labels.to(DEVICE)
+            predictions = model(images)
+            for image, prediction, label in zip(images, predictions, labels):
+                image = image.permute(1, 2, 0).cpu().numpy()
+                image *= 255.0
+                image = np.ascontiguousarray(image, dtype=np.uint8)
+                image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+
+                image = draw_ellipse_on_image(image, prediction, color=(255, 0, 0))
+                image = draw_ellipse_on_image(image, label,  color=(0, 255, 0))
+
+                cv2.imshow('validation', image)
+                cv2.waitKey(2000)
+
 if __name__ =='__main__':
     main()
