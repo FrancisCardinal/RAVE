@@ -56,7 +56,7 @@ class EyeTrackerModel(nn.Module):
         self.current_image_size = self.current_image_size//2 
 
         conv_block.add_module('relu', nn.ReLU())
-        conv_block.add_module('dropout', nn.Dropout())
+        conv_block.add_module('dropout', nn.Dropout(0.05))
 
         return conv_block
 
