@@ -5,18 +5,16 @@ from torch.utils.data import Dataset
 from torchvision import transforms
 
 import numpy as np
-import uuid
 import random 
 
-import cv2
+from PIL import Image
 import pickle
 
-IMAGE_DIMENSIONS = (128, 96)
+IMAGE_DIMENSIONS = (1, 96, 128)
 TRANSFORM = transforms.Compose([
-                                transforms.Resize(IMAGE_DIMENSIONS), 
-                                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+                                transforms.Resize(IMAGE_DIMENSIONS[1:3]), 
                                 transforms.Grayscale(),
-                                transforms.ToTensor()
+                                transforms.ToTensor(),
                                 ]) 
 
 class EyeTrackerDataset(Dataset):
@@ -42,7 +40,6 @@ class EyeTrackerDataset(Dataset):
         self.LABELS_DIR_PATH = os.path.join(BASE_PATH, EyeTrackerDataset.LABELS_DIR)
 
         self.images_paths = EyeTrackerDataset.get_multiple_workers_safe_list_of_paths(self.IMAGES_DIR_PATH)
-        self.labels_paths = EyeTrackerDataset.get_multiple_workers_safe_list_of_paths(self.LABELS_DIR_PATH)
 
 
     def __len__(self):
@@ -50,9 +47,13 @@ class EyeTrackerDataset(Dataset):
 
 
     def __getitem__(self, idx):
-        image_path, label_path = self.images_paths[idx], self.labels_paths[idx]
+        image_path = self.images_paths[idx]
+        image_path = os.path.join(self.IMAGES_DIR_PATH, image_path)
+        file_name = os.path.splitext( os.path.basename(image_path) )[0] 
+        
+        label_path = os.path.join(self.LABELS_DIR_PATH, file_name + '.bin')
 
-        image = cv2.imread(image_path)
+        image = Image.open(image_path)
         if self.transform:
             image = self.transform(image)
 
@@ -66,7 +67,7 @@ class EyeTrackerDataset(Dataset):
         #Pour régler un problème de "fuite de mémoire" lorsqu'on a plusieurs workers pour le dataloader : https://gist.github.com/mprostock/2850f3cd465155689052f0fa3a177a50
         paths = os.listdir(directory)
         random.shuffle(paths) # Pour éviter que, plus loin, les éléments d'une même batch soient constitués d'éléments trop semblables.
-        return np.array([str(uuid.uuid4()) for i in paths], dtype=np.string) 
+        return np.array([str(i) for i in paths], dtype=np.str) 
     
 
     def get_training_and_validation_sub_datasets(transform = TRANSFORM):
