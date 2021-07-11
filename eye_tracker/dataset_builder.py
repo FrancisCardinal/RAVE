@@ -85,7 +85,7 @@ def create_images_dataset_with_of_one_video(file_name, video_path, annotations, 
 
         h, k = center_x/INPUT_IMAGE_WIDTH, center_y/INPUT_IMAGE_HEIGHT
         a, b = ellipse_width/(2*INPUT_IMAGE_WIDTH), ellipse_height/(2*INPUT_IMAGE_HEIGHT) 
-        theta = np.deg2rad(angle)
+        theta = np.deg2rad(angle)/(2*np.pi)
 
         label = [h, k, a, b, theta]
 
