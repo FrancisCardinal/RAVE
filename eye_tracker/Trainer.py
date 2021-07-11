@@ -1,7 +1,7 @@
 import torch 
 import numpy as np
 from tqdm import tqdm
-from livelossplot import PlotLosses
+import matplotlib.pyplot as plt
 
 class Trainer():
     def __init__(self, 
@@ -17,7 +17,8 @@ class Trainer():
         self.device = device
         self.model = model
         self.optimizer = optimizer
-        self.liveloss = PlotLosses(mode='script')
+        self.training_losses = []
+        self.validation_losses = []
 
 
     def train_with_validation(self): 
@@ -29,11 +30,9 @@ class Trainer():
             current_training_loss   = self.compute_training_loss()
             current_validation_loss = self.compute_validation_loss()
 
-            logs['loss'] = current_training_loss
-            logs['val_loss'] = current_validation_loss
-
-            self.liveloss.update(logs)
-            self.liveloss.send()
+            self.training_losses.append(current_training_loss)
+            self.validation_losses.append(current_validation_loss)
+            self.update_plot()
             
             if min_validation_loss > current_validation_loss:
                 print(f'Validation Loss Decreased({min_validation_loss:.6f}--->{current_validation_loss:.6f}) \t Saving The Model')
@@ -54,9 +53,9 @@ class Trainer():
             # Clear the gradients
             self.optimizer.zero_grad()
             # Forward Pass
-            target = self.model(images)
+            predictions = self.model(images)
             # Find the Loss
-            loss = self.loss_function(target, labels)
+            loss = self.loss_function(predictions, labels)
             # Calculate gradients 
             loss.backward()
             # Update Weights
@@ -78,11 +77,20 @@ class Trainer():
                 images, labels = images.to(self.device), labels.to(self.device)
                 
                 # Forward Pass
-                target = self.model(images)
+                predictions = self.model(images)
                 # Find the Loss
-                loss = self.loss_function(target,labels)
+                loss = self.loss_function(predictions, labels)
                 # Calculate Loss
                 validation_loss += loss.item()
                 number_of_images += len(images)
 
             return validation_loss/number_of_images
+
+
+    def update_plot(self):
+        plt.clf()
+        plt.plot(range(len(self.training_losses)),   self.training_losses, label='training loss')
+        plt.plot(range(len(self.validation_losses)), self.validation_losses, label='validation loss')
+        plt.legend(loc="upper left")
+        plt.draw()
+        plt.pause(0.001)
