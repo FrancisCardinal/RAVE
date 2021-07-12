@@ -26,7 +26,7 @@ def main():
     eye_tracker_model = EyeTrackerModel()
     eye_tracker_model.to(DEVICE)
     print(eye_tracker_model)
-    optimizer = torch.optim.SGD(eye_tracker_model.parameters(), lr=0.01, momentum=0.9)
+    optimizer = torch.optim.SGD(eye_tracker_model.parameters(), lr=0.001, momentum=0.9)
 
     trainer = Trainer(training_loader, 
                       validation_loader, 
@@ -54,7 +54,6 @@ def visualize_predictions(model, data_loader, DEVICE):
                 image = image.permute(1, 2, 0).cpu().numpy()
                 image *= 255.0
                 image = np.ascontiguousarray(image, dtype=np.uint8)
-                image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
 
                 image = draw_ellipse_on_image(image, prediction, color=(255, 0, 0))
                 image = draw_ellipse_on_image(image, label,  color=(0, 255, 0))

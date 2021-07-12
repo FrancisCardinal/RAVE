@@ -10,7 +10,7 @@ import random
 from PIL import Image
 import pickle
 
-IMAGE_DIMENSIONS = (1, 96, 128)
+IMAGE_DIMENSIONS = (1, 224, 299)
 
 class EyeTrackerDataset(Dataset):
     DATASET_DIR = 'dataset'
@@ -24,7 +24,7 @@ class EyeTrackerDataset(Dataset):
 
     IMAGES_FILE_EXTENSION = 'png'
 
-    TRAINING_MEAN, TRAINING_STD = None, None 
+    TRAINING_MEAN, TRAINING_STD = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
 
     def __init__(self, 
                  sub_dataset_dir, 
@@ -74,36 +74,12 @@ class EyeTrackerDataset(Dataset):
         return EyeTrackerDataset(EyeTrackerDataset.TEST_DIR, transform)
     
     def get_transform():
-        if EyeTrackerDataset.TRAINING_MEAN is None : 
-            EyeTrackerDataset.compute_mean_std()
-
-        return EyeTrackerDataset.TRANSFORM
-
-    def compute_mean_std():
-        DEVICE = 'cpu'
-        if( torch.cuda.is_available() ): 
-            DEVICE = 'cuda'
         LIST_OF_TRANSFORMS=[
                             transforms.Resize(IMAGE_DIMENSIONS[1:3]), 
-                            transforms.Grayscale(),
-                            transforms.ToTensor()
+                            transforms.ToTensor(),
+                            transforms.Normalize(mean=EyeTrackerDataset.TRAINING_MEAN, EyeTrackerDataset.TRAINING_STD)
                             ]
                         
         EyeTrackerDataset.TRANSFORM = transforms.Compose(LIST_OF_TRANSFORMS) 
 
-        #https://www.youtube.com/watch?v=y6IEcEBRZks                
-        channel_sum, channel_squared_sum, num_batches = 0, 0, 0
-        dataset = EyeTrackerDataset(EyeTrackerDataset.TRAINING_DIR, EyeTrackerDataset.TRANSFORM)
-        loader = torch.utils.data.DataLoader(dataset, batch_size=128, num_workers=8 )
-        for data, _ in loader : 
-            data.to(DEVICE)
-            channel_sum += torch.mean(data, dim=[0, 2, 3])
-            channel_squared_sum += torch.mean(data**2, dim=[0, 2, 3])
-            num_batches += 1 
-        
-        mean = channel_sum / num_batches 
-        std  = (channel_squared_sum/num_batches - mean**2)**0.5
-
-        EyeTrackerDataset.TRAINING_MEAN, EyeTrackerDataset.TRAINING_STD = mean.item(), std.item() 
-        LIST_OF_TRANSFORMS.append(transforms.Normalize(EyeTrackerDataset.TRAINING_MEAN, EyeTrackerDataset.TRAINING_STD))
-        EyeTrackerDataset.TRANSFORM = transforms.Compose(LIST_OF_TRANSFORMS) 
+        return EyeTrackerDataset.TRANSFORM
