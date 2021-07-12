@@ -77,7 +77,7 @@ class EyeTrackerDataset(Dataset):
         LIST_OF_TRANSFORMS=[
                             transforms.Resize(IMAGE_DIMENSIONS[1:3]), 
                             transforms.ToTensor(),
-                            transforms.Normalize(mean=EyeTrackerDataset.TRAINING_MEAN, EyeTrackerDataset.TRAINING_STD)
+                            transforms.Normalize(mean=EyeTrackerDataset.TRAINING_MEAN, std=EyeTrackerDataset.TRAINING_STD)
                             ]
                         
         EyeTrackerDataset.TRANSFORM = transforms.Compose(LIST_OF_TRANSFORMS) 
