@@ -7,7 +7,7 @@ from numpy import testing
 
 
 def ellipse_loss_function(predictions, targets):
-    NUMBER_OF_POINTS = 1000
+    NUMBER_OF_POINTS = 720
 
     x_predicted, y_predicted  = get_points_of_ellipses(predictions, NUMBER_OF_POINTS)
     x_target, y_target        = get_points_of_ellipses(targets, NUMBER_OF_POINTS)
