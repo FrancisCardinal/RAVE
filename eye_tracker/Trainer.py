@@ -5,6 +5,8 @@ from datetime import timedelta
 import numpy as np
 from tqdm import tqdm
 
+from threading import Thread
+
 import matplotlib.pyplot as plt
 plt.ion()
 
@@ -26,13 +28,26 @@ class Trainer():
         self.training_losses = []
         self.validation_losses = []
 
+        self.terminate_training = False
+        Thread(target=self.terminate_training_thread, daemon=True).start()
+
+    
+    def terminate_training_thread(self):
+        while (not self.terminate_training):
+            key = input()
+            if(key.upper() == 'Q'): 
+                self.terminate_training = True
+
+        print('Terminating training at end of epoch.')
+
 
     def train_with_validation(self): 
-        NB_EPOCHS = 750
+        NB_EPOCHS = 75
         min_validation_loss = np.inf
         start_time = time()
         
-        for epoch in range(NB_EPOCHS):
+        epoch = 0 
+        while ( (epoch < NB_EPOCHS) and (not self.terminate_training) ) :
             current_training_loss   = self.compute_training_loss()
             current_validation_loss = self.compute_validation_loss()
 
@@ -46,13 +61,17 @@ class Trainer():
                 
                 # Saving State Dict
                 torch.save(self.model.state_dict(), 'saved_model.pth')
+            
+            epoch += 1 
         
+        self.terminate_training = True
         min_training_loss   = min(self.training_losses)
         time_of_completion = strftime("%Y-%m-%d %H:%M:%S", localtime())
         ellapsed_time = str( timedelta( seconds=(time() - start_time) ) )
         figure_title = f'{time_of_completion:s} | ellapsed_time={ellapsed_time:s} | min_validation_loss={min_validation_loss:.6f} | min_training_loss={min_training_loss:.6f}.png'
 
         plt.savefig(os.path.join(os.getcwd(), Trainer.TRAINING_SESSIONS_DIR, figure_title), dpi = 200)
+        plt.close(None)
 
     
     def compute_training_loss(self):
@@ -108,3 +127,8 @@ class Trainer():
         plt.draw()
         plt.gcf().canvas.draw_idle() #Pour éviter que le graphique "vole" le focus et nous empêche de faire autre chose pendant que le réseau s'entraîne
         plt.gcf().canvas.start_event_loop(0.001)
+
+    
+    def load_best_model(model): 
+        model.load_state_dict(torch.load('saved_model.pth'))
+        model.eval()
