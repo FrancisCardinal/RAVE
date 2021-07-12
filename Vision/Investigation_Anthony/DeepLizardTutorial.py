@@ -5,8 +5,17 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
+from sklearn.metrics import confusion_matrix
+from resources.plotcm import plot_confusion_matrix
+
 import numpy as np
 import matplotlib.pyplot as plt
+
+from torch.utils.tensorboard import SummaryWriter  # For tensorboard visualization
+
+from itertools import product
+from collections import OrderedDict
+from collections import namedtuple
 
 # -------------------
 # PREPARE DATA
@@ -111,75 +120,149 @@ class Network(nn.Module):  # Extend nn base class (Module)! This class will trac
     #     return ""
 
 
+class RunBuilder:
+
+    @staticmethod
+    def get_runs(params):
+
+        Run = namedtuple("Run", params.keys())
+        runs = []
+        for v in product(*params.values()):
+           runs.append(Run(*v))
+
+        return runs
+
+
 # --------------------
 # CALL NETWORK
 # --------------------
 
 # torch.set_grad_enabled(False)  # Disable learning for the moment
 
-# Create network
-network = Network()
-#print(network)  # Detail the architecture
-
-# Observe weights (and biases) in layer
-# for name, parameter in network.named_parameters():
-#     print(name, "\t\t\t", parameter.shape)
-
-# sample = next(iter(train_set))
-# image, label = sample
-# image_batch = image.unsqueeze(0)  # Convert single image to a batch of size 1 with unsqueeze
-
-
 def get_num_correct(predictions, labels):
+    # print("Prediction probability: ", F.softmax(predictions, dim=1))
+    # print("Max pred: ", predictions.argmax(dim=1), "Actual: ", labels)
+    # print("Comparison: ", predictions.argmax(dim=1).eq(labels))  # Compare each result with label
+    # print("Correct count: ", get_num_correct(predictions, labels))  # Count the number of correct predictions
     return predictions.argmax(dim=1).eq(labels).sum().item()
 
 
-# Load data into batches
-train_loader = torch.utils.data.DataLoader(train_set, batch_size=100)
-batch_iter = iter(train_loader)
-
-optimizer = optim.Adam(network.parameters(), lr=0.01)  # Adam, or SGD: optimization algos. lr: learning rate
-
-for epoch in range(50):
-    total_loss = 0
-    total_correct = 0
-
-    for batch in train_loader:
-        images, labels = batch  # unpack
+def get_all_preds(network, loader):
+    all_preds = torch.tensor([])
+    for batch in loader:
+        images, labels = batch
         predictions = network(images)
 
-        loss = F.cross_entropy(predictions, labels)  # Calculating the Loss function!
-        optimizer.zero_grad()  # We need to reset previous training gradients (because or else they will add up)
-        loss.backward()  # Calculating the gradients
-        # print("Gradients of conv1 layer weights: ", network.conv1.weight.grad)  # Show the gradient of the weights (each weight has a gradient)
+        all_preds = torch.cat((all_preds, predictions), dim=0)
 
-        # Take calculated gradients to update the weights (optimization step)
+    return all_preds
 
-        #print("Current loss: ", loss.item())
-        optimizer.step()  # Updating the weights!
+def build_confusion_matrix(targets, preds):
+    # Build confusion matrix
+    label_and_pred = torch.stack((targets, preds), dim=1)  # True value / pred pair
 
-        # print("Prediction probability: ", F.softmax(predictions, dim=1))
-        # print("Max pred: ", predictions.argmax(dim=1), "Actual: ", labels)
-        # print("Comparison: ", predictions.argmax(dim=1).eq(labels))  # Compare each result with label
-        #print("Correct count: ", get_num_correct(predictions, labels))  # Count the number of correct predictions
+    confusion_mat = torch.zeros(10, 10, dtype=torch.int32)  # Initialize empty confusion matrix
 
-        total_loss += loss.item()
-        total_correct += get_num_correct(predictions, labels)
+    for pair in label_and_pred:
+        label, pred = pair.tolist()
+        confusion_mat[label, pred] += 1
 
-    print("Epoch:", epoch, "total_correct:", total_correct, "loss:", total_loss, "Result:", total_correct/len(train_set)*100, "%")
+    return confusion_mat
 
-# View batch images
-# grid = torchvision.utils.make_grid(images, nrow=10)  # torchvision function for combining images in a grid
-# plt.figure()
-# plt.imshow(np.transpose(grid, (1, 2, 0)))  # Need to transpose to reorder axis to match what imshow() expects
-# plt.title(np.array2string(labels.numpy()))
-# plt.show()
+def show_confusion_matrix(targets, preds):
+    # Plot confusion matrix
+    names = ("t-shirt", "trouser", "pullover", "dress", "coat", "sandal", "shirt", "sneaker", "bag", "ankle boot")
+    cm = confusion_matrix(targets, preds)
+
+    plt.figure(figsize=(10, 10))
+    plot_confusion_matrix(cm, names)
+    plt.show()
 
 
+# Hyperparameters
+num_epochs = 1
+parameters = OrderedDict(
+    lr=[0.01, 0.001],
+    batch_size=[10, 100, 1000],
+    shuffle=[True, False]
+)
 
+# Create all combinations of hyperparameters
+# param_values = [v for v in parameters.values()]  # list of parameters values
 
+all_runs = RunBuilder.get_runs(parameters)
 
+run_count = 0
+for run in all_runs:
+    run_count += 1
 
+    # Create network
+    network = Network()
+
+    # Load data into batches
+    train_loader = torch.utils.data.DataLoader(train_set, batch_size=run.batch_size, shuffle=run.shuffle)
+
+    optimizer = optim.Adam(network.parameters(), lr=run.lr)  # Adam, or SGD: optimization algos. lr: learning rate
+
+    # Tensor board
+    comment = f"-{run}"
+    tensor_board = SummaryWriter(comment=comment)  # Comment is used to identify run
+    images, labels = next(iter(train_loader))
+    grid = torchvision.utils.make_grid(images)
+    tensor_board.add_image("images", grid)
+    tensor_board.add_graph(network, images)
+
+    print(f"{run_count}/{len(all_runs)}: ", comment)
+
+    for epoch in range(num_epochs):
+        total_loss = 0
+        total_correct = 0
+
+        for batch in train_loader:
+            images, labels = batch  # unpack
+            predictions = network(images)
+
+            loss = F.cross_entropy(predictions, labels)  # Calculating the Loss function!
+            optimizer.zero_grad()  # We need to reset previous training gradients (because or else they will add up)
+            loss.backward()  # Calculating the gradients
+            # print("Gradients of conv1 layer weights: ", network.conv1.weight.grad)  # Show the gradient of the weights (each weight has a gradient)
+
+            # Take calculated gradients to update the weights (optimization step)
+            optimizer.step()  # Updating the weights!
+
+            total_loss += loss.item() * run.batch_size  # Multiplying by batch size so runs with different batch sizes can be comparable
+            total_correct += get_num_correct(predictions, labels)
+
+        # Add data to tensorboard
+        tensor_board.add_scalar("Loss", total_loss, epoch)
+        tensor_board.add_scalar("Number correct", total_correct, epoch)
+        tensor_board.add_scalar("Accuracy", total_correct/len(train_set), epoch)
+
+        for name, weight in network.named_parameters():
+            tensor_board.add_histogram(name, weight, epoch)
+            tensor_board.add_histogram(f"{name}.grad", weight.grad, epoch)
+
+        print("Epoch: {}  total_correct: {}  total_loss: {:.4f}  result: {:.4f}%".format(epoch, total_correct, total_loss, total_correct/len(train_set)*100))
+
+    # View batch images
+    # grid = torchvision.utils.make_grid(images, nrow=10)  # torchvision function for combining images in a grid
+    # plt.figure()
+    # plt.imshow(np.transpose(grid, (1, 2, 0)))  # Need to transpose to reorder axis to match what imshow() expects
+    # plt.title(np.array2string(labels.numpy()))
+    # plt.show()
+
+    # View results (only works if not shuffled)
+    with torch.no_grad():  # Deactivate gradient tracking locally: because we don't want to train here
+        test_train_loader = torch.utils.data.DataLoader(train_set, batch_size=run.batch_size, shuffle=False)
+        train_preds = get_all_preds(network, test_train_loader)
+
+    preds_correct = get_num_correct(train_preds, train_set.targets)
+    print(f"Final: {preds_correct}/{len(train_set)} ({preds_correct/len(train_set)*100:.4f}%)")
+
+    print(build_confusion_matrix(train_set.targets, train_preds.argmax(dim=1)))  # Print confusion matrix in console
+    # show_confusion_matrix(train_set.targets, train_preds.argmax(dim=1))  # plot a nice confusion matrix
+
+tensor_board.close()
 
 
 
