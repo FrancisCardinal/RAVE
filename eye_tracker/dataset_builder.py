@@ -59,6 +59,7 @@ def create_images_dataset_with_of_one_video(file_name, video_path, annotations, 
 
     annotation_line_index = 0 
     video_frame_id = 0
+    last_saved_pair_id = 0 
     while(cap.isOpened()):
         annotation_line_index += 1  
         video_frame_id += 1 
@@ -75,6 +76,9 @@ def create_images_dataset_with_of_one_video(file_name, video_path, annotations, 
 
         if(angle == -1): 
             continue # Les fichiers d'annotations utilisent '-1' pour toutes les valeurs lorsqu'une frame donnée ne comporte pas de pupille visible. 
+
+        if((video_frame_id - last_saved_pair_id) < 3): #Pour ne pas sauvegarder toutes les images du flux vidéo (les images qui se suivent sont très similaires). Je met cette vérification passé le point de la vérification du '-1' pour éviter qu'on passe trois frames valides puis qu'on tombe sur une frame invalide, et qu'on "gaspille" donc des frames valides.
+            continue
         
         output_file_name = file_name + '_' + str(video_frame_id).zfill(4)
 
@@ -92,7 +96,9 @@ def create_images_dataset_with_of_one_video(file_name, video_path, annotations, 
         label_output_file_path = os.path.join(OUTPUT_LABELS_PATH, output_file_name + '.bin')
         pickle.dump( label, open( label_output_file_path, "wb" ) )
 
-    cap.release()
+        last_saved_pair_id = video_frame_id
+
+    cap.release()    
 
 
 if __name__ =='__main__':
