@@ -15,7 +15,7 @@ def main():
         DEVICE = 'cuda'
 
     BATCH_SIZE = 128 
-    training_sub_dataset, validation_sub_dataset = EyeTrackerDataset.get_training_and_validation_sub_datasets()
+    training_sub_dataset, validation_sub_dataset = EyeTrackerDataset.get_training_and_validation_sub_datasets(EyeTrackerDataset.get_transform())
 
     training_loader = torch.utils.data.DataLoader(training_sub_dataset, batch_size=BATCH_SIZE, shuffle=True,
                                                   num_workers=8, pin_memory=True, persistent_workers=True )
@@ -37,9 +37,11 @@ def main():
     
     trainer.train_with_validation()
 
+    Trainer.load_best_model(eye_tracker_model)
+
     visualize_predictions(eye_tracker_model, validation_loader, DEVICE)
 
-    test_sub_dataset = EyeTrackerDataset.get_test_sub_dataset
+    test_sub_dataset = EyeTrackerDataset.get_test_sub_dataset(EyeTrackerDataset.get_transform())
     test_loader = torch.utils.data.DataLoader(test_sub_dataset, batch_size=BATCH_SIZE, shuffle=False,
                                                   num_workers=8, pin_memory=True, persistent_workers=True )
 
@@ -58,7 +60,7 @@ def visualize_predictions(model, data_loader, DEVICE):
                 image = draw_ellipse_on_image(image, label,  color=(0, 255, 0))
 
                 cv2.imshow('validation', image)
-                cv2.waitKey(2000)
+                cv2.waitKey(1500)
 
 if __name__ =='__main__':
     main()
