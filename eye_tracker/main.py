@@ -1,7 +1,6 @@
 import torch
 import cv2
 import numpy as np
-from time import sleep
 
 from EyeTrackerModel import EyeTrackerModel
 from ellipse_util import ellipse_loss_function, draw_ellipse_on_image
@@ -9,13 +8,16 @@ from ellipse_util import ellipse_loss_function, draw_ellipse_on_image
 from Trainer import Trainer
 from EyeTrackerDataset import EyeTrackerDataset
 
+from dataset_builder import create_images_dataset_with_LPW_videos
+
 def main():
     DEVICE = 'cpu'
     if( torch.cuda.is_available() ): 
         DEVICE = 'cuda'
 
+    create_images_dataset_with_LPW_videos()
+
     BATCH_SIZE = 128 
-    training_sub_dataset, validation_sub_dataset = EyeTrackerDataset.get_training_and_validation_sub_datasets(EyeTrackerDataset.get_transform())
     training_sub_dataset   = EyeTrackerDataset.get_training_sub_dataset(EyeTrackerDataset.get_training_transform())
     validation_sub_dataset = EyeTrackerDataset.get_validation_sub_dataset(EyeTrackerDataset.get_test_transform())
 
