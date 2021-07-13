@@ -67,19 +67,30 @@ class EyeTrackerDataset(Dataset):
         return np.array([str(i) for i in paths], dtype=np.str) 
     
 
-    def get_training_and_validation_sub_datasets(transform = None):
-        return EyeTrackerDataset(EyeTrackerDataset.TRAINING_DIR, transform), EyeTrackerDataset(EyeTrackerDataset.VALIDATION_DIR, transform)
+    def get_training_sub_dataset(transform = None):
+        return EyeTrackerDataset(EyeTrackerDataset.TRAINING_DIR, transform)
 
+    def get_validation_sub_dataset(transform = None):
+        return EyeTrackerDataset(EyeTrackerDataset.VALIDATION_DIR, transform)
+        
     def get_test_sub_dataset(transform = None):
         return EyeTrackerDataset(EyeTrackerDataset.TEST_DIR, transform)
-    
-    def get_transform():
-        LIST_OF_TRANSFORMS=[
+
+    def get_training_transform():
+        TRAINING_TRANSFORM = transforms.Compose([
+                            transforms.Resize(IMAGE_DIMENSIONS[1:3]), 
+                            transforms.ToTensor(),
+                            transforms.ColorJitter(brightness=0.5, contrast=0.5, saturation=0.5, hue=0.5), # random
+                            transforms.Normalize(mean=EyeTrackerDataset.TRAINING_MEAN, std=EyeTrackerDataset.TRAINING_STD)
+                            ])
+                        
+        return TRAINING_TRANSFORM
+
+    def get_test_transform():
+        TEST_TRANSFORM = transforms.Compose([
                             transforms.Resize(IMAGE_DIMENSIONS[1:3]), 
                             transforms.ToTensor(),
                             transforms.Normalize(mean=EyeTrackerDataset.TRAINING_MEAN, std=EyeTrackerDataset.TRAINING_STD)
-                            ]
+                            ])
                         
-        EyeTrackerDataset.TRANSFORM = transforms.Compose(LIST_OF_TRANSFORMS) 
-
-        return EyeTrackerDataset.TRANSFORM
+        return TEST_TRANSFORM
