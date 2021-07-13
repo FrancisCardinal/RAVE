@@ -25,6 +25,11 @@ TEST_PATH       = os.path.join(ROOT_PATH, DATASET_DIR, TEST_DIR)
 VIDEO_GROUPS = [[TRAINING_VIDEOS, TRAINING_PATH], [VALIDATION_VIDEOS, VALIDATION_PATH], [TEST_VIDEOS, TEST_PATH]]
 
 def create_images_dataset_with_LPW_videos():
+    if( os.path.isdir(TEST_PATH) ): 
+        print('dataset found on disk')
+        return
+
+    print('dataset has NOT been found on disk, creating dataset')
     ANNOTATION_EXTENSION = '.txt'
 
     for VIDEO_GROUP in tqdm(VIDEO_GROUPS, leave=False) : 

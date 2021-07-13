@@ -42,12 +42,12 @@ class Trainer():
 
 
     def train_with_validation(self): 
-        NB_EPOCHS = 75
+        NB_EPOCHS = 20
         min_validation_loss = np.inf
         start_time = time()
         
-        epoch = 0 
-        while ( (epoch < NB_EPOCHS) and (not self.terminate_training) ) :
+        epoch = 1 
+        while ( (epoch <= NB_EPOCHS) and (not self.terminate_training) ) :
             current_training_loss   = self.compute_training_loss()
             current_validation_loss = self.compute_validation_loss()
 
@@ -55,22 +55,26 @@ class Trainer():
             self.validation_losses.append(current_validation_loss)
             self.update_plot()
             
+            epoch_stats = f'Epoch {epoch:0>4d} | validation_loss={current_validation_loss:.6f} | training_loss={current_training_loss:.6f}'
+            
             if min_validation_loss > current_validation_loss:
-                print(f'Validation Loss Decreased({min_validation_loss:.6f}--->{current_validation_loss:.6f}) \t Saving The Model')
+                epoch_stats = epoch_stats+ f'  | Min validation loss decreased({min_validation_loss:.6f}--->{current_validation_loss:.6f}) : Saved the model'
                 min_validation_loss = current_validation_loss
                 
                 # Saving State Dict
                 torch.save(self.model.state_dict(), 'saved_model.pth')
             
+            print(epoch_stats)
             epoch += 1 
         
         self.terminate_training = True
         min_training_loss   = min(self.training_losses)
         time_of_completion = strftime("%Y-%m-%d %H:%M:%S", localtime())
         ellapsed_time = str( timedelta( seconds=(time() - start_time) ) )
-        figure_title = f'{time_of_completion:s} | ellapsed_time={ellapsed_time:s} | min_validation_loss={min_validation_loss:.6f} | min_training_loss={min_training_loss:.6f}.png'
+        figure_title = f'{time_of_completion:s} | ellapsed_time={ellapsed_time:s} | min_validation_loss={min_validation_loss:.6f} | min_training_loss={min_training_loss:.6f}'
 
-        plt.savefig(os.path.join(os.getcwd(), Trainer.TRAINING_SESSIONS_DIR, figure_title), dpi = 200)
+        print(figure_title)
+        plt.savefig(os.path.join(os.getcwd(), Trainer.TRAINING_SESSIONS_DIR, figure_title + '.png'), dpi = 200)
         plt.close(None)
 
     
@@ -121,8 +125,8 @@ class Trainer():
 
     def update_plot(self):
         plt.clf()
-        plt.plot(range(len(self.training_losses)),   self.training_losses, label='training loss')
-        plt.plot(range(len(self.validation_losses)), self.validation_losses, label='validation loss')
+        plt.plot(range(1, len(self.training_losses)),   self.training_losses, label='training loss')
+        plt.plot(range(1, len(self.validation_losses)), self.validation_losses, label='validation loss')
         plt.legend(loc="upper left")
         plt.draw()
         plt.gcf().canvas.draw_idle() #Pour éviter que le graphique "vole" le focus et nous empêche de faire autre chose pendant que le réseau s'entraîne
