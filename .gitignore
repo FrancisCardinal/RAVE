@@ -1,0 +1,4 @@
+data/
+UrbanSound8K/*
+!UrbanSound8K/includeMe.txt
+__pycache__/*
