@@ -76,9 +76,6 @@ def create_images_dataset_with_of_one_video(file_name, video_path, annotations, 
 
         if(angle == -1): 
             continue # Les fichiers d'annotations utilisent '-1' pour toutes les valeurs lorsqu'une frame donnée ne comporte pas de pupille visible. 
-
-        if((video_frame_id - last_saved_pair_id) < 3): #Pour ne pas sauvegarder toutes les images du flux vidéo (les images qui se suivent sont très similaires). Je met cette vérification passé le point de la vérification du '-1' pour éviter qu'on passe trois frames valides puis qu'on tombe sur une frame invalide, et qu'on "gaspille" donc des frames valides.
-            continue
         
         output_file_name = file_name + '_' + str(video_frame_id).zfill(4)
 
