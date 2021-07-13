@@ -6,6 +6,7 @@ resources_dir = os.path.join(os.path.dirname(__file__), "../resources")
 face_cascade = cv2.CascadeClassifier(os.path.join(resources_dir, "haarcascade_frontalface_default.xml"))
 profile_cascade = cv2.CascadeClassifier(os.path.join(resources_dir, "haarcascade_profileface.xml"))
 
+
 def detect_faces(frame):
 
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
