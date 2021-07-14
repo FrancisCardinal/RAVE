@@ -81,6 +81,8 @@ class EyeTrackerDataset(Dataset):
                             transforms.Resize(IMAGE_DIMENSIONS[1:3]), 
                             transforms.ToTensor(),
                             transforms.ColorJitter(brightness=0.5, contrast=0.5, saturation=0.5, hue=0.5), # random
+                            transforms.GaussianBlur(3), # random
+                            transforms.RandomInvert(0.25), # random
                             transforms.Normalize(mean=EyeTrackerDataset.TRAINING_MEAN, std=EyeTrackerDataset.TRAINING_STD)
                             ])
                         
