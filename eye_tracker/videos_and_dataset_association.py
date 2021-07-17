@@ -32,14 +32,18 @@ TRAINING_VIDEOS = [
 'LPW_14_3.avi',
 'LPW_14_1.avi',
 'LPW_15_1.avi',
-'LPW_15_3.avi']
+'LPW_15_3.avi',
+'LPW_9_2.avi',
+'LPW_9_3.avi',
+'LPW_9_1.avi',
+'LPW_14_2.avi',
+'LPW_19_1.avi']
 
 VALIDATION_VIDEOS = [
 'LPW_1_3.avi',
 'LPW_12_2.avi',
 'LPW_16_3.avi',
 'LPW_18_2.avi',
-'LPW_19_1.avi',
 'LPW_21_3.avi',
 'LPW_22_3.avi',
 'LPW_2_2.avi',
@@ -50,7 +54,6 @@ VALIDATION_VIDEOS = [
 'LPW_7_3.avi',
 'LPW_10_1.avi',
 'LPW_11_3.avi',
-'LPW_14_2.avi',
 'LPW_15_2.avi']
 
 TEST_VIDEOS = [
@@ -63,9 +66,6 @@ TEST_VIDEOS = [
 'LPW_8_1.avi',
 'LPW_8_3.avi',
 'LPW_8_2.avi',
-'LPW_9_2.avi',
-'LPW_9_3.avi',
-'LPW_9_1.avi',
 'LPW_13_1.avi',
 'LPW_13_2.avi',
 'LPW_13_3.avi']
