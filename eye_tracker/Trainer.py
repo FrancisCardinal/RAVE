@@ -42,12 +42,12 @@ class Trainer():
 
 
     def train_with_validation(self): 
-        NB_EPOCHS = 20
+        NB_EPOCHS = 200
         min_validation_loss = np.inf
         start_time = time()
         
-        epoch = 1 
-        while ( (epoch <= NB_EPOCHS) and (not self.terminate_training) ) :
+        epoch = 0
+        while ( (epoch < NB_EPOCHS) and (not self.terminate_training) ) :
             current_training_loss   = self.compute_training_loss()
             current_validation_loss = self.compute_validation_loss()
 
@@ -125,8 +125,8 @@ class Trainer():
 
     def update_plot(self):
         plt.clf()
-        plt.plot(range(1, len(self.training_losses)),   self.training_losses, label='training loss')
-        plt.plot(range(1, len(self.validation_losses)), self.validation_losses, label='validation loss')
+        plt.plot(range(len(self.training_losses)),   self.training_losses, label='training loss')
+        plt.plot(range(len(self.validation_losses)), self.validation_losses, label='validation loss')
         plt.legend(loc="upper left")
         plt.draw()
         plt.gcf().canvas.draw_idle() #Pour éviter que le graphique "vole" le focus et nous empêche de faire autre chose pendant que le réseau s'entraîne
