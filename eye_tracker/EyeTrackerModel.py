@@ -17,10 +17,12 @@ class EyeTrackerModel(nn.Module):
             nn.Linear(n_inputs, 64),
             nn.BatchNorm1d(num_features=64),
             nn.ReLU(),
+            nn.Dropout(0.25),
 
             nn.Linear(64, 32),
             nn.BatchNorm1d(num_features=32),
             nn.ReLU(),
+            nn.Dropout(0.25),
 
             nn.Linear(32, 5)
         )
