@@ -1,6 +1,6 @@
 import torch
 import cv2
-import numpy as np
+import argparse
 
 from EyeTrackerModel import EyeTrackerModel
 from ellipse_util import ellipse_loss_function, draw_ellipse_on_image
@@ -11,7 +11,7 @@ from EyeTrackerDataset import EyeTrackerDataset
 from dataset_builder import create_images_dataset_with_LPW_videos
 from image_utils import tensor_to_opencv_image, inverse_normalize
 
-def main():
+def main(TRAIN, NB_EPOCHS, DISPLAY_VALIDATION, TEST):
     DEVICE = 'cpu'
     if( torch.cuda.is_available() ): 
         DEVICE = 'cuda'
@@ -31,24 +31,29 @@ def main():
     eye_tracker_model = EyeTrackerModel()
     eye_tracker_model.to(DEVICE)
     print(eye_tracker_model)
-    optimizer = torch.optim.SGD(eye_tracker_model.parameters(), lr=0.001, momentum=0.9)
 
-    trainer = Trainer(training_loader, 
-                      validation_loader, 
-                      ellipse_loss_function,
-                      DEVICE,
-                      eye_tracker_model,
-                      optimizer)
+    if(TRAIN): 
+        optimizer = torch.optim.SGD(eye_tracker_model.parameters(), lr=0.001, momentum=0.9)
+
+        trainer = Trainer(training_loader, 
+                        validation_loader, 
+                        ellipse_loss_function,
+                        DEVICE,
+                        eye_tracker_model,
+                        optimizer)
+        
+        trainer.train_with_validation(NB_EPOCHS)
     
-    trainer.train_with_validation()
-
     Trainer.load_best_model(eye_tracker_model)
 
-    visualize_predictions(eye_tracker_model, validation_loader, DEVICE)
+    if(DISPLAY_VALIDATION):
+        visualize_predictions(eye_tracker_model, validation_loader, DEVICE)
 
-    test_sub_dataset = EyeTrackerDataset.get_test_sub_dataset(EyeTrackerDataset.get_test_transform())
-    test_loader = torch.utils.data.DataLoader(test_sub_dataset, batch_size=BATCH_SIZE, shuffle=False,
-                                                  num_workers=8, pin_memory=True, persistent_workers=True )
+    if(TEST):
+        test_sub_dataset = EyeTrackerDataset.get_test_sub_dataset(EyeTrackerDataset.get_test_transform())
+        test_loader = torch.utils.data.DataLoader(test_sub_dataset, batch_size=BATCH_SIZE, shuffle=False,
+                                                    num_workers=8, pin_memory=True, persistent_workers=True )
+        visualize_predictions(eye_tracker_model, test_loader, DEVICE)
 
 def visualize_predictions(model, data_loader, DEVICE):
     with torch.no_grad():
@@ -67,4 +72,11 @@ def visualize_predictions(model, data_loader, DEVICE):
 
 
 if __name__ =='__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--train', default=True)
+    parser.add_argument('--nb_epochs', default=20)
+    parser.add_argument('--display_validation', default=True)
+    parser.add_argument('--test', default=False)
+    args = parser.parse_args()
+
+    main(args.train, args.nb_epochs, args.display_validation, args.test)
