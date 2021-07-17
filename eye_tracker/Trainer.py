@@ -41,8 +41,7 @@ class Trainer():
         print('Terminating training at end of epoch.')
 
 
-    def train_with_validation(self): 
-        NB_EPOCHS = 200
+    def train_with_validation(self, NB_EPOCHS): 
         min_validation_loss = np.inf
         start_time = time()
         
