@@ -9,6 +9,7 @@ from Trainer import Trainer
 from EyeTrackerDataset import EyeTrackerDataset
 
 from dataset_builder import create_images_dataset_with_LPW_videos
+from image_utils import tensor_to_opencv_image, inverse_normalize
 
 def main():
     DEVICE = 'cpu'
@@ -56,9 +57,7 @@ def visualize_predictions(model, data_loader, DEVICE):
             predictions = model(images)
             for image, prediction, label in zip(images, predictions, labels):
                 image = inverse_normalize(image, EyeTrackerDataset.TRAINING_MEAN, EyeTrackerDataset.TRAINING_STD)
-                image = image.permute(1, 2, 0).cpu().numpy()
-                image *= 255.0
-                image = np.ascontiguousarray(image, dtype=np.uint8)
+                image = tensor_to_opencv_image(image)
 
                 image = draw_ellipse_on_image(image, prediction, color=(255, 0, 0))
                 image = draw_ellipse_on_image(image, label,  color=(0, 255, 0))
@@ -66,17 +65,6 @@ def visualize_predictions(model, data_loader, DEVICE):
                 cv2.imshow('validation', image)
                 cv2.waitKey(1500)
 
-
-def inverse_normalize(tensor, mean, std):
-    # https://discuss.pytorch.org/t/simple-way-to-inverse-transform-normalization/4821/17 
-    mean = torch.as_tensor(mean, dtype=tensor.dtype, device=tensor.device)
-    std = torch.as_tensor(std, dtype=tensor.dtype, device=tensor.device)
-    if mean.ndim == 1:
-        mean = mean.view(-1, 1, 1)
-    if std.ndim == 1:
-        std = std.view(-1, 1, 1)
-    tensor.mul_(std).add_(mean)
-    return tensor
 
 if __name__ =='__main__':
     main()

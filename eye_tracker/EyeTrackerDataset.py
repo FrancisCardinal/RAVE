@@ -26,6 +26,11 @@ class EyeTrackerDataset(Dataset):
 
     TRAINING_MEAN, TRAINING_STD = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
 
+    TRANSFORM = transforms.Compose([
+                            transforms.Resize(IMAGE_DIMENSIONS[1:3]), 
+                            transforms.ToTensor(),
+                            transforms.Normalize(mean=TRAINING_MEAN, std=TRAINING_STD)
+                            ])
     def __init__(self, 
                  sub_dataset_dir, 
                  transform):
@@ -77,22 +82,7 @@ class EyeTrackerDataset(Dataset):
         return EyeTrackerDataset(EyeTrackerDataset.TEST_DIR, transform)
 
     def get_training_transform():
-        TRAINING_TRANSFORM = transforms.Compose([
-                            transforms.Resize(IMAGE_DIMENSIONS[1:3]), 
-                            transforms.ToTensor(),
-                            transforms.ColorJitter(brightness=0.5, contrast=0.5, saturation=0.5, hue=0.5), # random
-                            transforms.GaussianBlur(3), # random
-                            transforms.RandomInvert(0.25), # random
-                            transforms.Normalize(mean=EyeTrackerDataset.TRAINING_MEAN, std=EyeTrackerDataset.TRAINING_STD)
-                            ])
-                        
-        return TRAINING_TRANSFORM
+        return EyeTrackerDataset.TRANSFORM
 
-    def get_test_transform():
-        TEST_TRANSFORM = transforms.Compose([
-                            transforms.Resize(IMAGE_DIMENSIONS[1:3]), 
-                            transforms.ToTensor(),
-                            transforms.Normalize(mean=EyeTrackerDataset.TRAINING_MEAN, std=EyeTrackerDataset.TRAINING_STD)
-                            ])
-                        
-        return TEST_TRANSFORM
+    def get_test_transform():                        
+        return EyeTrackerDataset.TRANSFORM
