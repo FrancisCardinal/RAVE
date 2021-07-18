@@ -8,13 +8,23 @@ class EyeTrackerModel(nn.Module):
         for param in self.model.parameters():
             param.requires_grad = False
 
-        for param in self.model.layer4[1].parameters():
+        for param in self.model.layer4.parameters():
             param.requires_grad = True
 
         n_inputs = self.model.fc.in_features
 
         self.model.fc = nn.Sequential(
-            nn.Linear(n_inputs, 128),
+            nn.Linear(n_inputs, 512),
+            nn.BatchNorm1d(num_features=512),
+            nn.ReLU(),
+            nn.Dropout(0.25),
+
+            nn.Linear(512, 256),
+            nn.BatchNorm1d(num_features=256),
+            nn.ReLU(),
+            nn.Dropout(0.25),
+
+            nn.Linear(256, 128),
             nn.BatchNorm1d(num_features=128),
             nn.ReLU(),
             nn.Dropout(0.25),
@@ -24,12 +34,7 @@ class EyeTrackerModel(nn.Module):
             nn.ReLU(),
             nn.Dropout(0.25),
 
-            nn.Linear(64, 32),
-            nn.BatchNorm1d(num_features=32),
-            nn.ReLU(),
-            nn.Dropout(0.25),
-
-            nn.Linear(32, 5)
+            nn.Linear(64, 5)
         )
         
 

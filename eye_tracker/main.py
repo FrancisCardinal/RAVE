@@ -64,8 +64,8 @@ def visualize_predictions(model, data_loader, DEVICE):
                 image = inverse_normalize(image, EyeTrackerDataset.TRAINING_MEAN, EyeTrackerDataset.TRAINING_STD)
                 image = tensor_to_opencv_image(image)
 
-                image = draw_ellipse_on_image(image, prediction, color=(255, 0, 0))
                 image = draw_ellipse_on_image(image, label,  color=(0, 255, 0))
+                image = draw_ellipse_on_image(image, prediction, color=(255, 0, 0))
 
                 cv2.imshow('validation', image)
                 cv2.waitKey(1500)
