@@ -73,10 +73,10 @@ def visualize_predictions(model, data_loader, DEVICE):
 
 if __name__ =='__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--train', default=True)
-    parser.add_argument('--nb_epochs', default=20)
-    parser.add_argument('--display_validation', default=True)
-    parser.add_argument('--test', default=False)
+    parser.add_argument('-t', '--train', action='store_true', help='Train the neural network')
+    parser.add_argument('-e', '--nb_epochs', action='store', type=int, default=20, help='Number of epoch for which to train the neural network')
+    parser.add_argument('-v', '--display_validation', action='store_true', help='Display the predictions of the neural network on the validation dataset')
+    parser.add_argument('-p', '--predict', action='store_true', help='Display the predictions of the neural network on the test dataset')
     args = parser.parse_args()
 
-    main(args.train, args.nb_epochs, args.display_validation, args.test)
+    main(args.train, args.nb_epochs, args.display_validation, args.predict)
