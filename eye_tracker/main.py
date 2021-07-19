@@ -8,7 +8,7 @@ from ellipse_util import ellipse_loss_function, draw_ellipse_on_image
 from Trainer import Trainer
 from EyeTrackerDataset import EyeTrackerDataset
 
-from dataset_builder import create_images_dataset_with_LPW_videos
+from DatasetBuilder import DatasetBuilder
 from image_utils import tensor_to_opencv_image, inverse_normalize
 
 def main(TRAIN, NB_EPOCHS, DISPLAY_VALIDATION, TEST):
@@ -16,7 +16,7 @@ def main(TRAIN, NB_EPOCHS, DISPLAY_VALIDATION, TEST):
     if( torch.cuda.is_available() ): 
         DEVICE = 'cuda'
 
-    create_images_dataset_with_LPW_videos()
+    DatasetBuilder.create_images_datasets_with_LPW_videos()
 
     BATCH_SIZE = 128 
     training_sub_dataset   = EyeTrackerDataset.get_training_sub_dataset(EyeTrackerDataset.get_training_transform())
