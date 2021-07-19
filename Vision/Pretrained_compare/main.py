@@ -1,7 +1,7 @@
 import cv2
 
-from models import haar
 from resources.fpsHelper import FPS
+from models import haar, hog, dnn
 
 
 def image_detect(detect_func, path="resources/TonyFace1/jpg"):
@@ -37,8 +37,8 @@ if __name__ == '__main__':
     # Test with image
     # image_detect("resources/TonyFace1.jpg")
 
-    # Test with video stream haar
-    stream_detect(haar.detect_faces)
+    # Test with video stream
+    stream_detect(dnn.detect_faces)
 
 
 
