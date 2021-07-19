@@ -13,26 +13,27 @@ class EyeTrackerModel(nn.Module):
 
         n_inputs = self.model.fc.in_features
 
+        DROPOUT = 0.25
         self.model.fc = nn.Sequential(
             nn.Linear(n_inputs, 512),
             nn.BatchNorm1d(num_features=512),
             nn.ReLU(),
-            nn.Dropout(0.25),
+            nn.Dropout(DROPOUT),
 
             nn.Linear(512, 256),
             nn.BatchNorm1d(num_features=256),
             nn.ReLU(),
-            nn.Dropout(0.25),
+            nn.Dropout(DROPOUT),
 
             nn.Linear(256, 128),
             nn.BatchNorm1d(num_features=128),
             nn.ReLU(),
-            nn.Dropout(0.25),
+            nn.Dropout(DROPOUT),
 
             nn.Linear(128, 64),
             nn.BatchNorm1d(num_features=64),
             nn.ReLU(),
-            nn.Dropout(0.25),
+            nn.Dropout(DROPOUT),
 
             nn.Linear(64, 5)
         )
