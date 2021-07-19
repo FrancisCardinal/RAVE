@@ -55,7 +55,7 @@ class DatasetBuilder:
             print('dataset found on disk')
             return -1 
 
-        BUILDERS = [ TrainingDatasetBuilder(TRAINING_VIDEOS, TRAINING_PATH), DatasetBuilder(VALIDATION_VIDEOS, VALIDATION_PATH), DatasetBuilder(TEST_VIDEOS, TEST_PATH) ]
+        BUILDERS = [ TrainingDatasetBuilder(TRAINING_VIDEOS, TRAINING_PATH, 'training   dataset'), DatasetBuilder(VALIDATION_VIDEOS, VALIDATION_PATH, 'validation dataset'), DatasetBuilder(TEST_VIDEOS, TEST_PATH, 'test       dataset') ]
         return BUILDERS
 
 
@@ -65,8 +65,9 @@ class DatasetBuilder:
             os.makedirs(path) 
 
 
-    def __init__(self, VIDEOS, OUTPUT_DIR_PATH):
+    def __init__(self, VIDEOS, OUTPUT_DIR_PATH, log_name):
         self.VIDEOS = VIDEOS
+        self.log_name = log_name
 
         self.OUTPUT_IMAGES_PATH = os.path.join(OUTPUT_DIR_PATH, IMAGES_DIR)
         self.OUTPUT_LABELS_PATH = os.path.join(OUTPUT_DIR_PATH, LABELS_DIR)
@@ -81,7 +82,7 @@ class DatasetBuilder:
 
 
     def create_images_of_one_video_group(self):
-        for video_file_name in tqdm(self.VIDEOS, leave=False) : 
+        for video_file_name in tqdm(self.VIDEOS, leave=False, desc=self.log_name) : 
             video_path = os.path.join(DatasetBuilder.VIDEOS_PATH, video_file_name)
 
             file_name = os.path.splitext( os.path.basename(video_file_name) )[0] 
@@ -150,8 +151,8 @@ class DatasetBuilder:
 
 
 class TrainingDatasetBuilder(DatasetBuilder):
-    def __init__(self, VIDEOS, OUTPUT_DIR_PATH):
-        super().__init__(VIDEOS, OUTPUT_DIR_PATH)
+    def __init__(self, VIDEOS, OUTPUT_DIR_PATH, log_name):
+        super().__init__(VIDEOS, OUTPUT_DIR_PATH, log_name)
 
         self.TRAINING_TRANSFORM = transforms.Compose([
             transforms.ColorJitter(brightness=0.5, contrast=0.5, saturation=0.5, hue=0.5), # random
