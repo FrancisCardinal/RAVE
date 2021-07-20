@@ -12,18 +12,21 @@ def detect_faces(frame):
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
     # Detect frontal faces
-    frontal_faces = face_cascade.detectMultiScale(gray, 1.1, 4)  # NOTE: Can optimize by changing min and max expected sizes
+    frontal_faces = face_cascade.detectMultiScale(gray, 1.1, 8)  # NOTE: Can optimize by changing min and max expected sizes
+
+    line_thickness = frame.shape[0] // 240 or 1
 
     # Draw the rectangle around each frontal face
     for (x, y, w, h) in frontal_faces:
-        cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
+        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), line_thickness)
 
-    # Detect profile faces
-    profile_faces = profile_cascade.detectMultiScale(gray, 1.1, 4)
-
-    # Draw the rectangle around each profile face
-    for (x, y, w, h) in profile_faces:
-        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 4)
+    # Uncomment to also detect profile faces:
+    # # Detect profile faces
+    # profile_faces = profile_cascade.detectMultiScale(gray, 1.1, 8)
+    #
+    # # Draw the rectangle around each profile face
+    # for (x, y, w, h) in profile_faces:
+    #     cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), line_thickness)
 
     return frame
 

@@ -24,8 +24,10 @@ def detect_faces(frame):
         if confidence > 0.5:
             box = faces[0, 0, i, 3:7] * np.array([w, h, w, h])
             (x, y, x1, y1) = box.astype("int")
-            cv2.rectangle(frame, (x, y), (x1, y1), (0, 0, 255), 2)
-            cv2.putText(frame, f"{confidence:.3f}", ((x+x1)//2, y-5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)  # Display confidence
+
+            line_thickness = frame.shape[0]//240 or 1
+            cv2.rectangle(frame, (x, y), (x1, y1), (0, 0, 255), line_thickness)
+            cv2.putText(frame, f"{confidence:.3f}", ((x+x1)//2, y-5), cv2.FONT_HERSHEY_SIMPLEX, frame.shape[0]/960, (0, 0, 255), line_thickness)  # Display confidence
 
     return frame
 

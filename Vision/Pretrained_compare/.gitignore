@@ -2,3 +2,4 @@ venv/
 .idea/
 __pycache__/
 images_out/
+images_in/

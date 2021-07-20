@@ -1,6 +1,8 @@
 # -*- coding: UTF-8 -*-
 import argparse
 import time
+import os
+import glob
 
 import cv2
 import torch
@@ -154,6 +156,23 @@ def detect_one(model, image, device):
     return orgimg
 
 
+def feed_images_detect(detect_func, in_folder="../../images_in/", out_folder="images_out/"):
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = load_model(opt.weights, device)
+
+    if not os.path.exists(out_folder):
+        # Create new folder
+        os.mkdir(out_folder)
+    else:
+        # Clear out folder
+        for old_img in glob.glob(out_folder + "*"):
+            os.remove(old_img)
+
+    # Load, detect and save images in input folder
+    for img in glob.glob(in_folder + "*"):
+        final_img = detect_one(model, cv2.imread(img), device)
+        cv2.imwrite(out_folder + os.path.basename(img), final_img)
 
 
 if __name__ == '__main__':
@@ -166,6 +185,8 @@ if __name__ == '__main__':
     model = load_model(opt.weights, device)
 
     camera_device = 0
+
+    # feed_images_detect(detect_one, out_folder="../../images_out/images_out_yolo/")
 
     # Read the video stream
     cap = cv2.VideoCapture(camera_device)

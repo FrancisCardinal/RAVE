@@ -36,9 +36,13 @@ def stream_detect(detect_func):
 
 def feed_images_detect(detect_func, in_folder="images_in/", out_folder="images_out/"):
 
-    # Clear out folder
-    for old_img in glob.glob(out_folder + "*"):
-        os.remove(old_img)
+    if not os.path.exists(out_folder):
+        # Create new folder
+        os.mkdir(out_folder)
+    else:
+        # Clear out folder
+        for old_img in glob.glob(out_folder + "*"):
+            os.remove(old_img)
 
     # Load, detect and save images in input folder
     for img in glob.glob(in_folder + "*"):
@@ -49,13 +53,19 @@ def feed_images_detect(detect_func, in_folder="images_in/", out_folder="images_o
 if __name__ == '__main__':
 
     # Test with image
-    # image_detect("resources/TonyFace1.jpg")
+    # image_detect(haar.detect_faces, "images_in/16033.png")
 
     # Test with video stream
-    # stream_detect(dnn.detect_faces)
+    # stream_detect(haar.detect_faces)
 
     # Feed multiple images to detect
-    feed_images_detect(dnn.detect_faces)
+    feed_images_detect(dnn.detect_faces, out_folder="images_out/images_out_dnn/")
+    print("Done dnn")
+    feed_images_detect(haar.detect_faces, out_folder="images_out/images_out_haar/")
+    print("Done haar")
+    feed_images_detect(hog.detect_faces, out_folder="images_out/images_out_hog/")
+    print("Done hog")
+
 
 
 
