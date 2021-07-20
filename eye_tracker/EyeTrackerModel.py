@@ -8,12 +8,15 @@ class EyeTrackerModel(nn.Module):
         for param in self.model.parameters():
             param.requires_grad = False
 
+        for param in self.model.layer3.parameters():
+            param.requires_grad = True
+
         for param in self.model.layer4.parameters():
             param.requires_grad = True
 
         n_inputs = self.model.fc.in_features
 
-        DROPOUT = 0.10
+        DROPOUT = 0.125
         self.model.fc = nn.Sequential(
             nn.Linear(n_inputs, 512),
             nn.BatchNorm1d(num_features=512),
