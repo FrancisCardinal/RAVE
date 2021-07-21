@@ -16,7 +16,7 @@ class EyeTrackerModel(nn.Module):
 
         n_inputs = self.model.fc.in_features
 
-        DROPOUT = 0.125
+        DROPOUT = 0.05
         self.model.fc = nn.Sequential(
             nn.Linear(n_inputs, 512),
             nn.BatchNorm1d(num_features=512),
