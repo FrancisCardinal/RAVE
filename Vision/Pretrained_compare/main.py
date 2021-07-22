@@ -51,20 +51,24 @@ def feed_images_detect(detect_func, in_folder="images_in/", out_folder="images_o
 
 
 if __name__ == '__main__':
+    enable_stream = True
+    enable_images = False
 
     # Test with image
-    # image_detect(haar.detect_faces, "images_in/16033.png")
+    # image_detect("resources/TonyFace1.jpg")
 
     # Test with video stream
-    # stream_detect(haar.detect_faces)
+    if enable_stream:
+        stream_detect(haar.detect_faces)
 
     # Feed multiple images to detect
-    feed_images_detect(dnn.detect_faces, out_folder="images_out/images_out_dnn/")
-    print("Done dnn")
-    feed_images_detect(haar.detect_faces, out_folder="images_out/images_out_haar/")
-    print("Done haar")
-    feed_images_detect(hog.detect_faces, out_folder="images_out/images_out_hog/")
-    print("Done hog")
+    if enable_images:
+        feed_images_detect(dnn.detect_faces, out_folder="images_out/images_out_dnn/")
+        print("Done dnn")
+        feed_images_detect(haar.detect_faces, out_folder="images_out/images_out_haar/")
+        print("Done haar")
+        feed_images_detect(hog.detect_faces, out_folder="images_out/images_out_hog/")
+        print("Done hog")
 
 
 
