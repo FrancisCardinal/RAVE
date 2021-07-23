@@ -13,6 +13,7 @@ from image_utils import tensor_to_opencv_image, inverse_normalize
 
 def main(TRAIN, 
         NB_EPOCHS,
+        CONTINUE_TRAINING,
         DISPLAY_VALIDATION, 
         TEST):
     """main function of the module
@@ -20,6 +21,7 @@ def main(TRAIN,
     Args:
         TRAIN (bool): Whether to train the model or not 
         NB_EPOCHS (int): Number of epochs for which to train the network (ignored if TRAIN is set to false)
+        CONTINUE_TRAINING(bool): Whether to continue the training from the checkpoint on disk or not
         DISPLAY_VALIDATION (bool): Whether to display the predictions on the validation dataset or not
         TEST (bool): Whether to display the predictions on the test dataset or not
     """
@@ -51,7 +53,8 @@ def main(TRAIN,
                         ellipse_loss_function,
                         DEVICE,
                         eye_tracker_model,
-                        optimizer)
+                        optimizer, 
+                        CONTINUE_TRAINING)
         
         trainer.train_with_validation(NB_EPOCHS)
     
@@ -96,8 +99,10 @@ if __name__ =='__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-t', '--train', action='store_true', help='Train the neural network')
     parser.add_argument('-e', '--nb_epochs', action='store', type=int, default=20, help='Number of epoch for which to train the neural network')
+    parser.add_argument('-c', '--continue_training_from_checkpoint', action='store_true', help='Continue training from checkpoint')
+
     parser.add_argument('-v', '--display_validation', action='store_true', help='Display the predictions of the neural network on the validation dataset')
     parser.add_argument('-p', '--predict', action='store_true', help='Display the predictions of the neural network on the test dataset')
     args = parser.parse_args()
 
-    main(args.train, args.nb_epochs, args.display_validation, args.predict)
+    main(args.train, args.nb_epochs, args.continue_training_from_checkpoint, args.display_validation, args.predict)

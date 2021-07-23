@@ -14,6 +14,7 @@ class Trainer():
     """Trainer class, used to train neural networks
     """
     TRAINING_SESSIONS_DIR = 'training_sessions'
+    MODEL_INFO_FILE_NAME  = 'saved_model.pth'
 
     def __init__(self, 
                 training_loader, 
@@ -21,7 +22,8 @@ class Trainer():
                 loss_function,
                 device,
                 model,
-                optimizer):
+                optimizer,
+                CONTINUE_TRAINING):
         """Constructor of the Trainer class
 
         Args:
@@ -31,6 +33,7 @@ class Trainer():
             device (String): Device on which to perform the computations
             model (Module): Neural network to be trained
             optimizer (Optimizer): Optimizer used to update the weights during training
+            CONTINUE_TRAINING (bool): Whether to continue the training from the checkpoint on disk or not
         """
         self.training_loader = training_loader
         self.validation_loader = validation_loader
@@ -38,6 +41,11 @@ class Trainer():
         self.device = device
         self.model = model
         self.optimizer = optimizer
+        self.min_validation_loss = np.inf
+
+        if(CONTINUE_TRAINING):
+            self.load_model_and_training_info()
+
         self.training_losses = []
         self.validation_losses = []
 
@@ -63,7 +71,7 @@ class Trainer():
         Args:
             NB_EPOCHS (int): Number of epoch for which to train the model
         """
-        min_validation_loss = np.inf
+        
         start_time = time()
         
         epoch = 0
@@ -77,12 +85,11 @@ class Trainer():
             
             epoch_stats = f'Epoch {epoch:0>4d} | validation_loss={current_validation_loss:.6f} | training_loss={current_training_loss:.6f}'
             
-            if min_validation_loss > current_validation_loss:
-                epoch_stats = epoch_stats+ f'  | Min validation loss decreased({min_validation_loss:.6f}--->{current_validation_loss:.6f}) : Saved the model'
-                min_validation_loss = current_validation_loss
-                
-                # Saving State Dict
-                torch.save(self.model.state_dict(), 'saved_model.pth')
+            if self.min_validation_loss > current_validation_loss:
+                epoch_stats = epoch_stats+ f'  | Min validation loss decreased({self.min_validation_loss:.6f}--->{current_validation_loss:.6f}) : Saved the model'
+                self.min_validation_loss = current_validation_loss
+            
+                self.save_model_and_training_info()
             
             print(epoch_stats)
             epoch += 1 
@@ -91,7 +98,7 @@ class Trainer():
         min_training_loss   = min(self.training_losses)
         time_of_completion = strftime("%Y-%m-%d %H:%M:%S", localtime())
         ellapsed_time = str( timedelta( seconds=(time() - start_time) ) )
-        figure_title = f'{time_of_completion:s} | ellapsed_time={ellapsed_time:s} | min_validation_loss={min_validation_loss:.6f} | min_training_loss={min_training_loss:.6f}'
+        figure_title = f'{time_of_completion:s} | ellapsed_time={ellapsed_time:s} | min_validation_loss={self.min_validation_loss:.6f} | min_training_loss={min_training_loss:.6f}'
 
         print(figure_title)
         plt.savefig(os.path.join(os.getcwd(), Trainer.TRAINING_SESSIONS_DIR, figure_title + '.png'), dpi = 200)
@@ -165,6 +172,25 @@ class Trainer():
         plt.gcf().canvas.start_event_loop(0.001)
 
     
+    def save_model_and_training_info(self):
+        """Saves a checkpoint, which contains the model weights and the necessary information to continue the training at some other time 
+        """
+        torch.save({
+            'model_state_dict': self.model.state_dict(),
+            'optimizer_state_dict': self.optimizer.state_dict(),
+            'min_validation_loss': self.min_validation_loss,
+            }, Trainer.MODEL_INFO_FILE_NAME)
+    
+
+    def load_model_and_training_info(self): 
+        """Loads a checkpoint, which contains the model weights and the necessary information to continue the training now
+        """
+        checkpoint = torch.load(Trainer.MODEL_INFO_FILE_NAME)
+        self.model.load_state_dict(checkpoint['model_state_dict'])
+        self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        self.min_validation_loss = checkpoint['min_validation_loss']
+
+
     @staticmethod
     def load_best_model(model): 
         """Used to get the best version of a model from disk
@@ -172,5 +198,7 @@ class Trainer():
         Args:
             model (Module): Model on which to update the weights
         """
-        model.load_state_dict(torch.load('saved_model.pth'))
+        checkpoint = torch.load(Trainer.MODEL_INFO_FILE_NAME)
+        model.load_state_dict(checkpoint['model_state_dict'])
+
         model.eval()
