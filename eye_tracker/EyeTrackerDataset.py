@@ -13,6 +13,8 @@ import pickle
 IMAGE_DIMENSIONS = (1, 224, 299)
 
 class EyeTrackerDataset(Dataset):
+    """Class that handles pairs of images and labels that are on disk
+    """
     DATASET_DIR = 'dataset'
 
     IMAGES_DIR = 'images'
@@ -31,11 +33,14 @@ class EyeTrackerDataset(Dataset):
                             transforms.ToTensor(),
                             transforms.Normalize(mean=TRAINING_MEAN, std=TRAINING_STD)
                             ])
-    def __init__(self, 
-                 sub_dataset_dir, 
-                 transform):
+                            
+    def __init__(self, sub_dataset_dir):
+        """Constructor of the EyeTrackerDataset class
 
-        self.transform = transform
+        Args:
+            sub_dataset_dir (String): Name of the directory of the sub-dataset 
+        """
+
         ROOT_PATH = os.getcwd()
         BASE_PATH   = os.path.join(ROOT_PATH, EyeTrackerDataset.DATASET_DIR, sub_dataset_dir)
         self.IMAGES_DIR_PATH = os.path.join(BASE_PATH, EyeTrackerDataset.IMAGES_DIR)
@@ -45,10 +50,25 @@ class EyeTrackerDataset(Dataset):
         
 
     def __len__(self):
+        """Method of the Dataset class that must be overwritten by this class. 
+           Used to get the number of elements in the dataset
+
+        Returns:
+            int: The number of elements in the dataset
+        """
         return len(self.images_paths)
 
 
     def __getitem__(self, idx):
+        """Method of the Dataset class that must be overwritten by this class. 
+           Used to get an image and label pair
+
+        Args:
+            idx (int): Index of the pair to get
+
+        Returns:
+            tuple: Image and label pair
+        """
         image_path = self.images_paths[idx]
         image_path = os.path.join(self.IMAGES_DIR_PATH, image_path)
         file_name = os.path.splitext( os.path.basename(image_path) )[0] 
@@ -56,8 +76,8 @@ class EyeTrackerDataset(Dataset):
         label_path = os.path.join(self.LABELS_DIR_PATH, file_name + '.bin')
 
         image = Image.open(image_path)
-        if self.transform:
-            image = self.transform(image)
+        
+        image = EyeTrackerDataset.TRANSFORM(image)
 
         label = pickle.load( open( label_path, "rb" ) )
         label = torch.tensor(label)
@@ -65,24 +85,48 @@ class EyeTrackerDataset(Dataset):
         return image, label
 
 
+    @staticmethod
     def get_multiple_workers_safe_list_of_paths(directory):
-        #Pour régler un problème de "fuite de mémoire" lorsqu'on a plusieurs workers pour le dataloader : https://gist.github.com/mprostock/2850f3cd465155689052f0fa3a177a50
+        """Used to build a list of paths. This method prevents a memory 
+            leak that happens with list of strings and multiple dataloader workers
+            https://gist.github.com/mprostock/2850f3cd465155689052f0fa3a177a50  
+
+        Args:
+            directory (String): The directory of which to get the paths of its files
+
+        Returns:
+            List: The list of paths
+        """
         paths = os.listdir(directory)
-        random.Random(42).shuffle(paths) # Pour éviter que, plus loin, les éléments d'une même batch soient constitués d'éléments trop semblables.
+        random.Random(42).shuffle(paths) # Just to make sure elements of a given batch don't look alike 
         return np.array([str(i) for i in paths], dtype=np.str) 
     
+    
+    @staticmethod
+    def get_training_sub_dataset():
+        """Used to get the training sub dataset
 
-    def get_training_sub_dataset(transform = None):
-        return EyeTrackerDataset(EyeTrackerDataset.TRAINING_DIR, transform)
+        Returns:
+            EyeTrackerDataset: The training sub dataset
+        """
+        return EyeTrackerDataset(EyeTrackerDataset.TRAINING_DIR)
 
-    def get_validation_sub_dataset(transform = None):
-        return EyeTrackerDataset(EyeTrackerDataset.VALIDATION_DIR, transform)
-        
-    def get_test_sub_dataset(transform = None):
-        return EyeTrackerDataset(EyeTrackerDataset.TEST_DIR, transform)
 
-    def get_training_transform():
-        return EyeTrackerDataset.TRANSFORM
+    @staticmethod
+    def get_validation_sub_dataset():
+        """Used to get the validation sub dataset
 
-    def get_test_transform():                        
-        return EyeTrackerDataset.TRANSFORM
+        Returns:
+            EyeTrackerDataset: The validation sub dataset
+        """
+        return EyeTrackerDataset(EyeTrackerDataset.VALIDATION_DIR)
+
+
+    @staticmethod    
+    def get_test_sub_dataset():
+        """Used to get the test sub dataset
+
+        Returns:
+            EyeTrackerDataset: The test sub dataset
+        """
+        return EyeTrackerDataset(EyeTrackerDataset.TEST_DIR)

@@ -3,10 +3,24 @@ from torch import sin, cos
 import cv2
 import numpy as np
 from numpy import pi 
-from numpy import testing
+from math import isclose
 
 
-def ellipse_loss_function(predictions, targets):
+def ellipse_loss_function(predictions, 
+                          targets):
+    """Custom loss function for ellipse. This was developped because applying MSELoss directly on the 
+       parameters of ellipses was not giving good results in training sessions. This loss function
+       generates points that lie on the target and predicted ellipse (using its parameters) and 
+       then computes the euclidean distance between each pair of points. The mean distance is then computed
+       and used as the loss metric. 
+
+    Args:
+        predictions (pytorch tensor): The predicted ellipses
+        targets (pytorch tensor): The target ellipses
+
+    Returns:
+        float: The mean distance between the generated points of the predicted and target ellipses
+    """
     NUMBER_OF_POINTS = 720
 
     x_predicted, y_predicted  = get_points_of_ellipses(predictions, NUMBER_OF_POINTS)
@@ -17,7 +31,19 @@ def ellipse_loss_function(predictions, targets):
 
     return mean_distance
 
-def get_points_of_ellipses(ellipses, NUMBER_OF_POINTS): 
+
+def get_points_of_ellipses(ellipses, 
+                           NUMBER_OF_POINTS): 
+    """generates points that lie on the ellipse (using its parameters). 
+       Points are generated using polar coordinates  https://math.stackexchange.com/questions/2645689/what-is-the-parametric-equation-of-a-rotated-ellipse-given-the-angle-of-rotatio 
+
+    Args:
+        ellipses (pytorch tensor): The parameters of the ellipse
+        NUMBER_OF_POINTS (int): Number of points to generate
+
+    Returns:
+        tuple of pytorch tensor: The x and y coordinates of the points
+    """
     DEVICE = ellipses.device
     NUMBER_OF_ELLIPSES = ellipses.size()[0]
 
@@ -36,7 +62,21 @@ def get_points_of_ellipses(ellipses, NUMBER_OF_POINTS):
     return x, y 
 
 
-def draw_ellipse_on_image(image, ellipse, color=(255, 0, 0), thickness=1):
+def draw_ellipse_on_image(image, 
+                          ellipse, 
+                          color=(255, 0, 0), 
+                          thickness=1):
+    """Draw an ellipse on an image using its parameters
+
+    Args:
+        image (numpy array): The image on which to draw the ellipse
+        ellipse (pytorch tensor): The parameters of the ellipse to draw
+        color (tuple, optional): The color of the ellipse. Defaults to (255, 0, 0).
+        thickness (int, optional): The thickness of the ellipse. Defaults to 1.
+
+    Returns:
+        numpy array: The image with the ellipse drawn on it
+    """
     HEIGHT, WIDTH, _ = image.shape
     h, k, a, b, theta = ellipse 
     h, k, a, b = h*WIDTH, k*HEIGHT, a*WIDTH, b*HEIGHT
@@ -49,9 +89,25 @@ def draw_ellipse_on_image(image, ellipse, color=(255, 0, 0), thickness=1):
     return image
 
 
-def get_points_of_an_ellipse(h, k, a, b, theta, device, NUMBER_OF_POINTS):
-    # J'utilise les coordonnées polaires pour générer les points qui appartiennent à l'ellipse ; voir https://math.stackexchange.com/questions/2645689/what-is-the-parametric-equation-of-a-rotated-ellipse-given-the-angle-of-rotatio 
-    #TODO changer les appels à cette fonction à un appel à get_points_of_ellipses, pour bénéficier du parallélisme
+def get_points_of_an_ellipse(h, k, a, b, theta, 
+                            device, 
+                            NUMBER_OF_POINTS):
+    """generates points that lie on the ellipse (using its parameters)
+       TODO : Change calls to this function to the 'get_points_of_ellipses' function instead, which uses 
+       paralellism to compute points faster
+
+    Args:
+        h (float): x coordinate of the center of the ellipse 
+        k (float): y coordinate of the center of the ellipse 
+        a (float): length of the horizontal axis
+        b (float): length of the vertical axis
+        theta (float): rotation angle of the ellipse relative to the x axis
+        device (String): device on which to run the computations
+        NUMBER_OF_POINTS (int): Number of points to generate
+
+    Returns:
+        tuple of pytorch tensor: The x and y coordinates of the points
+    """
     output_points = torch.empty((NUMBER_OF_POINTS, 2), device=device, requires_grad=True)
 
     alphas = torch.linspace(0, 2*pi, NUMBER_OF_POINTS, device=device, requires_grad=True)
@@ -75,16 +131,16 @@ if __name__=='__main__':
     with torch.no_grad():
         x = torch.tensor([[0.1, 0.2, 0.3, 0.4, 0.5], [0.6, 0.7, 0.8, 0.9, 1.0]], device=DEVICE)
         y = torch.tensor([[0.1, 0.2, 0.3, 0.4, 0.5], [0.6, 0.7, 0.8, 0.9, 1.0]], device=DEVICE)
-        testing.assert_allclose ( ellipse_loss_function(x, y).cpu(), 0 )
+        assert( isclose( ellipse_loss_function(x, y).cpu(), 0, rel_tol=1e-5 ) )
 
         x = torch.tensor([[0.1, 0.2, 0.3, 0.4, 0.5], [0.6, 0.7, 0.8, 0.9, 1.0]], device=DEVICE)
         y = torch.tensor([[0.2, 0.2, 0.3, 0.4, 0.5], [0.6, 0.7, 0.8, 0.9, 1.0]], device=DEVICE)
-        testing.assert_allclose ( ellipse_loss_function(x, y).cpu(), 0.1  )
+        assert( isclose( ellipse_loss_function(x, y).cpu(), 0.1, rel_tol=1e-5  ) )
 
         x = torch.tensor([[0.1, 0.3, 0.3, 0.4, 0.5], [0.6, 0.7, 0.8, 0.9, 1.0]], device=DEVICE)
         y = torch.tensor([[0.2, 0.2, 0.3, 0.4, 0.5], [0.6, 0.7, 0.8, 0.9, 1.0]], device=DEVICE)
-        testing.assert_allclose ( ellipse_loss_function(x, y).cpu(), np.sqrt(0.1**2 + 0.1**2)  )
+        assert( isclose( ellipse_loss_function(x, y).cpu(), np.sqrt(0.1**2 + 0.1**2), rel_tol=1e-5  ) )
 
         x = torch.tensor([[0.1, 0.3, 0.3, 0.4, 0.5], [0.6, 0.7, 0.8, 0.9, 1.0]], device=DEVICE)
         y = torch.tensor([[0.2, 0.2, 0.3, 0.4, 0.5], [0.6, 0.6, 0.8, 0.9, 1.0]], device=DEVICE)
-        testing.assert_allclose ( ellipse_loss_function(x, y).cpu(), np.sqrt(0.1**2 + 0.1**2) + 0.1 )
+        assert( isclose( ellipse_loss_function(x, y).cpu(), np.sqrt(0.1**2 + 0.1**2) + 0.1, rel_tol=1e-5 ) )

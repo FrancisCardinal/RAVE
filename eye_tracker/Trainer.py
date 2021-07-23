@@ -11,7 +11,10 @@ import matplotlib.pyplot as plt
 plt.ion()
 
 class Trainer():
+    """Trainer class, used to train neural networks
+    """
     TRAINING_SESSIONS_DIR = 'training_sessions'
+
     def __init__(self, 
                 training_loader, 
                 validation_loader, 
@@ -19,6 +22,16 @@ class Trainer():
                 device,
                 model,
                 optimizer):
+        """Constructor of the Trainer class
+
+        Args:
+            training_loader (Dataloader): Dataloader that returns images and labels pairs of the training dataset
+            validation_loader (Dataloader): Dataloader that returns images and labels pairs of the validation dataset
+            loss_function (Functor): Loss function used to compute the training and validation losses
+            device (String): Device on which to perform the computations
+            model (Module): Neural network to be trained
+            optimizer (Optimizer): Optimizer used to update the weights during training
+        """
         self.training_loader = training_loader
         self.validation_loader = validation_loader
         self.loss_function = loss_function
@@ -33,6 +46,9 @@ class Trainer():
 
     
     def terminate_training_thread(self):
+        """Thread that checks if the user wants to stop training. 
+           Used to stop training before all the epochs have been executed.
+        """
         while (not self.terminate_training):
             key = input()
             if(key.upper() == 'Q'): 
@@ -42,6 +58,11 @@ class Trainer():
 
 
     def train_with_validation(self, NB_EPOCHS): 
+        """Main method of the class, used to train the model.
+
+        Args:
+            NB_EPOCHS (int): Number of epoch for which to train the model
+        """
         min_validation_loss = np.inf
         start_time = time()
         
@@ -78,6 +99,11 @@ class Trainer():
 
     
     def compute_training_loss(self):
+        """Compute the training loss for the current epoch
+
+        Returns:
+            float: The training loss
+        """
         self.model.train()
 
         training_loss = 0.0
@@ -103,6 +129,11 @@ class Trainer():
     
 
     def compute_validation_loss(self):
+        """Compute the validation loss for the current epoch
+
+        Returns:
+            float: The validation loss
+        """
         with torch.no_grad():
             self.model.eval() 
 
@@ -123,15 +154,23 @@ class Trainer():
 
 
     def update_plot(self):
+        """Updates the plot at the end of an epoch to show all of the training losses and validation losses computed so far
+        """
         plt.clf()
         plt.plot(range(len(self.training_losses)),   self.training_losses, label='training loss')
         plt.plot(range(len(self.validation_losses)), self.validation_losses, label='validation loss')
         plt.legend(loc="upper left")
         plt.draw()
-        plt.gcf().canvas.draw_idle() #Pour éviter que le graphique "vole" le focus et nous empêche de faire autre chose pendant que le réseau s'entraîne
+        plt.gcf().canvas.draw_idle() #So that the graph does not get the operating system's focus at each plot update
         plt.gcf().canvas.start_event_loop(0.001)
 
     
+    @staticmethod
     def load_best_model(model): 
+        """Used to get the best version of a model from disk
+
+        Args:
+            model (Module): Model on which to update the weights
+        """
         model.load_state_dict(torch.load('saved_model.pth'))
         model.eval()

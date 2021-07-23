@@ -11,7 +11,18 @@ from EyeTrackerDataset import EyeTrackerDataset
 from DatasetBuilder import DatasetBuilder
 from image_utils import tensor_to_opencv_image, inverse_normalize
 
-def main(TRAIN, NB_EPOCHS, DISPLAY_VALIDATION, TEST):
+def main(TRAIN, 
+        NB_EPOCHS,
+        DISPLAY_VALIDATION, 
+        TEST):
+    """main function of the module
+
+    Args:
+        TRAIN (bool): Whether to train the model or not 
+        NB_EPOCHS (int): Number of epochs for which to train the network (ignored if TRAIN is set to false)
+        DISPLAY_VALIDATION (bool): Whether to display the predictions on the validation dataset or not
+        TEST (bool): Whether to display the predictions on the test dataset or not
+    """
     DEVICE = 'cpu'
     if( torch.cuda.is_available() ): 
         DEVICE = 'cuda'
@@ -19,8 +30,8 @@ def main(TRAIN, NB_EPOCHS, DISPLAY_VALIDATION, TEST):
     DatasetBuilder.create_images_datasets_with_LPW_videos()
 
     BATCH_SIZE = 128 
-    training_sub_dataset   = EyeTrackerDataset.get_training_sub_dataset(EyeTrackerDataset.get_training_transform())
-    validation_sub_dataset = EyeTrackerDataset.get_validation_sub_dataset(EyeTrackerDataset.get_test_transform())
+    training_sub_dataset   = EyeTrackerDataset.get_training_sub_dataset()
+    validation_sub_dataset = EyeTrackerDataset.get_validation_sub_dataset()
 
     training_loader = torch.utils.data.DataLoader(training_sub_dataset, batch_size=BATCH_SIZE, shuffle=True,
                                                   num_workers=8, pin_memory=True, persistent_workers=True )
@@ -50,12 +61,22 @@ def main(TRAIN, NB_EPOCHS, DISPLAY_VALIDATION, TEST):
         visualize_predictions(eye_tracker_model, validation_loader, DEVICE)
 
     if(TEST):
-        test_sub_dataset = EyeTrackerDataset.get_test_sub_dataset(EyeTrackerDataset.get_test_transform())
+        test_sub_dataset = EyeTrackerDataset.get_test_sub_dataset()
         test_loader = torch.utils.data.DataLoader(test_sub_dataset, batch_size=BATCH_SIZE, shuffle=False,
                                                     num_workers=8, pin_memory=True, persistent_workers=True )
         visualize_predictions(eye_tracker_model, test_loader, DEVICE)
 
-def visualize_predictions(model, data_loader, DEVICE):
+
+def visualize_predictions(model, 
+                          data_loader, 
+                          DEVICE):
+    """Used to visualize the target and the predictions of the model on some input images
+
+    Args:
+        model (Module): The model used to perform the predictions
+        data_loader (Dataloader): The dataloader that provides the images and the targets
+        DEVICE (String): Device on which to perform the computations
+    """
     with torch.no_grad():
         for images, labels in data_loader:
             images, labels = images.to(DEVICE), labels.to(DEVICE)

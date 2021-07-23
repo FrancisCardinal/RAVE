@@ -1,3 +1,5 @@
+# This file contains 3 lists that specify which videos belong to which dataset
+
 TRAINING_VIDEOS = [
 'LPW_1_1.avi',
 'LPW_1_2.avi',
