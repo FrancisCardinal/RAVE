@@ -6,12 +6,14 @@ import pickle
 from tqdm import tqdm
 from threading import Thread
 import random
+random.seed(42)
 
 import torch
 from torchvision import transforms
 from torch.nn import functional as F
+from torch import sin, cos
 
-from Ellipse import Ellipse
+from NormalizedEllipse import NormalizedEllipse
 from videos_and_dataset_association import TRAINING_VIDEOS, VALIDATION_VIDEOS, TEST_VIDEOS
 
 from EyeTrackerDataset import EyeTrackerDataset, IMAGE_DIMENSIONS
@@ -151,7 +153,7 @@ class DatasetBuilder:
             if(angle == -1): 
                 continue # The annotation files use '-1' when the pupil is not visible on a frame. 
 
-            self.current_ellipse = Ellipse.get_normalized_ellipse_from_opencv_ellipse(center_x, ellipse_width, center_y, ellipse_height, angle, INPUT_IMAGE_WIDTH, INPUT_IMAGE_HEIGHT)
+            self.current_ellipse = NormalizedEllipse.get_normalized_ellipse_from_opencv_ellipse(center_x, ellipse_width, center_y, ellipse_height, angle, INPUT_IMAGE_WIDTH, INPUT_IMAGE_HEIGHT)
             
             output_image_tensor = self.process_frame(frame)
             
@@ -253,6 +255,7 @@ class TrainingDatasetBuilder(DatasetBuilder):
         output_image_tensor = super().process_frame(frame)
 
         output_image_tensor = self.TRAINING_TRANSFORM(output_image_tensor)
+        output_image_tensor = self.apply_rotation(output_image_tensor)
         output_image_tensor = self.apply_translation(output_image_tensor)
 
         return output_image_tensor
@@ -280,6 +283,33 @@ class TrainingDatasetBuilder(DatasetBuilder):
         ], dtype=torch.float) # We need the'*2' here because affine_grid considers the top left corner as [-1, -1] and the bottom right one as [1, 1] (as opposed to the convention of this module where the top left corner is [0, 0])
 
         grid = F.affine_grid(transformation_matrix.unsqueeze(0), output_image_tensor.unsqueeze(0).size())
+        output_image_tensor = F.grid_sample(output_image_tensor.unsqueeze(0), grid)
+        output_image_tensor = output_image_tensor.squeeze(0)
+
+        return output_image_tensor
+
+
+    def apply_rotation(self, output_image_tensor):
+        """A data augmentation operation, rotates the frame randomly and reflects that 
+           change on the corresponding ellipse
+
+        Args:
+            output_image_tensor (pytorch tensor): The frame on which to apply the rotation
+
+        Returns:
+            pytorch tensor: The rotated frame
+        """
+        IMAGE_HEIGHT, IMAGE_WIDTH = output_image_tensor.shape[1], output_image_tensor.shape[2]
+        phi = random.uniform(-0.1, 0.1) # radians
+
+        self.current_ellipse.rotate_around_image_center(phi)
+
+        rotation = torch.tensor([
+            [ np.cos(phi), np.sin(phi)*IMAGE_HEIGHT/IMAGE_WIDTH, 0],
+            [-np.sin(phi)*IMAGE_WIDTH/IMAGE_HEIGHT, np.cos(phi), 0],
+        ], dtype=torch.float)
+
+        grid = F.affine_grid(rotation.unsqueeze(0), output_image_tensor.unsqueeze(0).size())
         output_image_tensor = F.grid_sample(output_image_tensor.unsqueeze(0), grid)
         output_image_tensor = output_image_tensor.squeeze(0)
 
