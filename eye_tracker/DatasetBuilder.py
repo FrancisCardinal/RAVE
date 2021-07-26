@@ -11,7 +11,6 @@ random.seed(42)
 import torch
 from torchvision import transforms
 from torch.nn import functional as F
-from torch import sin, cos
 
 from NormalizedEllipse import NormalizedEllipse
 from videos_and_dataset_association import TRAINING_VIDEOS, VALIDATION_VIDEOS, TEST_VIDEOS
