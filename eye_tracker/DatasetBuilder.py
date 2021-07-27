@@ -1,23 +1,19 @@
 import os 
 import cv2
 from PIL import Image
-import numpy as np 
 import pickle 
 from tqdm import tqdm
 from threading import Thread
-import random
-random.seed(42)
 
-import torch
 from torchvision import transforms
-from torch.nn import functional as F
 
 from NormalizedEllipse import NormalizedEllipse
 from videos_and_dataset_association import TRAINING_VIDEOS, VALIDATION_VIDEOS, TEST_VIDEOS
 
 from EyeTrackerDataset import EyeTrackerDataset, IMAGE_DIMENSIONS
 
-from image_utils import tensor_to_opencv_image
+from image_utils import tensor_to_opencv_image, apply_image_translation, apply_image_rotation
+
 
 DATASET_DIR, IMAGES_DIR, LABELS_DIR, TRAINING_DIR, VALIDATION_DIR, TEST_DIR, IMAGES_FILE_EXTENSION = EyeTrackerDataset.DATASET_DIR ,EyeTrackerDataset.IMAGES_DIR,EyeTrackerDataset.LABELS_DIR,EyeTrackerDataset.TRAINING_DIR,EyeTrackerDataset.VALIDATION_DIR,EyeTrackerDataset.TEST_DIR, EyeTrackerDataset.IMAGES_FILE_EXTENSION
 
@@ -217,7 +213,7 @@ class DatasetBuilder:
 
 class TrainingDatasetBuilder(DatasetBuilder):
     """This class inherits from DatasetBuilder. It overwrites certain methods in order to 
-    deal with the specific aspects of the training sub-dataset
+    do offline data augmentation.
     """
     def __init__(self, 
                 VIDEOS, 
@@ -243,7 +239,8 @@ class TrainingDatasetBuilder(DatasetBuilder):
 
 
     def process_frame(self, frame):        
-        """Calls the parent method, then applies some data augmentation operations
+        """Calls the parent method, then applies some data augmentation operations. 
+           Used to perform offline data augmentation. 
 
         Args:
             frame (numpy array): The frame that needs to be processed
@@ -254,62 +251,27 @@ class TrainingDatasetBuilder(DatasetBuilder):
         output_image_tensor = super().process_frame(frame)
 
         output_image_tensor = self.TRAINING_TRANSFORM(output_image_tensor)
-        output_image_tensor = self.apply_rotation(output_image_tensor)
-        output_image_tensor = self.apply_translation(output_image_tensor)
+        output_image_tensor = self.apply_translation_and_rotation(output_image_tensor)
 
         return output_image_tensor
 
 
-    def apply_translation(self, output_image_tensor):
-        """A data augmentation operation, translates the frame randomly and reflects that 
+    def apply_translation_and_rotation(self, output_image_tensor):
+        """A data augmentation operation, translates and rotates the frame randomly and reflects that 
            change on the corresponding ellipse
 
         Args:
-            output_image_tensor (pytorch tensor): The frame on which to apply the translation
+            output_image_tensor (pytorch tensor): The frame on which to apply the translation and rotation
 
         Returns:
-            pytorch tensor: The translated frame
+            pytorch tensor: The translated and rotated frame
         """
-        x_offset = random.uniform(-0.2, 0.2)
-        y_offset = random.uniform(-0.2, 0.2)
+        output_image_tensor, phi = apply_image_rotation(output_image_tensor)
 
-        self.current_ellipse.h += x_offset
-        self.current_ellipse.k += y_offset
-
-        transformation_matrix = torch.tensor([
-            [1, 0, -x_offset*2],
-            [0, 1, -y_offset*2]
-        ], dtype=torch.float) # We need the'*2' here because affine_grid considers the top left corner as [-1, -1] and the bottom right one as [1, 1] (as opposed to the convention of this module where the top left corner is [0, 0])
-
-        grid = F.affine_grid(transformation_matrix.unsqueeze(0), output_image_tensor.unsqueeze(0).size())
-        output_image_tensor = F.grid_sample(output_image_tensor.unsqueeze(0), grid)
-        output_image_tensor = output_image_tensor.squeeze(0)
-
-        return output_image_tensor
-
-
-    def apply_rotation(self, output_image_tensor):
-        """A data augmentation operation, rotates the frame randomly and reflects that 
-           change on the corresponding ellipse
-
-        Args:
-            output_image_tensor (pytorch tensor): The frame on which to apply the rotation
-
-        Returns:
-            pytorch tensor: The rotated frame
-        """
-        IMAGE_HEIGHT, IMAGE_WIDTH = output_image_tensor.shape[1], output_image_tensor.shape[2]
-        phi = random.uniform(-0.1, 0.1) # radians
+        output_image_tensor, x_offset, y_offset = apply_image_translation(output_image_tensor)
 
         self.current_ellipse.rotate_around_image_center(phi)
-
-        rotation = torch.tensor([
-            [ np.cos(phi), np.sin(phi)*IMAGE_HEIGHT/IMAGE_WIDTH, 0],
-            [-np.sin(phi)*IMAGE_WIDTH/IMAGE_HEIGHT, np.cos(phi), 0],
-        ], dtype=torch.float)
-
-        grid = F.affine_grid(rotation.unsqueeze(0), output_image_tensor.unsqueeze(0).size())
-        output_image_tensor = F.grid_sample(output_image_tensor.unsqueeze(0), grid)
-        output_image_tensor = output_image_tensor.squeeze(0)
+        self.current_ellipse.h += x_offset
+        self.current_ellipse.k += y_offset
 
         return output_image_tensor

@@ -10,6 +10,9 @@ import random
 from PIL import Image
 import pickle
 
+from image_utils import apply_image_translation, apply_image_rotation
+from NormalizedEllipse import NormalizedEllipse
+
 IMAGE_DIMENSIONS = (1, 224, 299)
 
 class EyeTrackerDataset(Dataset):
@@ -27,11 +30,11 @@ class EyeTrackerDataset(Dataset):
     IMAGES_FILE_EXTENSION = 'png'
 
     TRAINING_MEAN, TRAINING_STD = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
+    NORMALIZE_TRANSFORM = transforms.Normalize(mean=TRAINING_MEAN, std=TRAINING_STD)
 
-    TRANSFORM = transforms.Compose([
+    PRE_PROCESS_TRANSFORM = transforms.Compose([
                             transforms.Resize(IMAGE_DIMENSIONS[1:3]), 
                             transforms.ToTensor(),
-                            transforms.Normalize(mean=TRAINING_MEAN, std=TRAINING_STD)
                             ])
                             
     def __init__(self, sub_dataset_dir):
@@ -69,18 +72,32 @@ class EyeTrackerDataset(Dataset):
         Returns:
             tuple: Image and label pair
         """
+        image, label = self.get_image_and_label_on_disk(idx)
+
+        image = self.PRE_PROCESS_TRANSFORM(image)
+
+        image = EyeTrackerDataset.NORMALIZE_TRANSFORM(image)
+        label = torch.tensor(label)
+
+        return image, label
+    
+
+    def get_image_and_label_on_disk(self, idx): 
+        """Gets an image and label pair on disk
+
+        Args:
+            idx (int): Index of the image and label pair
+
+        Returns:
+            tuple: Image and label pair
+        """
         image_path = self.images_paths[idx]
         image_path = os.path.join(self.IMAGES_DIR_PATH, image_path)
         file_name = os.path.splitext( os.path.basename(image_path) )[0] 
-        
-        label_path = os.path.join(self.LABELS_DIR_PATH, file_name + '.bin')
-
         image = Image.open(image_path)
         
-        image = EyeTrackerDataset.TRANSFORM(image)
-
+        label_path = os.path.join(self.LABELS_DIR_PATH, file_name + '.bin')
         label = pickle.load( open( label_path, "rb" ) )
-        label = torch.tensor(label)
 
         return image, label
 
@@ -130,3 +147,55 @@ class EyeTrackerDataset(Dataset):
             EyeTrackerDataset: The test sub dataset
         """
         return EyeTrackerDataset(EyeTrackerDataset.TEST_DIR)
+
+
+class EyeTrackerTrainingDataset(EyeTrackerDataset):
+    """This class inherits from EyeTrackerDataset. It overwrites certain methods in order to 
+    do online data augmentation. 
+    """
+    def __init__(self, sub_dataset_dir):
+        """Constructor of the EyeTrackerTrainingDataset class
+
+        Args:
+            sub_dataset_dir (String): Name of the directory of the sub-dataset 
+        """
+        super().__init__(sub_dataset_dir)
+
+        self.TRAINING_TRANSFORM = transforms.Compose([
+        transforms.ColorJitter(brightness=0.5, contrast=0.5, saturation=0.5, hue=0.5), # random
+        transforms.GaussianBlur(3), # random
+        transforms.RandomInvert(0.25) # random
+        ])
+
+
+    def __getitem__(self, idx):
+        """Method of the Dataset class that must be overwritten by this class. 
+           Used to get an image and label pair. Before returning the image and label
+           pair, this class performs online data augmentation. 
+
+        Args:
+            idx (int): Index of the pair to get
+
+        Returns:
+            tuple: Image and label pair
+        """
+        image, label = self.get_image_and_label_on_disk(idx)
+
+        image = self.PRE_PROCESS_TRANSFORM(image)
+        
+        output_image_tensor = self.TRAINING_TRANSFORM(image)
+
+        output_image_tensor, phi = apply_image_rotation(output_image_tensor)
+
+        output_image_tensor, x_offset, y_offset = apply_image_translation(output_image_tensor)
+
+        current_ellipse = NormalizedEllipse.get_normalized_ellipse_from_list(label)
+        current_ellipse.rotate_around_image_center(phi)
+        current_ellipse.h += x_offset
+        current_ellipse.k += y_offset
+        label = current_ellipse.to_list()
+
+        image = EyeTrackerDataset.NORMALIZE_TRANSFORM(output_image_tensor)
+        label = torch.tensor(label)
+
+        return image, label

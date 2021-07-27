@@ -56,6 +56,19 @@ class NormalizedEllipse:
 
 
     @staticmethod
+    def get_normalized_ellipse_from_list(list):
+        """Creates a normalized ellipse object from a list 
+
+        Args:
+            list (List): List of the ellipse's parameters
+
+        Returns:
+            NormalizedEllipse: The normalized ellipse object
+        """
+        return NormalizedEllipse(list[0], list[1], list[2], list[3], list[4])
+
+
+    @staticmethod
     def get_normalized_ellipse_from_opencv_ellipse(center_x, 
                                                    ellipse_width, 
                                                    center_y, 
