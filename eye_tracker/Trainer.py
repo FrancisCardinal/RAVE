@@ -23,6 +23,7 @@ class Trainer():
                 device,
                 model,
                 optimizer,
+                scheduler,
                 CONTINUE_TRAINING):
         """Constructor of the Trainer class
 
@@ -33,6 +34,7 @@ class Trainer():
             device (String): Device on which to perform the computations
             model (Module): Neural network to be trained
             optimizer (Optimizer): Optimizer used to update the weights during training
+            scheduler (_LRScheduler): Learning rate scheduler
             CONTINUE_TRAINING (bool): Whether to continue the training from the checkpoint on disk or not
         """
         self.training_loader = training_loader
@@ -41,6 +43,7 @@ class Trainer():
         self.device = device
         self.model = model
         self.optimizer = optimizer
+        self.scheduler = scheduler
         self.min_validation_loss = np.inf
 
         if(CONTINUE_TRAINING):
@@ -92,6 +95,7 @@ class Trainer():
                 self.save_model_and_training_info()
             
             print(epoch_stats)
+            self.scheduler.step(current_validation_loss)
             epoch += 1 
         
         self.terminate_training = True
@@ -178,6 +182,7 @@ class Trainer():
         torch.save({
             'model_state_dict': self.model.state_dict(),
             'optimizer_state_dict': self.optimizer.state_dict(),
+            'scheduler_state_dict': self.scheduler.state_dict(),
             'min_validation_loss': self.min_validation_loss,
             }, Trainer.MODEL_INFO_FILE_NAME)
     
@@ -188,6 +193,7 @@ class Trainer():
         checkpoint = torch.load(Trainer.MODEL_INFO_FILE_NAME)
         self.model.load_state_dict(checkpoint['model_state_dict'])
         self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        self.scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
         self.min_validation_loss = checkpoint['min_validation_loss']
 
 

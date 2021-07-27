@@ -46,7 +46,8 @@ def main(TRAIN,
     print(eye_tracker_model)
 
     if(TRAIN): 
-        optimizer = torch.optim.SGD(eye_tracker_model.parameters(), lr=0.001, momentum=0.9)
+        optimizer = torch.optim.SGD(eye_tracker_model.parameters(), lr=1e-3, weight_decay=1e-4, momentum=0.9)
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer)
 
         trainer = Trainer(training_loader, 
                         validation_loader, 
@@ -54,6 +55,7 @@ def main(TRAIN,
                         DEVICE,
                         eye_tracker_model,
                         optimizer, 
+                        scheduler,
                         CONTINUE_TRAINING)
         
         trainer.train_with_validation(NB_EPOCHS)
