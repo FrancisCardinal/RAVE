@@ -24,6 +24,7 @@ class Trainer():
                 model,
                 optimizer,
                 scheduler,
+                ROOT_DIR_PATH,
                 CONTINUE_TRAINING):
         """Constructor of the Trainer class
 
@@ -44,6 +45,8 @@ class Trainer():
         self.model = model
         self.optimizer = optimizer
         self.scheduler = scheduler
+        self.ROOT_DIR_PATH = ROOT_DIR_PATH
+        self.MODEL_PATH = os.path.join(ROOT_DIR_PATH, Trainer.MODEL_INFO_FILE_NAME)
         self.min_validation_loss = np.inf
 
         if(CONTINUE_TRAINING):
@@ -105,7 +108,7 @@ class Trainer():
         figure_title = f'{time_of_completion:s} | ellapsed_time={ellapsed_time:s} | min_validation_loss={self.min_validation_loss:.6f} | min_training_loss={min_training_loss:.6f}'
 
         print(figure_title)
-        plt.savefig(os.path.join(os.getcwd(), Trainer.TRAINING_SESSIONS_DIR, figure_title + '.png'), dpi = 200)
+        plt.savefig(os.path.join(self.ROOT_DIR_PATH, Trainer.TRAINING_SESSIONS_DIR, figure_title + '.png'), dpi = 200)
         plt.close(None)
 
     
@@ -184,13 +187,13 @@ class Trainer():
             'optimizer_state_dict': self.optimizer.state_dict(),
             'scheduler_state_dict': self.scheduler.state_dict(),
             'min_validation_loss': self.min_validation_loss,
-            }, Trainer.MODEL_INFO_FILE_NAME)
+            }, self.MODEL_PATH)
     
 
     def load_model_and_training_info(self): 
         """Loads a checkpoint, which contains the model weights and the necessary information to continue the training now
         """
-        checkpoint = torch.load(Trainer.MODEL_INFO_FILE_NAME)
+        checkpoint = torch.load(self.MODEL_PATH)
         self.model.load_state_dict(checkpoint['model_state_dict'])
         self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         self.scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
@@ -198,13 +201,13 @@ class Trainer():
 
 
     @staticmethod
-    def load_best_model(model): 
+    def load_best_model(model, MODEL_DIR_PATH): 
         """Used to get the best version of a model from disk
 
         Args:
             model (Module): Model on which to update the weights
         """
-        checkpoint = torch.load(Trainer.MODEL_INFO_FILE_NAME)
+        checkpoint = torch.load( os.path.join(MODEL_DIR_PATH, Trainer.MODEL_INFO_FILE_NAME) )
         model.load_state_dict(checkpoint['model_state_dict'])
 
         model.eval()

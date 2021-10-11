@@ -2,14 +2,14 @@ import torch
 import cv2
 import argparse
 
-from EyeTrackerModel import EyeTrackerModel
-from ellipse_util import ellipse_loss_function, draw_ellipse_on_image
+from RAVE.common import Trainer
+from RAVE.common.image_utils import tensor_to_opencv_image, inverse_normalize
 
-from Trainer import Trainer
-from EyeTrackerDataset import EyeTrackerDataset
+from RAVE.eye_tracker.EyeTrackerDataset import EyeTrackerDataset
+from RAVE.eye_tracker.EyeTrackerDatasetBuilder import EyeTrackerDatasetBuilder
+from RAVE.eye_tracker.EyeTrackerModel import EyeTrackerModel
+from RAVE.eye_tracker.ellipse_util import ellipse_loss_function, draw_ellipse_on_image
 
-from DatasetBuilder import DatasetBuilder
-from image_utils import tensor_to_opencv_image, inverse_normalize
 
 def main(TRAIN, 
         NB_EPOCHS,
@@ -29,7 +29,7 @@ def main(TRAIN,
     if( torch.cuda.is_available() ): 
         DEVICE = 'cuda'
 
-    DatasetBuilder.create_images_datasets_with_LPW_videos()
+    EyeTrackerDatasetBuilder.create_images_datasets_with_LPW_videos()
 
     BATCH_SIZE = 128 
     training_sub_dataset   = EyeTrackerDataset.get_training_sub_dataset()
@@ -56,11 +56,12 @@ def main(TRAIN,
                         eye_tracker_model,
                         optimizer, 
                         scheduler,
+                        EyeTrackerDataset.EYE_TRACKER_DIR_PATH,
                         CONTINUE_TRAINING)
         
         trainer.train_with_validation(NB_EPOCHS)
     
-    Trainer.load_best_model(eye_tracker_model)
+    Trainer.load_best_model(eye_tracker_model, EyeTrackerDataset.EYE_TRACKER_DIR_PATH)
 
     if(DISPLAY_VALIDATION):
         visualize_predictions(eye_tracker_model, validation_loader, DEVICE)
