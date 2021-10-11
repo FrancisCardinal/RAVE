@@ -59,15 +59,15 @@ class EyeTrackerDataset(Dataset):
 
 
 class EyeTrackerDatasetOnlineDataAugmentation(Dataset):
-    """This class inherits from Dataset. It overwrites certain methods in order to 
-    do online data augmentation. 
+    """This class inherits from Dataset. It overwrites certain methods in
+    order to do online data augmentation.
     """
 
     def __init__(self, sub_dataset_dir):
         """Constructor of the EyeTrackerDatasetOnlineDataAugmentation class
 
         Args:
-            sub_dataset_dir (String): Name of the directory of the sub-dataset 
+            sub_dataset_dir (String): Name of the directory of the sub-dataset
         """
         super().__init__(sub_dataset_dir)
 
@@ -82,9 +82,9 @@ class EyeTrackerDatasetOnlineDataAugmentation(Dataset):
         )
 
     def __getitem__(self, idx):
-        """Method of the Dataset class that must be overwritten by this class. 
-           Used to get an image and label pair. Before returning the image and label
-           pair, this class performs online data augmentation. 
+        """Method of the Dataset class that must be overwritten by this class.
+           Used to get an image and label pair. Before returning the image and
+           label pair, this class performs online data augmentation.
 
         Args:
             idx (int): Index of the pair to get

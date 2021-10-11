@@ -41,7 +41,7 @@ class Dataset(torch.utils.data.Dataset):
         """Constructor of the Dataset class
 
         Args:
-            sub_dataset_dir (String): Name of the directory of the sub-dataset 
+            sub_dataset_dir (String): Name of the directory of the sub-dataset
         """
         self.TRAINING_MEAN, self.TRAINING_STD = TRAINING_MEAN, TRAINING_STD
         self.NORMALIZE_TRANSFORM = transforms.Normalize(
@@ -59,7 +59,7 @@ class Dataset(torch.utils.data.Dataset):
         )
 
     def __len__(self):
-        """Method of the Dataset class that must be overwritten by this class. 
+        """Method of the Dataset class that must be overwritten by this class.
            Used to get the number of elements in the dataset
 
         Returns:
@@ -108,11 +108,13 @@ class Dataset(torch.utils.data.Dataset):
     @staticmethod
     def get_multiple_workers_safe_list_of_paths(directory):
         """Used to build a list of paths. This method prevents a memory 
-            leak that happens with list of strings and multiple dataloader workers
+            leak that happens with list of strings and multiple dataloader 
+            workers
             https://gist.github.com/mprostock/2850f3cd465155689052f0fa3a177a50  
 
         Args:
-            directory (String): The directory of which to get the paths of its files
+            directory (String):
+                The directory of which to get the paths of its files
 
         Returns:
             List: The list of paths

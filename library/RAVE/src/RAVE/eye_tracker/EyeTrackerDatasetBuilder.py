@@ -36,13 +36,16 @@ from ..common.image_utils import apply_image_translation, apply_image_rotation
 
 
 class EyeTrackerDatasetBuilder(DatasetBuilder):
-    """This class builds the sub-datasets. It takes videos, extracts the frames and saves them on the disk, with the corresponding labels.
-       It also applies data augmentation transforms to the training sub-dataset. 
+    """This class builds the sub-datasets. It takes videos, extracts the frames
+       and saves them on the disk, with the corresponding labels. It also
+       applies data augmentation transforms to the training sub-dataset.
     """
 
     @staticmethod
     def create_images_datasets_with_LPW_videos():
-        """Static methods ; Main method of the EyeTrackerDatasetBuilder class. This method checks if the dataset as already been built, and builds it otherwise.
+        """Static methods ; Main method of the EyeTrackerDatasetBuilder class.
+        This method checks if the dataset as already been built, and builds it
+        otherwise.
         """
         BUILDERS = EyeTrackerDatasetBuilder.get_builders()
         if BUILDERS == -1:
@@ -60,10 +63,13 @@ class EyeTrackerDatasetBuilder(DatasetBuilder):
 
     @staticmethod
     def get_builders():
-        """Static methods ; Used to get the 3 EyeTrackerDatasetBuilder objects (one for each sub-dataset)
+        """Static methods ; Used to get the 3 EyeTrackerDatasetBuilder objects
+        (one for each sub-dataset)
 
         Returns:
-            List of EyeTrackerDatasetBuilder: The 3 EyeTrackerDatasetBuilder objects (one for each sub-dataset)
+            List of EyeTrackerDatasetBuilder:
+                The 3 EyeTrackerDatasetBuilder objects
+                (one for each sub-dataset)
         """
         SOURCE_DIR = os.path.join(
             EyeTrackerDataset.EYE_TRACKER_DIR_PATH, "LPW"
@@ -134,7 +140,8 @@ class EyeTrackerDatasetBuilder(DatasetBuilder):
         ) = self.parse_current_annotation(annotations)
 
         if angle == -1:
-            # The annotation files use '-1' when the pupil is not visible on a frame.
+            # The annotation files use '-1' when the pupil is not visible
+            # on a frame.
             return
 
         self.current_ellipse = NormalizedEllipse.get_normalized_ellipse_from_opencv_ellipse(
@@ -152,13 +159,14 @@ class EyeTrackerDatasetBuilder(DatasetBuilder):
         )
 
     def parse_current_annotation(self, annotations):
-        """Parses the current annotation to extract the parameters of the ellipse as defined by opencv
+        """Parses the current annotation to extract the parameters of
+           the ellipse as defined by opencv
 
         Args:
             annotations (List of strings): All the annotations
 
         Returns:
-            quintuplet: The parameters of the ellipse as defined by opencv 
+            quintuplet: The parameters of the ellipse as defined by opencv
         """
         annotation = annotations[self.annotation_line_index].split(";")
         # The end of the line has a ';' that must be removed
@@ -173,7 +181,8 @@ class EyeTrackerDatasetBuilder(DatasetBuilder):
             ellipse_width,
             ellipse_height,
         ) = annotation
-        # To make sure that the current annotation really belongs to the current frame
+        # To make sure that the current annotation really belongs to
+        # the current frame
         assert self.video_frame_id == annotation_frame_id
 
         return angle, center_x, center_y, ellipse_width, ellipse_height
@@ -182,20 +191,24 @@ class EyeTrackerDatasetBuilder(DatasetBuilder):
 class EyeTrackerDatasetBuilderOfflineDataAugmentation(
     EyeTrackerDatasetBuilder
 ):
-    """This class inherits from EyeTrackerDatasetBuilder. It overwrites certain methods in order to 
-    do offline data augmentation.
+    """This class inherits from EyeTrackerDatasetBuilder.
+    It overwrites certain methods in order to do offline data augmentation.
     """
 
     def __init__(
         self, VIDEOS, OUTPUT_DIR_PATH, log_name, IMAGE_DIMENSIONS, SOURCE_DIR
     ):
-        """Constructor of the TrainingDatasetBuilder. Calls the parent constructor
-           and defines the training transforms
+        """Constructor of the TrainingDatasetBuilder.Calls the parent
+           constructor and defines the training transforms
 
         Args:
-            VIDEOS (List of strings): The names of the videos that belong to this sub-dataset
-            OUTPUT_DIR_PATH (String): Path of the directory that will contain the images and labels pairs
-            log_name (String): Name to be displayed alongside the progress bar in the terminal 
+            VIDEOS (List of strings):
+                The names of the videos that belong to this sub-dataset
+            OUTPUT_DIR_PATH (String):
+                Path of the directory that will contain the images and
+                labels pairs
+            log_name (String):
+                Name to be displayed alongside the progress bar in the terminal
         """
         super().__init__(
             VIDEOS, OUTPUT_DIR_PATH, log_name, IMAGE_DIMENSIONS, SOURCE_DIR
@@ -212,14 +225,16 @@ class EyeTrackerDatasetBuilderOfflineDataAugmentation(
         )
 
     def apply_translation_and_rotation(self, output_image_tensor):
-        """A data augmentation operation, translates and rotates the frame randomly and reflects that 
-           change on the corresponding ellipse
+        """A data augmentation operation, translates and rotates the frame
+           randomly and reflects that change on the corresponding ellipse
 
         Args:
-            output_image_tensor (pytorch tensor): The frame on which to apply the translation and rotation
+            output_image_tensor (pytorch tensor): 
+                The frame on which to apply the translation and rotation
 
         Returns:
-            pytorch tensor: The translated and rotated frame
+            pytorch tensor:
+                The translated and rotated frame
         """
         output_image_tensor, phi = apply_image_rotation(output_image_tensor)
 

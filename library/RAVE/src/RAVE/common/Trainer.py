@@ -34,14 +34,26 @@ class Trainer:
         """Constructor of the Trainer class
 
         Args:
-            training_loader (Dataloader): Dataloader that returns images and labels pairs of the training dataset
-            validation_loader (Dataloader): Dataloader that returns images and labels pairs of the validation dataset
-            loss_function (Functor): Loss function used to compute the training and validation losses
-            device (String): Device on which to perform the computations
-            model (Module): Neural network to be trained
-            optimizer (Optimizer): Optimizer used to update the weights during training
-            scheduler (_LRScheduler): Learning rate scheduler
-            CONTINUE_TRAINING (bool): Whether to continue the training from the checkpoint on disk or not
+            training_loader (Dataloader):
+                Dataloader that returns images and labels pairs of the training
+                dataset
+            validation_loader (Dataloader):
+                Dataloader that returns images and labels pairs of the
+                validation dataset
+            loss_function (Functor):
+                Loss function used to compute the training and
+                validation losses
+            device (String):
+                Device on which to perform the computations
+            model (Module):
+                Neural network to be trained
+            optimizer (Optimizer):
+                Optimizer used to update the weights during training
+            scheduler (_LRScheduler):
+                Learning rate scheduler
+            CONTINUE_TRAINING (bool):
+                Whether to continue the training from the checkpoint
+                on disk or not
         """
         self.training_loader = training_loader
         self.validation_loader = validation_loader
@@ -66,7 +78,7 @@ class Trainer:
         Thread(target=self.terminate_training_thread, daemon=True).start()
 
     def terminate_training_thread(self):
-        """Thread that checks if the user wants to stop training. 
+        """Thread that checks if the user wants to stop training.
            Used to stop training before all the epochs have been executed.
         """
         while not self.terminate_training:
@@ -94,12 +106,17 @@ class Trainer:
             self.validation_losses.append(current_validation_loss)
             self.update_plot()
 
-            epoch_stats = f"Epoch {epoch:0>4d} | validation_loss={current_validation_loss:.6f} | training_loss={current_training_loss:.6f}"
+            epoch_stats = (
+                f"Epoch {epoch:0>4d} | "
+                f"validation_loss={current_validation_loss:.6f} | "
+                f"training_loss={current_training_loss:.6f}"
+            )
 
             if self.min_validation_loss > current_validation_loss:
-                epoch_stats = (
-                    epoch_stats
-                    + f"  | Min validation loss decreased({self.min_validation_loss:.6f}--->{current_validation_loss:.6f}) : Saved the model"
+                epoch_stats = epoch_stats + (
+                    "  | Min validation loss decreased("
+                    f"{self.min_validation_loss:.6f}--->"
+                    f"{current_validation_loss:.6f}) : Saved the model"
                 )
                 self.min_validation_loss = current_validation_loss
 
@@ -113,7 +130,12 @@ class Trainer:
         min_training_loss = min(self.training_losses)
         time_of_completion = strftime("%Y-%m-%d %H:%M:%S", localtime())
         ellapsed_time = str(timedelta(seconds=(time() - start_time)))
-        figure_title = f"{time_of_completion:s} | ellapsed_time={ellapsed_time:s} | min_validation_loss={self.min_validation_loss:.6f} | min_training_loss={min_training_loss:.6f}"
+        figure_title = (
+            f"{time_of_completion:s} | "
+            f"ellapsed_time={ellapsed_time:s} | "
+            f"min_validation_loss={self.min_validation_loss:.6f} | "
+            f"min_training_loss={min_training_loss:.6f}"
+        )
 
         print(figure_title)
         plt.savefig(
@@ -184,7 +206,8 @@ class Trainer:
             return validation_loss / number_of_images
 
     def update_plot(self):
-        """Updates the plot at the end of an epoch to show all of the training losses and validation losses computed so far
+        """Updates the plot at the end of an epoch to show all of the training
+           losses and validation losses computed so far
         """
         plt.clf()
         plt.plot(
@@ -199,12 +222,14 @@ class Trainer:
         )
         plt.legend(loc="upper left")
         plt.draw()
-        # So that the graph does not get the operating system's focus at each plot update
+        # So that the graph does not get the operating system's
+        # focus at each plot update
         plt.gcf().canvas.draw_idle()
         plt.gcf().canvas.start_event_loop(0.001)
 
     def save_model_and_training_info(self):
-        """Saves a checkpoint, which contains the model weights and the necessary information to continue the training at some other time 
+        """Saves a checkpoint, which contains the model weights and the
+           necessary information to continue the training at some other time
         """
         torch.save(
             {
@@ -217,7 +242,8 @@ class Trainer:
         )
 
     def load_model_and_training_info(self):
-        """Loads a checkpoint, which contains the model weights and the necessary information to continue the training now
+        """Loads a checkpoint, which contains the model weights and the
+           necessary information to continue the training now
         """
         checkpoint = torch.load(self.MODEL_PATH)
         self.model.load_state_dict(checkpoint["model_state_dict"])

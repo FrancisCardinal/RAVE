@@ -34,7 +34,7 @@ from .image_utils import tensor_to_opencv_image
 class DatasetBuilder(ABC):
     """This class builds the sub-datasets. It takes videos, extracts the frames
        and saves them on the disk, with the corresponding labels.
-       It also applies data augmentation transforms to the training sub-dataset. 
+       It also applies data augmentation transforms to the training sub-dataset 
     """
 
     VIDEOS_DIR = "videos"
@@ -45,16 +45,18 @@ class DatasetBuilder(ABC):
     @staticmethod
     @abstractmethod
     def get_builders():
-        """Static methods ; Used to get the 3 DatasetBuilder objects (one for each sub-dataset)
+        """Static method ; Used to get the 3 DatasetBuilder objects (one for
+           each sub-dataset)
 
         Returns:
-            List of DatasetBuilder: The 3 DatasetBuilder objects (one for each sub-dataset)
+            List of DatasetBuilder: The 3 DatasetBuilder objects (one for
+            each sub-dataset)
         """
         raise NotImplementedError
 
     @staticmethod
     def create_directory_if_does_not_exist(path):
-        """Creates a directory if it does not exist on the disk 
+        """Creates a directory if it does not exist on the disk
 
         Args:
             path (string): The path of the directory to create
@@ -68,9 +70,13 @@ class DatasetBuilder(ABC):
         """Constructor of the DatasetBuilder class
 
         Args:
-            VIDEOS (List of strings): The names of the videos that belong to this sub-dataset
-            OUTPUT_DIR_PATH (String): Path of the directory that will contain the images and labels pairs
-            log_name (String): Name to be displayed alongside the progress bar in the terminal 
+            VIDEOS (List of strings):
+                The names of the videos that belong to this sub-dataset
+            OUTPUT_DIR_PATH (String):
+                Path of the directory that will contain the images and labels
+                pairs
+            log_name (String):
+                Name to be displayed alongside the progress bar in the terminal 
         """
         self.VIDEOS = VIDEOS
         self.log_name = log_name
@@ -99,7 +105,8 @@ class DatasetBuilder(ABC):
         )
 
     def create_images_of_one_video_group(self):
-        """Gets the info of one video, then creates the images and labels pair of the video and save them to disk
+        """Gets the info of one video, then creates the images and labels pair
+           of the video and save them to disk
         """
         for video_file_name in tqdm(
             self.VIDEOS, leave=False, desc=self.log_name
@@ -119,12 +126,15 @@ class DatasetBuilder(ABC):
     def create_images_dataset_with_one_video(
         self, file_name, video_path, annotations
     ):
-        """Creates the images and labels pair of the video and save them to disk
+        """Creates the images and labels pair of the video and saves
+           them to disk
 
         Args:
             file_name (String): Name of the video
             video_path (String): Path to the video
-            annotations (List of strings): One string per frame. Each string represents the ellipse that is present on the frame
+            annotations (List of strings):
+                One string per frame. Each string represents the ellipse that
+                is present on the frame
         """
         cap = cv2.VideoCapture(video_path)
 
@@ -164,13 +174,14 @@ class DatasetBuilder(ABC):
         raise NotImplementedError
 
     def process_frame(self, frame):
-        """Applies the transforms that need to be applied before the frame is saved
+        """Applies the transforms that need to be applied before the frame is
+           saved
 
         Args:
             frame (numpy array): The frame that needs to be processed
 
         Returns:
-            pytorch tensor: The processed frame 
+            pytorch tensor: The processed frame
         """
         im_pil = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
         output_image_tensor = self.RESIZE_TRANSFORM(im_pil)
@@ -181,9 +192,12 @@ class DatasetBuilder(ABC):
         """Saves the image and label pair to disk
 
         Args:
-            file_name (String): Name to be used for the image and the label files
-            output_image_tensor (pytorch tensor): The image that will be saved to disk
-            label (List): The label that will be saved to disk
+            file_name (String):
+                Name to be used for the image and the label files
+            output_image_tensor (pytorch tensor):
+                The image that will be saved to disk
+            label (List):
+                The label that will be saved to disk
         """
         output_file_name = file_name + "_" + str(self.video_frame_id).zfill(4)
 

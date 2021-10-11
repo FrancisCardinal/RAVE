@@ -3,24 +3,34 @@ from numpy import sin, cos
 
 
 class NormalizedEllipse:
-    """Represents an ellipse with five parameters. h and k are the center position, a and b 
-       are the horizontal and vertical axis length and theta is the rotation angle of the 
-       ellipse relative to the x axis. The ellipse is normalized. 
+    """Represents an ellipse with five parameters. h and k are the center
+       position, a and b are the horizontal and vertical axis length and theta
+       is the rotation angle of the ellipse relative to the x axis.
+       The ellipse is normalized.
 
-       A 'normalized' ellipse is one where each parameters is no longer represented in pixels values. Each parameter is rather normalized
-       between 0 and 1, where 1 represents the max pixel value of the corresponding axis of the parameter (or 2*pi radians for theta). 
-       For example, if the h parameter was 240 and the image width is 480, then the new h value is 0.5 
+       A 'normalized' ellipse is one where each parameters is no longer
+       represented in pixels values. Each parameter is rather normalized
+       between 0 and 1, where 1 represents the max pixel value of the
+       corresponding axis of the parameter (or 2*pi radians for theta).
+       For example, if the h parameter was 240 and the image width is 480,
+       then the new h value is 0.5
     """
 
     def __init__(self, h, k, a, b, theta):
         """Constructor of the NormalizedEllipse class
 
         Args:
-            h (float): x coordinate of the center of the ellipse (normalized)
-            k (float): y coordinate of the center of the ellipse (normalized)
-            a (float): length of the horizontal axis (normalized)
-            b (float): length of the vertical axis (normalized)
-            theta (float): rotation angle of the ellipse relative to the x axis (normalized)
+            h (float):
+                x coordinate of the center of the ellipse (normalized)
+            k (float):
+                y coordinate of the center of the ellipse (normalized)
+            a (float):
+                length of the horizontal axis (normalized)
+            b (float):
+                length of the vertical axis (normalized)
+            theta (float):
+                rotation angle of the ellipse relative to the
+                x axis (normalized)
         """
         self.h = h
         self.k = k
@@ -60,7 +70,7 @@ class NormalizedEllipse:
 
     @staticmethod
     def get_normalized_ellipse_from_list(list):
-        """Creates a normalized ellipse object from a list 
+        """Creates a normalized ellipse object from a list
 
         Args:
             list (List): List of the ellipse's parameters
@@ -80,19 +90,28 @@ class NormalizedEllipse:
         INPUT_IMAGE_WIDTH,
         INPUT_IMAGE_HEIGHT,
     ):
-        """Computes a normalized ellipse from an ellipse that is in the opencv format. 
+        """Computes a normalized ellipse from an ellipse that is in the
+           opencv format. 
 
         Args:
-            center_x (int): x coordinate of the center of the ellipse (in pixels)
-            ellipse_width (int): length of the horizontal axis (in pixels)
-            center_y (int): y coordinate of the center of the ellipse (in pixels)
-            ellipse_height (int): length of the vertical axis (in pixels)
-            angle (int): rotation angle of the ellipse relative to the x axis (in pixels)
-            INPUT_IMAGE_WIDTH (int): width of the input image (in pixels)
-            INPUT_IMAGE_HEIGHT (int): height of the input image (in pixels)
+            center_x (int):
+                x coordinate of the center of the ellipse (in pixels)
+            ellipse_width (int):
+                length of the horizontal axis (in pixels)
+            center_y (int):
+                y coordinate of the center of the ellipse (in pixels)
+            ellipse_height (int):
+                length of the vertical axis (in pixels)
+            angle (int):
+                rotation angle of the ellipse relative to the x axis(in pixels)
+            INPUT_IMAGE_WIDTH (int):
+                width of the input image (in pixels)
+            INPUT_IMAGE_HEIGHT (int):
+                height of the input image (in pixels)
 
         Returns:
-            NormalizedEllipse: The normalized ellipse
+            NormalizedEllipse:
+                The normalized ellipse
         """
         h, k = center_x / INPUT_IMAGE_WIDTH, center_y / INPUT_IMAGE_HEIGHT
         a, b = (

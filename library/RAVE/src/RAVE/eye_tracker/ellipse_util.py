@@ -7,18 +7,21 @@ from math import isclose
 
 
 def ellipse_loss_function(predictions, targets):
-    """Custom loss function for ellipse. This was developped because applying MSELoss directly on the 
-       parameters of ellipses was not giving good results in training sessions. This loss function
-       generates points that lie on the target and predicted ellipse (using its parameters) and 
-       then computes the euclidean distance between each pair of points. The mean distance is then computed
-       and used as the loss metric. 
+    """Custom loss function for ellipse. This was developped because applying
+       MSELoss directly on the parameters of ellipses was not giving good
+       results in training sessions. This loss function generates points that
+       lie on the target and predicted ellipse (using its parameters) and then
+       computes the euclidean distance between each pair of points. The mean
+       distance is then computed and used as the loss metric.
 
     Args:
         predictions (pytorch tensor): The predicted ellipses
         targets (pytorch tensor): The target ellipses
 
     Returns:
-        float: The mean distance between the generated points of the predicted and target ellipses
+        float: 
+            The mean distance between the generated points of the predicted
+            and target ellipses
     """
     NUMBER_OF_POINTS = 720
 
@@ -37,7 +40,9 @@ def ellipse_loss_function(predictions, targets):
 
 def get_points_of_ellipses(ellipses, NUMBER_OF_POINTS):
     """generates points that lie on the ellipse (using its parameters). 
-       Points are generated using polar coordinates  https://math.stackexchange.com/questions/2645689/what-is-the-parametric-equation-of-a-rotated-ellipse-given-the-angle-of-rotatio 
+       Points are generated using polar coordinates 
+       https://math.stackexchange.com/questions/2645689/what-is-the-parametric
+       -equation-of-a-rotated-ellipse-given-the-angle-of-rotatio
 
     Args:
         ellipses (pytorch tensor): The parameters of the ellipse
@@ -88,10 +93,14 @@ def draw_ellipse_on_image(image, ellipse, color=(255, 0, 0), thickness=1):
     """Draw an ellipse on an image using its parameters
 
     Args:
-        image (numpy array): The image on which to draw the ellipse
-        ellipse (pytorch tensor): The parameters of the ellipse to draw
-        color (tuple, optional): The color of the ellipse. Defaults to (255, 0, 0).
-        thickness (int, optional): The thickness of the ellipse. Defaults to 1.
+        image (numpy array):
+            The image on which to draw the ellipse
+        ellipse (pytorch tensor):
+            The parameters of the ellipse to draw
+        color (tuple, optional):
+            The color of the ellipse. Defaults to (255, 0, 0).
+        thickness (int, optional):
+            The thickness of the ellipse. Defaults to 1.
 
     Returns:
         numpy array: The image with the ellipse drawn on it
@@ -110,8 +119,8 @@ def draw_ellipse_on_image(image, ellipse, color=(255, 0, 0), thickness=1):
 
 def get_points_of_an_ellipse(h, k, a, b, theta, device, NUMBER_OF_POINTS):
     """generates points that lie on the ellipse (using its parameters)
-       TODO : Change calls to this function to the 'get_points_of_ellipses' function instead, which uses 
-       paralellism to compute points faster
+       TODO : Change calls to this function to the 'get_points_of_ellipses'
+       function instead, which uses paralellism to compute points faster
 
     Args:
         h (float): x coordinate of the center of the ellipse 

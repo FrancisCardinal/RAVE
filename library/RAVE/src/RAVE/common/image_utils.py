@@ -24,9 +24,8 @@ def tensor_to_opencv_image(tensor):
 
 
 def inverse_normalize(tensor, mean, std):
-    """Undo the normalization operation that was performed on an image when it was
-       passed to a network 
-       https://discuss.pytorch.org/t/simple-way-to-inverse-transform-normalization/4821/17 
+    """Undo the normalization operation that was performed on an image when
+       it was passed to a network 
 
     Args:
         tensor (pytorch tensor): The image on which to perform the operation
@@ -50,18 +49,23 @@ def inverse_normalize(tensor, mean, std):
 def apply_image_translation(
     image_tensor, x_extremums=[-0.2, 0.2], y_extremums=[-0.2, 0.2]
 ):
-    """A data augmentation operation, translates the frame randomly, by selecting an x and y 
-       value in the x_extremums and y_extremums ranges, respectively.
-       This should be used instead of the pytorch transform if you wish to know the amplitude 
-       of the translation. 
+    """A data augmentation operation, translates the frame randomly, by
+       selecting an x and y value in the x_extremums and y_extremums ranges,
+       respectively.This should be used instead of the pytorch transform if
+       you wish to know the amplitude of the translation.
 
     Args:
-        image_tensor (pytorch tensor): The frame on which to apply the translation
-        x_extremums (list, optional): The min and max value of the x translation. Defaults to [-0.2, 0.2].
-        y_extremums (list, optional): The min and max value of the y translation. Defaults to [-0.2, 0.2].
+        image_tensor (pytorch tensor):
+            The frame on which to apply the translation
+        x_extremums (list, optional):
+            The min and max value of the x translation. Defaults to [-0.2, 0.2]
+        y_extremums (list, optional):
+            The min and max value of the y translation. Defaults to [-0.2, 0.2]
 
     Returns:
-        Tuple: The translated frame (pytorch tensor), the x offset (float) and the y offset (float)
+        Tuple: 
+            The translated frame (pytorch tensor), the x offset (float) and the
+            y offset (float)
     """
 
     x_offset = random.uniform(x_extremums[0], x_extremums[1])
@@ -75,17 +79,19 @@ def apply_image_translation(
 
 
 def apply_image_rotation(image_tensor, rotation_angle_extremums=[-0.1, 0.1]):
-    """A data augmentation operation, rotates the frame randomly, by selecting an 
-       angle in the 'rotation_angle_extremums'range.
-       This should be used instead of the pytorch transform if you wish to know the amplitude 
-       of the rotation. 
+    """A data augmentation operation, rotates the frame randomly, by selecting
+       an angle in the 'rotation_angle_extremums'range.
+       This should be used instead of the pytorch transform if you wish to know
+       the amplitude of the rotation.
 
     Args:
         image_tensor (pytorch tensor): The frame on which to apply the rotation
-        rotation_angle_extremums (list, optional): The min and max value of the rotation angle. Defaults to [-0.1, 0.1].
+        rotation_angle_extremums (list, optional): 
+            The min and max value of the rotation angle.
+            Defaults to [-0.1, 0.1]
 
     Returns:
-        Tuple: The rotated frame (pytorch tensor) and the rotation angle (float)
+        Tuple:The rotated frame (pytorch tensor) and the rotation angle (float)
     """
     phi = random.uniform(
         rotation_angle_extremums[0], rotation_angle_extremums[1]
@@ -102,20 +108,27 @@ def apply_image_translation_and_rotation(
     y_extremums=[-0.2, 0.2],
     rotation_angle_extremums=[-0.1, 0.1],
 ):
-    """A data augmentation operation, translates and rotates the frame randomly, by selecting an x and y
-       value in the x_extremums and y_extremums ranges, respectively, and by selecting an
-       angle in the 'rotation_angle_extremums'range.
-       This should be used instead of the pytorch transform if you wish to know the amplitude
-       of the translation and the rotation.
+    """A data augmentation operation,translates and rotates the frame randomly,
+       by selecting an x and y value in the x_extremums and y_extremums ranges,
+       respectively, and by selecting an angle in the
+       'rotation_angle_extremums'range. This should be used instead of the
+       pytorch transform if you wish to know the amplitude of the translation
+       and the rotation.
 
     Args:
-        image_tensor (pytorch tensor): The frame on which to apply the translation
-        x_extremums (list, optional): The min and max value of the x translation. Defaults to [-0.2, 0.2].
-        y_extremums (list, optional): The min and max value of the y translation. Defaults to [-0.2, 0.2].
-        rotation_angle_extremums (list, optional): The min and max value of the rotation angle. Defaults to [-0.1, 0.1].
+        image_tensor (pytorch tensor):
+            The frame on which to apply the translation
+        x_extremums (list, optional):
+            The min and max value of the x translation. Defaults to [-0.2, 0.2]
+        y_extremums (list, optional):
+            The min and max value of the y translation. Defaults to [-0.2, 0.2]
+        rotation_angle_extremums (list, optional):
+            The min and max value of therotation angle. Defaults to [-0.1, 0.1]
 
     Returns:
-        Tuple: The translated frame (pytorch tensor), the x offset (float), the y offset (float) and the rotation angle (float)
+        Tuple: 
+            The translated frame (pytorch tensor), the x offset (float),the y
+            offset (float) and the rotation angle (float)
     """
 
     x_offset = random.uniform(x_extremums[0], x_extremums[1])
@@ -135,9 +148,12 @@ def do_affine_grid_operation(image_tensor, translation=(0, 0), phi=0):
     """Executes the affine operation
 
     Args:
-        image_tensor (pytorch tensor): The image on which to apply the operation
-        translation (Tuple): The magnitude of the translation operation
-        phi (float): The angle of rotation
+        image_tensor (pytorch tensor):
+            The image on which to apply the operation
+        translation (Tuple):
+            The magnitude of the translation operation
+        phi (float): 
+            The angle of rotation
 
     Returns:
         pytorch tensor: The processed image
@@ -159,7 +175,9 @@ def do_affine_grid_operation(image_tensor, translation=(0, 0), phi=0):
             ],
         ],
         dtype=torch.float,
-    )  # We need the'*2' here because affine_grid considers the top left corner as [-1, -1] and the bottom right one as [1, 1] (as opposed to the convention of this module where the top left corner is [0, 0])
+    )  # We need the'*2' here because affine_grid considers the top left corner
+    # as [-1, -1] and the bottom right one as [1, 1] (as opposed to the
+    # convention of this module where the top left corner is [0, 0])
 
     grid = F.affine_grid(
         transformation_matrix.unsqueeze(0), image_tensor.unsqueeze(0).size()

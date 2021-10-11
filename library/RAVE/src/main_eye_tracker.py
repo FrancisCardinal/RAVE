@@ -18,11 +18,17 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
     """main function of the module
 
     Args:
-        TRAIN (bool): Whether to train the model or not 
-        NB_EPOCHS (int): Number of epochs for which to train the network (ignored if TRAIN is set to false)
-        CONTINUE_TRAINING(bool): Whether to continue the training from the checkpoint on disk or not
-        DISPLAY_VALIDATION (bool): Whether to display the predictions on the validation dataset or not
-        TEST (bool): Whether to display the predictions on the test dataset or not
+        TRAIN (bool): Whether to train the model or not
+        NB_EPOCHS (int):
+            Number of epochs for which to train the network(ignored if TRAIN is
+            set to false)
+        CONTINUE_TRAINING(bool):
+            Whether to continue the training from the
+            checkpoint on disk or not
+        DISPLAY_VALIDATION (bool):
+            Whether to display the predictions on the validation dataset or not
+        TEST (bool):
+            Whether to display the predictions on the test dataset or not
     """
     DEVICE = "cpu"
     if torch.cuda.is_available():
@@ -100,11 +106,13 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
 
 
 def visualize_predictions(model, data_loader, DEVICE):
-    """Used to visualize the target and the predictions of the model on some input images
+    """Used to visualize the target and the predictions of the model on some
+       input images
 
     Args:
         model (Module): The model used to perform the predictions
-        data_loader (Dataloader): The dataloader that provides the images and the targets
+        data_loader (Dataloader): 
+            The dataloader that provides the imagesand the targets
         DEVICE (String): Device on which to perform the computations
     """
     with torch.no_grad():
@@ -152,13 +160,19 @@ if __name__ == "__main__":
         "-v",
         "--display_validation",
         action="store_true",
-        help="Display the predictions of the neural network on the validation dataset",
+        help=(
+            "Display the predictions of the neural network on the validation"
+            "dataset"
+        ),
     )
     parser.add_argument(
         "-p",
         "--predict",
         action="store_true",
-        help="Display the predictions of the neural network on the test dataset",
+        help=(
+            "Display the predictions of the neural network on the test"
+            "dataset"
+        ),
     )
     args = parser.parse_args()
 
