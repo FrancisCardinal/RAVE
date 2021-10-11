@@ -1,16 +1,19 @@
-import torch 
-from torch import nn 
+import torch
+from torch import nn
+
 
 class EyeTrackerModel(nn.Module):
     """Model of the neural network that detects pupils for the eye tracker module
     """
+
     def __init__(self):
         """Constructor of the EyeTrackerModel class. Defines the architecture of the model.
            Uses a pretrained version of resnet to do some transfer learning. The model also 
            has some fully connected layers at the end, as they help the network to make better predictions. 
         """
         super(EyeTrackerModel, self).__init__()
-        self.model = torch.hub.load('pytorch/vision:v0.9.0', 'resnet18', pretrained=True)
+        self.model = torch.hub.load(
+            'pytorch/vision:v0.9.0', 'resnet18', pretrained=True)
         for param in self.model.parameters():
             param.requires_grad = False
 
@@ -46,7 +49,6 @@ class EyeTrackerModel(nn.Module):
 
             nn.Linear(64, 5)
         )
-        
 
     def forward(self, x):
         """Method of the Dataset class that must be overwritten by this class.
@@ -60,6 +62,6 @@ class EyeTrackerModel(nn.Module):
         Returns:
             pytorch tensor: The predictions of the network (ellipses parameters)
         """
-        x = self.model(x) 
-        x = torch.sigmoid(x) 
-        return x 
+        x = self.model(x)
+        x = torch.sigmoid(x)
+        return x
