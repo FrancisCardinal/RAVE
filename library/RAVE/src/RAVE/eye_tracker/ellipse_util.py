@@ -19,7 +19,7 @@ def ellipse_loss_function(predictions, targets):
         targets (pytorch tensor): The target ellipses
 
     Returns:
-        float: 
+        float:
             The mean distance between the generated points of the predicted
             and target ellipses
     """
@@ -39,8 +39,8 @@ def ellipse_loss_function(predictions, targets):
 
 
 def get_points_of_ellipses(ellipses, NUMBER_OF_POINTS):
-    """generates points that lie on the ellipse (using its parameters). 
-       Points are generated using polar coordinates 
+    """generates points that lie on the ellipse (using its parameters).
+       Points are generated using polar coordinates
        https://math.stackexchange.com/questions/2645689/what-is-the-parametric
        -equation-of-a-rotated-ellipse-given-the-angle-of-rotatio
 
@@ -123,8 +123,8 @@ def get_points_of_an_ellipse(h, k, a, b, theta, device, NUMBER_OF_POINTS):
        function instead, which uses paralellism to compute points faster
 
     Args:
-        h (float): x coordinate of the center of the ellipse 
-        k (float): y coordinate of the center of the ellipse 
+        h (float): x coordinate of the center of the ellipse
+        k (float): y coordinate of the center of the ellipse
         a (float): length of the horizontal axis
         b (float): length of the vertical axis
         theta (float): rotation angle of the ellipse relative to the x axis
@@ -208,4 +208,3 @@ if __name__ == "__main__":
             np.sqrt(0.1 ** 2 + 0.1 ** 2) + 0.1,
             rel_tol=1e-5,
         )
-

@@ -111,7 +111,7 @@ def visualize_predictions(model, data_loader, DEVICE):
 
     Args:
         model (Module): The model used to perform the predictions
-        data_loader (Dataloader): 
+        data_loader (Dataloader):
             The dataloader that provides the imagesand the targets
         DEVICE (String): Device on which to perform the computations
     """

@@ -10,9 +10,6 @@ import random
 from PIL import Image
 import pickle
 
-from .image_utils import apply_image_translation, apply_image_rotation
-from ..eye_tracker.NormalizedEllipse import NormalizedEllipse
-
 IMAGE_DIMENSIONS = (1, 224, 299)
 
 
@@ -68,7 +65,7 @@ class Dataset(torch.utils.data.Dataset):
         return len(self.images_paths)
 
     def __getitem__(self, idx):
-        """Method of the Dataset class that must be overwritten by this class. 
+        """Method of the Dataset class that must be overwritten by this class.
            Used to get an image and label pair
 
         Args:
@@ -107,10 +104,10 @@ class Dataset(torch.utils.data.Dataset):
 
     @staticmethod
     def get_multiple_workers_safe_list_of_paths(directory):
-        """Used to build a list of paths. This method prevents a memory 
-            leak that happens with list of strings and multiple dataloader 
+        """Used to build a list of paths. This method prevents a memory
+            leak that happens with list of strings and multiple dataloader
             workers
-            https://gist.github.com/mprostock/2850f3cd465155689052f0fa3a177a50  
+            https://gist.github.com/mprostock/2850f3cd465155689052f0fa3a177a50
 
         Args:
             directory (String):

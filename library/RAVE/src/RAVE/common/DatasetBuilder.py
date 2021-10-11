@@ -34,7 +34,7 @@ from .image_utils import tensor_to_opencv_image
 class DatasetBuilder(ABC):
     """This class builds the sub-datasets. It takes videos, extracts the frames
        and saves them on the disk, with the corresponding labels.
-       It also applies data augmentation transforms to the training sub-dataset 
+       It also applies data augmentation transforms to the training sub-dataset
     """
 
     VIDEOS_DIR = "videos"
@@ -76,7 +76,7 @@ class DatasetBuilder(ABC):
                 Path of the directory that will contain the images and labels
                 pairs
             log_name (String):
-                Name to be displayed alongside the progress bar in the terminal 
+                Name to be displayed alongside the progress bar in the terminal
         """
         self.VIDEOS = VIDEOS
         self.log_name = log_name

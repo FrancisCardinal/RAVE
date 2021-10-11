@@ -144,7 +144,7 @@ class EyeTrackerDatasetBuilder(DatasetBuilder):
             # on a frame.
             return
 
-        self.current_ellipse = NormalizedEllipse.get_normalized_ellipse_from_opencv_ellipse(
+        self.current_ellipse = NormalizedEllipse.get_from_opencv_ellipse(
             center_x,
             ellipse_width,
             center_y,
@@ -229,7 +229,7 @@ class EyeTrackerDatasetBuilderOfflineDataAugmentation(
            randomly and reflects that change on the corresponding ellipse
 
         Args:
-            output_image_tensor (pytorch tensor): 
+            output_image_tensor (pytorch tensor):
                 The frame on which to apply the translation and rotation
 
         Returns:

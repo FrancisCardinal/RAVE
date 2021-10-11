@@ -69,7 +69,7 @@ class NormalizedEllipse:
         return [self.h, self.k, self.a, self.b, self.theta]
 
     @staticmethod
-    def get_normalized_ellipse_from_list(list):
+    def get_from_list(list):
         """Creates a normalized ellipse object from a list
 
         Args:
@@ -81,7 +81,7 @@ class NormalizedEllipse:
         return NormalizedEllipse(list[0], list[1], list[2], list[3], list[4])
 
     @staticmethod
-    def get_normalized_ellipse_from_opencv_ellipse(
+    def get_from_opencv_ellipse(
         center_x,
         ellipse_width,
         center_y,
@@ -91,7 +91,7 @@ class NormalizedEllipse:
         INPUT_IMAGE_HEIGHT,
     ):
         """Computes a normalized ellipse from an ellipse that is in the
-           opencv format. 
+           opencv format.
 
         Args:
             center_x (int):

@@ -21,7 +21,7 @@ class EyeTrackerDataset(Dataset):
         """Constructor of the Dataset class
 
         Args:
-            sub_dataset_dir (String): Name of the directory of the sub-dataset 
+            sub_dataset_dir (String): Name of the directory of the sub-dataset
         """
         super().__init__(
             EyeTrackerDataset.TRAINING_MEAN,
@@ -104,9 +104,7 @@ class EyeTrackerDatasetOnlineDataAugmentation(Dataset):
             output_image_tensor
         )
 
-        current_ellipse = NormalizedEllipse.get_normalized_ellipse_from_list(
-            label
-        )
+        current_ellipse = NormalizedEllipse.get_from_list(label)
         current_ellipse.rotate_around_image_center(phi)
         current_ellipse.h += x_offset
         current_ellipse.k += y_offset

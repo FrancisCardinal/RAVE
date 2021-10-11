@@ -25,7 +25,7 @@ def tensor_to_opencv_image(tensor):
 
 def inverse_normalize(tensor, mean, std):
     """Undo the normalization operation that was performed on an image when
-       it was passed to a network 
+       it was passed to a network
 
     Args:
         tensor (pytorch tensor): The image on which to perform the operation
@@ -63,7 +63,7 @@ def apply_image_translation(
             The min and max value of the y translation. Defaults to [-0.2, 0.2]
 
     Returns:
-        Tuple: 
+        Tuple:
             The translated frame (pytorch tensor), the x offset (float) and the
             y offset (float)
     """
@@ -86,7 +86,7 @@ def apply_image_rotation(image_tensor, rotation_angle_extremums=[-0.1, 0.1]):
 
     Args:
         image_tensor (pytorch tensor): The frame on which to apply the rotation
-        rotation_angle_extremums (list, optional): 
+        rotation_angle_extremums (list, optional):
             The min and max value of the rotation angle.
             Defaults to [-0.1, 0.1]
 
@@ -126,7 +126,7 @@ def apply_image_translation_and_rotation(
             The min and max value of therotation angle. Defaults to [-0.1, 0.1]
 
     Returns:
-        Tuple: 
+        Tuple:
             The translated frame (pytorch tensor), the x offset (float),the y
             offset (float) and the rotation angle (float)
     """
@@ -152,7 +152,7 @@ def do_affine_grid_operation(image_tensor, translation=(0, 0), phi=0):
             The image on which to apply the operation
         translation (Tuple):
             The magnitude of the translation operation
-        phi (float): 
+        phi (float):
             The angle of rotation
 
     Returns:
