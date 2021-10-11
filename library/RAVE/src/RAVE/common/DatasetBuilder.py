@@ -4,24 +4,41 @@ from abc import ABC, abstractmethod
 from PIL import Image
 import pickle
 from tqdm import tqdm
-from threading import Thread
 
 from torchvision import transforms
 
-from .Dataset import Dataset, IMAGE_DIMENSIONS
+from .Dataset import Dataset
 
-from .image_utils import tensor_to_opencv_image, apply_image_translation, apply_image_rotation
+from .image_utils import tensor_to_opencv_image
 
 
-DATASET_DIR, IMAGES_DIR, LABELS_DIR, TRAINING_DIR, VALIDATION_DIR, TEST_DIR, IMAGES_FILE_EXTENSION = Dataset.DATASET_DIR, Dataset.IMAGES_DIR, Dataset.LABELS_DIR, Dataset.TRAINING_DIR, Dataset.VALIDATION_DIR, Dataset.TEST_DIR, Dataset.IMAGES_FILE_EXTENSION
+(
+    DATASET_DIR,
+    IMAGES_DIR,
+    LABELS_DIR,
+    TRAINING_DIR,
+    VALIDATION_DIR,
+    TEST_DIR,
+    IMAGES_FILE_EXTENSION,
+) = (
+    Dataset.DATASET_DIR,
+    Dataset.IMAGES_DIR,
+    Dataset.LABELS_DIR,
+    Dataset.TRAINING_DIR,
+    Dataset.VALIDATION_DIR,
+    Dataset.TEST_DIR,
+    Dataset.IMAGES_FILE_EXTENSION,
+)
 
 
 class DatasetBuilder(ABC):
-    """This class builds the sub-datasets. It takes videos, extracts the frames and saves them on the disk, with the corresponding labels.
+    """This class builds the sub-datasets. It takes videos, extracts the frames
+       and saves them on the disk, with the corresponding labels.
        It also applies data augmentation transforms to the training sub-dataset. 
     """
-    VIDEOS_DIR = 'videos'
-    ANNOTATIONS_DIR = 'annotations'
+
+    VIDEOS_DIR = "videos"
+    ANNOTATIONS_DIR = "annotations"
 
     ROOT_PATH = os.getcwd()
 
@@ -42,15 +59,12 @@ class DatasetBuilder(ABC):
         Args:
             path (string): The path of the directory to create
         """
-        if(not os.path.isdir(path)):
+        if not os.path.isdir(path):
             os.makedirs(path)
 
-    def __init__(self,
-                 VIDEOS,
-                 OUTPUT_DIR_PATH,
-                 log_name,
-                 IMAGE_DIMENSIONS,
-                 SOURCE_DIR):
+    def __init__(
+        self, VIDEOS, OUTPUT_DIR_PATH, log_name, IMAGE_DIMENSIONS, SOURCE_DIR
+    ):
         """Constructor of the DatasetBuilder class
 
         Args:
@@ -62,41 +76,49 @@ class DatasetBuilder(ABC):
         self.log_name = log_name
 
         self.VIDEOS_PATH = os.path.join(
-            DatasetBuilder.ROOT_PATH, SOURCE_DIR, DatasetBuilder.VIDEOS_DIR)
+            DatasetBuilder.ROOT_PATH, SOURCE_DIR, DatasetBuilder.VIDEOS_DIR
+        )
         self.ANNOTATIONS_PATH = os.path.join(
-            DatasetBuilder.ROOT_PATH, SOURCE_DIR, DatasetBuilder.ANNOTATIONS_DIR)
+            DatasetBuilder.ROOT_PATH,
+            SOURCE_DIR,
+            DatasetBuilder.ANNOTATIONS_DIR,
+        )
 
         self.OUTPUT_IMAGES_PATH = os.path.join(OUTPUT_DIR_PATH, IMAGES_DIR)
         self.OUTPUT_LABELS_PATH = os.path.join(OUTPUT_DIR_PATH, LABELS_DIR)
         DatasetBuilder.create_directory_if_does_not_exist(OUTPUT_DIR_PATH)
         DatasetBuilder.create_directory_if_does_not_exist(
-            self.OUTPUT_IMAGES_PATH)
+            self.OUTPUT_IMAGES_PATH
+        )
         DatasetBuilder.create_directory_if_does_not_exist(
-            self.OUTPUT_LABELS_PATH)
+            self.OUTPUT_LABELS_PATH
+        )
 
-        self.RESIZE_TRANSFORM = transforms.Compose([
-            transforms.Resize(IMAGE_DIMENSIONS),
-            transforms.ToTensor()
-        ])
+        self.RESIZE_TRANSFORM = transforms.Compose(
+            [transforms.Resize(IMAGE_DIMENSIONS), transforms.ToTensor()]
+        )
 
     def create_images_of_one_video_group(self):
         """Gets the info of one video, then creates the images and labels pair of the video and save them to disk
         """
-        for video_file_name in tqdm(self.VIDEOS, leave=False, desc=self.log_name):
+        for video_file_name in tqdm(
+            self.VIDEOS, leave=False, desc=self.log_name
+        ):
             video_path = os.path.join(self.VIDEOS_PATH, video_file_name)
 
             file_name = os.path.splitext(os.path.basename(video_file_name))[0]
-            annotations_file = open(os.path.join(
-                self.ANNOTATIONS_PATH, file_name + '.txt'), 'r')
+            annotations_file = open(
+                os.path.join(self.ANNOTATIONS_PATH, file_name + ".txt"), "r"
+            )
             annotations = annotations_file.readlines()
 
             self.create_images_dataset_with_one_video(
-                file_name, video_path, annotations)
+                file_name, video_path, annotations
+            )
 
-    def create_images_dataset_with_one_video(self,
-                                             file_name,
-                                             video_path,
-                                             annotations):
+    def create_images_dataset_with_one_video(
+        self, file_name, video_path, annotations
+    ):
         """Creates the images and labels pair of the video and save them to disk
 
         Args:
@@ -111,22 +133,34 @@ class DatasetBuilder(ABC):
 
         self.annotation_line_index = 0
         self.video_frame_id = 0
-        while(cap.isOpened()):
+        while cap.isOpened():
             self.annotation_line_index += 1
             self.video_frame_id += 1
 
             is_ok, frame = cap.read()
-            if (not is_ok):
+            if not is_ok:
                 break
 
             processed_frame = self.process_frame(frame)
             self.process_image_label_pair(
-                processed_frame, file_name, annotations,  INPUT_IMAGE_WIDTH, INPUT_IMAGE_HEIGHT)
+                processed_frame,
+                file_name,
+                annotations,
+                INPUT_IMAGE_WIDTH,
+                INPUT_IMAGE_HEIGHT,
+            )
 
         cap.release()
 
     @abstractmethod
-    def process_image_label_pair(self, frame, file_name, annotations,  INPUT_IMAGE_WIDTH, INPUT_IMAGE_HEIGHT):
+    def process_image_label_pair(
+        self,
+        frame,
+        file_name,
+        annotations,
+        INPUT_IMAGE_WIDTH,
+        INPUT_IMAGE_HEIGHT,
+    ):
         raise NotImplementedError
 
     def process_frame(self, frame):
@@ -143,10 +177,7 @@ class DatasetBuilder(ABC):
 
         return output_image_tensor
 
-    def save_image_label_pair(self,
-                              file_name,
-                              output_image_tensor,
-                              label):
+    def save_image_label_pair(self, file_name, output_image_tensor, label):
         """Saves the image and label pair to disk
 
         Args:
@@ -154,13 +185,16 @@ class DatasetBuilder(ABC):
             output_image_tensor (pytorch tensor): The image that will be saved to disk
             label (List): The label that will be saved to disk
         """
-        output_file_name = file_name + '_' + str(self.video_frame_id).zfill(4)
+        output_file_name = file_name + "_" + str(self.video_frame_id).zfill(4)
 
         output_frame = tensor_to_opencv_image(output_image_tensor)
         video_output_file_path = os.path.join(
-            self.OUTPUT_IMAGES_PATH, output_file_name + '.' + IMAGES_FILE_EXTENSION)
+            self.OUTPUT_IMAGES_PATH,
+            output_file_name + "." + IMAGES_FILE_EXTENSION,
+        )
         cv2.imwrite(video_output_file_path, output_frame)
 
         label_output_file_path = os.path.join(
-            self.OUTPUT_LABELS_PATH, output_file_name + '.bin')
+            self.OUTPUT_LABELS_PATH, output_file_name + ".bin"
+        )
         pickle.dump(label, open(label_output_file_path, "wb"))

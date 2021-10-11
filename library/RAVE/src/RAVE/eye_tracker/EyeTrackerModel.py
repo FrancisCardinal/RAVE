@@ -13,7 +13,8 @@ class EyeTrackerModel(nn.Module):
         """
         super(EyeTrackerModel, self).__init__()
         self.model = torch.hub.load(
-            'pytorch/vision:v0.9.0', 'resnet18', pretrained=True)
+            "pytorch/vision:v0.9.0", "resnet18", pretrained=True
+        )
         for param in self.model.parameters():
             param.requires_grad = False
 
@@ -31,23 +32,19 @@ class EyeTrackerModel(nn.Module):
             nn.BatchNorm1d(num_features=512),
             nn.ReLU(),
             nn.Dropout(DROPOUT),
-
             nn.Linear(512, 256),
             nn.BatchNorm1d(num_features=256),
             nn.ReLU(),
             nn.Dropout(DROPOUT),
-
             nn.Linear(256, 128),
             nn.BatchNorm1d(num_features=128),
             nn.ReLU(),
             nn.Dropout(DROPOUT),
-
             nn.Linear(128, 64),
             nn.BatchNorm1d(num_features=64),
             nn.ReLU(),
             nn.Dropout(DROPOUT),
-
-            nn.Linear(64, 5)
+            nn.Linear(64, 5),
         )
 
     def forward(self, x):

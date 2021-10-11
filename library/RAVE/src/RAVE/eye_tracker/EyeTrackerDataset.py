@@ -13,7 +13,8 @@ IMAGE_DIMENSIONS = (1, 224, 299)
 class EyeTrackerDataset(Dataset):
     """Class that handles pairs of images and labels that are on disk
     """
-    EYE_TRACKER_DIR_PATH = os.path.join('src', 'RAVE', 'eye_tracker')
+
+    EYE_TRACKER_DIR_PATH = os.path.join("src", "RAVE", "eye_tracker")
     TRAINING_MEAN, TRAINING_STD = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
 
     def __init__(self, sub_dataset_dir):
@@ -22,8 +23,12 @@ class EyeTrackerDataset(Dataset):
         Args:
             sub_dataset_dir (String): Name of the directory of the sub-dataset 
         """
-        super().__init__(EyeTrackerDataset.TRAINING_MEAN, EyeTrackerDataset.TRAINING_STD,
-                         EyeTrackerDataset.EYE_TRACKER_DIR_PATH, sub_dataset_dir)
+        super().__init__(
+            EyeTrackerDataset.TRAINING_MEAN,
+            EyeTrackerDataset.TRAINING_STD,
+            EyeTrackerDataset.EYE_TRACKER_DIR_PATH,
+            sub_dataset_dir,
+        )
 
     @staticmethod
     def get_training_sub_dataset():
@@ -66,12 +71,15 @@ class EyeTrackerDatasetOnlineDataAugmentation(Dataset):
         """
         super().__init__(sub_dataset_dir)
 
-        self.TRAINING_TRANSFORM = transforms.Compose([
-            transforms.ColorJitter(
-                brightness=0.5, contrast=0.5, saturation=0.5, hue=0.5),  # random
-            transforms.GaussianBlur(3),  # random
-            transforms.RandomInvert(0.25)  # random
-        ])
+        self.TRAINING_TRANSFORM = transforms.Compose(
+            [
+                transforms.ColorJitter(
+                    brightness=0.5, contrast=0.5, saturation=0.5, hue=0.5
+                ),  # random
+                transforms.GaussianBlur(3),  # random
+                transforms.RandomInvert(0.25),  # random
+            ]
+        )
 
     def __getitem__(self, idx):
         """Method of the Dataset class that must be overwritten by this class. 
@@ -93,10 +101,12 @@ class EyeTrackerDatasetOnlineDataAugmentation(Dataset):
         output_image_tensor, phi = apply_image_rotation(output_image_tensor)
 
         output_image_tensor, x_offset, y_offset = apply_image_translation(
-            output_image_tensor)
+            output_image_tensor
+        )
 
         current_ellipse = NormalizedEllipse.get_normalized_ellipse_from_list(
-            label)
+            label
+        )
         current_ellipse.rotate_around_image_center(phi)
         current_ellipse.h += x_offset
         current_ellipse.k += y_offset

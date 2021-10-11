@@ -19,23 +19,25 @@ IMAGE_DIMENSIONS = (1, 224, 299)
 class Dataset(torch.utils.data.Dataset):
     """Class that handles pairs of images and labels that are on disk
     """
-    DATASET_DIR = 'dataset'
 
-    IMAGES_DIR = 'images'
-    LABELS_DIR = 'labels'
+    DATASET_DIR = "dataset"
 
-    TRAINING_DIR = 'training'
-    VALIDATION_DIR = 'validation'
-    TEST_DIR = 'test'
+    IMAGES_DIR = "images"
+    LABELS_DIR = "labels"
 
-    IMAGES_FILE_EXTENSION = 'png'
+    TRAINING_DIR = "training"
+    VALIDATION_DIR = "validation"
+    TEST_DIR = "test"
 
-    PRE_PROCESS_TRANSFORM = transforms.Compose([
-        transforms.Resize(IMAGE_DIMENSIONS[1:3]),
-        transforms.ToTensor(),
-    ])
+    IMAGES_FILE_EXTENSION = "png"
 
-    def __init__(self, TRAINING_MEAN, TRAINING_STD, ROOT_PATH, sub_dataset_dir):
+    PRE_PROCESS_TRANSFORM = transforms.Compose(
+        [transforms.Resize(IMAGE_DIMENSIONS[1:3]), transforms.ToTensor(),]
+    )
+
+    def __init__(
+        self, TRAINING_MEAN, TRAINING_STD, ROOT_PATH, sub_dataset_dir
+    ):
         """Constructor of the Dataset class
 
         Args:
@@ -43,15 +45,18 @@ class Dataset(torch.utils.data.Dataset):
         """
         self.TRAINING_MEAN, self.TRAINING_STD = TRAINING_MEAN, TRAINING_STD
         self.NORMALIZE_TRANSFORM = transforms.Normalize(
-            mean=TRAINING_MEAN, std=TRAINING_STD)
+            mean=TRAINING_MEAN, std=TRAINING_STD
+        )
 
         BASE_PATH = os.path.join(
-            ROOT_PATH, Dataset.DATASET_DIR, sub_dataset_dir)
+            ROOT_PATH, Dataset.DATASET_DIR, sub_dataset_dir
+        )
         self.IMAGES_DIR_PATH = os.path.join(BASE_PATH, Dataset.IMAGES_DIR)
         self.LABELS_DIR_PATH = os.path.join(BASE_PATH, Dataset.LABELS_DIR)
 
         self.images_paths = Dataset.get_multiple_workers_safe_list_of_paths(
-            self.IMAGES_DIR_PATH)
+            self.IMAGES_DIR_PATH
+        )
 
     def __len__(self):
         """Method of the Dataset class that must be overwritten by this class. 
@@ -95,7 +100,7 @@ class Dataset(torch.utils.data.Dataset):
         file_name = os.path.splitext(os.path.basename(image_path))[0]
         image = Image.open(image_path)
 
-        label_path = os.path.join(self.LABELS_DIR_PATH, file_name + '.bin')
+        label_path = os.path.join(self.LABELS_DIR_PATH, file_name + ".bin")
         label = pickle.load(open(label_path, "rb"))
 
         return image, label

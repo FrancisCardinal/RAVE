@@ -12,11 +12,7 @@ class NormalizedEllipse:
        For example, if the h parameter was 240 and the image width is 480, then the new h value is 0.5 
     """
 
-    def __init__(self, h,
-                 k,
-                 a,
-                 b,
-                 theta):
+    def __init__(self, h, k, a, b, theta):
         """Constructor of the NormalizedEllipse class
 
         Args:
@@ -41,12 +37,18 @@ class NormalizedEllipse:
         h_relative_to_center = self.h - 0.5
         k_relative_to_center = self.k - 0.5
 
-        self.h = h_relative_to_center * \
-            cos(phi) - k_relative_to_center*sin(phi) + 0.5
-        self.k = h_relative_to_center * \
-            sin(phi) + k_relative_to_center*cos(phi) + 0.5
+        self.h = (
+            h_relative_to_center * cos(phi)
+            - k_relative_to_center * sin(phi)
+            + 0.5
+        )
+        self.k = (
+            h_relative_to_center * sin(phi)
+            + k_relative_to_center * cos(phi)
+            + 0.5
+        )
 
-        self.theta += phi/(2*np.pi)
+        self.theta += phi / (2 * np.pi)
 
     def to_list(self):
         """Serializes the ellipse to a list
@@ -69,13 +71,15 @@ class NormalizedEllipse:
         return NormalizedEllipse(list[0], list[1], list[2], list[3], list[4])
 
     @staticmethod
-    def get_normalized_ellipse_from_opencv_ellipse(center_x,
-                                                   ellipse_width,
-                                                   center_y,
-                                                   ellipse_height,
-                                                   angle,
-                                                   INPUT_IMAGE_WIDTH,
-                                                   INPUT_IMAGE_HEIGHT):
+    def get_normalized_ellipse_from_opencv_ellipse(
+        center_x,
+        ellipse_width,
+        center_y,
+        ellipse_height,
+        angle,
+        INPUT_IMAGE_WIDTH,
+        INPUT_IMAGE_HEIGHT,
+    ):
         """Computes a normalized ellipse from an ellipse that is in the opencv format. 
 
         Args:
@@ -90,9 +94,11 @@ class NormalizedEllipse:
         Returns:
             NormalizedEllipse: The normalized ellipse
         """
-        h, k = center_x/INPUT_IMAGE_WIDTH, center_y/INPUT_IMAGE_HEIGHT
-        a, b = ellipse_width / \
-            (2*INPUT_IMAGE_WIDTH), ellipse_height/(2*INPUT_IMAGE_HEIGHT)
-        theta = np.deg2rad(angle)/(2*np.pi)
+        h, k = center_x / INPUT_IMAGE_WIDTH, center_y / INPUT_IMAGE_HEIGHT
+        a, b = (
+            ellipse_width / (2 * INPUT_IMAGE_WIDTH),
+            ellipse_height / (2 * INPUT_IMAGE_HEIGHT),
+        )
+        theta = np.deg2rad(angle) / (2 * np.pi)
 
         return NormalizedEllipse(h, k, a, b, theta)
