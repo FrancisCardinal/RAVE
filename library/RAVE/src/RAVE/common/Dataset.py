@@ -29,7 +29,7 @@ class Dataset(torch.utils.data.Dataset):
     IMAGES_FILE_EXTENSION = "png"
 
     PRE_PROCESS_TRANSFORM = transforms.Compose(
-        [transforms.Resize(IMAGE_DIMENSIONS[1:3]), transforms.ToTensor(),]
+        [transforms.Resize(IMAGE_DIMENSIONS[1:3]), transforms.ToTensor(), ]
     )
 
     def __init__(
