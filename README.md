@@ -34,12 +34,12 @@ Send us your comments/suggestions to improve the project in [issues](https://git
 
 ## Authors
 
-* Jacob Kealey (@JacobKealey)
-* Francis Cardinal (@FrancisCardinal)
-* Félix Ducharme Turcotte (@felixducharme1)
 * Anthony Gosselin (@AnthonyGosselin)
 * Amélie Riox-Joyal
 * Étienne Deshaies-Samson
+* Félix Ducharme Turcotte (@felixducharme1)
+* Francis Cardinal (@FrancisCardinal)
+* Jacob Kealey (@JacobKealey)
 * Jérémy Bélec
 * Olivier Bergeron
 
