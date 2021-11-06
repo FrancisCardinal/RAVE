@@ -2,7 +2,7 @@ name: Construction, tests et Release sur GitHub
 
 on:
   push:
-    branches: [ main ]
+    branches: [ master ]
   workflow_dispatch:
 
 jobs:

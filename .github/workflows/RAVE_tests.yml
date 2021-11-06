@@ -2,7 +2,7 @@ name: Tests de la bibliothèque Python (RAVE)
 
 on:
   pull_request:
-    branches: [ main ]
+    branches: [ master ]
   workflow_dispatch:
 
 jobs:
