@@ -37,8 +37,8 @@ from ..common.image_utils import apply_image_translation, apply_image_rotation
 
 class EyeTrackerDatasetBuilder(DatasetBuilder):
     """This class builds the sub-datasets. It takes videos, extracts the frames
-       and saves them on the disk, with the corresponding labels. It also
-       applies data augmentation transforms to the training sub-dataset.
+    and saves them on the disk, with the corresponding labels. It also
+    applies data augmentation transforms to the training sub-dataset.
     """
 
     @staticmethod
@@ -131,6 +131,9 @@ class EyeTrackerDatasetBuilder(DatasetBuilder):
         INPUT_IMAGE_WIDTH,
         INPUT_IMAGE_HEIGHT,
     ):
+        """
+        To process the image and label from LPW
+        """
         (
             angle,
             center_x,

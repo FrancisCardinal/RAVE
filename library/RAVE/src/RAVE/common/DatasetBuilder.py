@@ -33,8 +33,8 @@ from .image_utils import tensor_to_opencv_image
 
 class DatasetBuilder(ABC):
     """This class builds the sub-datasets. It takes videos, extracts the frames
-       and saves them on the disk, with the corresponding labels.
-       It also applies data augmentation transforms to the training sub-dataset
+    and saves them on the disk, with the corresponding labels.
+    It also applies data augmentation transforms to the training sub-dataset
     """
 
     VIDEOS_DIR = "videos"
@@ -106,7 +106,7 @@ class DatasetBuilder(ABC):
 
     def create_images_of_one_video_group(self):
         """Gets the info of one video, then creates the images and labels pair
-           of the video and save them to disk
+        of the video and save them to disk
         """
         for video_file_name in tqdm(
             self.VIDEOS, leave=False, desc=self.log_name
@@ -171,6 +171,9 @@ class DatasetBuilder(ABC):
         INPUT_IMAGE_WIDTH,
         INPUT_IMAGE_HEIGHT,
     ):
+        """
+        To process the image and label from the specific dataset
+        """
         raise NotImplementedError
 
     def process_frame(self, frame):
