@@ -16,6 +16,13 @@ exclude = '''
 [build-system]
 requires = [
     "setuptools>=42",
-    "wheel"
+    "wheel",
+    "matplotlib",
+    "numpy",
+    "opencv-python",
+    "tqdm",
+    "torch",
+    "torchaudio",
+    "torchvision",
 ]
 build-backend = "setuptools.build_meta"
