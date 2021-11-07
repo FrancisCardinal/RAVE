@@ -1,4 +1,4 @@
-name: Construction, tests et Release sur GitHub
+name: Build, tests and Release on GitHub
 
 on:
   push:
@@ -82,7 +82,7 @@ jobs:
         run: |
           git checkout gh-pages
           git rm -r docs/_build/html
-          git checkout main -- docs/_build/html
+          git checkout master -- docs/_build/html
           git add ./docs/_build/html
           git commit -m "Update doc $(git rev-parse --short "$GITHUB_SHA")" --allow-empty
 

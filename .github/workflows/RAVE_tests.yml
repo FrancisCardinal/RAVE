@@ -1,4 +1,4 @@
-name: Tests de la bibliothèque Python (RAVE)
+name: Tests of the RAVE library
 
 on:
   pull_request:
