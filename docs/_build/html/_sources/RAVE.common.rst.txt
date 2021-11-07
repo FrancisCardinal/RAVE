@@ -18,7 +18,6 @@ DatasetBuilder
    :members:
    :undoc-members:
    :show-inheritance:
-   :special-members:
 
 Trainer
 --------------------------
@@ -27,7 +26,6 @@ Trainer
    :members:
    :undoc-members:
    :show-inheritance:
-   :special-members:
 
 image\_utils
 -------------------------------
@@ -36,4 +34,3 @@ image\_utils
    :members:
    :undoc-members:
    :show-inheritance:
-   :special-members:
