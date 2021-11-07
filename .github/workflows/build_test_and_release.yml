@@ -51,6 +51,46 @@ jobs:
       - name: Exécution des tests
         working-directory: library/RAVE
         run: python3 -m unittest
+
+  update-doc:
+    needs: test_pyodas
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          persist-credentials: false # otherwise, the token used is the GITHUB_TOKEN, instead of your personal access token.
+          fetch-depth: 0 # otherwise, there would be errors pushing refs to the destination repository.
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Make doc in local main branch
+        working-directory: ./docs
+        run: |
+          make html
+
+      - name: Commit local files
+        run: |
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add -f ./docs/_build/html
+          git commit -m "Local update doc"
+
+      - name: Commit to gh-pages
+        run: |
+          git checkout gh-pages
+          git rm -r docs/_build/html
+          git checkout main -- docs/_build/html
+          git add ./docs/_build/html
+          git commit -m "Update doc $(git rev-parse --short "$GITHUB_SHA")" --allow-empty
+
+      - name: Push changes to gh-pages branch only
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: "gh-pages"
         
   create_release:
     needs: [test_RAVE]
@@ -87,9 +127,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
         with:
           tag_name: v${{ steps.generate_version_output.outputs.version }}
-          release_name: demo_integration-v${{ steps.generate_version_output.outputs.version }}
+          release_name: RAVE-v${{ steps.generate_version_output.outputs.version }}
           body: |
-              Dernière compilation de demo_integration.
+              Dernière compilation de RAVE.
           draft: false
           prerelease: true
 
