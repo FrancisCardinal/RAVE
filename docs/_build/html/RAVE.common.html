@@ -40,9 +40,9 @@
               <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="RAVE.html">RAVE</a><ul class="current">
 <li class="toctree-l2 current"><a class="current reference internal" href="#">common</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#dataset">Dataset</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-RAVE.common.Dataset">Dataset</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#module-RAVE.common.DatasetBuilder">DatasetBuilder</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#trainer">Trainer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-RAVE.common.Trainer">Trainer</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#module-RAVE.common.image_utils">image_utils</a></li>
 </ul>
 </li>
@@ -79,8 +79,187 @@
              
   <section id="common">
 <h1>common<a class="headerlink" href="#common" title="Permalink to this headline"></a></h1>
-<section id="dataset">
-<h2>Dataset<a class="headerlink" href="#dataset" title="Permalink to this headline"></a></h2>
+<section id="module-RAVE.common.Dataset">
+<span id="dataset"></span><h2>Dataset<a class="headerlink" href="#module-RAVE.common.Dataset" title="Permalink to this headline"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="RAVE.common.Dataset.Dataset">
+<em class="property"><span class="pre">class</span> </em><span class="sig-name descname"><span class="pre">Dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">TRAINING_MEAN</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">TRAINING_STD</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ROOT_PATH</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sub_dataset_dir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.Dataset.Dataset" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Generic</span></code>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.utils.data.dataset.T_co</span></code>]</p>
+<p>Class that handles pairs of images and labels that are on disk</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>sub_dataset_dir</strong> (<em>String</em>) – Name of the directory of the sub-dataset</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="RAVE.common.Dataset.Dataset.DATASET_DIR">
+<span class="sig-name descname"><span class="pre">DATASET_DIR</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'dataset'</span></em><a class="headerlink" href="#RAVE.common.Dataset.Dataset.DATASET_DIR" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="RAVE.common.Dataset.Dataset.IMAGES_DIR">
+<span class="sig-name descname"><span class="pre">IMAGES_DIR</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'images'</span></em><a class="headerlink" href="#RAVE.common.Dataset.Dataset.IMAGES_DIR" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="RAVE.common.Dataset.Dataset.IMAGES_FILE_EXTENSION">
+<span class="sig-name descname"><span class="pre">IMAGES_FILE_EXTENSION</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'png'</span></em><a class="headerlink" href="#RAVE.common.Dataset.Dataset.IMAGES_FILE_EXTENSION" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="RAVE.common.Dataset.Dataset.LABELS_DIR">
+<span class="sig-name descname"><span class="pre">LABELS_DIR</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'labels'</span></em><a class="headerlink" href="#RAVE.common.Dataset.Dataset.LABELS_DIR" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="RAVE.common.Dataset.Dataset.PRE_PROCESS_TRANSFORM">
+<span class="sig-name descname"><span class="pre">PRE_PROCESS_TRANSFORM</span></span><em class="property"> <span class="pre">=</span> <span class="pre">Compose(</span>&#160;&#160;&#160;&#160; <span class="pre">Resize(size=(224,</span> <span class="pre">299),</span> <span class="pre">interpolation=bilinear,</span> <span class="pre">max_size=None,</span> <span class="pre">antialias=None)</span>&#160;&#160;&#160;&#160; <span class="pre">ToTensor()</span> <span class="pre">)</span></em><a class="headerlink" href="#RAVE.common.Dataset.Dataset.PRE_PROCESS_TRANSFORM" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="RAVE.common.Dataset.Dataset.TEST_DIR">
+<span class="sig-name descname"><span class="pre">TEST_DIR</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'test'</span></em><a class="headerlink" href="#RAVE.common.Dataset.Dataset.TEST_DIR" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="RAVE.common.Dataset.Dataset.TRAINING_DIR">
+<span class="sig-name descname"><span class="pre">TRAINING_DIR</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'training'</span></em><a class="headerlink" href="#RAVE.common.Dataset.Dataset.TRAINING_DIR" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="RAVE.common.Dataset.Dataset.VALIDATION_DIR">
+<span class="sig-name descname"><span class="pre">VALIDATION_DIR</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'validation'</span></em><a class="headerlink" href="#RAVE.common.Dataset.Dataset.VALIDATION_DIR" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.common.Dataset.Dataset.__getitem__">
+<span class="sig-name descname"><span class="pre">__getitem__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">idx</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.Dataset.Dataset.__getitem__" title="Permalink to this definition"></a></dt>
+<dd><p>Method of the Dataset class that must be overwritten by this class.
+Used to get an image and label pair</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>idx</strong> (<em>int</em>) – Index of the pair to get</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Image and label pair</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.common.Dataset.Dataset.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">TRAINING_MEAN</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">TRAINING_STD</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ROOT_PATH</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sub_dataset_dir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.Dataset.Dataset.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.common.Dataset.Dataset.__len__">
+<span class="sig-name descname"><span class="pre">__len__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.Dataset.Dataset.__len__" title="Permalink to this definition"></a></dt>
+<dd><p>Method of the Dataset class that must be overwritten by this class.
+Used to get the number of elements in the dataset</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The number of elements in the dataset</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="RAVE.common.Dataset.Dataset.__module__">
+<span class="sig-name descname"><span class="pre">__module__</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'RAVE.common.Dataset'</span></em><a class="headerlink" href="#RAVE.common.Dataset.Dataset.__module__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="RAVE.common.Dataset.Dataset.__parameters__">
+<span class="sig-name descname"><span class="pre">__parameters__</span></span><em class="property"> <span class="pre">=</span> <span class="pre">()</span></em><a class="headerlink" href="#RAVE.common.Dataset.Dataset.__parameters__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.common.Dataset.Dataset.get_image_and_label_on_disk">
+<span class="sig-name descname"><span class="pre">get_image_and_label_on_disk</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">idx</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.Dataset.Dataset.get_image_and_label_on_disk" title="Permalink to this definition"></a></dt>
+<dd><p>Gets an image and label pair on disk</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>idx</strong> (<em>int</em>) – Index of the image and label pair</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Image and label pair</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.common.Dataset.Dataset.get_multiple_workers_safe_list_of_paths">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_multiple_workers_safe_list_of_paths</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">directory</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.Dataset.Dataset.get_multiple_workers_safe_list_of_paths" title="Permalink to this definition"></a></dt>
+<dd><p>Used to build a list of paths. This method prevents a memory
+leak that happens with list of strings and multiple dataloader
+workers
+<a class="reference external" href="https://gist.github.com/mprostock/2850f3cd465155689052f0fa3a177a50">https://gist.github.com/mprostock/2850f3cd465155689052f0fa3a177a50</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>directory</strong> (<em>String</em>) – The directory of which to get the paths of its files</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The list of paths</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>List</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.common.Dataset.Dataset.get_test_sub_dataset">
+<em class="property"><span class="pre">abstract</span> <span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_test_sub_dataset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.Dataset.Dataset.get_test_sub_dataset" title="Permalink to this definition"></a></dt>
+<dd><p>Used to get the test sub dataset</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The test sub dataset</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference internal" href="#RAVE.common.Dataset.Dataset" title="RAVE.common.Dataset.Dataset">Dataset</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.common.Dataset.Dataset.get_training_sub_dataset">
+<em class="property"><span class="pre">abstract</span> <span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_training_sub_dataset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.Dataset.Dataset.get_training_sub_dataset" title="Permalink to this definition"></a></dt>
+<dd><p>Used to get the training sub dataset</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The training sub dataset</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference internal" href="#RAVE.common.Dataset.Dataset" title="RAVE.common.Dataset.Dataset">Dataset</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.common.Dataset.Dataset.get_validation_sub_dataset">
+<em class="property"><span class="pre">abstract</span> <span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_validation_sub_dataset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.Dataset.Dataset.get_validation_sub_dataset" title="Permalink to this definition"></a></dt>
+<dd><p>Used to get the validation sub dataset</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The validation sub dataset</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference internal" href="#RAVE.common.Dataset.Dataset" title="RAVE.common.Dataset.Dataset">Dataset</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 <section id="module-RAVE.common.DatasetBuilder">
 <span id="datasetbuilder"></span><h2>DatasetBuilder<a class="headerlink" href="#module-RAVE.common.DatasetBuilder" title="Permalink to this headline"></a></h2>
@@ -123,7 +302,7 @@ pairs</p></li>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="RAVE.common.DatasetBuilder.DatasetBuilder.__dict__">
-<span class="sig-name descname"><span class="pre">__dict__</span></span><em class="property"> <span class="pre">=</span> <span class="pre">mappingproxy({'__module__':</span> <span class="pre">'RAVE.common.DatasetBuilder',</span> <span class="pre">'__doc__':</span> <span class="pre">'\n</span>&#160;&#160;&#160; <span class="pre">This</span> <span class="pre">class</span> <span class="pre">builds</span> <span class="pre">the</span> <span class="pre">sub-datasets.</span> <span class="pre">It</span> <span class="pre">takes</span> <span class="pre">videos,</span> <span class="pre">extracts</span> <span class="pre">the</span> <span class="pre">frames\n</span>&#160;&#160;&#160; <span class="pre">and</span> <span class="pre">saves</span> <span class="pre">them</span> <span class="pre">on</span> <span class="pre">the</span> <span class="pre">disk,</span> <span class="pre">with</span> <span class="pre">the</span> <span class="pre">corresponding</span> <span class="pre">labels.\n</span>&#160;&#160;&#160; <span class="pre">It</span> <span class="pre">also</span> <span class="pre">applies</span> <span class="pre">data</span> <span class="pre">augmentation</span> <span class="pre">transforms</span> <span class="pre">to</span> <span class="pre">the</span> <span class="pre">training</span> <span class="pre">sub-dataset\n\n</span>&#160;&#160;&#160; <span class="pre">Args:\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">VIDEOS</span> <span class="pre">(List</span> <span class="pre">of</span> <span class="pre">strings):\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">The</span> <span class="pre">names</span> <span class="pre">of</span> <span class="pre">the</span> <span class="pre">videos</span> <span class="pre">that</span> <span class="pre">belong</span> <span class="pre">to</span> <span class="pre">this</span> <span class="pre">sub-dataset\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">OUTPUT_DIR_PATH</span> <span class="pre">(String):\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">Path</span> <span class="pre">of</span> <span class="pre">the</span> <span class="pre">directory</span> <span class="pre">that</span> <span class="pre">will</span> <span class="pre">contain</span> <span class="pre">the</span> <span class="pre">images</span> <span class="pre">and</span> <span class="pre">labels\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">pairs\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">log_name</span> <span class="pre">(String):\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">Name</span> <span class="pre">to</span> <span class="pre">be</span> <span class="pre">displayed</span> <span class="pre">alongside</span> <span class="pre">the</span> <span class="pre">progress</span> <span class="pre">bar</span> <span class="pre">in</span> <span class="pre">the</span> <span class="pre">terminal\n</span>&#160;&#160;&#160; <span class="pre">',</span> <span class="pre">'VIDEOS_DIR':</span> <span class="pre">'videos',</span> <span class="pre">'ANNOTATIONS_DIR':</span> <span class="pre">'annotations',</span> <span class="pre">'ROOT_PATH':</span> <span class="pre">'/home/runner/work/RAVE/RAVE/docs',</span> <span class="pre">'__init__':</span> <span class="pre">&lt;function</span> <span class="pre">DatasetBuilder.__init__&gt;,</span> <span class="pre">'get_builders':</span> <span class="pre">&lt;staticmethod</span> <span class="pre">object&gt;,</span> <span class="pre">'create_directory_if_does_not_exist':</span> <span class="pre">&lt;staticmethod</span> <span class="pre">object&gt;,</span> <span class="pre">'create_images_of_one_video_group':</span> <span class="pre">&lt;function</span> <span class="pre">DatasetBuilder.create_images_of_one_video_group&gt;,</span> <span class="pre">'create_images_dataset_with_one_video':</span> <span class="pre">&lt;function</span> <span class="pre">DatasetBuilder.create_images_dataset_with_one_video&gt;,</span> <span class="pre">'process_image_label_pair':</span> <span class="pre">&lt;function</span> <span class="pre">DatasetBuilder.process_image_label_pair&gt;,</span> <span class="pre">'process_frame':</span> <span class="pre">&lt;function</span> <span class="pre">DatasetBuilder.process_frame&gt;,</span> <span class="pre">'save_image_label_pair':</span> <span class="pre">&lt;function</span> <span class="pre">DatasetBuilder.save_image_label_pair&gt;,</span> <span class="pre">'__dict__':</span> <span class="pre">&lt;attribute</span> <span class="pre">'__dict__'</span> <span class="pre">of</span> <span class="pre">'DatasetBuilder'</span> <span class="pre">objects&gt;,</span> <span class="pre">'__weakref__':</span> <span class="pre">&lt;attribute</span> <span class="pre">'__weakref__'</span> <span class="pre">of</span> <span class="pre">'DatasetBuilder'</span> <span class="pre">objects&gt;,</span> <span class="pre">'__abstractmethods__':</span> <span class="pre">frozenset({'get_builders',</span> <span class="pre">'process_image_label_pair'}),</span> <span class="pre">'_abc_impl':</span> <span class="pre">&lt;_abc_data</span> <span class="pre">object&gt;,</span> <span class="pre">'__annotations__':</span> <span class="pre">{}})</span></em><a class="headerlink" href="#RAVE.common.DatasetBuilder.DatasetBuilder.__dict__" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__dict__</span></span><em class="property"> <span class="pre">=</span> <span class="pre">mappingproxy({'__module__':</span> <span class="pre">'RAVE.common.DatasetBuilder',</span> <span class="pre">'__doc__':</span> <span class="pre">'\n</span>&#160;&#160;&#160; <span class="pre">This</span> <span class="pre">class</span> <span class="pre">builds</span> <span class="pre">the</span> <span class="pre">sub-datasets.</span> <span class="pre">It</span> <span class="pre">takes</span> <span class="pre">videos,</span> <span class="pre">extracts</span> <span class="pre">the</span> <span class="pre">frames\n</span>&#160;&#160;&#160; <span class="pre">and</span> <span class="pre">saves</span> <span class="pre">them</span> <span class="pre">on</span> <span class="pre">the</span> <span class="pre">disk,</span> <span class="pre">with</span> <span class="pre">the</span> <span class="pre">corresponding</span> <span class="pre">labels.\n</span>&#160;&#160;&#160; <span class="pre">It</span> <span class="pre">also</span> <span class="pre">applies</span> <span class="pre">data</span> <span class="pre">augmentation</span> <span class="pre">transforms</span> <span class="pre">to</span> <span class="pre">the</span> <span class="pre">training</span> <span class="pre">sub-dataset\n\n</span>&#160;&#160;&#160; <span class="pre">Args:\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">VIDEOS</span> <span class="pre">(List</span> <span class="pre">of</span> <span class="pre">strings):\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">The</span> <span class="pre">names</span> <span class="pre">of</span> <span class="pre">the</span> <span class="pre">videos</span> <span class="pre">that</span> <span class="pre">belong</span> <span class="pre">to</span> <span class="pre">this</span> <span class="pre">sub-dataset\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">OUTPUT_DIR_PATH</span> <span class="pre">(String):\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">Path</span> <span class="pre">of</span> <span class="pre">the</span> <span class="pre">directory</span> <span class="pre">that</span> <span class="pre">will</span> <span class="pre">contain</span> <span class="pre">the</span> <span class="pre">images</span> <span class="pre">and</span> <span class="pre">labels\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">pairs\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">log_name</span> <span class="pre">(String):\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">Name</span> <span class="pre">to</span> <span class="pre">be</span> <span class="pre">displayed</span> <span class="pre">alongside</span> <span class="pre">the</span> <span class="pre">progress</span> <span class="pre">bar</span> <span class="pre">in</span> <span class="pre">the</span> <span class="pre">terminal\n</span>&#160;&#160;&#160; <span class="pre">',</span> <span class="pre">'VIDEOS_DIR':</span> <span class="pre">'videos',</span> <span class="pre">'ANNOTATIONS_DIR':</span> <span class="pre">'annotations',</span> <span class="pre">'ROOT_PATH':</span> <span class="pre">'/home/runner/work/RAVE/RAVE/docs',</span> <span class="pre">'__init__':</span> <span class="pre">&lt;function</span> <span class="pre">DatasetBuilder.__init__&gt;,</span> <span class="pre">'get_builders':</span> <span class="pre">&lt;staticmethod</span> <span class="pre">object&gt;,</span> <span class="pre">'create_directory_if_does_not_exist':</span> <span class="pre">&lt;staticmethod</span> <span class="pre">object&gt;,</span> <span class="pre">'create_images_of_one_video_group':</span> <span class="pre">&lt;function</span> <span class="pre">DatasetBuilder.create_images_of_one_video_group&gt;,</span> <span class="pre">'create_images_dataset_with_one_video':</span> <span class="pre">&lt;function</span> <span class="pre">DatasetBuilder.create_images_dataset_with_one_video&gt;,</span> <span class="pre">'process_image_label_pair':</span> <span class="pre">&lt;function</span> <span class="pre">DatasetBuilder.process_image_label_pair&gt;,</span> <span class="pre">'process_frame':</span> <span class="pre">&lt;function</span> <span class="pre">DatasetBuilder.process_frame&gt;,</span> <span class="pre">'save_image_label_pair':</span> <span class="pre">&lt;function</span> <span class="pre">DatasetBuilder.save_image_label_pair&gt;,</span> <span class="pre">'__dict__':</span> <span class="pre">&lt;attribute</span> <span class="pre">'__dict__'</span> <span class="pre">of</span> <span class="pre">'DatasetBuilder'</span> <span class="pre">objects&gt;,</span> <span class="pre">'__weakref__':</span> <span class="pre">&lt;attribute</span> <span class="pre">'__weakref__'</span> <span class="pre">of</span> <span class="pre">'DatasetBuilder'</span> <span class="pre">objects&gt;,</span> <span class="pre">'__abstractmethods__':</span> <span class="pre">frozenset({'process_image_label_pair',</span> <span class="pre">'get_builders'}),</span> <span class="pre">'_abc_impl':</span> <span class="pre">&lt;_abc_data</span> <span class="pre">object&gt;,</span> <span class="pre">'__annotations__':</span> <span class="pre">{}})</span></em><a class="headerlink" href="#RAVE.common.DatasetBuilder.DatasetBuilder.__dict__" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
@@ -234,8 +413,142 @@ saved</p>
 </dd></dl>
 
 </section>
-<section id="trainer">
-<h2>Trainer<a class="headerlink" href="#trainer" title="Permalink to this headline"></a></h2>
+<section id="module-RAVE.common.Trainer">
+<span id="trainer"></span><h2>Trainer<a class="headerlink" href="#module-RAVE.common.Trainer" title="Permalink to this headline"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="RAVE.common.Trainer.Trainer">
+<em class="property"><span class="pre">class</span> </em><span class="sig-name descname"><span class="pre">Trainer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">training_loader</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">validation_loader</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss_function</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheduler</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ROOT_DIR_PATH</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CONTINUE_TRAINING</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.Trainer.Trainer" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Trainer class, used to train neural networks</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>training_loader</strong> (<em>Dataloader</em>) – Dataloader that returns images and labels pairs of the training
+dataset</p></li>
+<li><p><strong>validation_loader</strong> (<em>Dataloader</em>) – Dataloader that returns images and labels pairs of the
+validation dataset</p></li>
+<li><p><strong>loss_function</strong> (<em>Functor</em>) – Loss function used to compute the training and
+validation losses</p></li>
+<li><p><strong>device</strong> (<em>String</em>) – Device on which to perform the computations</p></li>
+<li><p><strong>model</strong> (<em>Module</em>) – Neural network to be trained</p></li>
+<li><p><strong>optimizer</strong> (<em>Optimizer</em>) – Optimizer used to update the weights during training</p></li>
+<li><p><strong>scheduler</strong> (<em>_LRScheduler</em>) – Learning rate scheduler</p></li>
+<li><p><strong>CONTINUE_TRAINING</strong> (<em>bool</em>) – Whether to continue the training from the checkpoint
+on disk or not</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="RAVE.common.Trainer.Trainer.MODEL_INFO_FILE_NAME">
+<span class="sig-name descname"><span class="pre">MODEL_INFO_FILE_NAME</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'saved_model.pth'</span></em><a class="headerlink" href="#RAVE.common.Trainer.Trainer.MODEL_INFO_FILE_NAME" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="RAVE.common.Trainer.Trainer.TRAINING_SESSIONS_DIR">
+<span class="sig-name descname"><span class="pre">TRAINING_SESSIONS_DIR</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'training_sessions'</span></em><a class="headerlink" href="#RAVE.common.Trainer.Trainer.TRAINING_SESSIONS_DIR" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="RAVE.common.Trainer.Trainer.__dict__">
+<span class="sig-name descname"><span class="pre">__dict__</span></span><em class="property"> <span class="pre">=</span> <span class="pre">mappingproxy({'__module__':</span> <span class="pre">'RAVE.common.Trainer',</span> <span class="pre">'__doc__':</span> <span class="pre">'\n</span>&#160;&#160;&#160; <span class="pre">Trainer</span> <span class="pre">class,</span> <span class="pre">used</span> <span class="pre">to</span> <span class="pre">train</span> <span class="pre">neural</span> <span class="pre">networks\n\n</span>&#160;&#160;&#160; <span class="pre">Args:\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">training_loader</span> <span class="pre">(Dataloader):\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">Dataloader</span> <span class="pre">that</span> <span class="pre">returns</span> <span class="pre">images</span> <span class="pre">and</span> <span class="pre">labels</span> <span class="pre">pairs</span> <span class="pre">of</span> <span class="pre">the</span> <span class="pre">training\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">dataset\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">validation_loader</span> <span class="pre">(Dataloader):\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">Dataloader</span> <span class="pre">that</span> <span class="pre">returns</span> <span class="pre">images</span> <span class="pre">and</span> <span class="pre">labels</span> <span class="pre">pairs</span> <span class="pre">of</span> <span class="pre">the\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">validation</span> <span class="pre">dataset\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">loss_function</span> <span class="pre">(Functor):\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">Loss</span> <span class="pre">function</span> <span class="pre">used</span> <span class="pre">to</span> <span class="pre">compute</span> <span class="pre">the</span> <span class="pre">training</span> <span class="pre">and\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">validation</span> <span class="pre">losses\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">device</span> <span class="pre">(String):\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">Device</span> <span class="pre">on</span> <span class="pre">which</span> <span class="pre">to</span> <span class="pre">perform</span> <span class="pre">the</span> <span class="pre">computations\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">model</span> <span class="pre">(Module):\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">Neural</span> <span class="pre">network</span> <span class="pre">to</span> <span class="pre">be</span> <span class="pre">trained\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">optimizer</span> <span class="pre">(Optimizer):\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">Optimizer</span> <span class="pre">used</span> <span class="pre">to</span> <span class="pre">update</span> <span class="pre">the</span> <span class="pre">weights</span> <span class="pre">during</span> <span class="pre">training\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">scheduler</span> <span class="pre">(_LRScheduler):\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">Learning</span> <span class="pre">rate</span> <span class="pre">scheduler\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">CONTINUE_TRAINING</span> <span class="pre">(bool):\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">Whether</span> <span class="pre">to</span> <span class="pre">continue</span> <span class="pre">the</span> <span class="pre">training</span> <span class="pre">from</span> <span class="pre">the</span> <span class="pre">checkpoint\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">on</span> <span class="pre">disk</span> <span class="pre">or</span> <span class="pre">not\n</span>&#160;&#160;&#160; <span class="pre">',</span> <span class="pre">'TRAINING_SESSIONS_DIR':</span> <span class="pre">'training_sessions',</span> <span class="pre">'MODEL_INFO_FILE_NAME':</span> <span class="pre">'saved_model.pth',</span> <span class="pre">'__init__':</span> <span class="pre">&lt;function</span> <span class="pre">Trainer.__init__&gt;,</span> <span class="pre">'terminate_training_thread':</span> <span class="pre">&lt;function</span> <span class="pre">Trainer.terminate_training_thread&gt;,</span> <span class="pre">'train_with_validation':</span> <span class="pre">&lt;function</span> <span class="pre">Trainer.train_with_validation&gt;,</span> <span class="pre">'compute_training_loss':</span> <span class="pre">&lt;function</span> <span class="pre">Trainer.compute_training_loss&gt;,</span> <span class="pre">'compute_validation_loss':</span> <span class="pre">&lt;function</span> <span class="pre">Trainer.compute_validation_loss&gt;,</span> <span class="pre">'update_plot':</span> <span class="pre">&lt;function</span> <span class="pre">Trainer.update_plot&gt;,</span> <span class="pre">'save_model_and_training_info':</span> <span class="pre">&lt;function</span> <span class="pre">Trainer.save_model_and_training_info&gt;,</span> <span class="pre">'load_model_and_training_info':</span> <span class="pre">&lt;function</span> <span class="pre">Trainer.load_model_and_training_info&gt;,</span> <span class="pre">'load_best_model':</span> <span class="pre">&lt;staticmethod</span> <span class="pre">object&gt;,</span> <span class="pre">'__dict__':</span> <span class="pre">&lt;attribute</span> <span class="pre">'__dict__'</span> <span class="pre">of</span> <span class="pre">'Trainer'</span> <span class="pre">objects&gt;,</span> <span class="pre">'__weakref__':</span> <span class="pre">&lt;attribute</span> <span class="pre">'__weakref__'</span> <span class="pre">of</span> <span class="pre">'Trainer'</span> <span class="pre">objects&gt;,</span> <span class="pre">'__annotations__':</span> <span class="pre">{}})</span></em><a class="headerlink" href="#RAVE.common.Trainer.Trainer.__dict__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.common.Trainer.Trainer.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">training_loader</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">validation_loader</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss_function</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheduler</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ROOT_DIR_PATH</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CONTINUE_TRAINING</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.Trainer.Trainer.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="RAVE.common.Trainer.Trainer.__module__">
+<span class="sig-name descname"><span class="pre">__module__</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'RAVE.common.Trainer'</span></em><a class="headerlink" href="#RAVE.common.Trainer.Trainer.__module__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="RAVE.common.Trainer.Trainer.__weakref__">
+<span class="sig-name descname"><span class="pre">__weakref__</span></span><a class="headerlink" href="#RAVE.common.Trainer.Trainer.__weakref__" title="Permalink to this definition"></a></dt>
+<dd><p>list of weak references to the object (if defined)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.common.Trainer.Trainer.compute_training_loss">
+<span class="sig-name descname"><span class="pre">compute_training_loss</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.Trainer.Trainer.compute_training_loss" title="Permalink to this definition"></a></dt>
+<dd><p>Compute the training loss for the current epoch</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The training loss</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.common.Trainer.Trainer.compute_validation_loss">
+<span class="sig-name descname"><span class="pre">compute_validation_loss</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.Trainer.Trainer.compute_validation_loss" title="Permalink to this definition"></a></dt>
+<dd><p>Compute the validation loss for the current epoch</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The validation loss</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.common.Trainer.Trainer.load_best_model">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">load_best_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">MODEL_DIR_PATH</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.Trainer.Trainer.load_best_model" title="Permalink to this definition"></a></dt>
+<dd><p>Used to get the best version of a model from disk</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>model</strong> (<em>Module</em>) – Model on which to update the weights</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.common.Trainer.Trainer.load_model_and_training_info">
+<span class="sig-name descname"><span class="pre">load_model_and_training_info</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.Trainer.Trainer.load_model_and_training_info" title="Permalink to this definition"></a></dt>
+<dd><p>Loads a checkpoint, which contains the model weights and the
+necessary information to continue the training now</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.common.Trainer.Trainer.save_model_and_training_info">
+<span class="sig-name descname"><span class="pre">save_model_and_training_info</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.Trainer.Trainer.save_model_and_training_info" title="Permalink to this definition"></a></dt>
+<dd><p>Saves a checkpoint, which contains the model weights and the
+necessary information to continue the training at some other time</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.common.Trainer.Trainer.terminate_training_thread">
+<span class="sig-name descname"><span class="pre">terminate_training_thread</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.Trainer.Trainer.terminate_training_thread" title="Permalink to this definition"></a></dt>
+<dd><p>Thread that checks if the user wants to stop training.
+Used to stop training before all the epochs have been executed.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.common.Trainer.Trainer.train_with_validation">
+<span class="sig-name descname"><span class="pre">train_with_validation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">NB_EPOCHS</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.Trainer.Trainer.train_with_validation" title="Permalink to this definition"></a></dt>
+<dd><p>Main method of the class, used to train the model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>NB_EPOCHS</strong> (<em>int</em>) – Number of epoch for which to train the model</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.common.Trainer.Trainer.update_plot">
+<span class="sig-name descname"><span class="pre">update_plot</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.Trainer.Trainer.update_plot" title="Permalink to this definition"></a></dt>
+<dd><p>Updates the plot at the end of an epoch to show all of the training
+losses and validation losses computed so far</p>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 <section id="module-RAVE.common.image_utils">
 <span id="image-utils"></span><h2>image_utils<a class="headerlink" href="#module-RAVE.common.image_utils" title="Permalink to this headline"></a></h2>
