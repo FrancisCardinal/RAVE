@@ -35,7 +35,7 @@ Send us your comments/suggestions to improve the project in [issues](https://git
 ## Authors
 
 * Anthony Gosselin (@AnthonyGosselin)
-* Amélie Riox-Joyal
+* Amélie Rioux-Joyal
 * Étienne Deshaies-Samson
 * Félix Ducharme Turcotte (@felixducharme1)
 * Francis Cardinal (@FrancisCardinal)

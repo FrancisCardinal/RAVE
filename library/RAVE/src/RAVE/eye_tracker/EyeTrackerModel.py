@@ -3,14 +3,16 @@ from torch import nn
 
 
 class EyeTrackerModel(nn.Module):
-    """Model of the neural network that detects pupils for the eye tracker module
+    """
+    Model of the neural network that detects pupils for the eye tracker module
     """
 
     def __init__(self):
-        """Constructor of the EyeTrackerModel class. Defines the architecture
-           of the model.Uses a pretrained version of resnet to do some transfer
-           learning. The model also has some fully connected layers at the end,
-           as they help the network to make better predictions.
+        """
+        Defines the architecture of the model.
+        Uses a pretrained version of resnet to do some transfer
+        learning. The model also has some fully connected layers at the end,
+        as they help the network to make better predictions.
         """
         super(EyeTrackerModel, self).__init__()
         self.model = torch.hub.load(
@@ -49,14 +51,16 @@ class EyeTrackerModel(nn.Module):
         )
 
     def forward(self, x):
-        """Method of the Dataset class that must be overwritten by this class.
-           Specifies how the forward pass should be executed
-           The sigmoid is used to limit the ouput domain, as to converge more
-           easily. Each parameter is normalized between 0 and 1, where 1
-           represents the max pixel value of the corresponding axis of the
-           parameter (or 2*pi radians for theta). For example, if the h
-           parameter is 0.5 and the image width is 480, then the h value in
-           pixels is 240
+        """
+        Method of the Dataset class that must be overwritten by this class.
+        Specifies how the forward pass should be executed
+        The sigmoid is used to limit the ouput domain, as to converge more
+        easily. Each parameter is normalized between 0 and 1, where 1
+        represents the max pixel value of the corresponding axis of the
+        parameter (or 2*pi radians for theta). For example, if the h
+        parameter is 0.5 and the image width is 480, then the h value in
+        pixels is 240
+
         Args:
             x (pytorch tensor):
                 The input of the network (images)

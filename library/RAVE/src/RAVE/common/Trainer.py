@@ -13,7 +13,30 @@ plt.ion()
 
 
 class Trainer:
-    """Trainer class, used to train neural networks
+    """
+    Trainer class, used to train neural networks
+
+    Args:
+        training_loader (Dataloader):
+            Dataloader that returns images and labels pairs of the training
+            dataset
+        validation_loader (Dataloader):
+            Dataloader that returns images and labels pairs of the
+            validation dataset
+        loss_function (Functor):
+            Loss function used to compute the training and
+            validation losses
+        device (String):
+            Device on which to perform the computations
+        model (Module):
+            Neural network to be trained
+        optimizer (Optimizer):
+            Optimizer used to update the weights during training
+        scheduler (_LRScheduler):
+            Learning rate scheduler
+        CONTINUE_TRAINING (bool):
+            Whether to continue the training from the checkpoint
+            on disk or not
     """
 
     TRAINING_SESSIONS_DIR = "training_sessions"
@@ -31,30 +54,6 @@ class Trainer:
         ROOT_DIR_PATH,
         CONTINUE_TRAINING,
     ):
-        """Constructor of the Trainer class
-
-        Args:
-            training_loader (Dataloader):
-                Dataloader that returns images and labels pairs of the training
-                dataset
-            validation_loader (Dataloader):
-                Dataloader that returns images and labels pairs of the
-                validation dataset
-            loss_function (Functor):
-                Loss function used to compute the training and
-                validation losses
-            device (String):
-                Device on which to perform the computations
-            model (Module):
-                Neural network to be trained
-            optimizer (Optimizer):
-                Optimizer used to update the weights during training
-            scheduler (_LRScheduler):
-                Learning rate scheduler
-            CONTINUE_TRAINING (bool):
-                Whether to continue the training from the checkpoint
-                on disk or not
-        """
         self.training_loader = training_loader
         self.validation_loader = validation_loader
         self.loss_function = loss_function
@@ -78,8 +77,9 @@ class Trainer:
         Thread(target=self.terminate_training_thread, daemon=True).start()
 
     def terminate_training_thread(self):
-        """Thread that checks if the user wants to stop training.
-           Used to stop training before all the epochs have been executed.
+        """
+        Thread that checks if the user wants to stop training.
+        Used to stop training before all the epochs have been executed.
         """
         while not self.terminate_training:
             key = input()
@@ -89,7 +89,8 @@ class Trainer:
         print("Terminating training at end of epoch.")
 
     def train_with_validation(self, NB_EPOCHS):
-        """Main method of the class, used to train the model.
+        """
+        Main method of the class, used to train the model.
 
         Args:
             NB_EPOCHS (int): Number of epoch for which to train the model
@@ -149,7 +150,8 @@ class Trainer:
         plt.close(None)
 
     def compute_training_loss(self):
-        """Compute the training loss for the current epoch
+        """
+        Compute the training loss for the current epoch
 
         Returns:
             float: The training loss
@@ -180,7 +182,8 @@ class Trainer:
         return training_loss / number_of_images
 
     def compute_validation_loss(self):
-        """Compute the validation loss for the current epoch
+        """
+        Compute the validation loss for the current epoch
 
         Returns:
             float: The validation loss
@@ -206,8 +209,9 @@ class Trainer:
             return validation_loss / number_of_images
 
     def update_plot(self):
-        """Updates the plot at the end of an epoch to show all of the training
-           losses and validation losses computed so far
+        """
+        Updates the plot at the end of an epoch to show all of the training
+        losses and validation losses computed so far
         """
         plt.clf()
         plt.plot(
@@ -228,8 +232,9 @@ class Trainer:
         plt.gcf().canvas.start_event_loop(0.001)
 
     def save_model_and_training_info(self):
-        """Saves a checkpoint, which contains the model weights and the
-           necessary information to continue the training at some other time
+        """
+        Saves a checkpoint, which contains the model weights and the
+        necessary information to continue the training at some other time
         """
         torch.save(
             {
@@ -242,8 +247,9 @@ class Trainer:
         )
 
     def load_model_and_training_info(self):
-        """Loads a checkpoint, which contains the model weights and the
-           necessary information to continue the training now
+        """
+        Loads a checkpoint, which contains the model weights and the
+        necessary information to continue the training now
         """
         checkpoint = torch.load(self.MODEL_PATH)
         self.model.load_state_dict(checkpoint["model_state_dict"])
@@ -253,7 +259,8 @@ class Trainer:
 
     @staticmethod
     def load_best_model(model, MODEL_DIR_PATH):
-        """Used to get the best version of a model from disk
+        """
+        Used to get the best version of a model from disk
 
         Args:
             model (Module): Model on which to update the weights

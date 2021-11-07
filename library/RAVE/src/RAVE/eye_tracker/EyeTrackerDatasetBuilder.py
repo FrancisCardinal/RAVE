@@ -36,14 +36,16 @@ from ..common.image_utils import apply_image_translation, apply_image_rotation
 
 
 class EyeTrackerDatasetBuilder(DatasetBuilder):
-    """This class builds the sub-datasets. It takes videos, extracts the frames
+    """
+    This class builds the sub-datasets. It takes videos, extracts the frames
     and saves them on the disk, with the corresponding labels. It also
     applies data augmentation transforms to the training sub-dataset.
     """
 
     @staticmethod
     def create_images_datasets_with_LPW_videos():
-        """Static methods ; Main method of the EyeTrackerDatasetBuilder class.
+        """
+        Main method of the EyeTrackerDatasetBuilder class.
         This method checks if the dataset as already been built, and builds it
         otherwise.
         """
@@ -63,11 +65,12 @@ class EyeTrackerDatasetBuilder(DatasetBuilder):
 
     @staticmethod
     def get_builders():
-        """Static methods ; Used to get the 3 EyeTrackerDatasetBuilder objects
+        """
+        Used to get the 3 EyeTrackerDatasetBuilder objects
         (one for each sub-dataset)
 
         Returns:
-            List of EyeTrackerDatasetBuilder:
+            List of EyeTrackerDatasetBuilder :
                 The 3 EyeTrackerDatasetBuilder objects
                 (one for each sub-dataset)
         """
@@ -162,8 +165,9 @@ class EyeTrackerDatasetBuilder(DatasetBuilder):
         )
 
     def parse_current_annotation(self, annotations):
-        """Parses the current annotation to extract the parameters of
-           the ellipse as defined by opencv
+        """
+        Parses the current annotation to extract the parameters of
+        the ellipse as defined by opencv
 
         Args:
             annotations (List of strings): All the annotations
@@ -194,15 +198,17 @@ class EyeTrackerDatasetBuilder(DatasetBuilder):
 class EyeTrackerDatasetBuilderOfflineDataAugmentation(
     EyeTrackerDatasetBuilder
 ):
-    """This class inherits from EyeTrackerDatasetBuilder.
+    """
+    This class inherits from EyeTrackerDatasetBuilder.
     It overwrites certain methods in order to do offline data augmentation.
     """
 
     def __init__(
         self, VIDEOS, OUTPUT_DIR_PATH, log_name, IMAGE_DIMENSIONS, SOURCE_DIR
     ):
-        """Constructor of the TrainingDatasetBuilder.Calls the parent
-           constructor and defines the training transforms
+        """
+        Constructor of the TrainingDatasetBuilder.Calls the parent
+        constructor and defines the training transforms
 
         Args:
             VIDEOS (List of strings):
@@ -228,8 +234,9 @@ class EyeTrackerDatasetBuilderOfflineDataAugmentation(
         )
 
     def apply_translation_and_rotation(self, output_image_tensor):
-        """A data augmentation operation, translates and rotates the frame
-           randomly and reflects that change on the corresponding ellipse
+        """
+        A data augmentation operation, translates and rotates the frame
+        randomly and reflects that change on the corresponding ellipse
 
         Args:
             output_image_tensor (pytorch tensor):

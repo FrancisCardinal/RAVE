@@ -32,9 +32,19 @@ from .image_utils import tensor_to_opencv_image
 
 
 class DatasetBuilder(ABC):
-    """This class builds the sub-datasets. It takes videos, extracts the frames
+    """
+    This class builds the sub-datasets. It takes videos, extracts the frames
     and saves them on the disk, with the corresponding labels.
     It also applies data augmentation transforms to the training sub-dataset
+
+    Args:
+        VIDEOS (List of strings):
+            The names of the videos that belong to this sub-dataset
+        OUTPUT_DIR_PATH (String):
+            Path of the directory that will contain the images and labels
+            pairs
+        log_name (String):
+            Name to be displayed alongside the progress bar in the terminal
     """
 
     VIDEOS_DIR = "videos"
@@ -42,42 +52,9 @@ class DatasetBuilder(ABC):
 
     ROOT_PATH = os.getcwd()
 
-    @staticmethod
-    @abstractmethod
-    def get_builders():
-        """Static method ; Used to get the 3 DatasetBuilder objects (one for
-           each sub-dataset)
-
-        Returns:
-            List of DatasetBuilder: The 3 DatasetBuilder objects (one for
-            each sub-dataset)
-        """
-        raise NotImplementedError
-
-    @staticmethod
-    def create_directory_if_does_not_exist(path):
-        """Creates a directory if it does not exist on the disk
-
-        Args:
-            path (string): The path of the directory to create
-        """
-        if not os.path.isdir(path):
-            os.makedirs(path)
-
     def __init__(
         self, VIDEOS, OUTPUT_DIR_PATH, log_name, IMAGE_DIMENSIONS, SOURCE_DIR
     ):
-        """Constructor of the DatasetBuilder class
-
-        Args:
-            VIDEOS (List of strings):
-                The names of the videos that belong to this sub-dataset
-            OUTPUT_DIR_PATH (String):
-                Path of the directory that will contain the images and labels
-                pairs
-            log_name (String):
-                Name to be displayed alongside the progress bar in the terminal
-        """
         self.VIDEOS = VIDEOS
         self.log_name = log_name
 
@@ -104,8 +81,32 @@ class DatasetBuilder(ABC):
             [transforms.Resize(IMAGE_DIMENSIONS), transforms.ToTensor()]
         )
 
+    @staticmethod
+    @abstractmethod
+    def get_builders():
+        """
+        Used to get the 3 DatasetBuilder objects (one for each sub-dataset)
+
+        Returns:
+            List of DatasetBuilder: The 3 DatasetBuilder objects (one for
+            each sub-dataset)
+        """
+        raise NotImplementedError
+
+    @staticmethod
+    def create_directory_if_does_not_exist(path):
+        """
+        Creates a directory if it does not exist on the disk
+
+        Args:
+            path (string): The path of the directory to create
+        """
+        if not os.path.isdir(path):
+            os.makedirs(path)
+
     def create_images_of_one_video_group(self):
-        """Gets the info of one video, then creates the images and labels pair
+        """
+        Gets the info of one video, then creates the images and labels pair
         of the video and save them to disk
         """
         for video_file_name in tqdm(
@@ -126,8 +127,9 @@ class DatasetBuilder(ABC):
     def create_images_dataset_with_one_video(
         self, file_name, video_path, annotations
     ):
-        """Creates the images and labels pair of the video and saves
-           them to disk
+        """
+        Creates the images and labels pair of the video and saves
+        them to disk
 
         Args:
             file_name (String): Name of the video
@@ -177,8 +179,9 @@ class DatasetBuilder(ABC):
         raise NotImplementedError
 
     def process_frame(self, frame):
-        """Applies the transforms that need to be applied before the frame is
-           saved
+        """
+        Applies the transforms that need to be applied before the frame is
+        saved
 
         Args:
             frame (numpy array): The frame that needs to be processed
@@ -192,7 +195,8 @@ class DatasetBuilder(ABC):
         return output_image_tensor
 
     def save_image_label_pair(self, file_name, output_image_tensor, label):
-        """Saves the image and label pair to disk
+        """
+        Saves the image and label pair to disk
 
         Args:
             file_name (String):

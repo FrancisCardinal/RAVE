@@ -9,7 +9,8 @@ random.seed(42)
 
 
 def tensor_to_opencv_image(tensor):
-    """Converts a pytorch tensor that represents an image into an numpy array
+    """
+    Converts a pytorch tensor that represents an image into an numpy array
 
     Args:
         tensor (pytorch tensor): The image to convert
@@ -24,8 +25,9 @@ def tensor_to_opencv_image(tensor):
 
 
 def inverse_normalize(tensor, mean, std):
-    """Undo the normalization operation that was performed on an image when
-       it was passed to a network
+    """
+    Undo the normalization operation that was performed on an image when
+    it was passed to a network
 
     Args:
         tensor (pytorch tensor): The image on which to perform the operation
@@ -49,10 +51,11 @@ def inverse_normalize(tensor, mean, std):
 def apply_image_translation(
     image_tensor, x_extremums=[-0.2, 0.2], y_extremums=[-0.2, 0.2]
 ):
-    """A data augmentation operation, translates the frame randomly, by
-       selecting an x and y value in the x_extremums and y_extremums ranges,
-       respectively.This should be used instead of the pytorch transform if
-       you wish to know the amplitude of the translation.
+    """
+    A data augmentation operation, translates the frame randomly, by
+    selecting an x and y value in the x_extremums and y_extremums ranges,
+    respectively.This should be used instead of the pytorch transform if
+    you wish to know the amplitude of the translation.
 
     Args:
         image_tensor (pytorch tensor):
@@ -79,10 +82,11 @@ def apply_image_translation(
 
 
 def apply_image_rotation(image_tensor, rotation_angle_extremums=[-0.1, 0.1]):
-    """A data augmentation operation, rotates the frame randomly, by selecting
-       an angle in the 'rotation_angle_extremums'range.
-       This should be used instead of the pytorch transform if you wish to know
-       the amplitude of the rotation.
+    """
+    A data augmentation operation, rotates the frame randomly, by selecting
+    an angle in the 'rotation_angle_extremums'range.
+    This should be used instead of the pytorch transform if you wish to know
+    the amplitude of the rotation.
 
     Args:
         image_tensor (pytorch tensor): The frame on which to apply the rotation
@@ -108,12 +112,13 @@ def apply_image_translation_and_rotation(
     y_extremums=[-0.2, 0.2],
     rotation_angle_extremums=[-0.1, 0.1],
 ):
-    """A data augmentation operation,translates and rotates the frame randomly,
-       by selecting an x and y value in the x_extremums and y_extremums ranges,
-       respectively, and by selecting an angle in the
-       'rotation_angle_extremums'range. This should be used instead of the
-       pytorch transform if you wish to know the amplitude of the translation
-       and the rotation.
+    """
+    A data augmentation operation,translates and rotates the frame randomly,
+    by selecting an x and y value in the x_extremums and y_extremums ranges,
+    respectively, and by selecting an angle in the
+    'rotation_angle_extremums'range. This should be used instead of the
+    pytorch transform if you wish to know the amplitude of the translation
+    and the rotation.
 
     Args:
         image_tensor (pytorch tensor):
@@ -145,7 +150,8 @@ def apply_image_translation_and_rotation(
 
 
 def do_affine_grid_operation(image_tensor, translation=(0, 0), phi=0):
-    """Executes the affine operation
+    """
+    Executes the affine operation
 
     Args:
         image_tensor (pytorch tensor):

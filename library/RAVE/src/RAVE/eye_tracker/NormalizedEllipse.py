@@ -3,35 +3,34 @@ from numpy import sin, cos
 
 
 class NormalizedEllipse:
-    """Represents an ellipse with five parameters. h and k are the center
-       position, a and b are the horizontal and vertical axis length and theta
-       is the rotation angle of the ellipse relative to the x axis.
-       The ellipse is normalized.
+    """
+    Represents an ellipse with five parameters. h and k are the center
+    position, a and b are the horizontal and vertical axis length and theta
+    is the rotation angle of the ellipse relative to the x axis.
+    The ellipse is normalized.
 
-       A 'normalized' ellipse is one where each parameters is no longer
-       represented in pixels values. Each parameter is rather normalized
-       between 0 and 1, where 1 represents the max pixel value of the
-       corresponding axis of the parameter (or 2*pi radians for theta).
-       For example, if the h parameter was 240 and the image width is 480,
-       then the new h value is 0.5
+    A 'normalized' ellipse is one where each parameters is no longer
+    represented in pixels values. Each parameter is rather normalized
+    between 0 and 1, where 1 represents the max pixel value of the
+    corresponding axis of the parameter (or 2*pi radians for theta).
+    For example, if the h parameter was 240 and the image width is 480,
+    then the new h value is 0.5
+
+    Args:
+        h (float):
+            x coordinate of the center of the ellipse (normalized)
+        k (float):
+            y coordinate of the center of the ellipse (normalized)
+        a (float):
+            length of the horizontal axis (normalized)
+        b (float):
+            length of the vertical axis (normalized)
+        theta (float):
+            rotation angle of the ellipse relative to the
+            x axis (normalized)
     """
 
     def __init__(self, h, k, a, b, theta):
-        """Constructor of the NormalizedEllipse class
-
-        Args:
-            h (float):
-                x coordinate of the center of the ellipse (normalized)
-            k (float):
-                y coordinate of the center of the ellipse (normalized)
-            a (float):
-                length of the horizontal axis (normalized)
-            b (float):
-                length of the vertical axis (normalized)
-            theta (float):
-                rotation angle of the ellipse relative to the
-                x axis (normalized)
-        """
         self.h = h
         self.k = k
         self.a = a
@@ -39,7 +38,8 @@ class NormalizedEllipse:
         self.theta = theta
 
     def rotate_around_image_center(self, phi):
-        """Rotates a normalized ellipse around the image center point
+        """
+        Rotates a normalized ellipse around the image center point
 
         Args:
             phi (float): Angle of rotation (in rads)
@@ -61,7 +61,8 @@ class NormalizedEllipse:
         self.theta += phi / (2 * np.pi)
 
     def to_list(self):
-        """Serializes the ellipse to a list
+        """
+        Serializes the ellipse to a list
 
         Returns:
             List: The serialized ellipse
@@ -70,7 +71,8 @@ class NormalizedEllipse:
 
     @staticmethod
     def get_from_list(list):
-        """Creates a normalized ellipse object from a list
+        """
+        Creates a normalized ellipse object from a list
 
         Args:
             list (List): List of the ellipse's parameters
@@ -90,8 +92,9 @@ class NormalizedEllipse:
         INPUT_IMAGE_WIDTH,
         INPUT_IMAGE_HEIGHT,
     ):
-        """Computes a normalized ellipse from an ellipse that is in the
-           opencv format.
+        """
+        Computes a normalized ellipse from an ellipse that is in the
+        opencv format.
 
         Args:
             center_x (int):

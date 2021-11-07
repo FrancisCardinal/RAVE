@@ -11,18 +11,17 @@ IMAGE_DIMENSIONS = (1, 224, 299)
 
 
 class EyeTrackerDataset(Dataset):
-    """Class that handles pairs of images and labels that are on disk
+    """
+    Class that handles pairs of images and labels that are on disk
+
+    Args:
+        sub_dataset_dir (String): Name of the directory of the sub-dataset
     """
 
     EYE_TRACKER_DIR_PATH = os.path.join("src", "RAVE", "eye_tracker")
     TRAINING_MEAN, TRAINING_STD = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
 
     def __init__(self, sub_dataset_dir):
-        """Constructor of the Dataset class
-
-        Args:
-            sub_dataset_dir (String): Name of the directory of the sub-dataset
-        """
         super().__init__(
             EyeTrackerDataset.TRAINING_MEAN,
             EyeTrackerDataset.TRAINING_STD,
@@ -32,7 +31,8 @@ class EyeTrackerDataset(Dataset):
 
     @staticmethod
     def get_training_sub_dataset():
-        """Used to get the training sub dataset
+        """
+        Used to get the training sub dataset
 
         Returns:
             Dataset: The training sub dataset
@@ -41,7 +41,8 @@ class EyeTrackerDataset(Dataset):
 
     @staticmethod
     def get_validation_sub_dataset():
-        """Used to get the validation sub dataset
+        """
+        Used to get the validation sub dataset
 
         Returns:
             Dataset: The validation sub dataset
@@ -50,7 +51,8 @@ class EyeTrackerDataset(Dataset):
 
     @staticmethod
     def get_test_sub_dataset():
-        """Used to get the test sub dataset
+        """
+        Used to get the test sub dataset
 
         Returns:
             Dataset: The test sub dataset
@@ -59,16 +61,15 @@ class EyeTrackerDataset(Dataset):
 
 
 class EyeTrackerDatasetOnlineDataAugmentation(Dataset):
-    """This class inherits from Dataset. It overwrites certain methods in
+    """
+    This class inherits from Dataset. It overwrites certain methods in
     order to do online data augmentation.
+
+    Args:
+        sub_dataset_dir (String): Name of the directory of the sub-dataset
     """
 
     def __init__(self, sub_dataset_dir):
-        """Constructor of the EyeTrackerDatasetOnlineDataAugmentation class
-
-        Args:
-            sub_dataset_dir (String): Name of the directory of the sub-dataset
-        """
         super().__init__(sub_dataset_dir)
 
         self.TRAINING_TRANSFORM = transforms.Compose(
@@ -82,9 +83,10 @@ class EyeTrackerDatasetOnlineDataAugmentation(Dataset):
         )
 
     def __getitem__(self, idx):
-        """Method of the Dataset class that must be overwritten by this class.
-           Used to get an image and label pair. Before returning the image and
-           label pair, this class performs online data augmentation.
+        """
+        Method of the Dataset class that must be overwritten by this class.
+        Used to get an image and label pair. Before returning the image and
+        label pair, this class performs online data augmentation.
 
         Args:
             idx (int): Index of the pair to get

@@ -14,7 +14,11 @@ IMAGE_DIMENSIONS = (1, 224, 299)
 
 
 class Dataset(torch.utils.data.Dataset):
-    """Class that handles pairs of images and labels that are on disk
+    """
+    Class that handles pairs of images and labels that are on disk
+
+    Args:
+        sub_dataset_dir (String): Name of the directory of the sub-dataset
     """
 
     DATASET_DIR = "dataset"
@@ -29,17 +33,15 @@ class Dataset(torch.utils.data.Dataset):
     IMAGES_FILE_EXTENSION = "png"
 
     PRE_PROCESS_TRANSFORM = transforms.Compose(
-        [transforms.Resize(IMAGE_DIMENSIONS[1:3]), transforms.ToTensor(), ]
+        [
+            transforms.Resize(IMAGE_DIMENSIONS[1:3]),
+            transforms.ToTensor(),
+        ]
     )
 
     def __init__(
         self, TRAINING_MEAN, TRAINING_STD, ROOT_PATH, sub_dataset_dir
     ):
-        """Constructor of the Dataset class
-
-        Args:
-            sub_dataset_dir (String): Name of the directory of the sub-dataset
-        """
         self.TRAINING_MEAN, self.TRAINING_STD = TRAINING_MEAN, TRAINING_STD
         self.NORMALIZE_TRANSFORM = transforms.Normalize(
             mean=TRAINING_MEAN, std=TRAINING_STD
@@ -56,8 +58,9 @@ class Dataset(torch.utils.data.Dataset):
         )
 
     def __len__(self):
-        """Method of the Dataset class that must be overwritten by this class.
-           Used to get the number of elements in the dataset
+        """
+        Method of the Dataset class that must be overwritten by this class.
+        Used to get the number of elements in the dataset
 
         Returns:
             int: The number of elements in the dataset
@@ -65,8 +68,9 @@ class Dataset(torch.utils.data.Dataset):
         return len(self.images_paths)
 
     def __getitem__(self, idx):
-        """Method of the Dataset class that must be overwritten by this class.
-           Used to get an image and label pair
+        """
+        Method of the Dataset class that must be overwritten by this class.
+        Used to get an image and label pair
 
         Args:
             idx (int): Index of the pair to get
@@ -84,7 +88,8 @@ class Dataset(torch.utils.data.Dataset):
         return image, label
 
     def get_image_and_label_on_disk(self, idx):
-        """Gets an image and label pair on disk
+        """
+        Gets an image and label pair on disk
 
         Args:
             idx (int): Index of the image and label pair
@@ -104,10 +109,11 @@ class Dataset(torch.utils.data.Dataset):
 
     @staticmethod
     def get_multiple_workers_safe_list_of_paths(directory):
-        """Used to build a list of paths. This method prevents a memory
-            leak that happens with list of strings and multiple dataloader
-            workers
-            https://gist.github.com/mprostock/2850f3cd465155689052f0fa3a177a50
+        """
+        Used to build a list of paths. This method prevents a memory
+        leak that happens with list of strings and multiple dataloader
+        workers
+        https://gist.github.com/mprostock/2850f3cd465155689052f0fa3a177a50
 
         Args:
             directory (String):
@@ -124,7 +130,8 @@ class Dataset(torch.utils.data.Dataset):
     @staticmethod
     @abstractmethod
     def get_training_sub_dataset():
-        """Used to get the training sub dataset
+        """
+        Used to get the training sub dataset
 
         Returns:
             Dataset: The training sub dataset
@@ -134,7 +141,8 @@ class Dataset(torch.utils.data.Dataset):
     @staticmethod
     @abstractmethod
     def get_validation_sub_dataset():
-        """Used to get the validation sub dataset
+        """
+        Used to get the validation sub dataset
 
         Returns:
             Dataset: The validation sub dataset
@@ -144,7 +152,8 @@ class Dataset(torch.utils.data.Dataset):
     @staticmethod
     @abstractmethod
     def get_test_sub_dataset():
-        """Used to get the test sub dataset
+        """
+        Used to get the test sub dataset
 
         Returns:
             Dataset: The test sub dataset
