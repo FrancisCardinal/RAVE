@@ -41,9 +41,9 @@
 <li class="toctree-l1 current"><a class="reference internal" href="RAVE.html">RAVE</a><ul class="current">
 <li class="toctree-l2 current"><a class="current reference internal" href="#">common</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#dataset">Dataset</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#datasetbuilder">DatasetBuilder</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-RAVE.common.DatasetBuilder">DatasetBuilder</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#trainer">Trainer</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#image-utils">image_utils</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-RAVE.common.image_utils">image_utils</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="RAVE.eye_tracker.html">eye_tracker</a></li>
@@ -82,14 +82,300 @@
 <section id="dataset">
 <h2>Dataset<a class="headerlink" href="#dataset" title="Permalink to this headline"></a></h2>
 </section>
-<section id="datasetbuilder">
-<h2>DatasetBuilder<a class="headerlink" href="#datasetbuilder" title="Permalink to this headline"></a></h2>
+<section id="module-RAVE.common.DatasetBuilder">
+<span id="datasetbuilder"></span><h2>DatasetBuilder<a class="headerlink" href="#module-RAVE.common.DatasetBuilder" title="Permalink to this headline"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="RAVE.common.DatasetBuilder.DatasetBuilder">
+<em class="property"><span class="pre">class</span> </em><span class="sig-name descname"><span class="pre">DatasetBuilder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">VIDEOS</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">OUTPUT_DIR_PATH</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">IMAGE_DIMENSIONS</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">SOURCE_DIR</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.DatasetBuilder.DatasetBuilder" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></p>
+<p>This class builds the sub-datasets. It takes videos, extracts the frames
+and saves them on the disk, with the corresponding labels.
+It also applies data augmentation transforms to the training sub-dataset</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>VIDEOS</strong> (<em>List of strings</em>) – The names of the videos that belong to this sub-dataset</p></li>
+<li><p><strong>OUTPUT_DIR_PATH</strong> (<em>String</em>) – Path of the directory that will contain the images and labels
+pairs</p></li>
+<li><p><strong>log_name</strong> (<em>String</em>) – Name to be displayed alongside the progress bar in the terminal</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="RAVE.common.DatasetBuilder.DatasetBuilder.ANNOTATIONS_DIR">
+<span class="sig-name descname"><span class="pre">ANNOTATIONS_DIR</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'annotations'</span></em><a class="headerlink" href="#RAVE.common.DatasetBuilder.DatasetBuilder.ANNOTATIONS_DIR" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="RAVE.common.DatasetBuilder.DatasetBuilder.ROOT_PATH">
+<span class="sig-name descname"><span class="pre">ROOT_PATH</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'/home/runner/work/RAVE/RAVE/docs'</span></em><a class="headerlink" href="#RAVE.common.DatasetBuilder.DatasetBuilder.ROOT_PATH" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="RAVE.common.DatasetBuilder.DatasetBuilder.VIDEOS_DIR">
+<span class="sig-name descname"><span class="pre">VIDEOS_DIR</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'videos'</span></em><a class="headerlink" href="#RAVE.common.DatasetBuilder.DatasetBuilder.VIDEOS_DIR" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="RAVE.common.DatasetBuilder.DatasetBuilder.__abstractmethods__">
+<span class="sig-name descname"><span class="pre">__abstractmethods__</span></span><em class="property"> <span class="pre">=</span> <span class="pre">frozenset({'get_builders',</span> <span class="pre">'process_image_label_pair'})</span></em><a class="headerlink" href="#RAVE.common.DatasetBuilder.DatasetBuilder.__abstractmethods__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="RAVE.common.DatasetBuilder.DatasetBuilder.__dict__">
+<span class="sig-name descname"><span class="pre">__dict__</span></span><em class="property"> <span class="pre">=</span> <span class="pre">mappingproxy({'__module__':</span> <span class="pre">'RAVE.common.DatasetBuilder',</span> <span class="pre">'__doc__':</span> <span class="pre">'\n</span>&#160;&#160;&#160; <span class="pre">This</span> <span class="pre">class</span> <span class="pre">builds</span> <span class="pre">the</span> <span class="pre">sub-datasets.</span> <span class="pre">It</span> <span class="pre">takes</span> <span class="pre">videos,</span> <span class="pre">extracts</span> <span class="pre">the</span> <span class="pre">frames\n</span>&#160;&#160;&#160; <span class="pre">and</span> <span class="pre">saves</span> <span class="pre">them</span> <span class="pre">on</span> <span class="pre">the</span> <span class="pre">disk,</span> <span class="pre">with</span> <span class="pre">the</span> <span class="pre">corresponding</span> <span class="pre">labels.\n</span>&#160;&#160;&#160; <span class="pre">It</span> <span class="pre">also</span> <span class="pre">applies</span> <span class="pre">data</span> <span class="pre">augmentation</span> <span class="pre">transforms</span> <span class="pre">to</span> <span class="pre">the</span> <span class="pre">training</span> <span class="pre">sub-dataset\n\n</span>&#160;&#160;&#160; <span class="pre">Args:\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">VIDEOS</span> <span class="pre">(List</span> <span class="pre">of</span> <span class="pre">strings):\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">The</span> <span class="pre">names</span> <span class="pre">of</span> <span class="pre">the</span> <span class="pre">videos</span> <span class="pre">that</span> <span class="pre">belong</span> <span class="pre">to</span> <span class="pre">this</span> <span class="pre">sub-dataset\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">OUTPUT_DIR_PATH</span> <span class="pre">(String):\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">Path</span> <span class="pre">of</span> <span class="pre">the</span> <span class="pre">directory</span> <span class="pre">that</span> <span class="pre">will</span> <span class="pre">contain</span> <span class="pre">the</span> <span class="pre">images</span> <span class="pre">and</span> <span class="pre">labels\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">pairs\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">log_name</span> <span class="pre">(String):\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">Name</span> <span class="pre">to</span> <span class="pre">be</span> <span class="pre">displayed</span> <span class="pre">alongside</span> <span class="pre">the</span> <span class="pre">progress</span> <span class="pre">bar</span> <span class="pre">in</span> <span class="pre">the</span> <span class="pre">terminal\n</span>&#160;&#160;&#160; <span class="pre">',</span> <span class="pre">'VIDEOS_DIR':</span> <span class="pre">'videos',</span> <span class="pre">'ANNOTATIONS_DIR':</span> <span class="pre">'annotations',</span> <span class="pre">'ROOT_PATH':</span> <span class="pre">'/home/runner/work/RAVE/RAVE/docs',</span> <span class="pre">'__init__':</span> <span class="pre">&lt;function</span> <span class="pre">DatasetBuilder.__init__&gt;,</span> <span class="pre">'get_builders':</span> <span class="pre">&lt;staticmethod</span> <span class="pre">object&gt;,</span> <span class="pre">'create_directory_if_does_not_exist':</span> <span class="pre">&lt;staticmethod</span> <span class="pre">object&gt;,</span> <span class="pre">'create_images_of_one_video_group':</span> <span class="pre">&lt;function</span> <span class="pre">DatasetBuilder.create_images_of_one_video_group&gt;,</span> <span class="pre">'create_images_dataset_with_one_video':</span> <span class="pre">&lt;function</span> <span class="pre">DatasetBuilder.create_images_dataset_with_one_video&gt;,</span> <span class="pre">'process_image_label_pair':</span> <span class="pre">&lt;function</span> <span class="pre">DatasetBuilder.process_image_label_pair&gt;,</span> <span class="pre">'process_frame':</span> <span class="pre">&lt;function</span> <span class="pre">DatasetBuilder.process_frame&gt;,</span> <span class="pre">'save_image_label_pair':</span> <span class="pre">&lt;function</span> <span class="pre">DatasetBuilder.save_image_label_pair&gt;,</span> <span class="pre">'__dict__':</span> <span class="pre">&lt;attribute</span> <span class="pre">'__dict__'</span> <span class="pre">of</span> <span class="pre">'DatasetBuilder'</span> <span class="pre">objects&gt;,</span> <span class="pre">'__weakref__':</span> <span class="pre">&lt;attribute</span> <span class="pre">'__weakref__'</span> <span class="pre">of</span> <span class="pre">'DatasetBuilder'</span> <span class="pre">objects&gt;,</span> <span class="pre">'__abstractmethods__':</span> <span class="pre">frozenset({'get_builders',</span> <span class="pre">'process_image_label_pair'}),</span> <span class="pre">'_abc_impl':</span> <span class="pre">&lt;_abc_data</span> <span class="pre">object&gt;,</span> <span class="pre">'__annotations__':</span> <span class="pre">{}})</span></em><a class="headerlink" href="#RAVE.common.DatasetBuilder.DatasetBuilder.__dict__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.common.DatasetBuilder.DatasetBuilder.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">VIDEOS</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">OUTPUT_DIR_PATH</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">IMAGE_DIMENSIONS</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">SOURCE_DIR</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.DatasetBuilder.DatasetBuilder.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="RAVE.common.DatasetBuilder.DatasetBuilder.__module__">
+<span class="sig-name descname"><span class="pre">__module__</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'RAVE.common.DatasetBuilder'</span></em><a class="headerlink" href="#RAVE.common.DatasetBuilder.DatasetBuilder.__module__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="RAVE.common.DatasetBuilder.DatasetBuilder.__weakref__">
+<span class="sig-name descname"><span class="pre">__weakref__</span></span><a class="headerlink" href="#RAVE.common.DatasetBuilder.DatasetBuilder.__weakref__" title="Permalink to this definition"></a></dt>
+<dd><p>list of weak references to the object (if defined)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.common.DatasetBuilder.DatasetBuilder.create_directory_if_does_not_exist">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">create_directory_if_does_not_exist</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.DatasetBuilder.DatasetBuilder.create_directory_if_does_not_exist" title="Permalink to this definition"></a></dt>
+<dd><p>Creates a directory if it does not exist on the disk</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>path</strong> (<em>string</em>) – The path of the directory to create</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.common.DatasetBuilder.DatasetBuilder.create_images_dataset_with_one_video">
+<span class="sig-name descname"><span class="pre">create_images_dataset_with_one_video</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">video_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotations</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.DatasetBuilder.DatasetBuilder.create_images_dataset_with_one_video" title="Permalink to this definition"></a></dt>
+<dd><p>Creates the images and labels pair of the video and saves
+them to disk</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>file_name</strong> (<em>String</em>) – Name of the video</p></li>
+<li><p><strong>video_path</strong> (<em>String</em>) – Path to the video</p></li>
+<li><p><strong>annotations</strong> (<em>List of strings</em>) – One string per frame. Each string represents the ellipse that
+is present on the frame</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.common.DatasetBuilder.DatasetBuilder.create_images_of_one_video_group">
+<span class="sig-name descname"><span class="pre">create_images_of_one_video_group</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.DatasetBuilder.DatasetBuilder.create_images_of_one_video_group" title="Permalink to this definition"></a></dt>
+<dd><p>Gets the info of one video, then creates the images and labels pair
+of the video and save them to disk</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.common.DatasetBuilder.DatasetBuilder.get_builders">
+<em class="property"><span class="pre">abstract</span> <span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_builders</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.DatasetBuilder.DatasetBuilder.get_builders" title="Permalink to this definition"></a></dt>
+<dd><p>Used to get the 3 DatasetBuilder objects (one for each sub-dataset)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The 3 DatasetBuilder objects (one for
+each sub-dataset)</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>List of DatasetBuilder</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.common.DatasetBuilder.DatasetBuilder.process_frame">
+<span class="sig-name descname"><span class="pre">process_frame</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">frame</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.DatasetBuilder.DatasetBuilder.process_frame" title="Permalink to this definition"></a></dt>
+<dd><p>Applies the transforms that need to be applied before the frame is
+saved</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>frame</strong> (<em>numpy array</em>) – The frame that needs to be processed</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The processed frame</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>pytorch tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.common.DatasetBuilder.DatasetBuilder.process_image_label_pair">
+<em class="property"><span class="pre">abstract</span> </em><span class="sig-name descname"><span class="pre">process_image_label_pair</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">frame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">INPUT_IMAGE_WIDTH</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">INPUT_IMAGE_HEIGHT</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.DatasetBuilder.DatasetBuilder.process_image_label_pair" title="Permalink to this definition"></a></dt>
+<dd><p>To process the image and label from the specific dataset</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.common.DatasetBuilder.DatasetBuilder.save_image_label_pair">
+<span class="sig-name descname"><span class="pre">save_image_label_pair</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_image_tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.DatasetBuilder.DatasetBuilder.save_image_label_pair" title="Permalink to this definition"></a></dt>
+<dd><p>Saves the image and label pair to disk</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>file_name</strong> (<em>String</em>) – Name to be used for the image and the label files</p></li>
+<li><p><strong>output_image_tensor</strong> (<em>pytorch tensor</em>) – The image that will be saved to disk</p></li>
+<li><p><strong>label</strong> (<em>List</em>) – The label that will be saved to disk</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 <section id="trainer">
 <h2>Trainer<a class="headerlink" href="#trainer" title="Permalink to this headline"></a></h2>
 </section>
-<section id="image-utils">
-<h2>image_utils<a class="headerlink" href="#image-utils" title="Permalink to this headline"></a></h2>
+<section id="module-RAVE.common.image_utils">
+<span id="image-utils"></span><h2>image_utils<a class="headerlink" href="#module-RAVE.common.image_utils" title="Permalink to this headline"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="RAVE.common.image_utils.apply_image_rotation">
+<span class="sig-name descname"><span class="pre">apply_image_rotation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image_tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rotation_angle_extremums</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[-</span> <span class="pre">0.1,</span> <span class="pre">0.1]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.image_utils.apply_image_rotation" title="Permalink to this definition"></a></dt>
+<dd><p>A data augmentation operation, rotates the frame randomly, by selecting
+an angle in the ‘rotation_angle_extremums’range.
+This should be used instead of the pytorch transform if you wish to know
+the amplitude of the rotation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>image_tensor</strong> (<em>pytorch tensor</em>) – The frame on which to apply the rotation</p></li>
+<li><p><strong>rotation_angle_extremums</strong> (<em>list</em><em>, </em><em>optional</em>) – The min and max value of the rotation angle.
+Defaults to [-0.1, 0.1]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The rotated frame (pytorch tensor) and the rotation angle (float)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="RAVE.common.image_utils.apply_image_translation">
+<span class="sig-name descname"><span class="pre">apply_image_translation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image_tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_extremums</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[-</span> <span class="pre">0.2,</span> <span class="pre">0.2]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_extremums</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[-</span> <span class="pre">0.2,</span> <span class="pre">0.2]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.image_utils.apply_image_translation" title="Permalink to this definition"></a></dt>
+<dd><p>A data augmentation operation, translates the frame randomly, by
+selecting an x and y value in the x_extremums and y_extremums ranges,
+respectively.This should be used instead of the pytorch transform if
+you wish to know the amplitude of the translation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>image_tensor</strong> (<em>pytorch tensor</em>) – The frame on which to apply the translation</p></li>
+<li><p><strong>x_extremums</strong> (<em>list</em><em>, </em><em>optional</em>) – The min and max value of the x translation. Defaults to [-0.2, 0.2]</p></li>
+<li><p><strong>y_extremums</strong> (<em>list</em><em>, </em><em>optional</em>) – The min and max value of the y translation. Defaults to [-0.2, 0.2]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The translated frame (pytorch tensor), the x offset (float) and the
+y offset (float)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="RAVE.common.image_utils.apply_image_translation_and_rotation">
+<span class="sig-name descname"><span class="pre">apply_image_translation_and_rotation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image_tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_extremums</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[-</span> <span class="pre">0.2,</span> <span class="pre">0.2]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_extremums</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[-</span> <span class="pre">0.2,</span> <span class="pre">0.2]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rotation_angle_extremums</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[-</span> <span class="pre">0.1,</span> <span class="pre">0.1]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.image_utils.apply_image_translation_and_rotation" title="Permalink to this definition"></a></dt>
+<dd><p>A data augmentation operation,translates and rotates the frame randomly,
+by selecting an x and y value in the x_extremums and y_extremums ranges,
+respectively, and by selecting an angle in the
+‘rotation_angle_extremums’range. This should be used instead of the
+pytorch transform if you wish to know the amplitude of the translation
+and the rotation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>image_tensor</strong> (<em>pytorch tensor</em>) – The frame on which to apply the translation</p></li>
+<li><p><strong>x_extremums</strong> (<em>list</em><em>, </em><em>optional</em>) – The min and max value of the x translation. Defaults to [-0.2, 0.2]</p></li>
+<li><p><strong>y_extremums</strong> (<em>list</em><em>, </em><em>optional</em>) – The min and max value of the y translation. Defaults to [-0.2, 0.2]</p></li>
+<li><p><strong>rotation_angle_extremums</strong> (<em>list</em><em>, </em><em>optional</em>) – The min and max value of therotation angle. Defaults to [-0.1, 0.1]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The translated frame (pytorch tensor), the x offset (float),the y
+offset (float) and the rotation angle (float)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="RAVE.common.image_utils.do_affine_grid_operation">
+<span class="sig-name descname"><span class="pre">do_affine_grid_operation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image_tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">translation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0,</span> <span class="pre">0)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phi</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.image_utils.do_affine_grid_operation" title="Permalink to this definition"></a></dt>
+<dd><p>Executes the affine operation</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>image_tensor</strong> (<em>pytorch tensor</em>) – The image on which to apply the operation</p></li>
+<li><p><strong>translation</strong> (<em>Tuple</em>) – The magnitude of the translation operation</p></li>
+<li><p><strong>phi</strong> (<em>float</em>) – The angle of rotation</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The processed image</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>pytorch tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="RAVE.common.image_utils.inverse_normalize">
+<span class="sig-name descname"><span class="pre">inverse_normalize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mean</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">std</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.image_utils.inverse_normalize" title="Permalink to this definition"></a></dt>
+<dd><p>Undo the normalization operation that was performed on an image when
+it was passed to a network</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tensor</strong> (<em>pytorch tensor</em>) – The image on which to perform the operation</p></li>
+<li><p><strong>mean</strong> (<em>float</em>) – The mean that was used for the normalization</p></li>
+<li><p><strong>std</strong> (<em>float</em>) – The std that was used for the normalization</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The unormalized image</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>pytorch tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="RAVE.common.image_utils.tensor_to_opencv_image">
+<span class="sig-name descname"><span class="pre">tensor_to_opencv_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tensor</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.image_utils.tensor_to_opencv_image" title="Permalink to this definition"></a></dt>
+<dd><p>Converts a pytorch tensor that represents an image into an numpy array</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>tensor</strong> (<em>pytorch tensor</em>) – The image to convert</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The converted image</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Numpy array</p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 </section>
 
