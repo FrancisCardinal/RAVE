@@ -1,8 +1,0 @@
-numpy
-tqdm
-torch
-torchaudio
-torchvision
-pre-commit
-Sphinx
-sphinx_rtd_theme

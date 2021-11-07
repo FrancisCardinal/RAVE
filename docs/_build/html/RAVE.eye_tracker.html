@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>eye_tracker &mdash; RAVE  documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="facial_detection" href="RAVE.facial_detection.html" />
+    <link rel="prev" title="common" href="RAVE.common.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> RAVE
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="RAVE.html">RAVE</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="RAVE.common.html">common</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">eye_tracker</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-RAVE.eye_tracker.EyeTrackerDataset">EyeTrackerDataset</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-RAVE.eye_tracker.EyeTrackerDatasetBuilder">EyeTrackerDatasetBuilder</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-RAVE.eye_tracker.EyeTrackerModel">EyeTrackerModel</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-RAVE.eye_tracker.NormalizedEllipse">NormalizedEllipse</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-RAVE.eye_tracker.ellipse_util">ellipse_util</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="RAVE.facial_detection.html">facial_detection</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">RAVE</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="RAVE.html">RAVE</a> &raquo;</li>
+      <li>eye_tracker</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="eye-tracker">
+<h1>eye_tracker<a class="headerlink" href="#eye-tracker" title="Permalink to this headline"></a></h1>
+<div class="section" id="module-RAVE.eye_tracker.EyeTrackerDataset">
+<span id="eyetrackerdataset"></span><h2>EyeTrackerDataset<a class="headerlink" href="#module-RAVE.eye_tracker.EyeTrackerDataset" title="Permalink to this headline"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerDataset">
+<em class="property"><span class="pre">class</span> </em><span class="sig-name descname"><span class="pre">EyeTrackerDataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sub_dataset_dir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerDataset" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Generic</span></code>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.utils.data.dataset.T_co</span></code>]</p>
+<p>Class that handles pairs of images and labels that are on disk</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>sub_dataset_dir</strong> (<em>String</em>) – Name of the directory of the sub-dataset</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerDataset.EYE_TRACKER_DIR_PATH">
+<span class="sig-name descname"><span class="pre">EYE_TRACKER_DIR_PATH</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'src/RAVE/eye_tracker'</span></em><a class="headerlink" href="#RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerDataset.EYE_TRACKER_DIR_PATH" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerDataset.TRAINING_MEAN">
+<span class="sig-name descname"><span class="pre">TRAINING_MEAN</span></span><em class="property"> <span class="pre">=</span> <span class="pre">[0.485,</span> <span class="pre">0.456,</span> <span class="pre">0.406]</span></em><a class="headerlink" href="#RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerDataset.TRAINING_MEAN" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerDataset.TRAINING_STD">
+<span class="sig-name descname"><span class="pre">TRAINING_STD</span></span><em class="property"> <span class="pre">=</span> <span class="pre">[0.229,</span> <span class="pre">0.224,</span> <span class="pre">0.225]</span></em><a class="headerlink" href="#RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerDataset.TRAINING_STD" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerDataset.get_test_sub_dataset">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_test_sub_dataset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerDataset.get_test_sub_dataset" title="Permalink to this definition"></a></dt>
+<dd><p>Used to get the test sub dataset</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The test sub dataset</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference internal" href="RAVE.common.html#RAVE.common.Dataset.Dataset" title="RAVE.common.Dataset.Dataset">Dataset</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerDataset.get_training_sub_dataset">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_training_sub_dataset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerDataset.get_training_sub_dataset" title="Permalink to this definition"></a></dt>
+<dd><p>Used to get the training sub dataset</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The training sub dataset</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference internal" href="RAVE.common.html#RAVE.common.Dataset.Dataset" title="RAVE.common.Dataset.Dataset">Dataset</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerDataset.get_validation_sub_dataset">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_validation_sub_dataset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerDataset.get_validation_sub_dataset" title="Permalink to this definition"></a></dt>
+<dd><p>Used to get the validation sub dataset</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The validation sub dataset</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference internal" href="RAVE.common.html#RAVE.common.Dataset.Dataset" title="RAVE.common.Dataset.Dataset">Dataset</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerDatasetOnlineDataAugmentation">
+<em class="property"><span class="pre">class</span> </em><span class="sig-name descname"><span class="pre">EyeTrackerDatasetOnlineDataAugmentation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sub_dataset_dir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerDatasetOnlineDataAugmentation" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Generic</span></code>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.utils.data.dataset.T_co</span></code>]</p>
+<p>This class inherits from Dataset. It overwrites certain methods in
+order to do online data augmentation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>sub_dataset_dir</strong> (<em>String</em>) – Name of the directory of the sub-dataset</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="module-RAVE.eye_tracker.EyeTrackerDatasetBuilder">
+<span id="eyetrackerdatasetbuilder"></span><h2>EyeTrackerDatasetBuilder<a class="headerlink" href="#module-RAVE.eye_tracker.EyeTrackerDatasetBuilder" title="Permalink to this headline"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="RAVE.eye_tracker.EyeTrackerDatasetBuilder.EyeTrackerDatasetBuilder">
+<em class="property"><span class="pre">class</span> </em><span class="sig-name descname"><span class="pre">EyeTrackerDatasetBuilder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">VIDEOS</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">OUTPUT_DIR_PATH</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">IMAGE_DIMENSIONS</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">SOURCE_DIR</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.eye_tracker.EyeTrackerDatasetBuilder.EyeTrackerDatasetBuilder" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="RAVE.common.html#RAVE.common.DatasetBuilder.DatasetBuilder" title="RAVE.common.DatasetBuilder.DatasetBuilder"><code class="xref py py-class docutils literal notranslate"><span class="pre">RAVE.common.DatasetBuilder.DatasetBuilder</span></code></a></p>
+<p>This class builds the sub-datasets. It takes videos, extracts the frames
+and saves them on the disk, with the corresponding labels. It also
+applies data augmentation transforms to the training sub-dataset.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.eye_tracker.EyeTrackerDatasetBuilder.EyeTrackerDatasetBuilder.create_images_datasets_with_LPW_videos">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">create_images_datasets_with_LPW_videos</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.eye_tracker.EyeTrackerDatasetBuilder.EyeTrackerDatasetBuilder.create_images_datasets_with_LPW_videos" title="Permalink to this definition"></a></dt>
+<dd><p>Main method of the EyeTrackerDatasetBuilder class.
+This method checks if the dataset as already been built, and builds it
+otherwise.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.eye_tracker.EyeTrackerDatasetBuilder.EyeTrackerDatasetBuilder.get_builders">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_builders</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.eye_tracker.EyeTrackerDatasetBuilder.EyeTrackerDatasetBuilder.get_builders" title="Permalink to this definition"></a></dt>
+<dd><p>Used to get the 3 EyeTrackerDatasetBuilder objects
+(one for each sub-dataset)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The 3 EyeTrackerDatasetBuilder objects
+(one for each sub-dataset)</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>List of EyeTrackerDatasetBuilder</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.eye_tracker.EyeTrackerDatasetBuilder.EyeTrackerDatasetBuilder.parse_current_annotation">
+<span class="sig-name descname"><span class="pre">parse_current_annotation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotations</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.eye_tracker.EyeTrackerDatasetBuilder.EyeTrackerDatasetBuilder.parse_current_annotation" title="Permalink to this definition"></a></dt>
+<dd><p>Parses the current annotation to extract the parameters of
+the ellipse as defined by opencv</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>annotations</strong> (<em>List of strings</em>) – All the annotations</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The parameters of the ellipse as defined by opencv</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>quintuplet</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.eye_tracker.EyeTrackerDatasetBuilder.EyeTrackerDatasetBuilder.process_image_label_pair">
+<span class="sig-name descname"><span class="pre">process_image_label_pair</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">processed_frame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">INPUT_IMAGE_WIDTH</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">INPUT_IMAGE_HEIGHT</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.eye_tracker.EyeTrackerDatasetBuilder.EyeTrackerDatasetBuilder.process_image_label_pair" title="Permalink to this definition"></a></dt>
+<dd><p>To process the image and label from LPW</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="RAVE.eye_tracker.EyeTrackerDatasetBuilder.EyeTrackerDatasetBuilderOfflineDataAugmentation">
+<em class="property"><span class="pre">class</span> </em><span class="sig-name descname"><span class="pre">EyeTrackerDatasetBuilderOfflineDataAugmentation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">VIDEOS</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">OUTPUT_DIR_PATH</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">IMAGE_DIMENSIONS</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">SOURCE_DIR</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.eye_tracker.EyeTrackerDatasetBuilder.EyeTrackerDatasetBuilderOfflineDataAugmentation" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#RAVE.eye_tracker.EyeTrackerDatasetBuilder.EyeTrackerDatasetBuilder" title="RAVE.eye_tracker.EyeTrackerDatasetBuilder.EyeTrackerDatasetBuilder"><code class="xref py py-class docutils literal notranslate"><span class="pre">RAVE.eye_tracker.EyeTrackerDatasetBuilder.EyeTrackerDatasetBuilder</span></code></a></p>
+<p>This class inherits from EyeTrackerDatasetBuilder.
+It overwrites certain methods in order to do offline data augmentation.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.eye_tracker.EyeTrackerDatasetBuilder.EyeTrackerDatasetBuilderOfflineDataAugmentation.apply_translation_and_rotation">
+<span class="sig-name descname"><span class="pre">apply_translation_and_rotation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output_image_tensor</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.eye_tracker.EyeTrackerDatasetBuilder.EyeTrackerDatasetBuilderOfflineDataAugmentation.apply_translation_and_rotation" title="Permalink to this definition"></a></dt>
+<dd><p>A data augmentation operation, translates and rotates the frame
+randomly and reflects that change on the corresponding ellipse</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>output_image_tensor</strong> (<em>pytorch tensor</em>) – The frame on which to apply the translation and rotation</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The translated and rotated frame</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>pytorch tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-RAVE.eye_tracker.EyeTrackerModel">
+<span id="eyetrackermodel"></span><h2>EyeTrackerModel<a class="headerlink" href="#module-RAVE.eye_tracker.EyeTrackerModel" title="Permalink to this headline"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="RAVE.eye_tracker.EyeTrackerModel.EyeTrackerModel">
+<em class="property"><span class="pre">class</span> </em><span class="sig-name descname"><span class="pre">EyeTrackerModel</span></span><a class="headerlink" href="#RAVE.eye_tracker.EyeTrackerModel.EyeTrackerModel" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Model of the neural network that detects pupils for the eye tracker module</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.eye_tracker.EyeTrackerModel.EyeTrackerModel.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.eye_tracker.EyeTrackerModel.EyeTrackerModel.forward" title="Permalink to this definition"></a></dt>
+<dd><p>Method of the Dataset class that must be overwritten by this class.
+Specifies how the forward pass should be executed
+The sigmoid is used to limit the ouput domain, as to converge more
+easily. Each parameter is normalized between 0 and 1, where 1
+represents the max pixel value of the corresponding axis of the
+parameter (or 2*pi radians for theta). For example, if the h
+parameter is 0.5 and the image width is 480, then the h value in
+pixels is 240</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>pytorch tensor</em>) – The input of the network (images)</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The predictions of the network (ellipses parameters)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>pytorch tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="RAVE.eye_tracker.EyeTrackerModel.EyeTrackerModel.training">
+<span class="sig-name descname"><span class="pre">training</span></span><em class="property"><span class="pre">:</span> <span class="pre">bool</span></em><a class="headerlink" href="#RAVE.eye_tracker.EyeTrackerModel.EyeTrackerModel.training" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-RAVE.eye_tracker.NormalizedEllipse">
+<span id="normalizedellipse"></span><h2>NormalizedEllipse<a class="headerlink" href="#module-RAVE.eye_tracker.NormalizedEllipse" title="Permalink to this headline"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="RAVE.eye_tracker.NormalizedEllipse.NormalizedEllipse">
+<em class="property"><span class="pre">class</span> </em><span class="sig-name descname"><span class="pre">NormalizedEllipse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">h</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">theta</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.eye_tracker.NormalizedEllipse.NormalizedEllipse" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Represents an ellipse with five parameters. h and k are the center
+position, a and b are the horizontal and vertical axis length and theta
+is the rotation angle of the ellipse relative to the x axis.
+The ellipse is normalized.</p>
+<p>A ‘normalized’ ellipse is one where each parameters is no longer
+represented in pixels values. Each parameter is rather normalized
+between 0 and 1, where 1 represents the max pixel value of the
+corresponding axis of the parameter (or 2*pi radians for theta).
+For example, if the h parameter was 240 and the image width is 480,
+then the new h value is 0.5</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>h</strong> (<em>float</em>) – x coordinate of the center of the ellipse (normalized)</p></li>
+<li><p><strong>k</strong> (<em>float</em>) – y coordinate of the center of the ellipse (normalized)</p></li>
+<li><p><strong>a</strong> (<em>float</em>) – length of the horizontal axis (normalized)</p></li>
+<li><p><strong>b</strong> (<em>float</em>) – length of the vertical axis (normalized)</p></li>
+<li><p><strong>theta</strong> (<em>float</em>) – rotation angle of the ellipse relative to the
+x axis (normalized)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.eye_tracker.NormalizedEllipse.NormalizedEllipse.get_from_list">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_from_list</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">list</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.eye_tracker.NormalizedEllipse.NormalizedEllipse.get_from_list" title="Permalink to this definition"></a></dt>
+<dd><p>Creates a normalized ellipse object from a list</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>list</strong> (<em>List</em>) – List of the ellipse’s parameters</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The normalized ellipse object</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#RAVE.eye_tracker.NormalizedEllipse.NormalizedEllipse" title="RAVE.eye_tracker.NormalizedEllipse.NormalizedEllipse">NormalizedEllipse</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.eye_tracker.NormalizedEllipse.NormalizedEllipse.get_from_opencv_ellipse">
+<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_from_opencv_ellipse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">center_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ellipse_width</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">center_y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ellipse_height</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">INPUT_IMAGE_WIDTH</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">INPUT_IMAGE_HEIGHT</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.eye_tracker.NormalizedEllipse.NormalizedEllipse.get_from_opencv_ellipse" title="Permalink to this definition"></a></dt>
+<dd><p>Computes a normalized ellipse from an ellipse that is in the
+opencv format.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>center_x</strong> (<em>int</em>) – x coordinate of the center of the ellipse (in pixels)</p></li>
+<li><p><strong>ellipse_width</strong> (<em>int</em>) – length of the horizontal axis (in pixels)</p></li>
+<li><p><strong>center_y</strong> (<em>int</em>) – y coordinate of the center of the ellipse (in pixels)</p></li>
+<li><p><strong>ellipse_height</strong> (<em>int</em>) – length of the vertical axis (in pixels)</p></li>
+<li><p><strong>angle</strong> (<em>int</em>) – rotation angle of the ellipse relative to the x axis(in pixels)</p></li>
+<li><p><strong>INPUT_IMAGE_WIDTH</strong> (<em>int</em>) – width of the input image (in pixels)</p></li>
+<li><p><strong>INPUT_IMAGE_HEIGHT</strong> (<em>int</em>) – height of the input image (in pixels)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The normalized ellipse</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#RAVE.eye_tracker.NormalizedEllipse.NormalizedEllipse" title="RAVE.eye_tracker.NormalizedEllipse.NormalizedEllipse">NormalizedEllipse</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.eye_tracker.NormalizedEllipse.NormalizedEllipse.rotate_around_image_center">
+<span class="sig-name descname"><span class="pre">rotate_around_image_center</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">phi</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.eye_tracker.NormalizedEllipse.NormalizedEllipse.rotate_around_image_center" title="Permalink to this definition"></a></dt>
+<dd><p>Rotates a normalized ellipse around the image center point</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>phi</strong> (<em>float</em>) – Angle of rotation (in rads)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.eye_tracker.NormalizedEllipse.NormalizedEllipse.to_list">
+<span class="sig-name descname"><span class="pre">to_list</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.eye_tracker.NormalizedEllipse.NormalizedEllipse.to_list" title="Permalink to this definition"></a></dt>
+<dd><p>Serializes the ellipse to a list</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The serialized ellipse</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>List</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-RAVE.eye_tracker.ellipse_util">
+<span id="ellipse-util"></span><h2>ellipse_util<a class="headerlink" href="#module-RAVE.eye_tracker.ellipse_util" title="Permalink to this headline"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="RAVE.eye_tracker.ellipse_util.draw_ellipse_on_image">
+<span class="sig-name descname"><span class="pre">draw_ellipse_on_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ellipse</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(255,</span> <span class="pre">0,</span> <span class="pre">0)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thickness</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.eye_tracker.ellipse_util.draw_ellipse_on_image" title="Permalink to this definition"></a></dt>
+<dd><p>Draw an ellipse on an image using its parameters</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>image</strong> (<em>numpy array</em>) – The image on which to draw the ellipse</p></li>
+<li><p><strong>ellipse</strong> (<em>pytorch tensor</em>) – The parameters of the ellipse to draw</p></li>
+<li><p><strong>color</strong> (<em>tuple</em><em>, </em><em>optional</em>) – The color of the ellipse. Defaults to (255, 0, 0).</p></li>
+<li><p><strong>thickness</strong> (<em>int</em><em>, </em><em>optional</em>) – The thickness of the ellipse. Defaults to 1.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The image with the ellipse drawn on it</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>numpy array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="RAVE.eye_tracker.ellipse_util.ellipse_loss_function">
+<span class="sig-name descname"><span class="pre">ellipse_loss_function</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">predictions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">targets</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.eye_tracker.ellipse_util.ellipse_loss_function" title="Permalink to this definition"></a></dt>
+<dd><p>Custom loss function for ellipse. This was developped because applying
+MSELoss directly on the parameters of ellipses was not giving good
+results in training sessions. This loss function generates points that
+lie on the target and predicted ellipse (using its parameters) and then
+computes the euclidean distance between each pair of points. The mean
+distance is then computed and used as the loss metric.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>predictions</strong> (<em>pytorch tensor</em>) – The predicted ellipses</p></li>
+<li><p><strong>targets</strong> (<em>pytorch tensor</em>) – The target ellipses</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The mean distance between the generated points of the predicted
+and target ellipses</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="RAVE.eye_tracker.ellipse_util.get_points_of_an_ellipse">
+<span class="sig-name descname"><span class="pre">get_points_of_an_ellipse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">h</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">NUMBER_OF_POINTS</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.eye_tracker.ellipse_util.get_points_of_an_ellipse" title="Permalink to this definition"></a></dt>
+<dd><p>Generates points that lie on the ellipse (using its parameters)
+TODO : Change calls to this function to the ‘get_points_of_ellipses’
+function instead, which uses paralellism to compute points faster</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>h</strong> (<em>float</em>) – x coordinate of the center of the ellipse</p></li>
+<li><p><strong>k</strong> (<em>float</em>) – y coordinate of the center of the ellipse</p></li>
+<li><p><strong>a</strong> (<em>float</em>) – length of the horizontal axis</p></li>
+<li><p><strong>b</strong> (<em>float</em>) – length of the vertical axis</p></li>
+<li><p><strong>theta</strong> (<em>float</em>) – rotation angle of the ellipse relative to the x axis</p></li>
+<li><p><strong>device</strong> (<em>String</em>) – device on which to run the computations</p></li>
+<li><p><strong>NUMBER_OF_POINTS</strong> (<em>int</em>) – Number of points to generate</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The x and y coordinates of the points</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>tuple of pytorch tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="RAVE.eye_tracker.ellipse_util.get_points_of_ellipses">
+<span class="sig-name descname"><span class="pre">get_points_of_ellipses</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ellipses</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">NUMBER_OF_POINTS</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.eye_tracker.ellipse_util.get_points_of_ellipses" title="Permalink to this definition"></a></dt>
+<dd><p>Generates points that lie on the ellipse (using its parameters).
+Points are generated using polar coordinates
+<a class="reference external" href="https://math.stackexchange.com/questions/2645689/what-is-the-parametric">https://math.stackexchange.com/questions/2645689/what-is-the-parametric</a>
+-equation-of-a-rotated-ellipse-given-the-angle-of-rotatio</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ellipses</strong> (<em>pytorch tensor</em>) – The parameters of the ellipse</p></li>
+<li><p><strong>NUMBER_OF_POINTS</strong> (<em>int</em>) – Number of points to generate</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The x and y coordinates of the points</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>tuple of pytorch tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Anthony Gosselin, Amélie Rioux-Joyal, Étienne Deshaies-Samson,Félix Ducharme Turcotte, Francis Cardinal, Jacob Kealey, Jérémy Bélec, Olivier Bergeron.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

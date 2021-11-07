@@ -3,6 +3,7 @@ repos:
   rev: v2.1.1
   hooks:
     - id: docstr-coverage
+      args: ['--accept-empty']
 -   repo: https://github.com/ambv/black
     rev: 21.9b0
     hooks:
