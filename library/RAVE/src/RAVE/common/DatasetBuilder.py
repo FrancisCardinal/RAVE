@@ -114,6 +114,9 @@ class DatasetBuilder(ABC):
         ):
             video_path = os.path.join(self.VIDEOS_PATH, video_file_name)
 
+            if not os.path.isfile(video_path):
+                return
+
             file_name = os.path.splitext(os.path.basename(video_file_name))[0]
             annotations_file = open(
                 os.path.join(self.ANNOTATIONS_PATH, file_name + ".txt"), "r"

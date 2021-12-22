@@ -112,7 +112,7 @@ def visualize_predictions(model, data_loader, DEVICE):
     Args:
         model (Module): The model used to perform the predictions
         data_loader (Dataloader):
-            The dataloader that provides the imagesand the targets
+            The dataloader that provides the images and the targets
         DEVICE (String): Device on which to perform the computations
     """
     with torch.no_grad():

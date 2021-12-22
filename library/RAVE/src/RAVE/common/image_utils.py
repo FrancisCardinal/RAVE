@@ -24,6 +24,20 @@ def tensor_to_opencv_image(tensor):
     return image
 
 
+def opencv_image_to_tensor(image, DEVICE):
+    """
+    OpenCV BGR image to tensor RGB image
+
+    Args:
+        Image (ndarray): Image with shape (width, height, 3).
+        DEVICE (string): Pytorch device.
+    """
+    tensor = torch.from_numpy(image).to(DEVICE)
+    tensor = tensor.permute(2, 0, 1).float()
+    tensor /= 255
+    return tensor
+
+
 def inverse_normalize(tensor, mean, std):
     """
     Undo the normalization operation that was performed on an image when
@@ -192,3 +206,126 @@ def do_affine_grid_operation(image_tensor, translation=(0, 0), phi=0):
     image_tensor = image_tensor.squeeze(0)
 
     return image_tensor
+
+
+def xywh2xyxy(x):
+    """
+    Convert nx4 boxes from [x, y, w, h] to [x1, y1, x2, y2]
+    where xy1=top-left, xy2=bottom-right
+    """
+    y = x.clone() if isinstance(x, torch.Tensor) else np.copy(x)
+    y[:, 0] = x[:, 0] - x[:, 2] / 2  # top left x
+    y[:, 1] = x[:, 1] - x[:, 3] / 2  # top left y
+    y[:, 2] = x[:, 0] + x[:, 2] / 2  # bottom right x
+    y[:, 3] = x[:, 1] + x[:, 3] / 2  # bottom right y
+    return y
+
+
+def xyxy2xywh(x):
+    """
+    Convert nx4 boxes from [x1, y1, x2, y2] to [x, y, w, h]
+    where xy1=top-left, xy2=bottom-right
+    """
+    y = x.clone() if isinstance(x, torch.Tensor) else np.copy(x)
+    y[:, 0] = (x[:, 0] + x[:, 2]) / 2  # x center
+    y[:, 1] = (x[:, 1] + x[:, 3]) / 2  # y center
+    y[:, 2] = x[:, 2] - x[:, 0]  # width
+    y[:, 3] = x[:, 3] - x[:, 1]  # height
+    return y
+
+
+def box_iou(box1, box2):
+    # https://github.com/pytorch/vision/blob/master/torchvision/ops/boxes.py
+    """
+    Return intersection-over-union (Jaccard index) of boxes.
+    Both sets of boxes are expected to be in (x1, y1, x2, y2) format.
+    Arguments:
+        box1 (Tensor[N, 4])
+        box2 (Tensor[M, 4])
+    Returns:
+        iou (Tensor[N, M]): the NxM matrix containing the pairwise
+            IoU values for every element in boxes1 and boxes2
+    """
+
+    def box_area(box):
+        """
+        box = 4xn
+        """
+        return (box[2] - box[0]) * (box[3] - box[1])
+
+    area1 = box_area(box1.T)
+    area2 = box_area(box2.T)
+
+    # inter(N,M) = (rb(N,M,2) - lt(N,M,2)).clamp(0).prod(2)
+    inter = (
+        (
+            torch.min(box1[:, None, 2:], box2[:, 2:])
+            - torch.max(box1[:, None, :2], box2[:, :2])
+        )
+        .clamp(0)
+        .prod(2)
+    )
+    # iou = inter / (area1 + area2 - inter)
+    return inter / (area1[:, None] + area2 - inter)
+
+
+def scale_coords(img1_shape, coords, img0_shape, ratio_pad=None):
+    """
+    Rescale coords (xyxy) from img1_shape to img0_shape
+    """
+    if ratio_pad is None:  # calculate from img0_shape
+        gain = min(
+            img1_shape[0] / img0_shape[0], img1_shape[1] / img0_shape[1]
+        )  # gain  = old / new
+        pad = (img1_shape[1] - img0_shape[1] * gain) / 2, (
+            img1_shape[0] - img0_shape[0] * gain
+        ) / 2  # wh padding
+    else:
+        gain = ratio_pad[0][0]
+        pad = ratio_pad[1]
+
+    coords[:, [0, 2]] -= pad[0]  # x padding
+    coords[:, [1, 3]] -= pad[1]  # y padding
+    coords[:, :4] /= gain
+    clip_coords(coords, img0_shape)
+    return coords
+
+
+def clip_coords(boxes, img_shape):
+    """
+    Clip bounding xyxy bounding boxes to image shape (height, width)
+    """
+    boxes[:, 0].clamp_(0, img_shape[1])  # x1
+    boxes[:, 1].clamp_(0, img_shape[0])  # y1
+    boxes[:, 2].clamp_(0, img_shape[1])  # x2
+    boxes[:, 3].clamp_(0, img_shape[0])  # y2
+
+
+def scale_coords_landmarks(img1_shape, coords, img0_shape, ratio_pad=None):
+    """Rescale coords (xyxy) from img1_shape to img0_shape"""
+    if ratio_pad is None:  # calculate from img0_shape
+        gain = min(
+            img1_shape[0] / img0_shape[0], img1_shape[1] / img0_shape[1]
+        )  # gain  = old / new
+        pad = (img1_shape[1] - img0_shape[1] * gain) / 2, (
+            img1_shape[0] - img0_shape[0] * gain
+        ) / 2  # wh padding
+    else:
+        gain = ratio_pad[0][0]
+        pad = ratio_pad[1]
+
+    coords[:, [0, 2, 4, 6, 8]] -= pad[0]  # x padding
+    coords[:, [1, 3, 5, 7, 9]] -= pad[1]  # y padding
+    coords[:, :10] /= gain
+    # clip_coords(coords, img0_shape)
+    coords[:, 0].clamp_(0, img0_shape[1])  # x1
+    coords[:, 1].clamp_(0, img0_shape[0])  # y1
+    coords[:, 2].clamp_(0, img0_shape[1])  # x2
+    coords[:, 3].clamp_(0, img0_shape[0])  # y2
+    coords[:, 4].clamp_(0, img0_shape[1])  # x3
+    coords[:, 5].clamp_(0, img0_shape[0])  # y3
+    coords[:, 6].clamp_(0, img0_shape[1])  # x4
+    coords[:, 7].clamp_(0, img0_shape[0])  # y4
+    coords[:, 8].clamp_(0, img0_shape[1])  # x5
+    coords[:, 9].clamp_(0, img0_shape[0])  # y5
+    return coords

@@ -76,7 +76,7 @@ add_module_names = False
 
 # Global variables declarations
 rst_epilog = """
-.. |name| replace:: PyODAS
+.. |name| replace:: RAVE
 """
 
 

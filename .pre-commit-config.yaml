@@ -13,4 +13,7 @@ repos:
     hooks:
     - id: flake8
       # https://github.com/psf/black/issues/315
-      args: ['--exclude=__init__.py', '--ignore=E203,W503']
+      args: [
+          '--exclude=__init__.py, library/RAVE/src/RAVE/face_detection/model',
+          '--ignore=E203,W503'
+      ]
