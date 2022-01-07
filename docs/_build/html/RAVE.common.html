@@ -83,8 +83,8 @@
 <span id="dataset"></span><h2>Dataset<a class="headerlink" href="#module-RAVE.common.Dataset" title="Permalink to this headline"></a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="RAVE.common.Dataset.Dataset">
-<em class="property"><span class="pre">class</span> </em><span class="sig-name descname"><span class="pre">Dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">TRAINING_MEAN</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">TRAINING_STD</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ROOT_PATH</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sub_dataset_dir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.Dataset.Dataset" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Generic</span></code>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.utils.data.dataset.T_co</span></code>]</p>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">TRAINING_MEAN</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">TRAINING_STD</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ROOT_PATH</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sub_dataset_dir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.Dataset.Dataset" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.utils.data.dataset.Dataset</span></code></p>
 <p>Class that handles pairs of images and labels that are on disk</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -93,42 +93,42 @@
 </dl>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="RAVE.common.Dataset.Dataset.DATASET_DIR">
-<span class="sig-name descname"><span class="pre">DATASET_DIR</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'dataset'</span></em><a class="headerlink" href="#RAVE.common.Dataset.Dataset.DATASET_DIR" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">DATASET_DIR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'dataset'</span></em><a class="headerlink" href="#RAVE.common.Dataset.Dataset.DATASET_DIR" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="RAVE.common.Dataset.Dataset.IMAGES_DIR">
-<span class="sig-name descname"><span class="pre">IMAGES_DIR</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'images'</span></em><a class="headerlink" href="#RAVE.common.Dataset.Dataset.IMAGES_DIR" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">IMAGES_DIR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'images'</span></em><a class="headerlink" href="#RAVE.common.Dataset.Dataset.IMAGES_DIR" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="RAVE.common.Dataset.Dataset.IMAGES_FILE_EXTENSION">
-<span class="sig-name descname"><span class="pre">IMAGES_FILE_EXTENSION</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'png'</span></em><a class="headerlink" href="#RAVE.common.Dataset.Dataset.IMAGES_FILE_EXTENSION" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">IMAGES_FILE_EXTENSION</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'png'</span></em><a class="headerlink" href="#RAVE.common.Dataset.Dataset.IMAGES_FILE_EXTENSION" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="RAVE.common.Dataset.Dataset.LABELS_DIR">
-<span class="sig-name descname"><span class="pre">LABELS_DIR</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'labels'</span></em><a class="headerlink" href="#RAVE.common.Dataset.Dataset.LABELS_DIR" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">LABELS_DIR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'labels'</span></em><a class="headerlink" href="#RAVE.common.Dataset.Dataset.LABELS_DIR" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="RAVE.common.Dataset.Dataset.PRE_PROCESS_TRANSFORM">
-<span class="sig-name descname"><span class="pre">PRE_PROCESS_TRANSFORM</span></span><em class="property"> <span class="pre">=</span> <span class="pre">Compose(</span>&#160;&#160;&#160;&#160; <span class="pre">Resize(size=(224,</span> <span class="pre">299),</span> <span class="pre">interpolation=bilinear,</span> <span class="pre">max_size=None,</span> <span class="pre">antialias=None)</span>&#160;&#160;&#160;&#160; <span class="pre">ToTensor()</span> <span class="pre">)</span></em><a class="headerlink" href="#RAVE.common.Dataset.Dataset.PRE_PROCESS_TRANSFORM" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">PRE_PROCESS_TRANSFORM</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">Compose(</span>&#160;&#160;&#160;&#160; <span class="pre">Resize(size=(224,</span> <span class="pre">299),</span> <span class="pre">interpolation=bilinear,</span> <span class="pre">max_size=None,</span> <span class="pre">antialias=None)</span>&#160;&#160;&#160;&#160; <span class="pre">ToTensor()</span> <span class="pre">)</span></em><a class="headerlink" href="#RAVE.common.Dataset.Dataset.PRE_PROCESS_TRANSFORM" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="RAVE.common.Dataset.Dataset.TEST_DIR">
-<span class="sig-name descname"><span class="pre">TEST_DIR</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'test'</span></em><a class="headerlink" href="#RAVE.common.Dataset.Dataset.TEST_DIR" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">TEST_DIR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'test'</span></em><a class="headerlink" href="#RAVE.common.Dataset.Dataset.TEST_DIR" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="RAVE.common.Dataset.Dataset.TRAINING_DIR">
-<span class="sig-name descname"><span class="pre">TRAINING_DIR</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'training'</span></em><a class="headerlink" href="#RAVE.common.Dataset.Dataset.TRAINING_DIR" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">TRAINING_DIR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'training'</span></em><a class="headerlink" href="#RAVE.common.Dataset.Dataset.TRAINING_DIR" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="RAVE.common.Dataset.Dataset.VALIDATION_DIR">
-<span class="sig-name descname"><span class="pre">VALIDATION_DIR</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'validation'</span></em><a class="headerlink" href="#RAVE.common.Dataset.Dataset.VALIDATION_DIR" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">VALIDATION_DIR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'validation'</span></em><a class="headerlink" href="#RAVE.common.Dataset.Dataset.VALIDATION_DIR" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
@@ -171,12 +171,12 @@ Used to get the number of elements in the dataset</p>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="RAVE.common.Dataset.Dataset.__module__">
-<span class="sig-name descname"><span class="pre">__module__</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'RAVE.common.Dataset'</span></em><a class="headerlink" href="#RAVE.common.Dataset.Dataset.__module__" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__module__</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'RAVE.common.Dataset'</span></em><a class="headerlink" href="#RAVE.common.Dataset.Dataset.__module__" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="RAVE.common.Dataset.Dataset.__parameters__">
-<span class="sig-name descname"><span class="pre">__parameters__</span></span><em class="property"> <span class="pre">=</span> <span class="pre">()</span></em><a class="headerlink" href="#RAVE.common.Dataset.Dataset.__parameters__" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__parameters__</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">()</span></em><a class="headerlink" href="#RAVE.common.Dataset.Dataset.__parameters__" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
@@ -198,7 +198,7 @@ Used to get the number of elements in the dataset</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="RAVE.common.Dataset.Dataset.get_multiple_workers_safe_list_of_paths">
-<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_multiple_workers_safe_list_of_paths</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">directory</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.Dataset.Dataset.get_multiple_workers_safe_list_of_paths" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_multiple_workers_safe_list_of_paths</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">directory</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.Dataset.Dataset.get_multiple_workers_safe_list_of_paths" title="Permalink to this definition"></a></dt>
 <dd><p>Used to build a list of paths. This method prevents a memory
 leak that happens with list of strings and multiple dataloader
 workers
@@ -218,7 +218,7 @@ workers
 
 <dl class="py method">
 <dt class="sig sig-object py" id="RAVE.common.Dataset.Dataset.get_test_sub_dataset">
-<em class="property"><span class="pre">abstract</span> <span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_test_sub_dataset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.Dataset.Dataset.get_test_sub_dataset" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">abstract</span><span class="w"> </span><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_test_sub_dataset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.Dataset.Dataset.get_test_sub_dataset" title="Permalink to this definition"></a></dt>
 <dd><p>Used to get the test sub dataset</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
@@ -232,7 +232,7 @@ workers
 
 <dl class="py method">
 <dt class="sig sig-object py" id="RAVE.common.Dataset.Dataset.get_training_sub_dataset">
-<em class="property"><span class="pre">abstract</span> <span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_training_sub_dataset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.Dataset.Dataset.get_training_sub_dataset" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">abstract</span><span class="w"> </span><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_training_sub_dataset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.Dataset.Dataset.get_training_sub_dataset" title="Permalink to this definition"></a></dt>
 <dd><p>Used to get the training sub dataset</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
@@ -246,7 +246,7 @@ workers
 
 <dl class="py method">
 <dt class="sig sig-object py" id="RAVE.common.Dataset.Dataset.get_validation_sub_dataset">
-<em class="property"><span class="pre">abstract</span> <span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_validation_sub_dataset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.Dataset.Dataset.get_validation_sub_dataset" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">abstract</span><span class="w"> </span><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_validation_sub_dataset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.Dataset.Dataset.get_validation_sub_dataset" title="Permalink to this definition"></a></dt>
 <dd><p>Used to get the validation sub dataset</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
@@ -265,7 +265,7 @@ workers
 <span id="datasetbuilder"></span><h2>DatasetBuilder<a class="headerlink" href="#module-RAVE.common.DatasetBuilder" title="Permalink to this headline"></a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="RAVE.common.DatasetBuilder.DatasetBuilder">
-<em class="property"><span class="pre">class</span> </em><span class="sig-name descname"><span class="pre">DatasetBuilder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">VIDEOS</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">OUTPUT_DIR_PATH</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">IMAGE_DIMENSIONS</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">SOURCE_DIR</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.DatasetBuilder.DatasetBuilder" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">DatasetBuilder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">VIDEOS</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">OUTPUT_DIR_PATH</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">IMAGE_DIMENSIONS</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">SOURCE_DIR</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.DatasetBuilder.DatasetBuilder" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></p>
 <p>This class builds the sub-datasets. It takes videos, extracts the frames
 and saves them on the disk, with the corresponding labels.
@@ -282,22 +282,22 @@ pairs</p></li>
 </dl>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="RAVE.common.DatasetBuilder.DatasetBuilder.ANNOTATIONS_DIR">
-<span class="sig-name descname"><span class="pre">ANNOTATIONS_DIR</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'annotations'</span></em><a class="headerlink" href="#RAVE.common.DatasetBuilder.DatasetBuilder.ANNOTATIONS_DIR" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">ANNOTATIONS_DIR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'annotations'</span></em><a class="headerlink" href="#RAVE.common.DatasetBuilder.DatasetBuilder.ANNOTATIONS_DIR" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="RAVE.common.DatasetBuilder.DatasetBuilder.ROOT_PATH">
-<span class="sig-name descname"><span class="pre">ROOT_PATH</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'/home/runner/work/RAVE/RAVE/docs'</span></em><a class="headerlink" href="#RAVE.common.DatasetBuilder.DatasetBuilder.ROOT_PATH" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">ROOT_PATH</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'/home/runner/work/RAVE/RAVE/docs'</span></em><a class="headerlink" href="#RAVE.common.DatasetBuilder.DatasetBuilder.ROOT_PATH" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="RAVE.common.DatasetBuilder.DatasetBuilder.VIDEOS_DIR">
-<span class="sig-name descname"><span class="pre">VIDEOS_DIR</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'videos'</span></em><a class="headerlink" href="#RAVE.common.DatasetBuilder.DatasetBuilder.VIDEOS_DIR" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">VIDEOS_DIR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'videos'</span></em><a class="headerlink" href="#RAVE.common.DatasetBuilder.DatasetBuilder.VIDEOS_DIR" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="RAVE.common.DatasetBuilder.DatasetBuilder.create_directory_if_does_not_exist">
-<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">create_directory_if_does_not_exist</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.DatasetBuilder.DatasetBuilder.create_directory_if_does_not_exist" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create_directory_if_does_not_exist</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.DatasetBuilder.DatasetBuilder.create_directory_if_does_not_exist" title="Permalink to this definition"></a></dt>
 <dd><p>Creates a directory if it does not exist on the disk</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -332,7 +332,7 @@ of the video and save them to disk</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="RAVE.common.DatasetBuilder.DatasetBuilder.get_builders">
-<em class="property"><span class="pre">abstract</span> <span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">get_builders</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.DatasetBuilder.DatasetBuilder.get_builders" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">abstract</span><span class="w"> </span><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_builders</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.DatasetBuilder.DatasetBuilder.get_builders" title="Permalink to this definition"></a></dt>
 <dd><p>Used to get the 3 DatasetBuilder objects (one for each sub-dataset)</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
@@ -365,7 +365,7 @@ saved</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="RAVE.common.DatasetBuilder.DatasetBuilder.process_image_label_pair">
-<em class="property"><span class="pre">abstract</span> </em><span class="sig-name descname"><span class="pre">process_image_label_pair</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">frame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">INPUT_IMAGE_WIDTH</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">INPUT_IMAGE_HEIGHT</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.DatasetBuilder.DatasetBuilder.process_image_label_pair" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">process_image_label_pair</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">frame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">INPUT_IMAGE_WIDTH</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">INPUT_IMAGE_HEIGHT</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.DatasetBuilder.DatasetBuilder.process_image_label_pair" title="Permalink to this definition"></a></dt>
 <dd><p>To process the image and label from the specific dataset</p>
 </dd></dl>
 
@@ -391,7 +391,7 @@ saved</p>
 <span id="trainer"></span><h2>Trainer<a class="headerlink" href="#module-RAVE.common.Trainer" title="Permalink to this headline"></a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="RAVE.common.Trainer.Trainer">
-<em class="property"><span class="pre">class</span> </em><span class="sig-name descname"><span class="pre">Trainer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">training_loader</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">validation_loader</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss_function</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheduler</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ROOT_DIR_PATH</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CONTINUE_TRAINING</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.Trainer.Trainer" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Trainer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">training_loader</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">validation_loader</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss_function</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheduler</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ROOT_DIR_PATH</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CONTINUE_TRAINING</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.Trainer.Trainer" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Trainer class, used to train neural networks</p>
 <dl class="field-list simple">
@@ -414,12 +414,12 @@ on disk or not</p></li>
 </dl>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="RAVE.common.Trainer.Trainer.MODEL_INFO_FILE_NAME">
-<span class="sig-name descname"><span class="pre">MODEL_INFO_FILE_NAME</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'saved_model.pth'</span></em><a class="headerlink" href="#RAVE.common.Trainer.Trainer.MODEL_INFO_FILE_NAME" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">MODEL_INFO_FILE_NAME</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'saved_model.pth'</span></em><a class="headerlink" href="#RAVE.common.Trainer.Trainer.MODEL_INFO_FILE_NAME" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="RAVE.common.Trainer.Trainer.TRAINING_SESSIONS_DIR">
-<span class="sig-name descname"><span class="pre">TRAINING_SESSIONS_DIR</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'training_sessions'</span></em><a class="headerlink" href="#RAVE.common.Trainer.Trainer.TRAINING_SESSIONS_DIR" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">TRAINING_SESSIONS_DIR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'training_sessions'</span></em><a class="headerlink" href="#RAVE.common.Trainer.Trainer.TRAINING_SESSIONS_DIR" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
@@ -452,7 +452,7 @@ on disk or not</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="RAVE.common.Trainer.Trainer.load_best_model">
-<em class="property"><span class="pre">static</span> </em><span class="sig-name descname"><span class="pre">load_best_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">MODEL_DIR_PATH</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.Trainer.Trainer.load_best_model" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">load_best_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">MODEL_DIR_PATH</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.Trainer.Trainer.load_best_model" title="Permalink to this definition"></a></dt>
 <dd><p>Used to get the best version of a model from disk</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
