@@ -220,7 +220,7 @@ def visualize_predictions_on_stream(
                 )
                 frame = show_results(frame, xywh, confidence, landmarks)
 
-            fps.setFps()
+            fps.incrementFps()
             final_frame = fps.writeFpsToFrame(frame)
 
             cv2.imshow("Facial detection", final_frame)

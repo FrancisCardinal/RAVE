@@ -7,10 +7,12 @@ class FPS:
     Class to compute the FPS
     """
 
-    def __init__(self):
+    def __init__(self, refresh_rate=1):
         self.startTime = time.time()
         self.frameCount = 0
+        self.frame_counter = 0
         self.fps = 0
+        self.refresh_rate = refresh_rate
 
     def start(self):
         """
@@ -18,13 +20,18 @@ class FPS:
         not right after the init.
         """
         self.startTime = time.time()
+        self.fps_counter = 0
 
-    def setFps(self):
+    def incrementFps(self):
         """
         Computes the FPS
         """
-        self.fps = 1 / (time.time() - self.startTime)
-        self.startTime = time.time()
+        self.frame_counter += 1
+        current_time = time.time() - self.startTime
+        if current_time >= self.refresh_rate:
+            self.fps = self.frame_counter/current_time
+            self.frame_counter = 0
+            self.startTime = time.time()
 
     def getFps(self):
         """
