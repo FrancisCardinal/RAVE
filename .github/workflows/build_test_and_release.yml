@@ -65,6 +65,7 @@ jobs:
         run: |
           python3 -m pip install --upgrade pip
           pip install -r requirements.txt
+          pip install -i https://test.pypi.org/simple/ --no-deps pyodas-JacobKealey
 
       - name: Make doc in local main branch
         working-directory: ./docs
