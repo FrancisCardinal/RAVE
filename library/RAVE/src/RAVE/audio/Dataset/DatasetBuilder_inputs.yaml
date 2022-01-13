@@ -1,5 +1,0 @@
-# Links to example speech and noise files
-
-source: [audio_samples/source/**]
-
-noise: [audio_samples/noise/**]
