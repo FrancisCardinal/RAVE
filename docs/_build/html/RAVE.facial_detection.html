@@ -41,7 +41,12 @@
 <li class="toctree-l1 current"><a class="reference internal" href="RAVE.html">RAVE</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="RAVE.common.html">common</a></li>
 <li class="toctree-l2"><a class="reference internal" href="RAVE.eye_tracker.html">eye_tracker</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">facial_detection</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">facial_detection</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-RAVE.face_detection.FaceDetectionDataset">FaceDetectionDataset</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-RAVE.face_detection.FaceDetectionModel">FaceDetectionModel</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#fpshelper">FpsHelper</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
@@ -73,7 +78,133 @@
              
   <section id="facial-detection">
 <h1>facial_detection<a class="headerlink" href="#facial-detection" title="Permalink to this headline"></a></h1>
-<p>Coming soon!</p>
+<section id="module-RAVE.face_detection.FaceDetectionDataset">
+<span id="facedetectiondataset"></span><h2>FaceDetectionDataset<a class="headerlink" href="#module-RAVE.face_detection.FaceDetectionDataset" title="Permalink to this headline"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="RAVE.face_detection.FaceDetectionDataset.FaceDetectionDataset">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">FaceDetectionDataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sub_dataset_dir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.face_detection.FaceDetectionDataset.FaceDetectionDataset" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="RAVE.common.html#RAVE.common.Dataset.Dataset" title="RAVE.common.Dataset.Dataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">RAVE.common.Dataset.Dataset</span></code></a></p>
+<p>Class that handles pairs of images and labels that are on disk</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>sub_dataset_dir</strong> (<em>String</em>) – Name of the directory of the sub-dataset</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="RAVE.face_detection.FaceDetectionDataset.FaceDetectionDataset.FACE_DETECTION_DIR_PATH">
+<span class="sig-name descname"><span class="pre">FACE_DETECTION_DIR_PATH</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'RAVE/face_detection'</span></em><a class="headerlink" href="#RAVE.face_detection.FaceDetectionDataset.FaceDetectionDataset.FACE_DETECTION_DIR_PATH" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="RAVE.face_detection.FaceDetectionDataset.FaceDetectionDataset.IMAGE_DIMENSIONS">
+<span class="sig-name descname"><span class="pre">IMAGE_DIMENSIONS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">(3,</span> <span class="pre">800,</span> <span class="pre">800)</span></em><a class="headerlink" href="#RAVE.face_detection.FaceDetectionDataset.FaceDetectionDataset.IMAGE_DIMENSIONS" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="RAVE.face_detection.FaceDetectionDataset.FaceDetectionDataset.TRAINING_MEAN">
+<span class="sig-name descname"><span class="pre">TRAINING_MEAN</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[-0.0648,</span> <span class="pre">-0.095,</span> <span class="pre">0.0119]</span></em><a class="headerlink" href="#RAVE.face_detection.FaceDetectionDataset.FaceDetectionDataset.TRAINING_MEAN" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="RAVE.face_detection.FaceDetectionDataset.FaceDetectionDataset.TRAINING_STD">
+<span class="sig-name descname"><span class="pre">TRAINING_STD</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[1.0695,</span> <span class="pre">1.0609,</span> <span class="pre">1.0581]</span></em><a class="headerlink" href="#RAVE.face_detection.FaceDetectionDataset.FaceDetectionDataset.TRAINING_STD" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.face_detection.FaceDetectionDataset.FaceDetectionDataset.get_test_sub_dataset">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_test_sub_dataset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.face_detection.FaceDetectionDataset.FaceDetectionDataset.get_test_sub_dataset" title="Permalink to this definition"></a></dt>
+<dd><p>Used to get the test sub dataset</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The test sub dataset</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference internal" href="RAVE.common.html#RAVE.common.Dataset.Dataset" title="RAVE.common.Dataset.Dataset">Dataset</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.face_detection.FaceDetectionDataset.FaceDetectionDataset.get_training_sub_dataset">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_training_sub_dataset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.face_detection.FaceDetectionDataset.FaceDetectionDataset.get_training_sub_dataset" title="Permalink to this definition"></a></dt>
+<dd><p>Used to get the training sub dataset</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The training sub dataset</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference internal" href="RAVE.common.html#RAVE.common.Dataset.Dataset" title="RAVE.common.Dataset.Dataset">Dataset</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.face_detection.FaceDetectionDataset.FaceDetectionDataset.get_validation_sub_dataset">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_validation_sub_dataset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.face_detection.FaceDetectionDataset.FaceDetectionDataset.get_validation_sub_dataset" title="Permalink to this definition"></a></dt>
+<dd><p>Used to get the validation sub dataset</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The validation sub dataset</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference internal" href="RAVE.common.html#RAVE.common.Dataset.Dataset" title="RAVE.common.Dataset.Dataset">Dataset</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-RAVE.face_detection.FaceDetectionModel">
+<span id="facedetectionmodel"></span><h2>FaceDetectionModel<a class="headerlink" href="#module-RAVE.face_detection.FaceDetectionModel" title="Permalink to this headline"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="RAVE.face_detection.FaceDetectionModel.FaceDetectionModel">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">FaceDetectionModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">DEVICE</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.face_detection.FaceDetectionModel.FaceDetectionModel" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Model of the neural network that detects faces for facial detection</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>DEVICE</strong> (<em>string</em>) – Pytorch device</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="RAVE.face_detection.FaceDetectionModel.FaceDetectionModel.CONFIDENCE_THRESHOLD">
+<span class="sig-name descname"><span class="pre">CONFIDENCE_THRESHOLD</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.5</span></em><a class="headerlink" href="#RAVE.face_detection.FaceDetectionModel.FaceDetectionModel.CONFIDENCE_THRESHOLD" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="RAVE.face_detection.FaceDetectionModel.FaceDetectionModel.INTERSECTION_OVER_UNION_THRESHOLD">
+<span class="sig-name descname"><span class="pre">INTERSECTION_OVER_UNION_THRESHOLD</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.5</span></em><a class="headerlink" href="#RAVE.face_detection.FaceDetectionModel.FaceDetectionModel.INTERSECTION_OVER_UNION_THRESHOLD" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.face_detection.FaceDetectionModel.FaceDetectionModel.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.face_detection.FaceDetectionModel.FaceDetectionModel.forward" title="Permalink to this definition"></a></dt>
+<dd><p>Forward pass of the model</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>pytorch tensor</em>) – The input of the network (images)</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The predictions of the network</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>pytorch tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="RAVE.face_detection.FaceDetectionModel.FaceDetectionModel.training">
+<span class="sig-name descname"><span class="pre">training</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><a class="headerlink" href="#RAVE.face_detection.FaceDetectionModel.FaceDetectionModel.training" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="fpshelper">
+<h2>FpsHelper<a class="headerlink" href="#fpshelper" title="Permalink to this headline"></a></h2>
+</section>
 </section>
 
 
