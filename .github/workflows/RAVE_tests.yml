@@ -47,8 +47,15 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          sudo apt-get update
+          sudo apt install portaudio19-dev python3-pyaudio
+          pip install -r requirements.txt
+          pip install -i https://test.pypi.org/simple/ --no-deps pyodas-JacobKealey
           
       - name: Exécution des tests
         working-directory: library/RAVE
         run: python3 -m unittest
-        

@@ -7,8 +7,6 @@ from ..common.image_utils import apply_image_translation, apply_image_rotation
 from ..common.Dataset import Dataset
 from .NormalizedEllipse import NormalizedEllipse
 
-IMAGE_DIMENSIONS = (1, 224, 299)
-
 
 class EyeTrackerDataset(Dataset):
     """
@@ -18,8 +16,9 @@ class EyeTrackerDataset(Dataset):
         sub_dataset_dir (String): Name of the directory of the sub-dataset
     """
 
-    EYE_TRACKER_DIR_PATH = os.path.join("src", "RAVE", "eye_tracker")
+    EYE_TRACKER_DIR_PATH = os.path.join("RAVE", "eye_tracker")
     TRAINING_MEAN, TRAINING_STD = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
+    IMAGE_DIMENSIONS = (1, 224, 299)
 
     def __init__(self, sub_dataset_dir):
         super().__init__(
@@ -27,6 +26,7 @@ class EyeTrackerDataset(Dataset):
             EyeTrackerDataset.TRAINING_STD,
             EyeTrackerDataset.EYE_TRACKER_DIR_PATH,
             sub_dataset_dir,
+            EyeTrackerDataset.IMAGE_DIMENSIONS,
         )
 
     @staticmethod
