@@ -8,3 +8,5 @@ torchvision
 pre-commit
 Sphinx
 sphinx_rtd_theme
+
+-i https://test.pypi.org/simple/ --no-deps pyodas-JacobKealey
