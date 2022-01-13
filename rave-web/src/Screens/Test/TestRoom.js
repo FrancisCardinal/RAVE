@@ -32,7 +32,7 @@ function TestRoom() {
         ctx.beginPath();
         ctx.lineWidth = '1';
         ctx.strokeStyle = face.color;
-        ctx.rect(face.dx, face.dy, 15, 15);
+        ctx.rect(face.dx, face.dy, face.width, face.height);
         ctx.stroke();
       });
     }

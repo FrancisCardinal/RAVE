@@ -12,12 +12,7 @@ const io = new Server(server, {
 });
 
 // Faces array
-const mostRecentFaces = [
-  { id: 1, dx: 25, dy: 25 },
-  { id: 2, dx: 50, dy: 50 },
-  { id: 3, dx: 30, dy: 100 },
-  { id: 4, dx: 150, dy: 125 },
-];
+let mostRecentFaces = [];
 
 // Python script socket
 let pythonSocket = undefined;
@@ -27,6 +22,19 @@ io.on("connection", (socket) => {
   console.log("New socket connection : ", socket.id);
 
   socket.emit("onFacesUpdate", mostRecentFaces);
+
+  socket.on("forceRefresh", () => {
+    console.log(socket.id + " requested a forceRefresh");
+    if (!pythonSocket) {
+      console.log(
+        "A user requested a force refresh but the pythonSocket is not connected"
+      );
+      return;
+    }
+    pythonSocket && pythonSocket.emit("forceRefresh");
+    socket.emit("onFacesUpdate", mostRecentFaces);
+  });
+
   // The python script should send a pythonSocket event right after connect
   // this is a replacement for a full on authentification solution
   socket.on("pythonSocket", (socketId) => {
@@ -40,10 +48,12 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("forceRefresh", () => {
-    console.log(socket.id + " requested a forceRefresh");
-    pythonSocket && pythonSocket.emit("forceRefresh");
-    socket.emit("onFacesUpdate", mostRecentFaces);
+  // Python socket will emit new faces when available or when a force request is emitted
+  socket.on("newFacesAvailable", (newFaces) => {
+    // Save the most recent faces
+    mostRecentFaces = newFaces;
+    // Send them to the clients
+    io.emit("onFacesUpdate", mostRecentFaces);
   });
 });
 
