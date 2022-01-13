@@ -8,6 +8,6 @@ torchvision
 pre-commit
 jsonschema
 pyaudio
--i https://test.pypi.org/simple/ --no-deps pyodas-JacobKealey
 Sphinx
 sphinx_rtd_theme
+-i https://test.pypi.org/simple/ pyodas-JacobKealey

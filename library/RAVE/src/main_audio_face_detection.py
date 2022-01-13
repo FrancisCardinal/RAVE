@@ -16,7 +16,7 @@ from RAVE.common.image_utils import (
     scale_coords,
     scale_coords_landmarks,
 )
-from RAVE.face_detection.fpsHelper import FPS
+from RAVE.common.fpsHelper import FPS
 from main_face_detection import show_results
 
 CHUNK_SIZE = 512
