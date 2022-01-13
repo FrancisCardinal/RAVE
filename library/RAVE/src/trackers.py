@@ -32,6 +32,18 @@ OPENCV_TRACKERS = {
 }
 
 
+class TrackerFactory:
+    @staticmethod
+    def create(tracker_type="kcf"):
+        if OPENCV_TRACKERS.get(tracker_type, None) is not None:
+            return TrackerOpenCV(tracker_name=tracker_type)
+        elif tracker_type == "dlib":
+            return CorrelationTracker()
+        else:
+            print("Unknown tracker type:", tracker_type)
+            return None
+
+
 class TrackerOpenCV(Tracker):
     def __init__(self, tracker_name="kcf"):
         self.tracker = OPENCV_TRACKERS[tracker_name]()

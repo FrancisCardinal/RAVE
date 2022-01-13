@@ -11,6 +11,7 @@ class FPS:
         self.startTime = time.time()
         self.frameCount = 0
         self.fps = 0
+        self.epsilon = 1e-20
 
     def start(self):
         """
@@ -23,7 +24,7 @@ class FPS:
         """
         Computes the FPS
         """
-        self.fps = 1 / (time.time() - self.startTime)
+        self.fps = 1 / (time.time() - self.startTime + self.epsilon)
         self.startTime = time.time()
 
     def getFps(self):
