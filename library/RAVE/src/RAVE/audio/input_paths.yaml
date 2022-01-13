@@ -1,5 +1,6 @@
 # Links to speech and noise files
 
+# Sources to use: https://www.openslr.org/12/
 source: [audio_samples/source/**]
 
 noise: [audio_samples/noise/**]
