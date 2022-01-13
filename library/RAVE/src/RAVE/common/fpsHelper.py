@@ -29,7 +29,7 @@ class FPS:
         self.frame_counter += 1
         current_time = time.time() - self.startTime
         if current_time >= self.refresh_rate:
-            self.fps = self.frame_counter/current_time
+            self.fps = self.frame_counter / current_time
             self.frame_counter = 0
             self.startTime = time.time()
 

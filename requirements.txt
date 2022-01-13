@@ -10,4 +10,3 @@ jsonschema
 pyaudio
 Sphinx
 sphinx_rtd_theme
--i https://test.pypi.org/simple/ pyodas-JacobKealey
