@@ -233,6 +233,22 @@ class EyeTrackerDatasetBuilderOfflineDataAugmentation(
             ]
         )
 
+    def process_frame(self, frame):
+        """Calls the parent method, then applies some data augmentation operations. 
+           Used to perform offline data augmentation. 
+        Args:
+            frame (numpy array): The frame that needs to be processed
+        Returns:
+            pytorch tensor: The processed frame 
+        """
+        output_image_tensor = super().process_frame(frame)
+
+        output_image_tensor = self.TRAINING_TRANSFORM(output_image_tensor)
+        output_image_tensor = self.apply_translation_and_rotation(
+            output_image_tensor)
+
+        return output_image_tensor
+
     def apply_translation_and_rotation(self, output_image_tensor):
         """
         A data augmentation operation, translates and rotates the frame
