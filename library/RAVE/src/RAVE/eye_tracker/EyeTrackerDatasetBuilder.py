@@ -11,7 +11,7 @@ from .videos_and_dataset_association import (
     TEST_VIDEOS,
 )
 
-from .EyeTrackerDataset import EyeTrackerDataset, IMAGE_DIMENSIONS
+from .EyeTrackerDataset import EyeTrackerDataset
 
 from ..common.image_utils import apply_image_translation, apply_image_rotation
 
@@ -106,21 +106,21 @@ class EyeTrackerDatasetBuilder(DatasetBuilder):
                 TRAINING_VIDEOS,
                 TRAINING_PATH,
                 "training   dataset",
-                IMAGE_DIMENSIONS[1:3],
+                EyeTrackerDataset.IMAGE_DIMENSIONS[1:3],
                 SOURCE_DIR,
             ),
             EyeTrackerDatasetBuilder(
                 VALIDATION_VIDEOS,
                 VALIDATION_PATH,
                 "validation dataset",
-                IMAGE_DIMENSIONS[1:3],
+                EyeTrackerDataset.IMAGE_DIMENSIONS[1:3],
                 SOURCE_DIR,
             ),
             EyeTrackerDatasetBuilder(
                 TEST_VIDEOS,
                 TEST_PATH,
                 "test       dataset",
-                IMAGE_DIMENSIONS[1:3],
+                EyeTrackerDataset.IMAGE_DIMENSIONS[1:3],
                 SOURCE_DIR,
             ),
         ]

@@ -10,15 +10,18 @@ import random
 from PIL import Image
 import pickle
 
-IMAGE_DIMENSIONS = (1, 224, 299)
-
 
 class Dataset(torch.utils.data.Dataset):
     """
     Class that handles pairs of images and labels that are on disk
 
     Args:
+        TRAINING_MEAN (float): Training dataset mean pixel value.
+        TRAINING_STD (float): Training dataset std pixel value.
+        ROOTH_PATH (String): Root path of the dataset
         sub_dataset_dir (String): Name of the directory of the sub-dataset
+        IMAGE_DIMENSIONS (Tuple):
+            Image dimensions with shape (3, height, width)
     """
 
     DATASET_DIR = "dataset"
@@ -30,19 +33,25 @@ class Dataset(torch.utils.data.Dataset):
     VALIDATION_DIR = "validation"
     TEST_DIR = "test"
 
+    # TODO-jkealey: Dataset should not defined the file extension
     IMAGES_FILE_EXTENSION = "png"
 
-    PRE_PROCESS_TRANSFORM = transforms.Compose(
-        [
-            transforms.Resize(IMAGE_DIMENSIONS[1:3]),
-            transforms.ToTensor(),
-        ]
-    )
-
     def __init__(
-        self, TRAINING_MEAN, TRAINING_STD, ROOT_PATH, sub_dataset_dir
+        self,
+        TRAINING_MEAN,
+        TRAINING_STD,
+        ROOT_PATH,
+        sub_dataset_dir,
+        IMAGE_DIMENSIONS,
     ):
         self.TRAINING_MEAN, self.TRAINING_STD = TRAINING_MEAN, TRAINING_STD
+        self.IMAGE_DIMENSIONS = IMAGE_DIMENSIONS
+        self.PRE_PROCESS_TRANSFORM = transforms.Compose(
+            [
+                transforms.Resize(IMAGE_DIMENSIONS[1:3]),
+                transforms.ToTensor(),
+            ]
+        )
         self.NORMALIZE_TRANSFORM = transforms.Normalize(
             mean=TRAINING_MEAN, std=TRAINING_STD
         )
