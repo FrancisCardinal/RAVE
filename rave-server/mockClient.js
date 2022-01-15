@@ -15,8 +15,8 @@ socket.on("forceRefresh", () => {
   for (let i = 0; i < amountOfFaces; i++) {
     faces.push({
       id: i,
-      width: 15,
-      height: 15,
+      width: Math.floor(Math.random() * 26) + 15,
+      height: Math.floor(Math.random() * 26) + 15,
       dx: Math.floor(Math.random() * 151),
       dy: Math.floor(Math.random() * 126),
     });

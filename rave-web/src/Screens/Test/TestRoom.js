@@ -1,31 +1,31 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useContext } from 'react';
 import { Avatar, Card, CardActions, CardContent, Stack } from '@mui/material';
-import io from 'socket.io-client';
+import SocketContext from '../../socketContext';
 
 function TestRoom() {
-  const [socket, setSocket] = useState(null);
+  const ws = useContext(SocketContext);
   const [faces, setFaces] = useState([]);
   const roomCanvasRef = useRef(null);
 
   useEffect(() => {
-    const ws = io('ws://localhost:9000');
-    ws.on('onFacesUpdate', (newFaces) => {
-      newFaces.forEach((face) => {
-        face.color = '#' + getRandomColor();
+    if (ws) {
+      ws.on('onFacesUpdate', (newFaces) => {
+        newFaces.forEach((face) => {
+          face.color = '#' + getRandomColor();
+        });
+        setFaces(newFaces);
       });
-      setFaces(newFaces);
-    });
-    setSocket(ws);
-    return () => {
-      ws.close();
-    };
-  }, []);
+      return () => {
+        ws.close();
+      };
+    }
+  }, [ws]);
 
   useEffect(() => {
     if (roomCanvasRef && roomCanvasRef.current) {
       const canvas = roomCanvasRef.current;
       const ctx = canvas.getContext('2d');
-      const { width: canvasWidth, height: canvasHeight } = canvas.getBoundingClientRect();
+      //const { width: canvasWidth, height: canvasHeight } = canvas.getBoundingClientRect();
       ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
       ctx.globalAlpha = 1;
       faces.forEach((face) => {
@@ -77,7 +77,7 @@ function TestRoom() {
           <button
             className="px-4 py-2 font-semibold text-sm bg-sky-500 text-white rounded-none shadow-sm"
             onClick={() => {
-              socket.emit('forceRefresh');
+              ws.emit('forceRefresh');
             }}
           >
             Force refresh
