@@ -59,7 +59,7 @@ class TrackingManager:
 
     def track_loop(self, tracked_object):
 
-        while tracked_object in self._tracked_objects:
+        while tracked_object in self._tracked_objects.values():
             frame = self._last_frame
 
             if frame is None:
@@ -85,14 +85,14 @@ class TrackingManager:
                 self._tracked_objects.popitem()
 
     def start(self):
-        cap = VideoSource(4)
-        m = Monitor(
-            "Detection", cap.shape, "Tracking", cap.shape, refresh_rate=30
-        )
+        cap = VideoSource(0)
+        # NOTE (Antho): Needed to do this for correct orientation
+        shape = (cap.shape[1], cap.shape[0])
+        m = Monitor("Detection", shape, "Tracking", shape, refresh_rate=30)
         cap.set(cv2.CAP_PROP_FPS, 60)
         fps = FPS()
 
-        start_time = time.time()
+        last_detect = 0
         # Main display loop
         while m.window_is_alive():
             # TODO (JKealey): Assign directly to sel._last_frame
@@ -109,15 +109,17 @@ class TrackingManager:
                 face_frame, predicted_bboxes = self._detector.predict(
                     frame.copy(), draw_on_frame=True
                 )
+                last_detect = time.time()
                 if len(predicted_bboxes) > 0:
                     for predicted_bbox in predicted_bboxes:
                         self.add_tracked_object(frame, predicted_bbox)
                     m.update("Detection", face_frame)
 
-            elif time.time() - start_time >= self._frequency:
+            elif time.time() - last_detect >= self._frequency:
                 face_frame, predicted_bboxes = self._detector.predict(
                     frame.copy(), draw_on_frame=True
                 )
+                last_detect = time.time()
                 if len(predicted_bboxes) > 0:
                     # TODO (JKealey): Find a way to not declare new objects,
                     #  maybe with our own implementation
