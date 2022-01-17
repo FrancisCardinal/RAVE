@@ -2,6 +2,7 @@ import time
 import cv2
 import threading
 import uuid
+import argparse
 
 from trackers import TrackerFactory
 from face_detectors import YoloFaceDetector
@@ -83,11 +84,16 @@ class TrackingManager:
             # Remove last tracked object
             if len(self._tracked_objects) > 0:
                 self._tracked_objects.popitem()
+        elif key == ord("q") or key == 27:
+            return True
 
-    def start(self):
-        cap = VideoSource(0)
-        # NOTE (Antho): Needed to do this for correct orientation
-        shape = (cap.shape[1], cap.shape[0])
+    def start(self, args):
+        cap = VideoSource(args.video_source)
+        shape = (
+            (cap.shape[1], cap.shape[0])
+            if args.flip_display_dim
+            else cap.shape
+        )
         m = Monitor("Detection", shape, "Tracking", shape, refresh_rate=30)
         cap.set(cv2.CAP_PROP_FPS, 60)
         fps = FPS()
@@ -152,6 +158,7 @@ class TrackingManager:
 
                     # Remove tracked objects that are not re-detected
                     for tracker_id in current_ids:
+                        print("Removing tracked object")
                         self._tracked_objects.pop(tracker_id, None)
 
                     m.update("Detection", face_frame)
@@ -179,11 +186,38 @@ class TrackingManager:
             m.update("Tracking", frame)
 
             # Keyboard input controls
-            self.listen_keyboard_input(frame, m.key_pressed)
+            terminate = self.listen_keyboard_input(frame, m.key_pressed)
+            if terminate:
+                break
 
         self.stop_tracking()
 
 
 if __name__ == "__main__":
-    tracking_manager = TrackingManager(tracker_type="kcf", frequency=1)
-    tracking_manager.start()
+    parser = argparse.ArgumentParser(description="Face tracking")
+    parser.add_argument(
+        "--video_source",
+        dest="video_source",
+        type=int,
+        help="Video input source identifier",
+        default=0,
+    )
+    parser.add_argument(
+        "--flip_display_dim",
+        dest="flip_display_dim",
+        type=bool,
+        help="If true, will flip window dimensions to (width, height)",
+        default=False,
+    )
+    parser.add_argument(
+        "--freq",
+        dest="freq",
+        type=float,
+        help="Update frequency for the face detector (for adaptive scaling)",
+        default=1,
+    )
+    args = parser.parse_args()
+
+    frequency = args.freq
+    tracking_manager = TrackingManager(tracker_type="kcf", frequency=frequency)
+    tracking_manager.start(args)
