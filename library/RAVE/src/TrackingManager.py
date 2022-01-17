@@ -98,7 +98,7 @@ class TrackingManager:
             # TODO (JKealey): Assign directly to sel._last_frame
             #  and add mutex(?)
             frame = cap()
-            self._last_frame = frame
+            self._last_frame = frame.copy()
 
             if frame is None:
                 print("No frame received, exiting")
@@ -124,6 +124,7 @@ class TrackingManager:
                     # TODO (JKealey): Find a way to not declare new objects,
                     #  maybe with our own implementation
 
+                    current_ids = set(self._tracked_objects.keys())
                     for predicted_bbox in predicted_bboxes:
                         # TODO (JKealey): Find a better way to link previous
                         #  ids to the new bboxes
@@ -143,10 +144,16 @@ class TrackingManager:
                         if intersection_scores[max_id]:
                             new_id = max_id
                             self.remove_tracked_object(max_id)
+                            current_ids.discard(max_id)
                         else:
                             new_id = None
 
                         self.add_tracked_object(frame, predicted_bbox, new_id)
+
+                    # Remove tracked objects that are not re-detected
+                    for tracker_id in current_ids:
+                        self._tracked_objects.pop(tracker_id, None)
+
                     m.update("Detection", face_frame)
 
             # Draw bboxes from tracked objects
