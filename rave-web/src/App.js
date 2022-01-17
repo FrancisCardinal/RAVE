@@ -7,6 +7,7 @@ import TestRoom from './Screens/Test';
 import { Navbar } from './Components/UI';
 import { SocketProvider } from './socketContext';
 import io from 'socket.io-client';
+import MainBar from "./Components/UI/MainBar";
 
 function App() {
   const [socket, setSocket] = useState(null);
@@ -31,6 +32,7 @@ function App() {
     <>
       <SocketProvider value={socket}>
         <BrowserRouter>
+          <MainBar />
           <Routes>
             <Route path="/" element={<HomeScreen />} />
             <Route path="/settings" element={<SettingsScreen />} />
