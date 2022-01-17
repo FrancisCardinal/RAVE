@@ -12,10 +12,13 @@ from pyodas.visualize import VideoSource, Monitor
 
 
 class TrackedObject:
-    def __init__(self, tracker, bbox, identifier):
-        self.tracker = tracker
+    def __init__(self, tracker_type, frame, bbox, identifier):
+        self.tracker = TrackerFactory.create(tracker_type)
         self.bbox = bbox
+        self._tracker_type = tracker_type
         self._id = identifier
+
+        self.tracker.start(frame, bbox)
 
     @property
     def id(self):
@@ -23,6 +26,10 @@ class TrackedObject:
 
     def update_bbox(self, bbox):
         self.bbox = bbox
+
+    def reset(self, frame, bbox):
+        self.tracker = TrackerFactory.create(self._tracker_type)
+        self.tracker.start(frame, bbox)
 
 
 class TrackingManager:
@@ -41,15 +48,15 @@ class TrackingManager:
         return len(self._tracked_objects)
 
     def add_tracked_object(self, frame, bbox, identifier=None):
-        new_tracker = TrackerFactory.create(self._tracker_type)
         new_id = str(identifier) if identifier else str(uuid.uuid4())
-        new_tracked_object = TrackedObject(new_tracker, bbox, new_id)
+        new_tracked_object = TrackedObject(
+            self._tracker_type, frame, bbox, new_id
+        )
         self._tracked_objects[new_tracked_object.id] = new_tracked_object
 
         new_thread = threading.Thread(
             target=self.track_loop, args=(new_tracked_object,), daemon=True
         )
-        new_tracked_object.tracker.start(frame, bbox)
         new_thread.start()
 
     def remove_tracked_object(self, identifier):
@@ -104,7 +111,7 @@ class TrackingManager:
             # TODO (JKealey): Assign directly to sel._last_frame
             #  and add mutex(?)
             frame = cap()
-            self._last_frame = frame.copy()
+            self._last_frame = frame
 
             if frame is None:
                 print("No frame received, exiting")
@@ -148,13 +155,12 @@ class TrackingManager:
                         )
 
                         if intersection_scores[max_id]:
-                            new_id = max_id
-                            self.remove_tracked_object(max_id)
+                            self._tracked_objects[max_id].reset(
+                                frame, predicted_bbox
+                            )
                             current_ids.discard(max_id)
                         else:
-                            new_id = None
-
-                        self.add_tracked_object(frame, predicted_bbox, new_id)
+                            self.add_tracked_object(frame, predicted_bbox)
 
                     # Remove tracked objects that are not re-detected
                     for tracker_id in current_ids:
