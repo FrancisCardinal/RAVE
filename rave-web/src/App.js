@@ -12,17 +12,19 @@ function App() {
   const [socket, setSocket] = useState(null);
 
   useEffect(() => {
-    const ws = io('ws://localhost:9000');
-    ws.on('connect', () => {
-      console.log('Websocket connected');
-      setSocket(ws);
-    });
-    ws.on('connect_error', (err) => {
-      console.error('Failed to connect to websocket server : ', err.message);
-    });
-    return () => {
-      ws.close();
-    };
+    if (process.env.REACT_APP_ONLINE_MODE === 'true') {
+      const ws = io('ws://localhost:9000');
+      ws.on('connect', () => {
+        console.log('Websocket connected');
+        setSocket(ws);
+      });
+      ws.on('connect_error', (err) => {
+        console.error('Failed to connect to websocket server : ', err.message);
+      });
+      return () => {
+        ws.close();
+      };
+    }
   }, []);
 
   return (
