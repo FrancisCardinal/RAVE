@@ -6,7 +6,10 @@ from RAVE.common import Trainer
 from RAVE.common.image_utils import tensor_to_opencv_image, inverse_normalize
 
 from RAVE.eye_tracker.EyeTrackerDataset import EyeTrackerDataset
+
 from RAVE.eye_tracker.EyeTrackerDatasetBuilder import EyeTrackerDatasetBuilder
+from RAVE.eye_tracker.EyeTrackerSyntheticDatasetBuilder import EyeTrackerSyntheticDatasetBuilder
+
 from RAVE.eye_tracker.EyeTrackerModel import EyeTrackerModel
 from RAVE.eye_tracker.ellipse_util import (
     ellipse_loss_function,
@@ -34,7 +37,7 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
     if torch.cuda.is_available():
         DEVICE = "cuda"
 
-    EyeTrackerDatasetBuilder.create_images_datasets_with_LPW_videos()
+    EyeTrackerSyntheticDatasetBuilder.create_images_datasets_with_synthetic_images()
 
     BATCH_SIZE = 128
     training_sub_dataset = EyeTrackerDataset.get_training_sub_dataset()
