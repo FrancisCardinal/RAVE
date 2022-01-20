@@ -1,10 +1,9 @@
 import torch
 import cv2
 import numpy as np
+import os
 
 from RAVE.common.image_utils import (
-    # tensor_to_opencv_image,
-    # inverse_normalize,
     xyxy2xywh,
     opencv_image_to_tensor,
     scale_coords,
@@ -14,8 +13,70 @@ from RAVE.face_detection.FaceDetectionModel import FaceDetectionModel
 
 
 class Detector:
-    def predict(self, frame):
+    def predict(self, frame, draw_on_frame):
         raise NotImplementedError()
+
+
+class DetectorFactory:
+    @staticmethod
+    def create(detector_type="yolo"):
+        if detector_type == "yolo":
+            return YoloFaceDetector()
+        elif detector_type == "dnn":
+            return DnnFaceDetector()
+        else:
+            print("Unknown detector type:", detector_type)
+            return None
+
+
+class DnnFaceDetector(Detector):
+    def __init__(self):
+        resources_dir = os.path.join(
+            os.path.dirname(__file__), "RAVE/face_detection/model/dnn"
+        )
+        config_file = os.path.join(resources_dir, "deploy.prototxt.txt")
+        model_file = os.path.join(
+            resources_dir, "res10_300x300_ssd_iter_140000.caffemodel"
+        )
+        self.model = cv2.dnn.readNetFromCaffe(config_file, model_file)
+
+    def predict(self, frame, draw_on_frame=False):
+        h, w = frame.shape[:2]
+        blob = cv2.dnn.blobFromImage(
+            cv2.resize(frame, (300, 300)),
+            1.0,
+            (300, 300),
+            (104.0, 117.0, 123.0),
+        )
+        self.model.setInput(blob)
+        faces = self.model.forward()
+
+        predicted_bboxes = []
+        for i in range(faces.shape[2]):
+            confidence = faces[0, 0, i, 2]
+
+            if confidence > 0.5:
+                box = faces[0, 0, i, 3:7] * np.array([w, h, w, h])
+                (x, y, x1, y1) = box.astype("int")
+                xywh_rect = (x, y, int(x1 - x), int(y1 - y))
+                predicted_bboxes.append(xywh_rect)
+
+                if draw_on_frame:
+                    line_thickness = frame.shape[0] // 240 or 1
+                    cv2.rectangle(
+                        frame, (x, y), (x1, y1), (0, 0, 255), line_thickness
+                    )
+                    cv2.putText(
+                        frame,
+                        f"{confidence:.3f}",
+                        ((x + x1) // 2, y - 5),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        frame.shape[0] / 960,
+                        (0, 0, 255),
+                        line_thickness,
+                    )  # Display confidence
+
+            return frame, predicted_bboxes, None
 
 
 class YoloFaceDetector(Detector):

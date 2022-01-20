@@ -5,7 +5,7 @@ import argparse
 
 from collections import defaultdict
 from trackers import TrackerFactory
-from face_detectors import YoloFaceDetector
+from face_detectors import DetectorFactory
 from RAVE.common.image_utils import intersection
 from RAVE.face_detection.fpsHelper import FPS
 from pyodas.visualize import VideoSource, Monitor
@@ -95,7 +95,13 @@ class TrackedObject:
 
 
 class TrackingManager:
-    def __init__(self, tracker_type, frequency, intersection_threshold=0.5):
+    def __init__(
+        self,
+        tracker_type,
+        detector_type,
+        frequency,
+        intersection_threshold=0.5,
+    ):
         self._tracker_type = tracker_type
 
         self._tracked_objects = {}
@@ -105,7 +111,7 @@ class TrackingManager:
         self._intersection_threshold = intersection_threshold
         self.count = 0
 
-        self._detector = YoloFaceDetector()
+        self._detector = DetectorFactory.create(detector_type)
         self._last_frame = None
 
     def tracking_count(self):
@@ -420,5 +426,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     frequency = args.freq
-    tracking_manager = TrackingManager(tracker_type="kcf", frequency=frequency)
+    tracking_manager = TrackingManager(
+        tracker_type="kcf", detector_type="yolo", frequency=frequency
+    )
     tracking_manager.start(args)
