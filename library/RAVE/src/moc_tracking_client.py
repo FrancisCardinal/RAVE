@@ -28,8 +28,9 @@ def send_data(frame, face_bboxes):
         face_image = cv2.resize(face_image, (150, 150))
         face_images.append(face_image)
 
-    cv2.imshow("faces", np.concatenate(face_images, axis=1))
-    cv2.waitKey(1)
+    if len(face_images) > 0:
+        cv2.imshow("faces", np.concatenate(face_images, axis=1))
+        cv2.waitKey(1)
 
     # At the moment, the id for each face could be its index
     # in faces_bbox / face_images
@@ -88,7 +89,7 @@ def stream_detect(detect_func, freq):
 
 if __name__ == "__main__":
     SEND_FREQ = 5  # How often to send data (seconds)
-    USE_STREAM = False  # Use webcam or not
+    USE_STREAM = True  # Use webcam or not
 
     model = DnnFaceDetector()
     detect_func = model.predict
