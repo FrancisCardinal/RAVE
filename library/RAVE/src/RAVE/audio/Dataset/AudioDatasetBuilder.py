@@ -7,10 +7,17 @@ from scipy import signal
 import soundfile as sf
 
 from pyodas.utils import TYPES
-from pyodas.core import SpatialCov
+from pyodas.core import SpatialCov, Stft
+
+X_ID = 0         # X IS SIDE
+Y_ID = 1         # Y IS DEPTH
+Z_ID = 2         # Z IS HEIGHT
 
 SAMPLE_RATE = 16000
+FRAME_SIZE = 512
+STFT_WINDOW = 'hann'
 
+SOUND_MARGIN = 0.5       # Assume every sound source is margins away from receiver and each other
 
 class AudioDatasetBuilder:
     """
@@ -19,18 +26,26 @@ class AudioDatasetBuilder:
 
     Args:
         dataset_size (int): Number of dataset items to generate
-
     """
 
-    r = [               # Receiver (microphone) positions [x, y, z] (m)
+    user_pos = []
+    receiver_height = 1.5
+    receiver_rel = np.array(              # Receiver (microphone) positions relative to "user" [x, y, z] (m)
+                    ([-0.05, 0, 0],
+                     [0.05, 0, 0]))
+    c = 340                                 # Sound velocity (m/s)
+    reverb_time = 0.4                       # Reverberation time (s)
+    nsample = 4096                          # Number of output samples
 
-    ]
-    c = 340             # Sound velocity (m/s)
-    reverb_time = 0.4   # Reverberation time (s)
-    nsample = 4096      # Number of output samples
+    def __init__(self, sources_path, noises_path, output_path, max_noise_sources, speech_noise):
+        self.receiver_abs = None                        # Variable that will be used for receiver positions in room.
+        self.max_noise_sources = max_noise_sources      # Maximum number of noise sources in one output segment
+        self.speech_noise = speech_noise                # Bool controlling if noise sources can be speech
+        self.max_source_distance = 5                    # Maximum distance from source to receiver
 
-    def __init__(self, max_sources, sources_path, output_path, noises_path):
-        self.max_sources = max_sources      # Maximum number of sources in one output segment
+        # Stft class
+        self.n_channels = len(self.receiver_rel)
+        self.stft = Stft(self.n_channels, FRAME_SIZE, STFT_WINDOW)
 
         # Load params/configs
         with open("DatasetBuilder_config.yaml", "r") as stream:
@@ -38,7 +53,6 @@ class AudioDatasetBuilder:
                 self.configs = yaml.safe_load(stream)
             except yaml.YAMLError as exc:
                 print(exc)
-        self.positions = self.configs['position']
         self.rooms = self.configs['room']
 
         # Load input sources paths (speech, noise)
@@ -52,7 +66,6 @@ class AudioDatasetBuilder:
             print(f"ERROR: Output folder '{self.output_subfolder}' already exists, exiting.")
             exit()
 
-
     @staticmethod
     def read_audio_file(file_path):
         """
@@ -61,7 +74,6 @@ class AudioDatasetBuilder:
 
         Args:
             file_path (str): Path to audio file
-
         Returns:
             audio_signal (ndarray): Audio read from path of length chunk_size
             sample_frequency (int): Audio file sample frequency
@@ -77,7 +89,6 @@ class AudioDatasetBuilder:
         Args:
             rirs (ndarray): RIRs generated previously to reflect room, source position and mic positions
             signal (ndarray): Monochannel signal to be reflected to multiple microphones
-
         Returns:
             output(ndarray): Every RIR applied to monosignal
         """
@@ -90,54 +101,121 @@ class AudioDatasetBuilder:
         return output
 
     @staticmethod
-    def combine_sources(source, noises, channels=6):
+    def combine_sources(audios):
         """
         Method used to combine audio source with noises.
 
         Args:
-            source (list[ndarray]): Source to add noises to. Shape is (channels, [signal])
-            noises (list[list[ndarray]]): List of noises to add to source. Shape is (# noises, channels, [signal])
-            channels (int): Number of audio channels.
-
+            audios (list[list[ndarray]]): All audio sources. Shape is (audio_count, channels, [signal])
         Returns:
             combined_audio: Combined source with noises. Shape is like source (channels, [signal])
         """
         # Get length of shortest audio
-        array_lengths = [len(source[0])]
-        for noise_array in noises:
-            array_lengths.append(len(noise_array))
+        array_lengths = []
+        for audio_array in audios:
+            array_lengths.append(len(audio_array[0]))
         max_length = min(array_lengths)
 
-        combined_audio = source
-        for noise in noises:
-            for combined_channel, noise_channel in zip(combined_audio, noise):
+        combined_audio = audios[0]
+        for audio in audios[1:]:
+            for combined_channel, noise_channel in zip(combined_audio, audio):
                 combined_channel += noise_channel[:max_length]
 
         return combined_audio
 
-    @staticmethod
-    def generate_ground_truth(x):
+    def generate_ground_truth(self, signal_x):
         """
-        Determines the spatial covariance matrix of input signal to use as ground truth for dataset.
+        Determines the spectrogram of the input temporal signal through the  Short Term Fourier Transform (STFT)
+        use as ground truth for dataset.
 
         Args:
-            signal (ndarray): Signal on which to get spatial covariance matrix.
-
+            signal_x (ndarray): Signal on which to get spectrogram.
         Returns:
-            spatial_covariance: Spatial covariance of signal.
+            stft_x: STFT of input signal x.
         """
-        X = np.fft.rfft(x)
-        channels, bins = X.shape
-        # TODO: Change scm for stft
-        scm = SpatialCov(channels, (bins-1)*2)
-        spatial_covariance = scm(X)
+        stft_x = self.stft(signal_x)
+        return stft_x
 
-        return spatial_covariance
+    def generate_abs_receivers(self, room):
+        """
+        Generate absolute position for receivers.
+        Only generates the receiver directly in the middle of the room for now.
+
+        Args:
+            room (list[float, float, float]): Room dimensions in which to place receivers (x, y, z) (m).
+        """
+        # Get only middle of x and y values, assume z is fixed at human height
+        room_np = np.array([room[:-1]])
+        self.user_pos = np.append(room_np / 2, self.receiver_height)
+
+        # For every receiver, set x and y by room dimension and add human height as z
+        self.receiver_abs = np.array([])
+        for receiver in self.receiver_rel:
+            receiver_center = receiver + self.user_pos
+            self.receiver_abs = np.append(self.receiver_abs , receiver_center)
+
+    def generate_random_position(self, room, source_pos=None, multiple_noise=False):
+        """
+        Generates position for sound source (either main source or noise) inside room.
+        Checks to not superpose source with receiver, and noise with either source and receiver.
+
+        Args:
+            room (ndarray): Dimension of room (max position).
+            source_pos (ndarray): Position of source, in order to not superpose with noise (None if source).
+            multiple_noise (bool): Generate multiple noise positions or not.
+        Returns:
+            Returns random position (or position list if more than one) for sound source.
+        """
+        if source_pos == None:
+            random_pos = np.array([np.random.rand(), np.random.rand(), self.receiver_height])
+
+            # Add sources only in front of receiver as use-case (y)
+            random_pos[Y_ID] *= room[Y_ID] - self.receiver_abs[Y_ID]
+            random_pos[Y_ID] += self.receiver_abs[Y_ID] + SOUND_MARGIN
+            # x
+            random_pos[X_ID] *= room[X_ID]
+
+            return random_pos
+
+        else:
+            # TODO: Check if more intelligent way to do than loop
+            # TODO: Make sure noises are not superposed
+            # Sources can be anywhere in room except on source or receiver
+            random_pos_list = []
+            noise_count = self.max_noise_sources if multiple_noise else 1
+            for noise_i in range(noise_count):
+                while len(random_pos_list) == noise_i:
+                    random_pos = np.array([np.random.rand(), np.random.rand(), np.random.rand()])
+                    random_pos *= room
+
+                    # If noise on source or on receiver, reroll
+                    if self.receiver_height-SOUND_MARGIN <= random_pos[Z_ID] <= self.receiver_height+SOUND_MARGIN:
+                        # Check if on receiver
+                        if self.user_pos[X_ID]-SOUND_MARGIN <= random_pos[X_ID] <= self.user_pos[X_ID]+SOUND_MARGIN and \
+                           self.user_pos[Y_ID]-SOUND_MARGIN <= random_pos[Y_ID] <= self.user_pos[Y_ID]+SOUND_MARGIN:
+                            continue
+                        # Check if on source
+                        elif source_pos[X_ID]-SOUND_MARGIN <= random_pos[X_ID] <= source_pos[X_ID]+SOUND_MARGIN and \
+                             source_pos[Y_ID]-SOUND_MARGIN <= random_pos[Y_ID] <= source_pos[Y_ID]+SOUND_MARGIN:
+                            continue
+
+                    # Set position ok if didn't complete any if statement
+                    random_pos_list.append(random_pos)
+
+            return random_pos_list
+
+
+    def get_random_noise(self, number_noises=None):
+        if not number_noises:
+            number_noises = self.max_noise_sources
+        random_indices = np.random.randint(0, len(self.noise_paths), number_noises)
+        noise_path_list = [self.noise_paths[i] for i in random_indices]
+        return noise_path_list
 
     def save_files(self, combined_signal, combined_gt, source_name, source_gt,
                    noise_names, noise_gts, combined_noise_gt):
         """
-        Save various files needed for dataset.
+        Save various files needed for dataset (see params).
 
         Args:
             combined_signal: Audio signal array of sources and noise together, 1 channel per receiver.
@@ -147,7 +225,6 @@ class AudioDatasetBuilder:
             noise_names: List of names of noise samples.
             noise_gts: List of STFT of noise signals.
             combined_noise_gt: STFT of combined noise signals.
-
         Returns:
             subfolder_path (str): String containing path to newly created dataset subfolder.
         """
@@ -176,30 +253,32 @@ class AudioDatasetBuilder:
 
         return subfolder_path
 
-    def generate_and_apply_rirs(self, source_path, source_pos, room):
+    def generate_and_apply_rirs(self, source_audio, source_pos, room):
         """
         Function that generates Room Impulse Responses (RIRs) to source signal positions and applies them to signals.
         See <https://pypi.org/project/rir-generator/>. Will have to look later on at
         <https://github.com/DavidDiazGuerra/gpuRIR#simulatetrajectory> for moving sources.
 
         Args:
-            source_path (str): Path to audio file.
+            source_audio (ndarray): Audio file.
             source_pos (list[float, float, float]): Source position ([x y z] (m))
             room (list[float, float, float]): Room dimensions ([x y z] (m))
-
         Returns:
             source_with_rir: Source signal with RIRs applied (shape is [channels,
-
         """
-        s_signal = self.read_audio_file(source_path)
+        # Generate RIRs
+        receivers = self.receiver_abs.to_list()
         rirs = rir.generate(
             c=self.c,                               # Sound velocity (m/s)
             fs=SAMPLE_RATE,                         # Sample frequency (samples/s)
-            r=self.r,                               # Receiver position(s) [x y z] (m)
+            r=receivers,                            # Receiver position(s) [x y z] (m)
             s=source_pos,                           # Source position [x y z] (m)
             L=room,                                 # Room dimensions [x y z] (m)
             reverberation_time=self.reverb_time,    # Reverberation time (s)
             nsample=self.nsample,                   # Number of output samples
         )
-        source_with_rir = self.apply_rir(rirs, s_signal)
+
+        # Apply RIR to signal
+        source_with_rir = self.apply_rir(rirs, source_audio)
+
         return source_with_rir
