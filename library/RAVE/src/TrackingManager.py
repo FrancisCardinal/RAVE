@@ -21,16 +21,28 @@ class TrackedObject:
         identifier,
         nb_of_frames_to_confirmed=100,
         confirmation_threshold=80,
+        nb_of_frames_to_reject=20,
+        rejection_threshold=10,
     ):
         self.tracker = TrackerFactory.create(tracker_type)
         self._tracker_type = tracker_type
+        self._id = identifier
         self.bbox = bbox
+
+        # Validation
         self._evaluation_frames = 0
+
+        # Pre
         self._confirmation_threshold = confirmation_threshold
         self._nb_of_frames_to_confirmed = nb_of_frames_to_confirmed
         self._confirmed_frames = 0
         self._confirmed = False
-        self._id = identifier
+
+        # Post
+        self._rejection_threshold = rejection_threshold
+        self._nb_of_frames_to_reject = nb_of_frames_to_reject
+        self._rejected_frames = 0
+        self._rejected = False
 
         self._relative_landmark = None
         self.update_landmark(mouth)
@@ -63,17 +75,34 @@ class TrackedObject:
     def confirmed(self):
         return self._confirmed
 
+    @property
+    def rejected(self):
+        return self._rejected
+
     def update_bbox(self, bbox):
         self.bbox = bbox
 
     def confirm(self):
+        """Used to confirm a bbox in pre-processing"""
         if self.pending:
             self._confirmed_frames += 1
             self._evaluation_frames += 1
             if self._confirmed_frames >= self._confirmation_threshold:
                 self._confirmed = True
+                self._evaluation_frames = 0
 
     def reject(self):
+        """Used to reject a bbox in post-processing"""
+        if self._confirmed:
+            self._rejected_frames += 1
+            self._evaluation_frames += 1
+
+            if self._evaluation_frames > self._nb_of_frames_to_reject:
+                self._evaluation_frames = 0
+            elif self._rejected_frames >= self._rejection_threshold:
+                self._rejected = True
+
+    def increment_evaluation_frames(self):
         self._evaluation_frames += 1
 
     def update_landmark(self, coordinates):
@@ -125,7 +154,6 @@ class TrackingManager:
         )
         self._pre_tracked_objects[new_tracked_object.id] = new_tracked_object
 
-        # Pass the right list
         new_thread = threading.Thread(
             target=self.track_loop, args=(new_tracked_object,), daemon=True
         )
@@ -248,7 +276,7 @@ class TrackingManager:
                         tracked_object.confirm()
                         pre_face_bboxes.pop(max_index)
                     else:
-                        tracked_object.reject()
+                        tracked_object.increment_evaluation_frames()
 
                     if tracked_object.confirmed:
                         self._tracked_objects[tracker_id] = tracked_object
@@ -331,25 +359,22 @@ class TrackingManager:
                         max_id = max(
                             intersection_scores, key=intersection_scores.get
                         )
-                        if max_id in self._pre_tracked_objects.keys():
-                            max_id = "Pending confirmation"
-                    else:
-                        max_id = None
-
-                    if not max_id == "Pending confirmation":
-                        if intersection_scores[max_id]:
+                        if max_id in self._tracked_objects.keys():
                             self._tracked_objects[max_id].reset(
                                 frame, predicted_bbox, mouth
                             )
+                            self._tracked_objects[
+                                max_id
+                            ].increment_evaluation_frames()
                             last_ids.discard(max_id)
-                        else:
-                            self.add_tracked_object(
-                                frame, predicted_bbox, mouth
-                            )
+                    else:
+                        self.add_tracked_object(frame, predicted_bbox, mouth)
 
                 # Remove tracked objects that are not re-detected
                 for tracker_id in last_ids:
-                    self._tracked_objects.pop(tracker_id, None)
+                    self._tracked_objects[tracker_id].reject()
+                    if self._tracked_objects[tracker_id].rejected:
+                        self._tracked_objects.pop(tracker_id, None)
 
                 m.update("Detection", face_frame)
 
