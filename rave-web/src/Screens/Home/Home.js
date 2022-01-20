@@ -1,6 +1,8 @@
 import EyeTrackingMode from "../../Components/UI/EyeTrackingMode";
 import MuteButton from "../../Components/UI/MuteButton";
 import VolumeSlider from "../../Components/UI/VolumeSlider";
+import groupe from '../../Ressources/groupe.jpg'
+import { BrowserView, MobileView} from 'react-device-detect'
 
 function HomeScreen() {
   return (

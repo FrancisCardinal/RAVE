@@ -5,7 +5,7 @@ import InputLabel from '@mui/material/InputLabel'
 import MenuItem from '@mui/material/MenuItem';
 import { useState, useEffect } from 'react';
 
-function LanguageSelection() {
+function LanguageSelection({ className }) {
 	const [language, setLanguage] = useState('');
 
 	const handleChange = (event) => {
@@ -18,7 +18,8 @@ function LanguageSelection() {
 		}
 	}, [language])
 	return (
-		<Box sx={{ minWidth:120 }}>
+		<div className={className}>
+			<Box sx={{ minWidth:120 }}>
 			<FormControl fullWidth color='error'>
 				<InputLabel color="error" id="language-select-label">Language</InputLabel>
 				<Select
@@ -33,6 +34,8 @@ function LanguageSelection() {
 				</Select>
 			</FormControl>
 		</Box>
+		</div>
+		
 	);
 }
 

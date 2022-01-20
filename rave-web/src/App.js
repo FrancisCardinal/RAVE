@@ -33,7 +33,12 @@ function App() {
     <>
       <SocketProvider value={socket}>
         <BrowserRouter>
-          <MainBar />
+          <BrowserView>
+            <DesktopMainBar />
+          </BrowserView>
+          <MobileView>
+            <MobileMainBar />
+          </MobileView>
           <Routes>
             <Route path="/" element={<HomeScreen />} />
             <Route path="/settings" element={<SettingsScreen />} />

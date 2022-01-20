@@ -1,5 +1,3 @@
-import LanguageSelection from "../../Components/UI/LanguageSelection";
-
 function HelpScreen() {
   return (
     <div className="flex flex-col items-center">
@@ -14,7 +12,6 @@ function HelpScreen() {
           personne que vous désirez écouter en appuyant sur leur visage dans la zone de visages détectés.</li>
         </ol>
       </div>
-      <div className="bg-grey"><LanguageSelection /></div>
     </div>
   );
 }
