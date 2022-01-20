@@ -4,10 +4,11 @@ import HomeScreen from './Screens/Home';
 import SettingsScreen from './Screens/Settings';
 import HelpScreen from './Screens/Help';
 import TestRoom from './Screens/Test';
-import { Navbar } from './Components/UI';
 import { SocketProvider } from './socketContext';
 import io from 'socket.io-client';
-import MainBar from "./Components/UI/MainBar";
+import DesktopMainBar from "./Components/UI/DesktopMainBar";
+import MobileMainBar from './Components/UI/MobileMainBar';
+import {BrowserView, MobileView} from 'react-device-detect';
 
 function App() {
   const [socket, setSocket] = useState(null);
@@ -39,7 +40,6 @@ function App() {
             <Route path="/help" element={<HelpScreen />} />
             <Route path="/serverTest" element={<TestRoom />} />
           </Routes>
-          <Navbar />
         </BrowserRouter>
       </SocketProvider>
     </>
