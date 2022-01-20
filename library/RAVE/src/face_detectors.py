@@ -76,7 +76,7 @@ class DnnFaceDetector(Detector):
                         line_thickness,
                     )  # Display confidence
 
-            return frame, predicted_bboxes, None
+        return frame, predicted_bboxes, None
 
 
 class YoloFaceDetector(Detector):
