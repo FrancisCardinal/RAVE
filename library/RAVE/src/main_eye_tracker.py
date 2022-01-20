@@ -17,7 +17,7 @@ from RAVE.eye_tracker.ellipse_util import (
 )
 
 
-def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
+def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST, GPU_INDEX):
     """main function of the module
 
     Args:
@@ -35,7 +35,7 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
     """
     DEVICE = "cpu"
     if torch.cuda.is_available():
-        DEVICE = "cuda"
+        DEVICE = "cuda:{}".format(GPU_INDEX)
 
     EyeTrackerSyntheticDatasetBuilder.create_images_datasets_with_synthetic_images()
 
@@ -177,6 +177,15 @@ if __name__ == "__main__":
             "dataset"
         ),
     )
+
+    parser.add_argument(
+        "-i",
+        "--gpu_index",
+        action="store",
+        type=int,
+        default=0,
+        help="Index of the GPU device to use",
+    )
     args = parser.parse_args()
 
     main(
@@ -185,4 +194,5 @@ if __name__ == "__main__":
         args.continue_training_from_checkpoint,
         args.display_validation,
         args.predict,
+        args.gpu_index,
     )
