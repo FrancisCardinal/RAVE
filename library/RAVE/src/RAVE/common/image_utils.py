@@ -329,3 +329,33 @@ def scale_coords_landmarks(img1_shape, coords, img0_shape, ratio_pad=None):
     coords[:, 8].clamp_(0, img0_shape[1])  # x5
     coords[:, 9].clamp_(0, img0_shape[0])  # y5
     return coords
+
+
+def intersection(bbox1, bbox2):
+    """
+    Intersection of the 2 bounding boxes scaled by the smallest area of the
+    2 bounding boxes
+
+    Args:
+        bbox1 (np.ndarray): xywh coords
+        bbox2 (np.ndarray): xywh coords
+
+    Returns:
+        Intersection scaled
+    """
+
+    # determine the (x, y) coordinates of the intersection rectangle
+    xA = max(bbox1[0], bbox2[0])
+    yA = max(bbox1[1], bbox2[1])
+    xB = min(bbox1[0] + bbox1[2], bbox1[0] + bbox2[2])
+    yB = min(bbox1[1] + bbox1[3], bbox2[1] + bbox2[3])
+
+    # compute the area of intersection rectangle
+    inter_area = max(0, xB - xA + 1) * max(0, yB - yA + 1)
+
+    # determine the smallest area
+    smallest_area = min(
+        (bbox1[2] + 1) * (bbox1[3] + 1), (bbox2[2] + 1) * (bbox2[3] + 1)
+    )
+
+    return inter_area / smallest_area
