@@ -21,7 +21,7 @@ export default {
       },
     },
   navigationBar:{
-    homePage: "Acceuil",
+    homePage: "Accueil",
     settingsPage: "Réglages",
     helpPage: 'Aide',
   },
