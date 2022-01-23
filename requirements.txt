@@ -7,6 +7,7 @@ torchaudio
 torchvision
 pre-commit
 jsonschema
+python-socketio
 pyaudio
 Sphinx
 sphinx_rtd_theme

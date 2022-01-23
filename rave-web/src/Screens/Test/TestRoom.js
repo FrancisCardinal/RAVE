@@ -10,6 +10,7 @@ function TestRoom() {
   useEffect(() => {
     if (ws) {
       ws.on('onFacesUpdate', (newFaces) => {
+        console.log(newFaces);
         newFaces.forEach((face) => {
           face.color = '#' + getRandomColor();
         });
@@ -29,11 +30,14 @@ function TestRoom() {
       ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
       ctx.globalAlpha = 1;
       faces.forEach((face) => {
-        ctx.beginPath();
-        ctx.lineWidth = '1';
-        ctx.strokeStyle = face.color;
-        ctx.rect(face.dx, face.dy, face.width, face.height);
-        ctx.stroke();
+        // ctx.beginPath();
+        // ctx.lineWidth = '1';
+        // ctx.strokeStyle = face.color;
+        // ctx.rect(face.dx, face.dy, face.width, face.height);
+        // ctx.stroke();
+        var img = new Image();
+        img.src = 'data:image/jpeg;base64,' + face.img;
+        ctx.drawImage(img, 0, 0);
       });
     }
   }, [faces]);
