@@ -2,10 +2,12 @@ import Button from "@mui/material/Button";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import {MenuIcon} from "../../Ressources/icons";
 
 function NavMenu({ className }) {
+	const [t, i18n] = useTranslation('common');
 	const [anchorEl, setAnchorEl] = useState(null);
 	const open = Boolean(anchorEl);
   const handleClick = (event) => {
@@ -36,9 +38,9 @@ function NavMenu({ className }) {
 					'aria-labelledby': 'menu-button',
 					}}
 			>
-				<MenuItem onClick={handleClose}><Link to={`/`}>Home</Link></MenuItem>
-				<MenuItem onClick={handleClose}><Link to={`/settings`}>Settings</Link></MenuItem>
-				<MenuItem onClick={handleClose}><Link to={`/help`}>Help</Link></MenuItem>
+				<MenuItem onClick={handleClose}><Link to={`/`}>{t('navigationBar.homePage')}</Link></MenuItem>
+				<MenuItem onClick={handleClose}><Link to={`/settings`}>{t('navigationBar.settingsPage')}</Link></MenuItem>
+				<MenuItem onClick={handleClose}><Link to={`/help`}>{t('navigationBar.helpPage')}</Link></MenuItem>
 			</Menu>
     </div>
   );
