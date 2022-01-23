@@ -340,11 +340,14 @@ class TrackingManager:
                 # TODO (JKealey): Find a way to not declare new objects,
                 #  maybe with our own implementation
 
-                last_ids = set(self._tracked_objects.keys())
+                last_ids = set(
+                    self._tracked_objects.keys()
+                    & self._pre_tracked_objects.keys()
+                )
                 for predicted_bbox in predicted_bboxes:
                     # TODO (JKealey): Find a better way to link previous
                     #  ids to the new bboxes
-                    intersection_scores = defaultdict(lambda: None)
+                    intersection_scores = defaultdict(lambda: 0)
                     for (
                         tracker_id,
                         tracked_object,
@@ -365,6 +368,13 @@ class TrackingManager:
                         max_id = max(
                             intersection_scores, key=intersection_scores.get
                         )
+                    else:
+                        max_id = ""
+
+                    if intersection_scores and (
+                        intersection_scores[max_id]
+                        > self._intersection_threshold
+                    ):
                         if max_id in self._tracked_objects.keys():
                             self._tracked_objects[max_id].reset(
                                 frame, predicted_bbox, mouth
