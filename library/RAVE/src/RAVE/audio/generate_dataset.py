@@ -1,9 +1,11 @@
 import argparse
 from tkinter import filedialog
 
-from ..audio import AudioDatasetBuilder
+# import audio
+from audio import AudioDatasetBuilder
 
 SAMPLES_PER_SPEECH = 100
+
 
 # Script used to generate the audio dataset
 def main(SOURCES, NOISES, OUTPUT, MAX_SOURCES, SPEECH_AS_NOISE):
@@ -60,34 +62,6 @@ def main(SOURCES, NOISES, OUTPUT, MAX_SOURCES, SPEECH_AS_NOISE):
                                            noise_name_list, noise_gt_list, combined_noise_gt)
 
 
-
-        # # Combine sources and noises
-        # # TODO: Add option for multiple noise sources
-        # for source_i, source_audio_pos_list in enumerate(source_with_rirs_pos):
-        #     for noise_i, noise_audio_pos_list in enumerate(noise_with_rirs_pos):
-        #         # Skip noises where position is on top of source
-        #         if noise_i != source_i:
-        #             for source_audio in source_audio_pos_list:
-        #                 source_name = source_audio[0]
-        #                 source_signal = source_audio[1]
-        #                 source_gt = dataset_builder.generate_ground_truth(source_signal)
-        #                 for noise_audio in noise_audio_pos_list:
-        #                     # TODO: Add optimisation to stop calculating SCM on same combination of sounds
-        #                     noise_name = noise_audio[0]
-        #                     noise_name_list = [noise_name]
-        #                     noise_signal = noise_audio[1]
-        #                     noise_signal_list = [noise_signal]
-        #                     noise_gt = dataset_builder.generate_ground_truth(noise_signal)
-        #                     noise_gt_list = [noise_gt]
-        #                     combined_noise_gt = noise_gt
-        #                     combined_audio = dataset_builder.combine_sources(source_signal, noise_signal_list)
-        #                     combined_gt = dataset_builder.generate_ground_truth(combined_audio)
-        #
-        #                     dataset_builder.save_files(combined_audio, combined_gt,
-        #                                                source_name, source_gt,
-        #                                                noise_name_list, noise_gt_list, combined_noise_gt)
-
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -132,17 +106,17 @@ if __name__ == '__main__':
     # parse sources
     source_subfolder = args.sources
     if source_subfolder == 'tkinter':
-        source_subfolder = filedialog.askdirectory()
+        source_subfolder = filedialog.askdirectory(title="Sources folder")
 
     # parse noises
     noise_subfolder = args.noises
     if noise_subfolder == 'tkinter':
-        noise_subfolder = filedialog.askdirectory()
+        noise_subfolder = filedialog.askdirectory(title="Noises folder")
 
     # parse output
     output_subfolder = args.output
     if output_subfolder == 'tkinter':
-        output_subfolder = filedialog.askdirectory()
+        output_subfolder = filedialog.askdirectory(title="Output folder")
 
     main(
         source_subfolder,

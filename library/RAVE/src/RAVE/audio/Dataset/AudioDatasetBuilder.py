@@ -9,9 +9,11 @@ import soundfile as sf
 from pyodas.utils import TYPES
 from pyodas.core import SpatialCov, Stft
 
-X_ID = 0         # X IS SIDE
-Y_ID = 1         # Y IS DEPTH
-Z_ID = 2         # Z IS HEIGHT
+SIDE_ID = 0         # X
+DEPTH_ID = 1         # Y
+HEIGHT_ID = 2         # Z
+
+CONFIG_PATH = 'C:\\GitProjet\\RAVE\\library\\RAVE\\src\\RAVE\\audio\\Dataset\\DatasetBuilder_config.yaml'
 
 SAMPLE_RATE = 16000
 FRAME_SIZE = 512
@@ -48,7 +50,7 @@ class AudioDatasetBuilder:
         self.stft = Stft(self.n_channels, FRAME_SIZE, STFT_WINDOW)
 
         # Load params/configs
-        with open("DatasetBuilder_config.yaml", "r") as stream:
+        with open(CONFIG_PATH, "r") as stream:
             try:
                 self.configs = yaml.safe_load(stream)
             except yaml.YAMLError as exc:
@@ -61,10 +63,10 @@ class AudioDatasetBuilder:
 
         # Prepare output subfolder
         self.output_subfolder = output_path
-        if os.path.exists(self.output_subfolder):
-            # TODO: Add functionality if existing output folder
-            print(f"ERROR: Output folder '{self.output_subfolder}' already exists, exiting.")
-            exit()
+        # if os.path.exists(self.output_subfolder):
+        #     # TODO: Add functionality if existing output folder
+        #     print(f"ERROR: Output folder '{self.output_subfolder}' already exists, exiting.")
+        #     exit()
 
     @staticmethod
     def read_audio_file(file_path):
@@ -149,10 +151,10 @@ class AudioDatasetBuilder:
         self.user_pos = np.append(room_np / 2, self.receiver_height)
 
         # For every receiver, set x and y by room dimension and add human height as z
-        self.receiver_abs = np.array([])
+        self.receiver_abs = []
         for receiver in self.receiver_rel:
             receiver_center = receiver + self.user_pos
-            self.receiver_abs = np.append(self.receiver_abs , receiver_center)
+            self.receiver_abs.append(receiver_center.tolist())
 
     def generate_random_position(self, room, source_pos=None, multiple_noise=False):
         """
@@ -166,14 +168,14 @@ class AudioDatasetBuilder:
         Returns:
             Returns random position (or position list if more than one) for sound source.
         """
-        if source_pos == None:
+        if not source_pos:
             random_pos = np.array([np.random.rand(), np.random.rand(), self.receiver_height])
 
-            # Add sources only in front of receiver as use-case (y)
-            random_pos[Y_ID] *= room[Y_ID] - self.receiver_abs[Y_ID]
-            random_pos[Y_ID] += self.receiver_abs[Y_ID] + SOUND_MARGIN
+            # Add sources only in front of receiver as use-case (depth)
+            random_pos[DEPTH_ID] *= room[DEPTH_ID] - self.user_pos[DEPTH_ID]
+            random_pos[DEPTH_ID] += self.user_pos[DEPTH_ID] + SOUND_MARGIN
             # x
-            random_pos[X_ID] *= room[X_ID]
+            random_pos[SIDE_ID] *= room[SIDE_ID]
 
             return random_pos
 
@@ -189,21 +191,26 @@ class AudioDatasetBuilder:
                     random_pos *= room
 
                     # If noise on source or on receiver, reroll
-                    if self.receiver_height-SOUND_MARGIN <= random_pos[Z_ID] <= self.receiver_height+SOUND_MARGIN:
+                    if self.receiver_height-SOUND_MARGIN <= random_pos[HEIGHT_ID] <= self.receiver_height+SOUND_MARGIN:
+
                         # Check if on receiver
-                        if self.user_pos[X_ID]-SOUND_MARGIN <= random_pos[X_ID] <= self.user_pos[X_ID]+SOUND_MARGIN and \
-                           self.user_pos[Y_ID]-SOUND_MARGIN <= random_pos[Y_ID] <= self.user_pos[Y_ID]+SOUND_MARGIN:
-                            continue
-                        # Check if on source
-                        elif source_pos[X_ID]-SOUND_MARGIN <= random_pos[X_ID] <= source_pos[X_ID]+SOUND_MARGIN and \
-                             source_pos[Y_ID]-SOUND_MARGIN <= random_pos[Y_ID] <= source_pos[Y_ID]+SOUND_MARGIN:
+                        side_user_bounds = [self.user_pos[SIDE_ID]-SOUND_MARGIN, self.user_pos[SIDE_ID]+SOUND_MARGIN]
+                        depth_user_bounds = [self.user_pos[DEPTH_ID]-SOUND_MARGIN, self.user_pos[DEPTH_ID]+SOUND_MARGIN]
+                        if side_user_bounds[0] <= random_pos[SIDE_ID] <= side_user_bounds[1] and \
+                           depth_user_bounds[0] <= random_pos[DEPTH_ID] <= depth_user_bounds[1]:
                             continue
 
-                    # Set position ok if didn't complete any if statement
+                        # Check if on source
+                        side_src_bounds = [source_pos[SIDE_ID]-SOUND_MARGIN, source_pos[SIDE_ID]+SOUND_MARGIN]
+                        depth_src_bounds = [source_pos[DEPTH_ID]-SOUND_MARGIN, source_pos[DEPTH_ID]+SOUND_MARGIN]
+                        if side_src_bounds[0] <= random_pos[SIDE_ID] <= side_src_bounds[1] and \
+                             depth_src_bounds[0] <= random_pos[DEPTH_ID] <= depth_src_bounds[1]:
+                            continue
+
+                    # If not on source or user, add position to random position list
                     random_pos_list.append(random_pos)
 
             return random_pos_list
-
 
     def get_random_noise(self, number_noises=None):
         if not number_noises:
@@ -267,11 +274,11 @@ class AudioDatasetBuilder:
             source_with_rir: Source signal with RIRs applied (shape is [channels,
         """
         # Generate RIRs
-        receivers = self.receiver_abs.to_list()
+        # receivers = self.receiver_abs.to_list()
         rirs = rir.generate(
             c=self.c,                               # Sound velocity (m/s)
             fs=SAMPLE_RATE,                         # Sample frequency (samples/s)
-            r=receivers,                            # Receiver position(s) [x y z] (m)
+            r=self.receiver_abs,                            # Receiver position(s) [x y z] (m)
             s=source_pos,                           # Source position [x y z] (m)
             L=room,                                 # Room dimensions [x y z] (m)
             reverberation_time=self.reverb_time,    # Reverberation time (s)
