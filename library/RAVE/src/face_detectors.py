@@ -101,7 +101,7 @@ class YoloFaceDetector(Detector):
         ).round()
 
         predicted_bbox = []
-        mouth = None
+        mouths = []
         for i in range(predictions.size()[0]):
             gn = torch.tensor(frame.shape)[[1, 0, 1, 0]].to(
                 self.device
@@ -134,13 +134,14 @@ class YoloFaceDetector(Detector):
             mouth_x = int(((landmarks[6] + landmarks[8]) * width) / 2)
             mouth_y = int(((landmarks[7] + landmarks[9]) * height) / 2)
             mouth = (mouth_x, mouth_y)
+            mouths.append(mouth)
 
             if draw_on_frame:
                 frame = YoloFaceDetector.show_results(
                     frame, xywh, confidence, landmarks
                 )
 
-        return frame, predicted_bbox, mouth
+        return frame, predicted_bbox, mouths
 
     @staticmethod
     def show_results(img, xywh, confidence, landmarks):
