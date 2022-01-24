@@ -4,123 +4,11 @@ import threading
 import argparse
 
 from collections import defaultdict
-from trackers import TrackerFactory
 from face_detectors import DetectorFactory
 from RAVE.common.image_utils import intersection
 from RAVE.face_detection.fpsHelper import FPS
 from pyodas.visualize import VideoSource, Monitor
-
-
-class TrackedObject:
-    def __init__(
-        self,
-        tracker_type,
-        frame,
-        bbox,
-        mouth,
-        identifier,
-        nb_of_frames_to_confirmed=100,
-        confirmation_threshold=80,
-        nb_of_frames_to_reject=20,
-        rejection_threshold=10,
-    ):
-        self.tracker = TrackerFactory.create(tracker_type)
-        self._tracker_type = tracker_type
-        self._id = identifier
-        self.bbox = bbox
-
-        # Validation
-        self._evaluation_frames = 0
-
-        # Pre
-        self._confirmation_threshold = confirmation_threshold
-        self._nb_of_frames_to_confirmed = nb_of_frames_to_confirmed
-        self._confirmed_frames = 0
-        self._confirmed = False
-
-        # Post
-        self._rejection_threshold = rejection_threshold
-        self._nb_of_frames_to_reject = nb_of_frames_to_reject
-        self._rejected_frames = 0
-        self._rejected = False
-
-        self._relative_landmark = None
-        self.update_landmark(mouth)
-
-        self.tracker.start(frame, bbox)
-        self.tracker_started = True
-
-    @property
-    def id(self):
-        return self._id
-
-    @property
-    def landmark(self):
-        if not self._relative_landmark or not self.bbox:
-            return None
-        x_b, y_b, w_b, h_b = self.bbox
-        x_rel, y_rel = self._relative_landmark
-        x_abs = int(x_b + (x_rel * w_b))
-        y_abs = int(y_b + (y_rel * h_b))
-        return x_abs, y_abs
-
-    @property
-    def pending(self):
-        if self.confirmed:
-            return False
-        else:
-            return self._evaluation_frames < self._nb_of_frames_to_confirmed
-
-    @property
-    def confirmed(self):
-        return self._confirmed
-
-    @property
-    def rejected(self):
-        return self._rejected
-
-    def update_bbox(self, bbox):
-        self.bbox = bbox
-
-    def confirm(self):
-        """Used to confirm a bbox in pre-processing"""
-        if self.pending:
-            self._confirmed_frames += 1
-            self._evaluation_frames += 1
-            if self._confirmed_frames >= self._confirmation_threshold:
-                self._confirmed = True
-                self._evaluation_frames = 0
-
-    def reject(self):
-        """Used to reject a bbox in post-processing"""
-        if self._confirmed:
-            self._rejected_frames += 1
-            self._evaluation_frames += 1
-
-            if self._evaluation_frames > self._nb_of_frames_to_reject:
-                self._evaluation_frames = 0
-            elif self._rejected_frames >= self._rejection_threshold:
-                self._rejected = True
-
-    def increment_evaluation_frames(self):
-        self._evaluation_frames += 1
-
-    def update_landmark(self, coordinates):
-        if coordinates is None:
-            return
-        x, y = coordinates
-        x_b, y_b, w_b, h_b = self.bbox
-        x_rel = (x - x_b) / w_b
-        y_rel = (y - y_b) / h_b
-        self._relative_landmark = (x_rel, y_rel)
-
-    def reset(self, frame, bbox, mouth):
-        self.tracker_started = False  # Tracker is not ready to use
-        self.tracker = TrackerFactory.create(self._tracker_type)
-        self.tracker.start(frame, bbox)
-        self.bbox = bbox
-        self.update_landmark(mouth)
-        self.tracker_started = True  # Tracker is ready to use
+from TrackedObject import TrackedObject
 
 
 class TrackingManager:
@@ -194,6 +82,7 @@ class TrackingManager:
             if success:
                 xywh_rect = [int(v) for v in box]
                 tracked_object.update_bbox(xywh_rect)
+        print("Stopped tracking object")
 
     def listen_keyboard_input(self, frame, key_pressed):
         key = key_pressed & 0xFF
@@ -244,14 +133,14 @@ class TrackingManager:
             # To be able to reuse the detection of the pre-processing
             pre_face_frame = None
             pre_face_bboxes = None
-            pre_face_mouth = None
+            pre_face_mouths = None
 
             # Do pre-treatment of faces
             if self._pre_tracked_objects:
                 (
                     pre_face_frame,
                     pre_face_bboxes,
-                    pre_face_mouth,
+                    pre_face_mouths,
                 ) = self._detector.predict(frame.copy(), draw_on_frame=True)
 
                 finished_trackers = []
@@ -323,16 +212,16 @@ class TrackingManager:
                 if (
                     pre_face_frame is not None
                     and pre_face_bboxes is not None
-                    and pre_face_mouth is not None
+                    and pre_face_mouths is not None
                 ):
                     face_frame = pre_face_frame
                     predicted_bboxes = pre_face_bboxes
-                    mouth = pre_face_mouth
+                    mouths = pre_face_mouths
                 else:
                     (
                         face_frame,
                         predicted_bboxes,
-                        mouth,
+                        mouths,
                     ) = self._detector.predict(
                         frame.copy(), draw_on_frame=True
                     )
@@ -344,9 +233,10 @@ class TrackingManager:
                     self._tracked_objects.keys()
                     & self._pre_tracked_objects.keys()
                 )
-                for predicted_bbox in predicted_bboxes:
+                for i, predicted_bbox in enumerate(predicted_bboxes):
                     # TODO (JKealey): Find a better way to link previous
                     #  ids to the new bboxes
+                    mouth = mouths[i]
                     intersection_scores = defaultdict(lambda: 0)
                     for (
                         tracker_id,
@@ -390,7 +280,9 @@ class TrackingManager:
                 for tracker_id in last_ids:
                     self._tracked_objects[tracker_id].reject()
                     if self._tracked_objects[tracker_id].rejected:
-                        self._tracked_objects.pop(tracker_id, None)
+                        # self._tracked_objects.pop(tracker_id, None)
+                        self.remove_tracked_object(tracker_id)
+                        print("Rejecting tracked object:", tracker_id)
 
                 m.update("Detection", face_frame)
 
