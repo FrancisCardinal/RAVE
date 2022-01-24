@@ -30,9 +30,14 @@ class TrackingManager:
 
         self._detector = DetectorFactory.create(detector_type)
         self._last_frame = None
+        self._last_detect = 0
 
     def tracking_count(self):
         return len(self._tracked_objects)
+
+    # Returns a dictionary combining pre-tracked and tracked objects
+    def get_all_objects(self):
+        return {**self._tracked_objects, **self._pre_tracked_objects}
 
     # Assumed to be called from main thread only
     def new_identifier(self):
@@ -99,28 +104,130 @@ class TrackingManager:
         elif key == ord("q") or key == 27:
             return True
 
-    def start(self, args):
-        cap = VideoSource(args.video_source)
-        shape = (
-            (cap.shape[1], cap.shape[0])
-            if args.flip_display_dim
-            else cap.shape
+    def draw_prediction_on_frame(self, frame, tracked_object):
+        x, y, w, h = tracked_object.bbox
+        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+        cv2.putText(
+            frame,
+            tracked_object.id,
+            (x, y - 2),
+            0,
+            1 / 3,
+            [225, 255, 255],
+            thickness=1,
+            lineType=cv2.LINE_AA,
         )
-        m = Monitor(
-            "Detection",
-            shape,
-            "Tracking",
-            shape,
-            "Pre-process",
-            shape,
-            refresh_rate=30,
-        )
-        cap.set(cv2.CAP_PROP_FPS, 60)
-        fps = FPS()
 
-        last_detect = 0
-        # Main display loop
-        while m.window_is_alive():
+        return frame
+
+    def preprocess_faces(self, frame, monitor):
+
+        (
+            pre_face_frame,
+            pre_face_bboxes,
+            pre_face_mouths,
+        ) = self._detector.predict(frame.copy(), draw_on_frame=True)
+
+        finished_trackers = []
+        pre_tracker_frame = frame.copy()
+        for tracker_id, tracked_object in self._pre_tracked_objects.items():
+            # TODO (JKealey): Find a better way to link previous
+            #  ids to the new bboxes
+            intersection_scores = list()
+            for predicted_bbox in pre_face_bboxes:
+                intersection_scores.append(
+                    intersection(predicted_bbox, tracked_object.bbox)
+                )
+
+            max_score = (
+                max(intersection_scores) if intersection_scores else None
+            )
+            if (
+                intersection_scores
+                and max_score > self._intersection_threshold
+            ):
+                tracked_object.confirm()
+                max_index = intersection_scores.index(max_score)
+                pre_face_bboxes.pop(max_index)
+            else:
+                tracked_object.increment_evaluation_frames()
+
+            if tracked_object.confirmed:
+                self._tracked_objects[tracker_id] = tracked_object
+
+            if not tracked_object.pending:
+                finished_trackers.append(tracker_id)
+
+            if tracked_object.bbox is None:
+                continue
+
+            pre_tracker_frame = self.draw_prediction_on_frame(
+                pre_tracker_frame, tracked_object
+            )
+
+        for tracker in finished_trackers:
+            self.remove_pre_tracked_object(tracker)
+
+        monitor.update("Pre-process", pre_tracker_frame)
+        return pre_face_frame, pre_face_bboxes, pre_face_mouths
+
+    def detector_update(self, frame, monitor, pre_detections):
+        if any([elem is not None for elem in pre_detections]):
+            face_frame, predicted_bboxes, mouths = pre_detections
+        else:
+            (face_frame, predicted_bboxes, mouths) = self._detector.predict(
+                frame.copy(), draw_on_frame=True
+            )
+        self._last_detect = time.time()
+
+        last_ids = set(
+            self._tracked_objects.keys() & self._pre_tracked_objects.keys()
+        )
+        for i, predicted_bbox in enumerate(predicted_bboxes):
+            # TODO (JKealey): Find a better way to link previous
+            #  ids to the new bboxes
+            if mouths and len(mouths) > i:
+                mouth = mouths[i]
+            else:
+                mouth = None
+            intersection_scores = defaultdict(lambda: 0)
+
+            all_tracked_objects = self.get_all_objects()
+            for tracker_id, object in all_tracked_objects.items():
+                intersection_scores[tracker_id] = intersection(
+                    predicted_bbox, object.bbox
+                )
+
+            max_id = None
+            if intersection_scores:
+                max_id = max(intersection_scores, key=intersection_scores.get)
+
+            if (
+                intersection_scores
+                and intersection_scores[max_id] > self._intersection_threshold
+            ):
+                if max_id in self._tracked_objects.keys():
+                    self._tracked_objects[max_id].reset(
+                        frame, predicted_bbox, mouth
+                    )
+                    self._tracked_objects[max_id].increment_evaluation_frames()
+                    last_ids.discard(max_id)
+            else:
+                # A new object was discovered
+                self.add_tracked_object(frame, predicted_bbox, mouth)
+
+        # Remove tracked objects that are not re-detected
+        for tracker_id in last_ids:
+            self._tracked_objects[tracker_id].reject()
+            if self._tracked_objects[tracker_id].rejected:
+                # self._tracked_objects.pop(tracker_id, None)
+                self.remove_tracked_object(tracker_id)
+                print("Rejecting tracked object:", tracker_id)
+
+        monitor.update("Detection", face_frame)
+
+    def main_loop(self, monitor, cap, fps):
+        while monitor.window_is_alive():
             # TODO (JKealey): Assign directly to sel._last_frame
             #  and add mutex(?)
             frame = cap()
@@ -130,181 +237,25 @@ class TrackingManager:
                 print("No frame received, exiting")
                 break
 
-            # To be able to reuse the detection of the pre-processing
-            pre_face_frame = None
-            pre_face_bboxes = None
-            pre_face_mouths = None
-
-            # Do pre-treatment of faces
+            # Do pre-processing of faces
+            pre_frame, pre_bboxes, pre_mouths = None, None, None
             if self._pre_tracked_objects:
-                (
-                    pre_face_frame,
-                    pre_face_bboxes,
-                    pre_face_mouths,
-                ) = self._detector.predict(frame.copy(), draw_on_frame=True)
-
-                finished_trackers = []
-                pre_tracker_frame = frame.copy()
-                for (
-                    tracker_id,
-                    tracked_object,
-                ) in self._pre_tracked_objects.items():
-                    # TODO (JKealey): Find a better way to link previous
-                    #  ids to the new bboxes
-                    intersection_scores = list()
-                    for predicted_bbox in pre_face_bboxes:
-                        intersection_scores.append(
-                            intersection(predicted_bbox, tracked_object.bbox)
-                        )
-
-                    if intersection_scores:
-                        max_index = intersection_scores.index(
-                            max(intersection_scores)
-                        )
-                    else:
-                        max_index = None
-
-                    if intersection_scores and (
-                        intersection_scores[max_index]
-                        > self._intersection_threshold
-                    ):
-                        tracked_object.confirm()
-                        pre_face_bboxes.pop(max_index)
-                    else:
-                        tracked_object.increment_evaluation_frames()
-
-                    if tracked_object.confirmed:
-                        self._tracked_objects[tracker_id] = tracked_object
-
-                    if not tracked_object.pending:
-                        finished_trackers.append(tracker_id)
-
-                    if tracked_object.bbox is None:
-                        continue
-                    x, y, w, h = tracked_object.bbox
-                    cv2.rectangle(
-                        pre_tracker_frame,
-                        (x, y),
-                        (x + w, y + h),
-                        (0, 255, 0),
-                        2,
-                    )
-                    cv2.putText(
-                        pre_tracker_frame,
-                        tracked_object.id,
-                        (x, y - 2),
-                        0,
-                        1 / 3,
-                        [225, 255, 255],
-                        thickness=1,
-                        lineType=cv2.LINE_AA,
-                    )
-
-                for tracker in finished_trackers:
-                    self.remove_pre_tracked_object(tracker)
-
-                m.update(
-                    "Pre-process",
-                    pre_tracker_frame,
+                pre_frame, pre_bboxes, pre_mouths = self.preprocess_faces(
+                    frame, monitor
                 )
 
-            if time.time() - last_detect >= self._frequency:
-                if (
-                    pre_face_frame is not None
-                    and pre_face_bboxes is not None
-                    and pre_face_mouths is not None
-                ):
-                    face_frame = pre_face_frame
-                    predicted_bboxes = pre_face_bboxes
-                    mouths = pre_face_mouths
-                else:
-                    (
-                        face_frame,
-                        predicted_bboxes,
-                        mouths,
-                    ) = self._detector.predict(
-                        frame.copy(), draw_on_frame=True
-                    )
-                last_detect = time.time()
-                # TODO (JKealey): Find a way to not declare new objects,
-                #  maybe with our own implementation
+            if time.time() - self._last_detect >= self._frequency:
+                pre_detections = (pre_frame, pre_bboxes, pre_mouths)
+                self.detector_update(frame, monitor, pre_detections)
 
-                last_ids = set(
-                    self._tracked_objects.keys()
-                    & self._pre_tracked_objects.keys()
-                )
-                for i, predicted_bbox in enumerate(predicted_bboxes):
-                    # TODO (JKealey): Find a better way to link previous
-                    #  ids to the new bboxes
-                    mouth = mouths[i]
-                    intersection_scores = defaultdict(lambda: 0)
-                    for (
-                        tracker_id,
-                        tracked_object,
-                    ) in self._tracked_objects.items():
-                        intersection_scores[tracker_id] = intersection(
-                            predicted_bbox, tracked_object.bbox
-                        )
-
-                    for (
-                        pre_tracker_id,
-                        pre_tracked_object,
-                    ) in self._pre_tracked_objects.items():
-                        intersection_scores[pre_tracker_id] = intersection(
-                            predicted_bbox, pre_tracked_object.bbox
-                        )
-
-                    if intersection_scores:
-                        max_id = max(
-                            intersection_scores, key=intersection_scores.get
-                        )
-                    else:
-                        max_id = ""
-
-                    if intersection_scores and (
-                        intersection_scores[max_id]
-                        > self._intersection_threshold
-                    ):
-                        if max_id in self._tracked_objects.keys():
-                            self._tracked_objects[max_id].reset(
-                                frame, predicted_bbox, mouth
-                            )
-                            self._tracked_objects[
-                                max_id
-                            ].increment_evaluation_frames()
-                            last_ids.discard(max_id)
-                    else:
-                        self.add_tracked_object(frame, predicted_bbox, mouth)
-
-                # Remove tracked objects that are not re-detected
-                for tracker_id in last_ids:
-                    self._tracked_objects[tracker_id].reject()
-                    if self._tracked_objects[tracker_id].rejected:
-                        # self._tracked_objects.pop(tracker_id, None)
-                        self.remove_tracked_object(tracker_id)
-                        print("Rejecting tracked object:", tracker_id)
-
-                m.update("Detection", face_frame)
-
-            tracking_frame = frame.copy()
             # Draw detections from tracked objects
+            tracking_frame = frame.copy()
             for tracked_object in self._tracked_objects.values():
                 if tracked_object.bbox is None:
                     continue
-                x, y, w, h = tracked_object.bbox
-                cv2.rectangle(
-                    tracking_frame, (x, y), (x + w, y + h), (0, 255, 0), 2
-                )
-                cv2.putText(
-                    tracking_frame,
-                    tracked_object.id,
-                    (x, y - 2),
-                    0,
-                    1 / 3,
-                    [225, 255, 255],
-                    thickness=1,
-                    lineType=cv2.LINE_AA,
-                )
+                self.draw_prediction_on_frame(tracking_frame, tracked_object)
+
+                # Draw mouth point
                 mouth = tracked_object.landmark
                 if mouth is not None:
                     x_mouth, y_mouth = mouth
@@ -316,14 +267,34 @@ class TrackingManager:
             fps.setFps()
             # TODO: Fix fps? Delta too short?
             # frame = fps.writeFpsToFrame(frame)
-            if tracking_frame is not None:
-                m.update("Tracking", tracking_frame)
+            monitor.update("Tracking", tracking_frame)
 
             # Keyboard input controls
-            terminate = self.listen_keyboard_input(frame, m.key_pressed)
+            terminate = self.listen_keyboard_input(frame, monitor.key_pressed)
             if terminate:
                 break
 
+    def start(self, args):
+        cap = VideoSource(args.video_source)
+        shape = (
+            (cap.shape[1], cap.shape[0])
+            if args.flip_display_dim
+            else cap.shape
+        )
+        monitor = Monitor(
+            "Detection",
+            shape,
+            "Tracking",
+            shape,
+            "Pre-process",
+            shape,
+            refresh_rate=30,
+        )
+        cap.set(cv2.CAP_PROP_FPS, 60)
+        fps = FPS()
+
+        # Main display loop
+        self.main_loop(monitor, cap, fps)
         self.stop_tracking()
 
 
