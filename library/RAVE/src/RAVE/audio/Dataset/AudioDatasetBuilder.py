@@ -1,13 +1,17 @@
 import glob
 import os
+
 import rir_generator as rir
 import yaml
 import numpy as np
 from scipy import signal
 import soundfile as sf
 
-from pyodas.utils import TYPES
+import matplotlib.pyplot as plt
+
+from pyodas.utils import TYPES, sqrt_hann
 from pyodas.core import SpatialCov, Stft
+# from pyodas.visualize import Spectrogram, Monitor
 
 SIDE_ID = 0         # X
 DEPTH_ID = 1         # Y
@@ -31,6 +35,8 @@ class AudioDatasetBuilder:
     """
 
     user_pos = []
+    source_direction = []
+    room = []
     receiver_height = 1.5
     receiver_rel = np.array(              # Receiver (microphone) positions relative to "user" [x, y, z] (m)
                     ([-0.05, 0, 0],
@@ -39,15 +45,13 @@ class AudioDatasetBuilder:
     reverb_time = 0.4                       # Reverberation time (s)
     nsample = 4096                          # Number of output samples
 
-    def __init__(self, sources_path, noises_path, output_path, max_noise_sources, speech_noise):
+    def __init__(self, sources_path, noises_path, output_path, max_noise_sources, speech_noise, debug):
         self.receiver_abs = None                        # Variable that will be used for receiver positions in room.
         self.max_noise_sources = max_noise_sources      # Maximum number of noise sources in one output segment
         self.speech_noise = speech_noise                # Bool controlling if noise sources can be speech
         self.max_source_distance = 5                    # Maximum distance from source to receiver
-
-        # Stft class
+        self.is_debug = debug                           # Sets debug flag
         self.n_channels = len(self.receiver_rel)
-        self.stft = Stft(self.n_channels, FRAME_SIZE, STFT_WINDOW)
 
         # Load params/configs
         with open(CONFIG_PATH, "r") as stream:
@@ -58,15 +62,12 @@ class AudioDatasetBuilder:
         self.rooms = self.configs['room']
 
         # Load input sources paths (speech, noise)
-        self.source_paths = glob.glob(os.path.join(sources_path, '**', '*.wav'))
-        self.noise_paths = glob.glob(os.path.join(noises_path, '**', '*.wav'))
+        self.source_paths = glob.glob(os.path.join(sources_path, '*.wav'))
+        self.noise_paths = glob.glob(os.path.join(noises_path, '*.wav'))
 
         # Prepare output subfolder
         self.output_subfolder = output_path
-        # if os.path.exists(self.output_subfolder):
-        #     # TODO: Add functionality if existing output folder
-        #     print(f"ERROR: Output folder '{self.output_subfolder}' already exists, exiting.")
-        #     exit()
+        os.makedirs(self.output_subfolder, exist_ok=True)
 
     @staticmethod
     def read_audio_file(file_path):
@@ -80,26 +81,28 @@ class AudioDatasetBuilder:
             audio_signal (ndarray): Audio read from path of length chunk_size
             sample_frequency (int): Audio file sample frequency
         """
-        audio_signal = sf.read(file_path, samplerate=SAMPLE_RATE)
+        # TODO: CHANGE SAMPLE_RATE IF NOT OK
+        audio_signal = sf.read(file_path)
+        # audio_signal = sf.read(file_path, samplerate=SAMPLE_RATE)
         return audio_signal
 
     @staticmethod
-    def apply_rir(rirs, signal):
+    def apply_rir(rirs, in_signal):
         """
         Method to apply RIRs to mono signals.
 
         Args:
             rirs (ndarray): RIRs generated previously to reflect room, source position and mic positions
-            signal (ndarray): Monochannel signal to be reflected to multiple microphones
+            in_signal (ndarray): Monochannel input signal to be reflected to multiple microphones
         Returns:
             output(ndarray): Every RIR applied to monosignal
         """
-        channels = rirs.shape[0]
-        frames = signal.shape[0]
+        channels = rirs.shape[1]
+        frames = in_signal[0].shape[0]
         output = np.empty((channels, frames))
 
         for channel_index in range(channels):
-            output[channel_index] = signal.convolve(signal, rir[channel_index])[:frames]
+            output[channel_index] = signal.convolve(in_signal[0], rirs[:, channel_index])[:frames]
         return output
 
     @staticmethod
@@ -116,26 +119,39 @@ class AudioDatasetBuilder:
         array_lengths = []
         for audio_array in audios:
             array_lengths.append(len(audio_array[0]))
-        max_length = min(array_lengths)
+        max_length, small_array_idx = min(array_lengths), np.argmin(array_lengths)
 
-        combined_audio = audios[0]
-        for audio in audios[1:]:
+        combined_audio = audios[small_array_idx]
+        for audio in (audios[:small_array_idx] + audios[small_array_idx:]):
             for combined_channel, noise_channel in zip(combined_audio, audio):
                 combined_channel += noise_channel[:max_length]
 
         return combined_audio
 
-    def generate_ground_truth(self, signal_x):
+    def generate_ground_truth(self, signal_x, signal_name=''):
         """
         Determines the spectrogram of the input temporal signal through the  Short Term Fourier Transform (STFT)
         use as ground truth for dataset.
 
         Args:
             signal_x (ndarray): Signal on which to get spectrogram.
+            signal_name (str): Name of signal to plot on debug spectrogram.
         Returns:
             stft_x: STFT of input signal x.
         """
-        stft_x = self.stft(signal_x)
+        frame_size = 1024
+        chunk_size = frame_size / 2
+        window = sqrt_hann(chunk_size)
+
+        f, t, stft_x = signal.stft(signal_x[0], SAMPLE_RATE, window, chunk_size, nfft=frame_size)
+
+        if self.is_debug:
+            plt.pcolormesh(t, f, np.abs(stft_x), shading='gouraud')
+            plt.title('STFT Magnitude')
+            plt.ylabel('Frequency [Hz]')
+            plt.xlabel('Time [sec]')
+            plt.show()
+
         return stft_x
 
     def generate_abs_receivers(self, room):
@@ -147,6 +163,7 @@ class AudioDatasetBuilder:
             room (list[float, float, float]): Room dimensions in which to place receivers (x, y, z) (m).
         """
         # Get only middle of x and y values, assume z is fixed at human height
+        self.room = room
         room_np = np.array([room[:-1]])
         self.user_pos = np.append(room_np / 2, self.receiver_height)
 
@@ -156,7 +173,7 @@ class AudioDatasetBuilder:
             receiver_center = receiver + self.user_pos
             self.receiver_abs.append(receiver_center.tolist())
 
-    def generate_random_position(self, room, source_pos=None, multiple_noise=False):
+    def generate_random_position(self, room, source_pos=np.array([]), multiple_noise=False):
         """
         Generates position for sound source (either main source or noise) inside room.
         Checks to not superpose source with receiver, and noise with either source and receiver.
@@ -168,14 +185,16 @@ class AudioDatasetBuilder:
         Returns:
             Returns random position (or position list if more than one) for sound source.
         """
-        if not source_pos:
+        if source_pos.size == 0:
             random_pos = np.array([np.random.rand(), np.random.rand(), self.receiver_height])
 
             # Add sources only in front of receiver as use-case (depth)
-            random_pos[DEPTH_ID] *= room[DEPTH_ID] - self.user_pos[DEPTH_ID]
+            random_pos[DEPTH_ID] *= (room[DEPTH_ID] - self.user_pos[DEPTH_ID] - SOUND_MARGIN)
             random_pos[DEPTH_ID] += self.user_pos[DEPTH_ID] + SOUND_MARGIN
             # x
             random_pos[SIDE_ID] *= room[SIDE_ID]
+
+            self.source_direction = random_pos - self.user_pos
 
             return random_pos
 
@@ -219,8 +238,8 @@ class AudioDatasetBuilder:
         noise_path_list = [self.noise_paths[i] for i in random_indices]
         return noise_path_list
 
-    def save_files(self, combined_signal, combined_gt, source_name, source_gt,
-                   noise_names, noise_gts, combined_noise_gt):
+    def save_files(self, combined_signal, combined_gt, source_name, source_gt, source_pos,
+                   noise_names, noise_pos, noise_gts, combined_noise_gt):
         """
         Save various files needed for dataset (see params).
 
@@ -236,27 +255,52 @@ class AudioDatasetBuilder:
             subfolder_path (str): String containing path to newly created dataset subfolder.
         """
         # Create subfolder
-        subfolder_path = os.path.join(self.output_subfolder, '1', source_name)
+        subfolder_path = os.path.join(self.output_subfolder, f'{len(noise_names)}', source_name)
         for noise_name in noise_names:
-            subfolder_path = os.path.join(subfolder_path, noise_name)
+            subfolder_path += '_' + noise_name
+        subfolder_index = 1
+        if os.path.exists(subfolder_path):
+            while os.path.exists(subfolder_path + f'_{subfolder_index}'):
+                subfolder_index += 1
+            subfolder_path += f'_{subfolder_index}'
         os.makedirs(subfolder_path, exist_ok=True)
 
         # Save audio file and audio ground truth
-        audio_file_name = os.path.join(subfolder_path, 'combined_audio.wav')
-        sf.write(audio_file_name, combined_signal, SAMPLE_RATE)
-        audio_gt_name = os.path.join(subfolder_path, 'combined_audio_scm.npz')
+        audio_file_name = os.path.join(subfolder_path, 'audio.wav')
+        sf.write(audio_file_name, combined_signal.T, SAMPLE_RATE)
+        audio_gt_name = os.path.join(subfolder_path, 'combined_audio_gt.npz')
         np.savez_compressed(audio_gt_name, combined_gt)
 
         # Save source ground truth
-        source_gt_name = os.path.join(subfolder_path, f'{source_name}_gt.npz')
+        source_gt_name = os.path.join(subfolder_path, 'source.npz')
         np.savez_compressed(source_gt_name, source_gt)
 
-        # Save noise and combined noise ground truths
-        combined_noise_gt_name = os.path.join(subfolder_path, f'combined_noise_gt.npz')
+        # Save combined noise ground truth
+        combined_noise_gt_name = os.path.join(subfolder_path, 'noise.npz')
         np.savez_compressed(combined_noise_gt_name, combined_noise_gt)
-        for noise_name, noise_gt in zip(noise_names, noise_gts):
-            noise_gt_name = os.path.join(subfolder_path, f'{noise_name}_gt.npz')
-            np.savez_compressed(noise_gt_name, noise_gt)
+
+        # Save noise ground truth in debug
+        if self.is_debug:
+            for noise_name, noise_gt in zip(noise_names, noise_gts):
+                noise_gt_name = os.path.join(subfolder_path, f'{noise_name}.npz')
+                np.savez_compressed(noise_gt_name, noise_gt)
+
+        # Save yaml file with configs
+        config_dict_file_name = os.path.join(subfolder_path, 'configs.yaml')
+        config_dict = dict(
+            path=subfolder_path,
+            n_channels=self.n_channels,
+            microphones=self.receiver_abs,
+            room=self.room,
+            user_pos=self.user_pos.tolist(),
+            source_pos=np.around(source_pos, 3).tolist(),
+            noise_pos=[np.around(i, 3).tolist() for i in noise_pos],
+            source=source_name,
+            source_dir=np.around(self.source_direction, 3).tolist(),
+            noise=noise_names
+        )
+        with open(config_dict_file_name, 'w') as outfile:
+            yaml.dump(config_dict, outfile, default_flow_style=None)
 
         return subfolder_path
 
@@ -278,7 +322,7 @@ class AudioDatasetBuilder:
         rirs = rir.generate(
             c=self.c,                               # Sound velocity (m/s)
             fs=SAMPLE_RATE,                         # Sample frequency (samples/s)
-            r=self.receiver_abs,                            # Receiver position(s) [x y z] (m)
+            r=self.receiver_abs,                    # Receiver position(s) [x y z] (m)
             s=source_pos,                           # Source position [x y z] (m)
             L=room,                                 # Room dimensions [x y z] (m)
             reverberation_time=self.reverb_time,    # Reverberation time (s)

@@ -1,15 +1,14 @@
 import argparse
 from tkinter import filedialog
 
-# import audio
 from audio import AudioDatasetBuilder
 
-SAMPLES_PER_SPEECH = 100
+SAMPLES_PER_SPEECH = 1
 
 
 # Script used to generate the audio dataset
-def main(SOURCES, NOISES, OUTPUT, MAX_SOURCES, SPEECH_AS_NOISE):
-    dataset_builder = AudioDatasetBuilder(SOURCES, NOISES, OUTPUT, MAX_SOURCES, SPEECH_AS_NOISE)
+def main(SOURCES, NOISES, OUTPUT, MAX_SOURCES, SPEECH_AS_NOISE, DEBUG):
+    dataset_builder = AudioDatasetBuilder(SOURCES, NOISES, OUTPUT, MAX_SOURCES, SPEECH_AS_NOISE, DEBUG)
 
     # For each room
     for room in dataset_builder.rooms:
@@ -22,7 +21,7 @@ def main(SOURCES, NOISES, OUTPUT, MAX_SOURCES, SPEECH_AS_NOISE):
 
         # Run through every source
         for source_path in dataset_builder.source_paths:
-            source_name = source_path.split('.')[-2]  # Get filename for source (before extension '.')
+            source_name = source_path.split('\\')[-1].split('.')[0]  # Get filename for source (before extension '.')
             source_audio = dataset_builder.read_audio_file(source_path)
 
             # Run SAMPLES_PER_SPEECH samples per speech clip
@@ -41,7 +40,7 @@ def main(SOURCES, NOISES, OUTPUT, MAX_SOURCES, SPEECH_AS_NOISE):
                 noise_RIR_list = []
                 noise_gt_list = []
                 for noise_source_path, noise_pos in zip (noise_source_paths, noise_pos_list):
-                    noise_name_list.append(source_path.split('.')[-2])
+                    noise_name_list.append(noise_source_path.split('\\')[-1].split('.')[0])
                     noise_audio = dataset_builder.read_audio_file(noise_source_path)
                     noise_with_rir = dataset_builder.generate_and_apply_rirs(noise_audio, noise_pos, room)
                     noise_RIR_list.append(noise_with_rir)
@@ -57,13 +56,20 @@ def main(SOURCES, NOISES, OUTPUT, MAX_SOURCES, SPEECH_AS_NOISE):
                 combined_gt = dataset_builder.generate_ground_truth(combined_audio)
 
                 # Save element to dataset
-                dataset_builder.save_files(combined_audio, combined_gt,
-                                           source_name, source_gt,
-                                           noise_name_list, noise_gt_list, combined_noise_gt)
+                subfolder_path = dataset_builder.save_files(combined_audio, combined_gt,
+                                                            source_name, source_gt, source_pos,
+                                                            noise_name_list, noise_pos_list, noise_gt_list,
+                                                            combined_noise_gt)
+
+                print("Created: " + subfolder_path)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-d", "--debug", action="store_true", help="Run in debug mode"
+    )
+
     parser.add_argument(
         "-s",
         "--sources",
@@ -90,7 +96,7 @@ if __name__ == '__main__':
     )
 
     parser.add_argument(
-        "-x", "--xtra_speech", action="store_true", help="Train the neural network"
+        "-x", "--xtra_speech", action="store_true", help="Add speech as possible noise sources"
     )
     parser.add_argument(
         "-m",
@@ -123,5 +129,6 @@ if __name__ == '__main__':
         noise_subfolder,
         output_subfolder,
         args.max_sources,
-        args.xtra_speech
+        args.xtra_speech,
+        args.debug
     )
