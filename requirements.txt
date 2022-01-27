@@ -1,12 +1,1 @@
-matplotlib
-numpy
-opencv-python
-tqdm
-torch
-torchaudio
-torchvision
-pre-commit
-jsonschema
-pyaudio
-Sphinx
-sphinx_rtd_theme
+-r req/requirements.txt
