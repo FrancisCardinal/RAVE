@@ -3,7 +3,7 @@ import time
 import socketio
 import base64
 
-import numpy as np
+# import numpy as np
 
 from face_detectors import DnnFaceDetector
 
