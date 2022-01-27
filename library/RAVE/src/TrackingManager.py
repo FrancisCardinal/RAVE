@@ -4,6 +4,9 @@ import threading
 import argparse
 
 from collections import defaultdict
+
+# from tqdm import tqdm
+
 from face_detectors import DetectorFactory
 from RAVE.common.image_utils import intersection
 from RAVE.face_detection.fpsHelper import FPS
@@ -68,7 +71,7 @@ class TrackingManager:
         self._tracked_objects = {}
 
     def track_loop(self, tracked_object):
-
+        # with tqdm(desc=f"{tracked_object.id}", total=25000) as pbar:
         while (
             tracked_object in self._tracked_objects.values()
             or tracked_object in self._pre_tracked_objects.values()
@@ -84,10 +87,12 @@ class TrackingManager:
                 continue
 
             success, box = tracked_object.tracker.update(frame)
+            # pbar.update()
             if success:
                 xywh_rect = [int(v) for v in box]
                 tracked_object.update_bbox(xywh_rect)
-        print("Stopped tracking object")
+
+        print(f"Stopped tracking object {tracked_object.id}")
 
     def listen_keyboard_input(self, frame, key_pressed):
         key = key_pressed & 0xFF
@@ -180,9 +185,7 @@ class TrackingManager:
             )
         self._last_detect = time.time()
 
-        last_ids = set(
-            self._tracked_objects.keys() & self._pre_tracked_objects.keys()
-        )
+        last_ids = set(self._tracked_objects.keys())
         for i, predicted_bbox in enumerate(predicted_bboxes):
             # TODO (JKealey): Find a better way to link previous
             #  ids to the new bboxes
