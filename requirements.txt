@@ -1,14 +1,1 @@
-matplotlib
-numpy
-opencv-python
-tqdm
-torch
-torchaudio
-torchvision
-pre-commit
-jsonschema
-pyaudio
-Sphinx
-sphinx_rtd_theme
-
--i https://test.pypi.org/simple/ --no-deps pyodas-JacobKealey
+-r req/requirements.txt
