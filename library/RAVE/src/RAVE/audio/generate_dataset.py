@@ -12,10 +12,7 @@ def main(SOURCES, NOISES, OUTPUT, MAX_SOURCES, SPEECH_AS_NOISE, DEBUG):
 
     # For each room
     for room in dataset_builder.rooms:
-        # TODO: Add random position for user (receivers)
-        # TODO: Check if noise and source audios are too big for memory
-        # TODO: Check if saving audios with RIRs are worth in long run
-
+        # TODO: Add random position for user (receivers) (if judged an addition to neural network)
         # Generate receiver positions from room dimensions
         dataset_builder.generate_abs_receivers(room)
 
@@ -33,21 +30,21 @@ def main(SOURCES, NOISES, OUTPUT, MAX_SOURCES, SPEECH_AS_NOISE, DEBUG):
 
                 # Add varying number of noise sources
                 noise_source_paths = dataset_builder.get_random_noise()
-                noise_pos_list = dataset_builder.generate_random_position(room, source_pos, True)
+                noise_pos_list = dataset_builder.generate_random_position(room, source_pos)
 
                 # For each noise get name, RIR and ground truth
                 noise_name_list = []
-                noise_RIR_list = []
+                noise_rir_list = []
                 noise_gt_list = []
-                for noise_source_path, noise_pos in zip (noise_source_paths, noise_pos_list):
+                for noise_source_path, noise_pos in zip(noise_source_paths, noise_pos_list):
                     noise_name_list.append(noise_source_path.split('\\')[-1].split('.')[0])
                     noise_audio = dataset_builder.read_audio_file(noise_source_path)
                     noise_with_rir = dataset_builder.generate_and_apply_rirs(noise_audio, noise_pos, room)
-                    noise_RIR_list.append(noise_with_rir)
+                    noise_rir_list.append(noise_with_rir)
                     noise_gt_list.append(dataset_builder.generate_ground_truth(noise_with_rir))
 
                 # Combine noises and get gt
-                combined_noise_rir = dataset_builder.combine_sources(noise_RIR_list)
+                combined_noise_rir = dataset_builder.combine_sources(noise_rir_list)
                 combined_noise_gt = dataset_builder.generate_ground_truth(combined_noise_rir)
 
                 # Combine source with noises
@@ -99,12 +96,12 @@ if __name__ == '__main__':
         "-x", "--xtra_speech", action="store_true", help="Add speech as possible noise sources"
     )
     parser.add_argument(
-        "-m",
-        "--max_sources",
+        "-c",
+        "--noise_count",
         action="store",
-        type=int,
-        default=1,
-        help="Maximum number of interfering sources (and noises) to add",
+        nargs='+',
+        default=[5, 10],
+        help="Range of noise count to add to audio (ex. '-c 5 10' to have 5 to 10 noise sources)",
     )
 
     args = parser.parse_args()
@@ -124,11 +121,15 @@ if __name__ == '__main__':
     if output_subfolder == 'tkinter':
         output_subfolder = filedialog.askdirectory(title="Output folder")
 
+    # noise count to int
+    for i in range(len(args.noise_count)):
+        args.noise_count[i] = int(args.noise_count[i])
+
     main(
         source_subfolder,
         noise_subfolder,
         output_subfolder,
-        args.max_sources,
+        args.noise_count,
         args.xtra_speech,
         args.debug
     )

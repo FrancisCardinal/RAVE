@@ -1,23 +1,19 @@
 import glob
 import os
-
-import rir_generator as rir
 import yaml
+
 import numpy as np
 from scipy import signal
-import soundfile as sf
-
 import matplotlib.pyplot as plt
 
-from pyodas.utils import TYPES, sqrt_hann
-from pyodas.core import SpatialCov, Stft
-# from pyodas.visualize import Spectrogram, Monitor
+import soundfile as sf
+import rir_generator as rir
+from pyodas.utils import sqrt_hann
+
 
 SIDE_ID = 0         # X
 DEPTH_ID = 1         # Y
 HEIGHT_ID = 2         # Z
-
-CONFIG_PATH = 'C:\\GitProjet\\RAVE\\library\\RAVE\\src\\RAVE\\audio\\Dataset\\DatasetBuilder_config.yaml'
 
 SAMPLE_RATE = 16000
 FRAME_SIZE = 512
@@ -25,36 +21,46 @@ STFT_WINDOW = 'hann'
 
 SOUND_MARGIN = 0.5       # Assume every sound source is margins away from receiver and each other
 
+
 class AudioDatasetBuilder:
     """
     Class which handles the generation of the audio dataset through the randomization of sources and various
     parameters passed through DatasetBuilder_config and input_path yaml files.
 
     Args:
-        dataset_size (int): Number of dataset items to generate
+        sources_path (str): Path to sources directory.
+        noises_path (str): Path to noise directory.
+        output_path (str): Path to output directory.
+        noise_count_range (list(int, int)): Range of number of noises.
+        speech_noise (bool): Whether to use speech as noise.
+        debug (bool): Run in debug mode.
     """
 
     user_pos = []
     source_direction = []
     room = []
     receiver_height = 1.5
-    receiver_rel = np.array(              # Receiver (microphone) positions relative to "user" [x, y, z] (m)
-                    ([-0.05, 0, 0],
-                     [0.05, 0, 0]))
+    receiver_rel = np.array(                # Receiver (microphone) positions relative to "user" [x, y, z] (m)
+                            ([-0.05, 0, 0],
+                             [0.05, 0, 0])
+                            )
     c = 340                                 # Sound velocity (m/s)
     reverb_time = 0.4                       # Reverberation time (s)
-    nsample = 4096                          # Number of output samples
+    n_sample = 4096                          # Number of output samples
 
-    def __init__(self, sources_path, noises_path, output_path, max_noise_sources, speech_noise, debug):
-        self.receiver_abs = None                        # Variable that will be used for receiver positions in room.
-        self.max_noise_sources = max_noise_sources      # Maximum number of noise sources in one output segment
-        self.speech_noise = speech_noise                # Bool controlling if noise sources can be speech
-        self.max_source_distance = 5                    # Maximum distance from source to receiver
-        self.is_debug = debug                           # Sets debug flag
+    def __init__(self, sources_path, noises_path, output_path, noise_count_range, speech_noise, debug):
+        self.receiver_abs = None
+        self.noise_count_range = noise_count_range
+        self.noise_count = noise_count_range[0]
+        self.speech_noise = speech_noise
+        self.max_source_distance = 5
+        self.is_debug = debug
+
         self.n_channels = len(self.receiver_rel)
 
         # Load params/configs
-        with open(CONFIG_PATH, "r") as stream:
+        config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'DatasetBuilder_config.yaml')
+        with open(config_path, "r") as stream:
             try:
                 self.configs = yaml.safe_load(stream)
             except yaml.YAMLError as exc:
@@ -64,6 +70,8 @@ class AudioDatasetBuilder:
         # Load input sources paths (speech, noise)
         self.source_paths = glob.glob(os.path.join(sources_path, '*.wav'))
         self.noise_paths = glob.glob(os.path.join(noises_path, '*.wav'))
+        self.noise_speech_paths = self.noise_paths.copy()
+        self.noise_speech_paths.extend(self.source_paths)
 
         # Prepare output subfolder
         self.output_subfolder = output_path
@@ -81,9 +89,13 @@ class AudioDatasetBuilder:
             audio_signal (ndarray): Audio read from path of length chunk_size
             sample_frequency (int): Audio file sample frequency
         """
-        # TODO: CHANGE SAMPLE_RATE IF NOT OK
-        audio_signal = sf.read(file_path)
-        # audio_signal = sf.read(file_path, samplerate=SAMPLE_RATE)
+        audio_signal, fs = sf.read(file_path)
+
+        # TODO: Find how to handle if sample rate not at 16 000 (current dataset is all ok)
+        if fs != SAMPLE_RATE:
+            print(f"ERROR: Sample rate of files ({fs}) do not concord with SAMPLE RATE={SAMPLE_RATE}")
+            exit()
+
         return audio_signal
 
     @staticmethod
@@ -140,13 +152,13 @@ class AudioDatasetBuilder:
             stft_x: STFT of input signal x.
         """
         frame_size = 1024
-        chunk_size = frame_size / 2
+        chunk_size = frame_size // 2
         window = sqrt_hann(chunk_size)
 
         f, t, stft_x = signal.stft(signal_x[0], SAMPLE_RATE, window, chunk_size, nfft=frame_size)
 
         if self.is_debug:
-            plt.pcolormesh(t, f, np.abs(stft_x), shading='gouraud')
+            plt.pcolormesh(t, f, np.abs(stft_x), shading='gouraud', title=signal_name)
             plt.title('STFT Magnitude')
             plt.ylabel('Frequency [Hz]')
             plt.xlabel('Time [sec]')
@@ -173,7 +185,7 @@ class AudioDatasetBuilder:
             receiver_center = receiver + self.user_pos
             self.receiver_abs.append(receiver_center.tolist())
 
-    def generate_random_position(self, room, source_pos=np.array([]), multiple_noise=False):
+    def generate_random_position(self, room, source_pos=np.array([])):
         """
         Generates position for sound source (either main source or noise) inside room.
         Checks to not superpose source with receiver, and noise with either source and receiver.
@@ -181,7 +193,6 @@ class AudioDatasetBuilder:
         Args:
             room (ndarray): Dimension of room (max position).
             source_pos (ndarray): Position of source, in order to not superpose with noise (None if source).
-            multiple_noise (bool): Generate multiple noise positions or not.
         Returns:
             Returns random position (or position list if more than one) for sound source.
         """
@@ -199,12 +210,11 @@ class AudioDatasetBuilder:
             return random_pos
 
         else:
-            # TODO: Check if more intelligent way to do than loop
-            # TODO: Make sure noises are not superposed
+            # TODO: Make sure noises are not superposed (maybe useful?)
             # Sources can be anywhere in room except on source or receiver
             random_pos_list = []
-            noise_count = self.max_noise_sources if multiple_noise else 1
-            for noise_i in range(noise_count):
+            for noise_i in range(self.noise_count):
+                # TODO: Check if more intelligent way to do than loop
                 while len(random_pos_list) == noise_i:
                     random_pos = np.array([np.random.rand(), np.random.rand(), np.random.rand()])
                     random_pos *= room
@@ -223,7 +233,7 @@ class AudioDatasetBuilder:
                         side_src_bounds = [source_pos[SIDE_ID]-SOUND_MARGIN, source_pos[SIDE_ID]+SOUND_MARGIN]
                         depth_src_bounds = [source_pos[DEPTH_ID]-SOUND_MARGIN, source_pos[DEPTH_ID]+SOUND_MARGIN]
                         if side_src_bounds[0] <= random_pos[SIDE_ID] <= side_src_bounds[1] and \
-                             depth_src_bounds[0] <= random_pos[DEPTH_ID] <= depth_src_bounds[1]:
+                           depth_src_bounds[0] <= random_pos[DEPTH_ID] <= depth_src_bounds[1]:
                             continue
 
                     # If not on source or user, add position to random position list
@@ -232,10 +242,31 @@ class AudioDatasetBuilder:
             return random_pos_list
 
     def get_random_noise(self, number_noises=None):
-        if not number_noises:
-            number_noises = self.max_noise_sources
-        random_indices = np.random.randint(0, len(self.noise_paths), number_noises)
-        noise_path_list = [self.noise_paths[i] for i in random_indices]
+        """
+        Gets random noises to be added to audio clip.
+
+        Args:
+            number_noises: Number of noises to use (if specified, overrides self.noise_count).
+
+        Returns:
+            List of paths to noises (and/or speech) to use.
+        """
+        # Set noise count for this round
+        if number_noises:
+            self.noise_count = number_noises
+        else:
+            self.noise_count -= self.noise_count[0] + 1
+            self.noise_count = self.noise_count % (self.noise_count[1]-self.noise_count[0]) + self.noise_count[0]
+
+        # Use noise + speech list if allowed in args
+        if self.speech_noise:
+            noise_list = self.noise_speech_paths
+        else:
+            noise_list = self.noise_paths
+
+        # Get random indices and return items in new list
+        random_indices = np.random.randint(0, len(noise_list), self.noise_count)
+        noise_path_list = [noise_list[i] for i in random_indices]
         return noise_path_list
 
     def save_files(self, combined_signal, combined_gt, source_name, source_gt, source_pos,
@@ -248,7 +279,9 @@ class AudioDatasetBuilder:
             combined_gt: STFT of combined audio signal.
             source_name: Name of source sample used.
             source_gt: STFT of source signal.
+            source_pos: Source position.
             noise_names: List of names of noise samples.
+            noise_pos: List of noise positions.
             noise_gts: List of STFT of noise signals.
             combined_noise_gt: STFT of combined noise signals.
         Returns:
@@ -326,10 +359,15 @@ class AudioDatasetBuilder:
             s=source_pos,                           # Source position [x y z] (m)
             L=room,                                 # Room dimensions [x y z] (m)
             reverberation_time=self.reverb_time,    # Reverberation time (s)
-            nsample=self.nsample,                   # Number of output samples
+            nsample=self.n_sample,                   # Number of output samples
         )
 
         # Apply RIR to signal
         source_with_rir = self.apply_rir(rirs, source_audio)
 
         return source_with_rir
+
+
+    def generate_single_file(self):
+        # TODO: GENERATE A SINGLE FILE FOR ON THE RUN GENERATION
+        pass
