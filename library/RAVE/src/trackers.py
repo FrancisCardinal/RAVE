@@ -24,11 +24,11 @@ OPENCV_TRACKERS = {
     # Older tracker, low accuracy
     "mil": cv2.TrackerMIL_create,
     # NOTE: Could not find a working version
-    # "boosting": cv2.TrackerBoosting_create,
+    "boosting": cv2.legacy.TrackerBoosting_create,
     # NOTE: Could not find a working version
-    # "tld": cv2.TrackerTLD_create,
+    "tld": cv2.legacy.TrackerTLD_create,
     # NOTE: Could not find a working version
-    # "medianflow": cv2.TrackerMedianFlow_create,
+    "medianflow": cv2.legacy.TrackerMedianFlow_create,
 }
 
 
