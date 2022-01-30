@@ -1,13 +1,17 @@
 import Button from "@mui/material/Button";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
-import { useState } from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import {MenuIcon} from "../../Ressources/icons";
+import PropTypes from 'prop-types';
 
-function NavMenu({ className }) {
-	const [t, i18n] = useTranslation('common');
+NavMenu.propTypes = {
+  className: PropTypes.string,
+};
+function NavMenu(props) {
+	const [t] = useTranslation('common');
 	const [anchorEl, setAnchorEl] = useState(null);
 	const open = Boolean(anchorEl);
   const handleClick = (event) => {
@@ -18,7 +22,7 @@ function NavMenu({ className }) {
 	};
 
 	return (
-    <div className={className}>
+    <div className={props.className}>
       <Button
         id="menu-button"
 				color="error"
