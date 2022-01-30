@@ -9,7 +9,12 @@
  - Remove the style attribute and replace it with className
  - Export the component
 */
+import React from "react";
+import PropTypes from "prop-types";
 
+HomeIcon.propTypes = {
+  className: PropTypes.string,
+}
 export function HomeIcon({ className }) {
   return (
     <svg className={className} viewBox="0 0 24 24">
@@ -20,7 +25,9 @@ export function HomeIcon({ className }) {
     </svg>
   );
 }
-
+SettingsIcon.propTypes = {
+  className: PropTypes.string,
+}
 export function SettingsIcon({ className }) {
   return (
     <svg className={className} viewBox="0 0 24 24">
@@ -31,7 +38,9 @@ export function SettingsIcon({ className }) {
     </svg>
   );
 }
-
+HelpIcon.propTypes = {
+  className: PropTypes.string,
+}
 export function HelpIcon({ className }) {
   return (
     <svg className={className} viewBox="0 0 24 24">
@@ -42,7 +51,9 @@ export function HelpIcon({ className }) {
     </svg>
   );
 }
-
+MuteIcon.propTypes = {
+  className: PropTypes.string,
+}
 export function MuteIcon({ className }) {
   return (
     <svg className={className} viewBox="0 0 24 24">
@@ -52,7 +63,9 @@ export function MuteIcon({ className }) {
     </svg>
   );
 }
-
+VolumeDown.propTypes = {
+  className: PropTypes.string,
+}
 export function VolumeDown({ className }) {
   return (
     <svg className={className} viewBox="0 0 24 24">
@@ -62,7 +75,9 @@ export function VolumeDown({ className }) {
     </svg>
   );
 }
-
+VolumeUp.propTypes = {
+  className: PropTypes.string,
+} 
 export function VolumeUp({ className }) {
   return (
     <svg className={className} viewBox="0 0 24 24">
@@ -72,13 +87,39 @@ export function VolumeUp({ className }) {
     </svg>
   );
 }
-
+MenuIcon.propTypes = {
+  className: PropTypes.string,
+}
 export function MenuIcon({ className }) {
   return (
     <svg className={className} viewBox="0 0 24 24">
     <path 
       fill="currentColor" 
       d="M3,6H21V8H3V6M3,11H21V13H3V11M3,16H21V18H3V16Z" />
+</svg>
+  );
+}
+WifiCheckedIcon.propTypes = {
+  className: PropTypes.string,
+}
+export function WifiCheckedIcon({ className }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24">
+      <path 
+        fill="green" 
+        d="M12 12C9.97 12 8.1 12.67 6.6 13.8L4.8 11.4C6.81 9.89 9.3 9 12 9S17.19 9.89 19.2 11.4L17.92 13.1C17.55 13.17 17.18 13.27 16.84 13.41C15.44 12.5 13.78 12 12 12M21 9L22.8 6.6C19.79 4.34 16.05 3 12 3S4.21 4.34 1.2 6.6L3 9C5.5 7.12 8.62 6 12 6S18.5 7.12 21 9M12 15C10.65 15 9.4 15.45 8.4 16.2L12 21L13.04 19.61C13 19.41 13 19.21 13 19C13 17.66 13.44 16.43 14.19 15.43C13.5 15.16 12.77 15 12 15M17.75 19.43L16.16 17.84L15 19L17.75 22L22.5 17.25L21.34 15.84L17.75 19.43Z" />
+    </svg>
+  );
+}
+NoWifiConnectionIcon.propTypes = {
+  className: PropTypes.string,
+}
+export function NoWifiConnectionIcon(props) {
+  return (
+    <svg className={props.className} viewBox="0 0 24 24">
+    <path 
+      fill="red" 
+      d="M12 12C9.97 12 8.1 12.67 6.6 13.8L4.8 11.4C6.81 9.89 9.3 9 12 9S17.19 9.89 19.2 11.4L17.92 13.1C17.55 13.17 17.18 13.27 16.84 13.41C15.44 12.5 13.78 12 12 12M21 9L22.8 6.6C19.79 4.34 16.05 3 12 3S4.21 4.34 1.2 6.6L3 9C5.5 7.12 8.62 6 12 6S18.5 7.12 21 9M12 15C10.65 15 9.4 15.45 8.4 16.2L12 21L13.04 19.61C13 19.41 13 19.21 13 19C13 17.66 13.44 16.43 14.19 15.43C13.5 15.16 12.77 15 12 15M21.12 15.46L19 17.59L16.88 15.47L15.47 16.88L17.59 19L15.47 21.12L16.88 22.54L19 20.41L21.12 22.54L22.54 21.12L20.41 19L22.54 16.88L21.12 15.46Z" />
 </svg>
   );
 }

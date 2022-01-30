@@ -1,5 +1,6 @@
-import NavMenu from './NavMenu'
-import RAVE from '../../Ressources/RAVE.png'
+import NavMenu from './NavMenu';
+import RAVE from '../../Ressources/RAVE.png';
+import React from 'react';
 
 export function MobileMainBar() {
   return (
