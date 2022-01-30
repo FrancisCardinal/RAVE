@@ -1,7 +1,7 @@
 import EyeTrackingMode from '../../Components/UI/EyeTrackingMode';
 import MuteButton from '../../Components/UI/MuteButton';
 import VolumeSlider from '../../Components/UI/VolumeSlider';
-import groupe from '../../Ressources/groupe.jpg';
+import Stream from '../../Components/UI/Stream';
 import { BrowserView, MobileView } from 'react-device-detect';
 import { useTranslation } from 'react-i18next';
 import React from 'react';
