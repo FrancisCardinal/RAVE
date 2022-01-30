@@ -3,10 +3,15 @@ import Box from '@mui/material/Box';
 import Select from '@mui/material/Select';
 import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
-import { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import PropTypes from 'prop-types';
 
-function LanguageSelection({ className }) {
+LanguageSelection.propTypes = {
+  className: PropTypes.string,
+};
+
+function LanguageSelection(props) {
   const [t, i18n] = useTranslation('common');
   const [language, setLanguage] = useState(i18n.language);
   const handleChange = (event) => {
@@ -15,7 +20,7 @@ function LanguageSelection({ className }) {
   };
 
   return (
-    <div className={className}>
+    <div className={props.className}>
       <Box sx={{ minWidth: 120 }}>
         <FormControl fullWidth color="error">
           <InputLabel color="error" id="language-select-label">

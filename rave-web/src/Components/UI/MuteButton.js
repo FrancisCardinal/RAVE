@@ -1,5 +1,6 @@
 import { MuteIcon } from "../../Ressources/icons";
 import IconButton from "@mui/material/Button";
+import React, { useContext, useEffect, useState } from "react";
 
 function MuteButton() {
 	return(

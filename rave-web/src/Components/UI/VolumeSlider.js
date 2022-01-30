@@ -1,7 +1,7 @@
 import Stack from '@mui/material/Stack';
 import { VolumeDown, VolumeUp } from '../../Ressources/icons';
 import Slider from '@mui/material/Slider';
-import { useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 
 function VolumeSlider() {
 	const [value, setValue] = useState(30);

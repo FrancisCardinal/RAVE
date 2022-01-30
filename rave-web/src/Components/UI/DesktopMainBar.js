@@ -1,9 +1,10 @@
 import RAVE from '../../Ressources/RAVE.png'
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import React from 'react';
 
 function DesktopMainBar() {
-	const [t, i18n] = useTranslation('common');
+	const [t] = useTranslation('common');
 	return (
 	<nav className='flex flex-row bg-grey text-black font-mono inset-x-0 top-0 items-center'>
 		<img className='w-10 h-full' src={RAVE} alt="raves logo"/>
