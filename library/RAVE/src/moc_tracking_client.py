@@ -25,8 +25,13 @@ def send_data(frame, face_bboxes, sio):
     start = time.time()
     boundingBoxes = []
     for index, bbox in enumerate(face_bboxes):
-        boundingBoxes.append(
-            {"id": index, "dx": int(bbox[0]), "dy": int(bbox[1]), "width": int(bbox[2]), "height": int(bbox[3])})
+        boundingBoxes.append({
+            "id": index,
+            "dx": int(bbox[0]),
+            "dy": int(bbox[1]),
+            "width": int(bbox[2]),
+            "height": int(bbox[3])
+        })
 
     if len(face_bboxes) > 0:
         # cv2.imshow("faces", np.concatenate(face_images, axis=1))
@@ -35,7 +40,10 @@ def send_data(frame, face_bboxes, sio):
         frame_string = base64.b64encode(
             cv2.imencode('.jpg', frame)[1]).decode()
         sio.emit("newFrameAvailable", {
-                 "frame": frame_string, "dimensions": frame.shape, "boundingBoxes": boundingBoxes})
+                 "frame": frame_string,
+                 "dimensions": frame.shape,
+                 "boundingBoxes": boundingBoxes
+                 })
 
     end = time.time()
     print("Time elapsed:", end - start)
