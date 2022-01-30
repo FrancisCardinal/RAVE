@@ -2,9 +2,6 @@ import cv2
 import time
 import socketio
 import base64
-
-# import numpy as np
-
 from face_detectors import DnnFaceDetector
 
 # Simulate the output to be expected from the face tracker
@@ -34,8 +31,6 @@ def send_data(frame, face_bboxes, sio):
         })
 
     if len(face_bboxes) > 0:
-        # cv2.imshow("faces", np.concatenate(face_images, axis=1))
-        # cv2.waitKey(1)
         print("Sending data to server...")
         frame_string = base64.b64encode(
             cv2.imencode('.jpg', frame)[1]).decode()
