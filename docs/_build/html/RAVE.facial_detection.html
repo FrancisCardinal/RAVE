@@ -44,7 +44,7 @@
 <li class="toctree-l2 current"><a class="current reference internal" href="#">facial_detection</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#module-RAVE.face_detection.FaceDetectionDataset">FaceDetectionDataset</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#module-RAVE.face_detection.FaceDetectionModel">FaceDetectionModel</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#fpshelper">FpsHelper</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-RAVE.face_detection.fpsHelper">FpsHelper</a></li>
 </ul>
 </li>
 </ul>
@@ -202,8 +202,45 @@
 </dd></dl>
 
 </section>
-<section id="fpshelper">
-<h2>FpsHelper<a class="headerlink" href="#fpshelper" title="Permalink to this headline"></a></h2>
+<section id="module-RAVE.face_detection.fpsHelper">
+<span id="fpshelper"></span><h2>FpsHelper<a class="headerlink" href="#module-RAVE.face_detection.fpsHelper" title="Permalink to this headline"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="RAVE.face_detection.fpsHelper.FPS">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">FPS</span></span><a class="headerlink" href="#RAVE.face_detection.fpsHelper.FPS" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Class to compute the FPS</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.face_detection.fpsHelper.FPS.getFps">
+<span class="sig-name descname"><span class="pre">getFps</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.face_detection.fpsHelper.FPS.getFps" title="Permalink to this definition"></a></dt>
+<dd><p>Accessor for the FPS</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.face_detection.fpsHelper.FPS.setFps">
+<span class="sig-name descname"><span class="pre">setFps</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.face_detection.fpsHelper.FPS.setFps" title="Permalink to this definition"></a></dt>
+<dd><p>Computes the FPS</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.face_detection.fpsHelper.FPS.start">
+<span class="sig-name descname"><span class="pre">start</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.face_detection.fpsHelper.FPS.start" title="Permalink to this definition"></a></dt>
+<dd><p>To reset the start time, can be used if the part we want to compute is
+not right after the init.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.face_detection.fpsHelper.FPS.writeFpsToFrame">
+<span class="sig-name descname"><span class="pre">writeFpsToFrame</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">frame</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.face_detection.fpsHelper.FPS.writeFpsToFrame" title="Permalink to this definition"></a></dt>
+<dd><p>Write the FPS to an OpenCV image.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>frame</strong> (<em>ndarray</em>) – Image with shape (height, width, 3)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 </section>
 

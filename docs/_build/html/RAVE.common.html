@@ -634,6 +634,24 @@ Both sets of boxes are expected to be in (x1, y1, x2, y2) format.
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="RAVE.common.image_utils.intersection">
+<span class="sig-name descname"><span class="pre">intersection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bbox1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bbox2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.image_utils.intersection" title="Permalink to this definition"></a></dt>
+<dd><p>Intersection of the 2 bounding boxes scaled by the smallest area of the
+2 bounding boxes</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>bbox1</strong> (<em>np.ndarray</em>) – xywh coords</p></li>
+<li><p><strong>bbox2</strong> (<em>np.ndarray</em>) – xywh coords</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Intersection scaled</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="RAVE.common.image_utils.inverse_normalize">
 <span class="sig-name descname"><span class="pre">inverse_normalize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mean</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">std</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.image_utils.inverse_normalize" title="Permalink to this definition"></a></dt>
 <dd><p>Undo the normalization operation that was performed on an image when

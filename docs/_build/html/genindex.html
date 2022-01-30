@@ -85,6 +85,7 @@
  | <a href="#T"><strong>T</strong></a>
  | <a href="#U"><strong>U</strong></a>
  | <a href="#V"><strong>V</strong></a>
+ | <a href="#W"><strong>W</strong></a>
  | <a href="#X"><strong>X</strong></a>
  
 </div>
@@ -203,16 +204,18 @@
 </li>
       <li><a href="RAVE.facial_detection.html#RAVE.face_detection.FaceDetectionDataset.FaceDetectionDataset">FaceDetectionDataset (class in RAVE.face_detection.FaceDetectionDataset)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="RAVE.facial_detection.html#RAVE.face_detection.FaceDetectionModel.FaceDetectionModel">FaceDetectionModel (class in RAVE.face_detection.FaceDetectionModel)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="RAVE.eye_tracker.html#RAVE.eye_tracker.EyeTrackerModel.EyeTrackerModel.forward">forward() (EyeTrackerModel method)</a>
 
       <ul>
         <li><a href="RAVE.facial_detection.html#RAVE.face_detection.FaceDetectionModel.FaceDetectionModel.forward">(FaceDetectionModel method)</a>
 </li>
       </ul></li>
+      <li><a href="RAVE.facial_detection.html#RAVE.face_detection.fpsHelper.FPS">FPS (class in RAVE.face_detection.fpsHelper)</a>
+</li>
   </ul></td>
 </tr></table>
 
@@ -237,8 +240,6 @@
 </li>
       <li><a href="RAVE.eye_tracker.html#RAVE.eye_tracker.ellipse_util.get_points_of_ellipses">get_points_of_ellipses() (in module RAVE.eye_tracker.ellipse_util)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="RAVE.common.html#RAVE.common.Dataset.Dataset.get_test_sub_dataset">get_test_sub_dataset() (Dataset static method)</a>
 
       <ul>
@@ -247,6 +248,8 @@
         <li><a href="RAVE.facial_detection.html#RAVE.face_detection.FaceDetectionDataset.FaceDetectionDataset.get_test_sub_dataset">(FaceDetectionDataset static method)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="RAVE.common.html#RAVE.common.Dataset.Dataset.get_training_sub_dataset">get_training_sub_dataset() (Dataset static method)</a>
 
       <ul>
@@ -263,6 +266,8 @@
         <li><a href="RAVE.facial_detection.html#RAVE.face_detection.FaceDetectionDataset.FaceDetectionDataset.get_validation_sub_dataset">(FaceDetectionDataset static method)</a>
 </li>
       </ul></li>
+      <li><a href="RAVE.facial_detection.html#RAVE.face_detection.fpsHelper.FPS.getFps">getFps() (FPS method)</a>
+</li>
   </ul></td>
 </tr></table>
 
@@ -280,6 +285,8 @@
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="RAVE.common.html#RAVE.common.Dataset.Dataset.IMAGES_FILE_EXTENSION">IMAGES_FILE_EXTENSION (Dataset attribute)</a>
+</li>
+      <li><a href="RAVE.common.html#RAVE.common.image_utils.intersection">intersection() (in module RAVE.common.image_utils)</a>
 </li>
       <li><a href="RAVE.facial_detection.html#RAVE.face_detection.FaceDetectionModel.FaceDetectionModel.INTERSECTION_OVER_UNION_THRESHOLD">INTERSECTION_OVER_UNION_THRESHOLD (FaceDetectionModel attribute)</a>
 </li>
@@ -332,6 +339,8 @@
         <li><a href="RAVE.facial_detection.html#module-RAVE.face_detection.FaceDetectionDataset">RAVE.face_detection.FaceDetectionDataset</a>
 </li>
         <li><a href="RAVE.facial_detection.html#module-RAVE.face_detection.FaceDetectionModel">RAVE.face_detection.FaceDetectionModel</a>
+</li>
+        <li><a href="RAVE.facial_detection.html#module-RAVE.face_detection.fpsHelper">RAVE.face_detection.fpsHelper</a>
 </li>
       </ul></li>
   </ul></td>
@@ -420,8 +429,6 @@
         <li><a href="RAVE.eye_tracker.html#module-RAVE.eye_tracker.EyeTrackerDataset">module</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     RAVE.eye_tracker.EyeTrackerDatasetBuilder
 
@@ -429,6 +436,8 @@
         <li><a href="RAVE.eye_tracker.html#module-RAVE.eye_tracker.EyeTrackerDatasetBuilder">module</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     RAVE.eye_tracker.EyeTrackerModel
 
@@ -457,6 +466,13 @@
         <li><a href="RAVE.facial_detection.html#module-RAVE.face_detection.FaceDetectionModel">module</a>
 </li>
       </ul></li>
+      <li>
+    RAVE.face_detection.fpsHelper
+
+      <ul>
+        <li><a href="RAVE.facial_detection.html#module-RAVE.face_detection.fpsHelper">module</a>
+</li>
+      </ul></li>
       <li><a href="RAVE.common.html#RAVE.common.DatasetBuilder.DatasetBuilder.ROOT_PATH">ROOT_PATH (DatasetBuilder attribute)</a>
 </li>
       <li><a href="RAVE.eye_tracker.html#RAVE.eye_tracker.NormalizedEllipse.NormalizedEllipse.rotate_around_image_center">rotate_around_image_center() (NormalizedEllipse method)</a>
@@ -471,11 +487,15 @@
 </li>
       <li><a href="RAVE.common.html#RAVE.common.Trainer.Trainer.save_model_and_training_info">save_model_and_training_info() (Trainer method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="RAVE.common.html#RAVE.common.image_utils.scale_coords">scale_coords() (in module RAVE.common.image_utils)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="RAVE.common.html#RAVE.common.image_utils.scale_coords_landmarks">scale_coords_landmarks() (in module RAVE.common.image_utils)</a>
+</li>
+      <li><a href="RAVE.facial_detection.html#RAVE.face_detection.fpsHelper.FPS.setFps">setFps() (FPS method)</a>
+</li>
+      <li><a href="RAVE.facial_detection.html#RAVE.face_detection.fpsHelper.FPS.start">start() (FPS method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -538,6 +558,14 @@
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="RAVE.common.html#RAVE.common.DatasetBuilder.DatasetBuilder.VIDEOS_DIR">VIDEOS_DIR (DatasetBuilder attribute)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="W">W</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="RAVE.facial_detection.html#RAVE.face_detection.fpsHelper.FPS.writeFpsToFrame">writeFpsToFrame() (FPS method)</a>
 </li>
   </ul></td>
 </tr></table>
