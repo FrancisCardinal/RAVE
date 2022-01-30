@@ -12,7 +12,7 @@ const io = new Server(server, {
 });
 
 // Faces array
-let mostRecentFaces = [];
+let mostRecentFrame = {};
 
 // Python script socket
 let pythonSocket = undefined;
@@ -21,7 +21,9 @@ let pythonSocketId = "";
 io.on("connection", (socket) => {
   console.log("New socket connection : ", socket.id);
 
-  socket.emit("onFacesUpdate", mostRecentFaces);
+  socket.on("requestNewFrame", () => {
+    console.log("a new user requested the first frame");
+  });
 
   socket.on("forceRefresh", () => {
     console.log(socket.id + " requested a forceRefresh");
@@ -32,7 +34,7 @@ io.on("connection", (socket) => {
       return;
     }
     pythonSocket && pythonSocket.emit("forceRefresh");
-    socket.emit("onFacesUpdate", mostRecentFaces);
+    socket.emit("onFrameUpdate", mostRecentFrame);
   });
 
   // The python script should send a pythonSocket event right after connect
@@ -48,12 +50,12 @@ io.on("connection", (socket) => {
     }
   });
 
-  // Python socket will emit new faces when available or when a force request is emitted
-  socket.on("newFacesAvailable", (newFaces) => {
+  // Python socket will emit new frames when available or when a force request is emitted
+  socket.on("newFrameAvailable", (newFrame) => {
     // Save the most recent faces
-    mostRecentFaces = newFaces;
+    mostRecentFrame = newFrame;
     // Send them to the clients
-    io.emit("onFacesUpdate", mostRecentFaces);
+    io.emit("onFrameUpdate", mostRecentFrame);
   });
 });
 

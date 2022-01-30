@@ -23,25 +23,19 @@ def send_data(frame, face_bboxes, sio):
     # faces_bbox: list of bounding boxes for each face
     #   [list of tuples]: (x, y, width, height)
     start = time.time()
-    face_images = []  # Individual images of the faces
+    boundingBoxes = []
     for index, bbox in enumerate(face_bboxes):
-        # Note: bboxes are in (x,y,w,h) format
-        x0, y0 = bbox[0], bbox[1]
-        x1, y1 = x0 + bbox[2], y0 + bbox[3]
-        face_image = frame[y0:y1, x0:x1]
+        boundingBoxes.append(
+            {"id": index, "dx": int(bbox[0]), "dy": int(bbox[1]), "width": int(bbox[2]), "height": int(bbox[3])})
 
-        # Resize
-        face_image = cv2.resize(face_image, (150, 150))
-        image_string = base64.b64encode(
-            cv2.imencode('.jpg', face_image)[1]).decode()
-        face_images.append({"img": image_string, "id": index, "dx": int(
-            x0), "dy": int(y0), "width": int(x1), "height": int(y1)})
-
-    if len(face_images) > 0:
+    if len(face_bboxes) > 0:
         # cv2.imshow("faces", np.concatenate(face_images, axis=1))
         # cv2.waitKey(1)
         print("Sending data to server...")
-        sio.emit("newFacesAvailable", face_images)
+        frame_string = base64.b64encode(
+            cv2.imencode('.jpg', frame)[1]).decode()
+        sio.emit("newFrameAvailable", {
+                 "frame": frame_string, "dimensions": frame.shape, "boundingBoxes": boundingBoxes})
 
     end = time.time()
     print("Time elapsed:", end - start)
@@ -50,7 +44,6 @@ def send_data(frame, face_bboxes, sio):
 # Get faces from saved image (OPTION 1)
 def image_detect(detect_func, image_path, freq, sio):
     original_frame = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
-
     last_detect = 0
     frame = None
     while True:
