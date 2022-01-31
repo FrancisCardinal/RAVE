@@ -106,8 +106,11 @@ class TrackedObject:
 
     def reset(self, frame, bbox, mouth):
         self.tracker_started = False  # Tracker is not ready to use
-        self.tracker = TrackerFactory.create(self._tracker_type)
-        self.tracker.start(frame, bbox)
+        if self._tracker_type == "sort":
+            self.tracker.update_tracker(bbox)
+        else:
+            self.tracker = TrackerFactory.create(self._tracker_type)
+            self.tracker.start(frame, bbox)
         self.bbox = bbox
         self.update_landmark(mouth)
         self.tracker_started = True  # Tracker is ready to use
