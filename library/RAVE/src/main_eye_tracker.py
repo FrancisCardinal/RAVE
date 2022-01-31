@@ -1,6 +1,11 @@
 import torch
 import cv2
 import argparse
+from tqdm import tqdm
+import matplotlib.pyplot as plt
+import pickle
+import os 
+from PIL import Image
 
 from RAVE.common import Trainer
 from RAVE.common.image_utils import tensor_to_opencv_image, inverse_normalize
@@ -77,7 +82,7 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST, GPU_INDE
         trainer = Trainer(
             training_loader,
             validation_loader,
-            ellipse_loss_function,
+            torch.nn.MSELoss(),
             DEVICE,
             eye_tracker_model,
             optimizer,
@@ -105,7 +110,7 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST, GPU_INDE
             pin_memory=True,
             persistent_workers=True,
         )
-        visualize_predictions(eye_tracker_model, test_loader, DEVICE)
+        compute_test_loss(eye_tracker_model, test_loader, DEVICE)
 
 
 def visualize_predictions(model, data_loader, DEVICE):
@@ -137,6 +142,56 @@ def visualize_predictions(model, data_loader, DEVICE):
 
                 cv2.imshow("validation", image)
                 cv2.waitKey(1500)
+
+def compute_test_loss(model, data_loader, device):
+    with torch.no_grad():
+        model.eval()
+
+        root = '/home/rave/RAVE/library/RAVE/src/RAVE/eye_tracker/dataset/test/'
+        gaze_x_ground_truths = [] 
+        gaze_y_ground_truths = [] 
+
+        number_of_images = 1200
+        x_mean_error, y_mean_error = 0, 0 
+        x_preds, y_preds = [], []
+        for i in range(number_of_images):
+            label = pickle.load(open(root + 'labels/' + str(i) + '.bin', "rb"))
+            x_gt = label['out_angles'][0]
+            y_gt = label['out_angles'][1]
+            gaze_x_ground_truths.append(x_gt)
+            gaze_y_ground_truths.append(y_gt)
+
+            # Forward Pass
+            image_path = os.path.join(root + 'images/', str(i)+'.png')
+            image = Image.open(image_path)
+            image = data_loader.dataset.PRE_PROCESS_TRANSFORM(image)
+            image = data_loader.dataset.NORMALIZE_TRANSFORM(image)
+            image = image.unsqueeze(0) 
+
+            predictions = model(image.to(device))
+
+            x_pred, y_pred = predictions[:, 0]*44, predictions[:, 1]*20
+
+            x_mean_error += (torch.abs(x_gt-x_pred)).sum()
+            y_mean_error += (torch.abs(y_gt-y_pred)).sum()
+
+            [ x_preds.append(x) for x in x_pred.cpu() ]
+            [ y_preds.append(x) for x in y_pred.cpu() ]
+
+        print ("x_mean_error  = {}".format(x_mean_error/number_of_images) )
+        print ("y_mean_error  = {}".format(y_mean_error/number_of_images) )
+
+        plt.figure(0)
+        plt.plot( range(len(gaze_x_ground_truths)), gaze_x_ground_truths )
+        plt.plot( range(len(x_preds)), x_preds )
+
+        plt.figure(1)
+        plt.plot( range(len(gaze_y_ground_truths)), gaze_y_ground_truths )
+        plt.plot( range(len(y_preds)), y_preds )
+        plt.show(block=True)
+
+
+        #print ("test loss = {}".format(validation_loss / number_of_images) )
 
 
 if __name__ == "__main__":

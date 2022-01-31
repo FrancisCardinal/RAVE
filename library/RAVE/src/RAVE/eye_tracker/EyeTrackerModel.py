@@ -21,6 +21,9 @@ class EyeTrackerModel(nn.Module):
         for param in self.model.parameters():
             param.requires_grad = False
 
+        for param in self.model.layer2.parameters():
+            param.requires_grad = True
+
         for param in self.model.layer3.parameters():
             param.requires_grad = True
 
@@ -29,7 +32,7 @@ class EyeTrackerModel(nn.Module):
 
         n_inputs = self.model.fc.in_features
 
-        DROPOUT = 0.05
+        DROPOUT = 0.0125
         self.model.fc = nn.Sequential(
             nn.Linear(n_inputs, 512),
             nn.BatchNorm1d(num_features=512),
@@ -47,7 +50,7 @@ class EyeTrackerModel(nn.Module):
             nn.BatchNorm1d(num_features=64),
             nn.ReLU(),
             nn.Dropout(DROPOUT),
-            nn.Linear(64, 5),
+            nn.Linear(64, 2),
         )
 
     def forward(self, x):
@@ -70,5 +73,5 @@ class EyeTrackerModel(nn.Module):
                 The predictions of the network (ellipses parameters)
         """
         x = self.model(x)
-        x = torch.sigmoid(x)
+        x = torch.tanh(x)
         return x
