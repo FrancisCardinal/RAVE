@@ -359,3 +359,64 @@ def intersection(bbox1, bbox2):
     )
 
     return inter_area / smallest_area
+
+
+def check_frontal_face(
+    facial_landmarks,
+    thresh_dist_low=0.7,
+    thresh_dist_high=1.3,
+    thresh_high_std=0.5,
+):
+    """
+    Taken from Tan M. Tran, Nguyen H. Tran, Soan T. M. Duong, Huy D. Ta,
+    Chanh D. Tr. Nguyen,Trung Bui, and Steven Q. H. Truong,
+    ReSORT: an ID-recovery multi-face tracking method for surveillance cameras,
+    IEEE, 2021
+
+    Args:
+        facial_landmarks:
+        thresh_dist_low: Width, height ratio threshold lower bound
+        thresh_dist_high: Width, height ratio threshold higher bound
+        thresh_high_std: Diagonal distance threshold
+
+    Returns:
+        (bool): If the faces is frontal or not
+
+    """
+    if (
+        facial_landmarks[2][0] < facial_landmarks[0][0]
+        or facial_landmarks[2][1] < facial_landmarks[0][1]
+        or facial_landmarks[2][0] < facial_landmarks[3][0]
+        or facial_landmarks[2][1] > facial_landmarks[3][1]
+        or facial_landmarks[2][0] > facial_landmarks[1][0]
+        or facial_landmarks[2][1] < facial_landmarks[1][1]
+        or facial_landmarks[2][0] > facial_landmarks[4][0]
+        or facial_landmarks[2][1] > facial_landmarks[4][1]
+    ):
+        return False
+
+    wide_dist = np.linalg.norm(
+        np.array(facial_landmarks[0]) - np.array(facial_landmarks[1])
+    )
+    high_dist = np.linalg.norm(
+        np.array(facial_landmarks[0]) - np.array(facial_landmarks[3])
+    )
+    dist_rate = high_dist / wide_dist
+
+    # cal std
+    vec_A = np.array(facial_landmarks[0]) - np.array(facial_landmarks[2])
+    vec_C = np.array(facial_landmarks[3]) - np.array(facial_landmarks[2])
+    dist_A = np.linalg.norm(vec_A)
+    dist_C = np.linalg.norm(vec_C)
+
+    # cal rate
+    high_rate = dist_A / dist_C
+    high_ratio_std = np.fabs(high_rate - 1.1)  # smaller is better
+
+    if (
+        dist_rate < thresh_dist_low
+        or dist_rate > thresh_dist_high
+        or high_ratio_std > thresh_high_std
+    ):
+        return False
+    return True
