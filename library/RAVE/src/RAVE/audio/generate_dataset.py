@@ -3,62 +3,12 @@ from tkinter import filedialog
 
 from audio import AudioDatasetBuilder
 
-SAMPLES_PER_SPEECH = 1
-
 
 # Script used to generate the audio dataset
-def main(SOURCES, NOISES, OUTPUT, MAX_SOURCES, SPEECH_AS_NOISE, DEBUG):
-    dataset_builder = AudioDatasetBuilder(SOURCES, NOISES, OUTPUT, MAX_SOURCES, SPEECH_AS_NOISE, DEBUG)
-
-    # For each room
-    for room in dataset_builder.rooms:
-        # TODO: Add random position for user (receivers) (if judged an addition to neural network)
-        # Generate receiver positions from room dimensions
-        dataset_builder.generate_abs_receivers(room)
-
-        # Run through every source
-        for source_path in dataset_builder.source_paths:
-            source_name = source_path.split('\\')[-1].split('.')[0]  # Get filename for source (before extension '.')
-            source_audio = dataset_builder.read_audio_file(source_path)
-
-            # Run SAMPLES_PER_SPEECH samples per speech clip
-            for _ in range(SAMPLES_PER_SPEECH):
-                # Generate source audio and RIR
-                source_pos = dataset_builder.generate_random_position(room)
-                source_with_rir = dataset_builder.generate_and_apply_rirs(source_audio, source_pos, room)
-                source_gt = dataset_builder.generate_ground_truth(source_with_rir)
-
-                # Add varying number of noise sources
-                noise_source_paths = dataset_builder.get_random_noise()
-                noise_pos_list = dataset_builder.generate_random_position(room, source_pos)
-
-                # For each noise get name, RIR and ground truth
-                noise_name_list = []
-                noise_rir_list = []
-                noise_gt_list = []
-                for noise_source_path, noise_pos in zip(noise_source_paths, noise_pos_list):
-                    noise_name_list.append(noise_source_path.split('\\')[-1].split('.')[0])
-                    noise_audio = dataset_builder.read_audio_file(noise_source_path)
-                    noise_with_rir = dataset_builder.generate_and_apply_rirs(noise_audio, noise_pos, room)
-                    noise_rir_list.append(noise_with_rir)
-                    noise_gt_list.append(dataset_builder.generate_ground_truth(noise_with_rir))
-
-                # Combine noises and get gt
-                combined_noise_rir = dataset_builder.combine_sources(noise_rir_list)
-                combined_noise_gt = dataset_builder.generate_ground_truth(combined_noise_rir)
-
-                # Combine source with noises
-                audio = [source_with_rir, combined_noise_rir]
-                combined_audio = dataset_builder.combine_sources(audio)
-                combined_gt = dataset_builder.generate_ground_truth(combined_audio)
-
-                # Save element to dataset
-                subfolder_path = dataset_builder.save_files(combined_audio, combined_gt,
-                                                            source_name, source_gt, source_pos,
-                                                            noise_name_list, noise_pos_list, noise_gt_list,
-                                                            combined_noise_gt)
-
-                print("Created: " + subfolder_path)
+def main(SOURCES, NOISES, OUTPUT, MAX_SOURCES, SPEECH_AS_NOISE, SAMPLE_COUNT, DEBUG):
+    dataset_builder = AudioDatasetBuilder(SOURCES, NOISES, OUTPUT, MAX_SOURCES, SPEECH_AS_NOISE, SAMPLE_COUNT, DEBUG)
+    file_count = dataset_builder.generate_dataset(save_run=True)
+    print(f"Finished generating dataset. Generated {file_count} files into {OUTPUT}.")
 
 
 if __name__ == '__main__':
@@ -67,6 +17,7 @@ if __name__ == '__main__':
         "-d", "--debug", action="store_true", help="Run in debug mode"
     )
 
+    # Path variables
     parser.add_argument(
         "-s",
         "--sources",
@@ -92,6 +43,17 @@ if __name__ == '__main__':
         help="Absolute path to output dataset folder",
     )
 
+    # Speech variables
+    parser.add_argument(
+        "-a",
+        "--sample_count",
+        action="store",
+        type=int,
+        default=25,
+        help="Number of samples to use per speech source.",
+    )
+
+    # Noise variables
     parser.add_argument(
         "-x", "--xtra_speech", action="store_true", help="Add speech as possible noise sources"
     )
@@ -131,5 +93,6 @@ if __name__ == '__main__':
         output_subfolder,
         args.noise_count,
         args.xtra_speech,
+        args.sample_count,
         args.debug
     )

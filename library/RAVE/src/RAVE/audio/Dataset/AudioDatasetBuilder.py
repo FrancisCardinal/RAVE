@@ -38,7 +38,7 @@ class AudioDatasetBuilder:
 
     user_pos = []
     source_direction = []
-    room = []
+    current_room = []
     receiver_height = 1.5
     receiver_rel = np.array(                # Receiver (microphone) positions relative to "user" [x, y, z] (m)
                             ([-0.05, 0, 0],
@@ -46,16 +46,18 @@ class AudioDatasetBuilder:
                             )
     c = 340                                 # Sound velocity (m/s)
     reverb_time = 0.4                       # Reverberation time (s)
-    n_sample = 4096                          # Number of output samples
+    n_sample = 4096                         # Number of output samples
 
-    def __init__(self, sources_path, noises_path, output_path, noise_count_range, speech_noise, debug):
-        self.receiver_abs = None
+    def __init__(self, sources_path, noises_path, output_path, noise_count_range,
+                 speech_noise, sample_per_speech, debug):
         self.noise_count_range = noise_count_range
-        self.noise_count = noise_count_range[0]
         self.speech_noise = speech_noise
-        self.max_source_distance = 5
+        self.sample_per_speech = sample_per_speech
         self.is_debug = debug
 
+        self.receiver_abs = None
+        self.noise_count = noise_count_range[0]
+        self.max_source_distance = 5
         self.n_channels = len(self.receiver_rel)
 
         # Load params/configs
@@ -76,6 +78,9 @@ class AudioDatasetBuilder:
         # Prepare output subfolder
         self.output_subfolder = output_path
         os.makedirs(self.output_subfolder, exist_ok=True)
+
+        # Prepare lists for run-time generation
+        self.runtime_list = []
 
     @staticmethod
     def read_audio_file(file_path):
@@ -175,7 +180,7 @@ class AudioDatasetBuilder:
             room (list[float, float, float]): Room dimensions in which to place receivers (x, y, z) (m).
         """
         # Get only middle of x and y values, assume z is fixed at human height
-        self.room = room
+        self.current_room = room
         room_np = np.array([room[:-1]])
         self.user_pos = np.append(room_np / 2, self.receiver_height)
 
@@ -320,18 +325,7 @@ class AudioDatasetBuilder:
 
         # Save yaml file with configs
         config_dict_file_name = os.path.join(subfolder_path, 'configs.yaml')
-        config_dict = dict(
-            path=subfolder_path,
-            n_channels=self.n_channels,
-            microphones=self.receiver_abs,
-            room=self.room,
-            user_pos=self.user_pos.tolist(),
-            source_pos=np.around(source_pos, 3).tolist(),
-            noise_pos=[np.around(i, 3).tolist() for i in noise_pos],
-            source=source_name,
-            source_dir=np.around(self.source_direction, 3).tolist(),
-            noise=noise_names
-        )
+        config_dict = self.generate_config_dict(subfolder_path, source_pos, noise_pos, source_name, noise_names)
         with open(config_dict_file_name, 'w') as outfile:
             yaml.dump(config_dict, outfile, default_flow_style=None)
 
@@ -345,7 +339,7 @@ class AudioDatasetBuilder:
 
         Args:
             source_audio (ndarray): Audio file.
-            source_pos (list[float, float, float]): Source position ([x y z] (m))
+            source_pos (ndarray): Source position ([x y z] (m))
             room (list[float, float, float]): Room dimensions ([x y z] (m))
         Returns:
             source_with_rir: Source signal with RIRs applied (shape is [channels,
@@ -367,7 +361,180 @@ class AudioDatasetBuilder:
 
         return source_with_rir
 
+    def generate_config_dict(self, subfolder_name, source_pos, noise_pos, source_name, noise_names):
+        """
+        Generates dict about config for run.
 
-    def generate_single_file(self):
-        # TODO: GENERATE A SINGLE FILE FOR ON THE RUN GENERATION
-        pass
+        Args:
+            subfolder_name (str): Output subfolder path (contains source and nosie names if in real-time).
+            source_pos (ndarray): Source positions.
+            noise_pos(list[ndarray]): Noise positions (list).
+            source_name (str): Name of source audio file used.
+            noise_names (list[str]): List of names of noise audio files used.
+
+        Returns:
+            Dict with all useful info for run.
+        """
+        config_dict = dict(
+            path=subfolder_name,
+            n_channels=self.n_channels,
+            microphones=self.receiver_abs,
+            room=self.current_room,
+            user_pos=self.user_pos.tolist(),
+            source_pos=np.around(source_pos, 3).tolist(),
+            noise_pos=[np.around(i, 3).tolist() for i in noise_pos],
+            source=source_name,
+            source_dir=np.around(self.source_direction, 3).tolist(),
+            noise=noise_names
+        )
+        return config_dict
+
+    def generate_single_run(self, room=None, source=None, noise=None, number_noises=None):
+        """
+        Generate a single audio file.
+
+        Args:
+            room(list[int, int, int]): Room dimensions to use.
+            source (str): Source path to use.
+            noise (list[str]): Noise paths to use.
+
+        Returns:
+            Dictionary containing single audio file with ground truths and configs.
+        """
+        # Get random room if not given
+        if not room:
+            random_index = np.random.randint(0, len(self.rooms))
+            room = self.rooms[random_index]
+        self.generate_abs_receivers(room)
+
+        # Get random source if not given
+        if source:
+            source_path = source
+        else:
+            random_index = np.random.randint(0, len(self.source_paths))
+            source_path = self.source_paths[random_index]
+        source_name = source_path.split('\\')[-1].split('.')[0]
+        source_audio = self.read_audio_file(source_path)
+        source_pos = self.generate_random_position(room)
+        source_with_rir = self.generate_and_apply_rirs(source_audio, source_pos, room)
+        source_gt = self.generate_ground_truth(source_with_rir)
+
+        # Get random noises if not given
+        if noise:
+            noise_path_list = noise
+        else:
+            noise_path_list = self.get_random_noise(number_noises)
+        noise_pos_list = self.generate_random_position(room, source_pos)
+        # For each noise get name, RIR and ground truth
+        noise_name_list = []
+        noise_rir_list = []
+        for noise_source_path, noise_pos in zip(noise_path_list, noise_pos_list):
+            noise_name_list.append(noise_source_path.split('\\')[-1].split('.')[0])
+            noise_audio = self.read_audio_file(noise_source_path)
+            noise_with_rir = self.generate_and_apply_rirs(noise_audio, noise_pos, room)
+            noise_rir_list.append(noise_with_rir)
+
+        # Combine noises and get gt
+        combined_noise_rir = self.combine_sources(noise_rir_list)
+        combined_noise_gt = self.generate_ground_truth(combined_noise_rir)
+
+        # Combine source with noises
+        audio = [source_with_rir, combined_noise_rir]
+        combined_audio = self.combine_sources(audio)
+        combined_gt = self.generate_ground_truth(combined_audio)
+
+        # Save data to dict
+        run_name = f'{source_name}'
+        for noise_name in noise_name_list:
+            run_name += '_' + noise_name
+        config_dict = self.generate_config_dict(run_name, source_pos, noise_pos_list,
+                                                source_name, noise_name_list)
+        run_dict = dict()
+        run_dict['audio'] = combined_audio
+        run_dict['combined_audio_gt'] = combined_gt
+        run_dict['source'] = source_gt
+        run_dict['noise'] = combined_noise_gt
+        run_dict['configs'] = config_dict
+
+        return run_dict
+
+    def generate_dataset(self, save_run):
+        """
+        Main dataset generator function. Loops over rooms and sources and generates dataset.
+
+        Args:
+            save_run (bool): Save dataset to memory or not
+
+        Returns:
+            file_count: Number of audio files (subfolders) generated.
+        """
+        file_count = 0
+        # For each room
+        for room in self.rooms:
+            # TODO: Add random position for user (receivers) (if judged an addition to neural network)
+            # Generate receiver positions from room dimensions
+            self.generate_abs_receivers(room)
+
+            # Run through every source
+            for source_path in self.source_paths:
+                source_name = source_path.split('\\')[-1].split('.')[0]  # Get filename for source (before extension)
+                source_audio = self.read_audio_file(source_path)
+
+                # Run SAMPLES_PER_SPEECH samples per speech clip
+                for _ in range(self.sample_per_speech):
+                    file_count += 1
+                    # Generate source audio and RIR
+                    source_pos = self.generate_random_position(room)
+                    source_with_rir = self.generate_and_apply_rirs(source_audio, source_pos, room)
+                    source_gt = self.generate_ground_truth(source_with_rir)
+
+                    # Add varying number of noise sources
+                    noise_source_paths = self.get_random_noise()
+                    noise_pos_list = self.generate_random_position(room, source_pos)
+
+                    # For each noise get name, RIR and ground truth
+                    noise_name_list = []
+                    noise_rir_list = []
+                    noise_gt_list = []
+                    for noise_source_path, noise_pos in zip(noise_source_paths, noise_pos_list):
+                        noise_name_list.append(noise_source_path.split('\\')[-1].split('.')[0])
+                        noise_audio = self.read_audio_file(noise_source_path)
+                        noise_with_rir = self.generate_and_apply_rirs(noise_audio, noise_pos, room)
+                        noise_rir_list.append(noise_with_rir)
+                        if self.is_debug:
+                            noise_gt_list.append(self.generate_ground_truth(noise_with_rir))
+
+                    # Combine noises and get gt
+                    combined_noise_rir = self.combine_sources(noise_rir_list)
+                    combined_noise_gt = self.generate_ground_truth(combined_noise_rir)
+
+                    # Combine source with noises
+                    audio = [source_with_rir, combined_noise_rir]
+                    combined_audio = self.combine_sources(audio)
+                    combined_gt = self.generate_ground_truth(combined_audio)
+
+                    # Save elements
+                    if save_run:
+                        subfolder_path = self.save_files(combined_audio, combined_gt,
+                                                         source_name, source_gt, source_pos,
+                                                         noise_name_list, noise_pos_list, noise_gt_list,
+                                                         combined_noise_gt)
+                        print("Created: " + subfolder_path)
+                    else:
+                        # Generate config dict
+                        run_name = f'{source_name}'
+                        for noise_name in noise_name_list:
+                            run_name += '_' + noise_name
+                        config_dict = self.generate_config_dict(run_name, source_pos, noise_pos_list,
+                                                                source_name, noise_name_list)
+
+                        # Generate dict to represent 1 element
+                        run_dict = dict()
+                        run_dict['audio'] = combined_audio
+                        run_dict['combined_audio_gt'] = combined_gt
+                        run_dict['source'] = source_gt
+                        run_dict['noise'] = combined_noise_gt
+                        run_dict['configs'] = config_dict
+                        self.runtime_list.append(run_dict)
+
+        return file_count
