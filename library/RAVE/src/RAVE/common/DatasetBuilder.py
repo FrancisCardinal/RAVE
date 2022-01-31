@@ -192,7 +192,7 @@ class DatasetBuilder(ABC):
         Returns:
             pytorch tensor: The processed frame
         """
-        im_pil = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+        im_pil = Image.fromarray(frame)
         output_image_tensor = self.RESIZE_TRANSFORM(im_pil)
 
         return output_image_tensor

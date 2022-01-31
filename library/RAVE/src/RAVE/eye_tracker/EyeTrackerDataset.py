@@ -18,7 +18,7 @@ class EyeTrackerDataset(Dataset):
 
     EYE_TRACKER_DIR_PATH = os.path.join("RAVE", "eye_tracker")
     TRAINING_MEAN, TRAINING_STD = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
-    IMAGE_DIMENSIONS = (1, 224, 299)
+    IMAGE_DIMENSIONS = (1, 240, 320)
 
     def __init__(self, sub_dataset_dir):
         super().__init__(
@@ -28,6 +28,27 @@ class EyeTrackerDataset(Dataset):
             sub_dataset_dir,
             EyeTrackerDataset.IMAGE_DIMENSIONS,
         )
+
+    def __getitem__(self, idx):
+        """
+        Method of the Dataset class that must be overwritten by this class.
+        Used to get an image and label pair
+
+        Args:
+            idx (int): Index of the pair to get
+
+        Returns:
+            tuple: Image and label pair
+        """
+        image, label = self.get_image_and_label_on_disk(idx)
+        label = label["ellipse"]
+
+        image = self.PRE_PROCESS_TRANSFORM(image)
+
+        image = self.NORMALIZE_TRANSFORM(image)
+        label = torch.tensor(label)
+
+        return image, label
 
     @staticmethod
     def get_training_sub_dataset():
@@ -95,6 +116,7 @@ class EyeTrackerDatasetOnlineDataAugmentation(Dataset):
             tuple: Image and label pair
         """
         image, label = self.get_image_and_label_on_disk(idx)
+        label = label["ellipse"]
 
         image = self.PRE_PROCESS_TRANSFORM(image)
 
