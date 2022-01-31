@@ -16,9 +16,6 @@ DEPTH_ID = 1         # Y
 HEIGHT_ID = 2         # Z
 
 SAMPLE_RATE = 16000
-FRAME_SIZE = 512
-STFT_WINDOW = 'hann'
-
 SOUND_MARGIN = 0.5       # Assume every sound source is margins away from receiver and each other
 
 
@@ -471,7 +468,7 @@ class AudioDatasetBuilder:
         file_count = 0
         # For each room
         for room in self.rooms:
-            # TODO: Add random position for user (receivers) (if judged an addition to neural network)
+            # TODO: Add random position for user (receivers) (if judged useful)
             # Generate receiver positions from room dimensions
             self.generate_abs_receivers(room)
 
