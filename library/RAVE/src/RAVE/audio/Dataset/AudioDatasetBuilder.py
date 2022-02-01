@@ -25,8 +25,8 @@ class AudioDatasetBuilder:
     parameters passed through DatasetBuilder_config and input_path yaml files.
 
     Args:
-        sources_path (str): Path to sources directory.
-        noises_path (str): Path to noise directory.
+        sources_path (str): Path to sources directory. If None, gets folder from config file.
+        noises_path (str): Path to noise directory. If None, gets folder from config file.
         output_path (str): Path to output directory.
         noise_count_range (list(int, int)): Range of number of noises.
         speech_noise (bool): Whether to use speech as noise.
@@ -47,6 +47,8 @@ class AudioDatasetBuilder:
 
     def __init__(self, sources_path, noises_path, output_path, noise_count_range,
                  speech_noise, sample_per_speech, debug):
+
+        # Set object values from arguments
         self.noise_count_range = noise_count_range
         self.speech_noise = speech_noise
         self.sample_per_speech = sample_per_speech
@@ -58,7 +60,7 @@ class AudioDatasetBuilder:
         self.n_channels = len(self.receiver_rel)
 
         # Load params/configs
-        config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'DatasetBuilder_config.yaml')
+        config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'dataset_config.yaml')
         with open(config_path, "r") as stream:
             try:
                 self.configs = yaml.safe_load(stream)
@@ -77,13 +79,12 @@ class AudioDatasetBuilder:
         os.makedirs(self.output_subfolder, exist_ok=True)
 
         # Prepare lists for run-time generation
-        self.runtime_list = []
+        self.dataset_list = []
 
     @staticmethod
     def read_audio_file(file_path):
         """
-        Reads and extracts audio from a file. Uses PyODAS WavSource class
-        <https://introlab.github.io/pyodas/_build/html/pyodas/io/io.sources.html#module-pyodas.io.sources.wav_source>.
+        Reads and extracts audio from a file.
 
         Args:
             file_path (str): Path to audio file
@@ -516,7 +517,9 @@ class AudioDatasetBuilder:
                                                          source_name, source_gt, source_pos,
                                                          noise_name_list, noise_pos_list, noise_gt_list,
                                                          combined_noise_gt)
-                        print("Created: " + subfolder_path)
+                        self.dataset_list.append(subfolder_path)
+                        if self.is_debug:
+                            print("Created: " + subfolder_path)
                     else:
                         # Generate config dict
                         run_name = f'{source_name}'
@@ -532,6 +535,6 @@ class AudioDatasetBuilder:
                         run_dict['source'] = source_gt
                         run_dict['noise'] = combined_noise_gt
                         run_dict['configs'] = config_dict
-                        self.runtime_list.append(run_dict)
+                        self.dataset_list.append(run_dict)
 
-        return file_count
+        return file_count, self.dataset_list

@@ -5,9 +5,9 @@ from audio import AudioDatasetBuilder
 
 
 # Script used to generate the audio dataset
-def main(SOURCES, NOISES, OUTPUT, MAX_SOURCES, SPEECH_AS_NOISE, SAMPLE_COUNT, DEBUG):
-    dataset_builder = AudioDatasetBuilder(SOURCES, NOISES, OUTPUT, MAX_SOURCES, SPEECH_AS_NOISE, SAMPLE_COUNT, DEBUG)
-    file_count = dataset_builder.generate_dataset(save_run=True)
+def main(SOURCES, NOISES, OUTPUT, NOISE_COUNT, SPEECH_AS_NOISE, SAMPLE_COUNT, DEBUG):
+    dataset_builder = AudioDatasetBuilder(SOURCES, NOISES, OUTPUT, NOISE_COUNT, SPEECH_AS_NOISE, SAMPLE_COUNT, DEBUG)
+    file_count, dataset_list = dataset_builder.generate_dataset(save_run=True)
     print(f"Finished generating dataset. Generated {file_count} files into {OUTPUT}.")
 
 
