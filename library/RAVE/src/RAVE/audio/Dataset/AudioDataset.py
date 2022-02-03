@@ -12,6 +12,7 @@ from audio import AudioDatasetBuilder
 
 MINIMUM_DATASET_LENGTH = 500
 
+
 class AudioDataset(torch.utils.data.Dataset):
     """
     Class handling usage of the audio dataset
