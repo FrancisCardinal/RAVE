@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import HomeScreen from './Screens/Home';
 import SettingsScreen from './Screens/Settings';
 import HelpScreen from './Screens/Help';
+import CalibrationScreen from './Screens/Calibration';
 import { SocketProvider } from './socketContext';
 import io from 'socket.io-client';
 import DesktopMainBar from './Components/UI/DesktopMainBar';
@@ -42,6 +43,7 @@ function App() {
             <Route path="/" element={<HomeScreen />} />
             <Route path="/settings" element={<SettingsScreen />} />
             <Route path="/help" element={<HelpScreen />} />
+            <Route path="/calibration" element={<CalibrationScreen />} />
           </Routes>
         </BrowserRouter>
       </SocketProvider>

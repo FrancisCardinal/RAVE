@@ -13,11 +13,11 @@ function HomeScreen() {
       <div className="p-1">
         <h1 className="text-3xl font-bold underline text-center">{t('homePage.title')}</h1>
       </div>
-      <BrowserView className="flex w-full p-4 rounded-md items-center">
+      <BrowserView className="flex w-3/4 p-4">
         <Stream />
       </BrowserView>
 
-      <MobileView className="flex w-full mx-2 p-3 rounded-md items-center">
+      <MobileView className="flex w-full">
         <Stream />
       </MobileView>
       <div className="flex flex-col relative w-min items-center bottom-0">

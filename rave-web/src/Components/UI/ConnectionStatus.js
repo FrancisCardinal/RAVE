@@ -12,11 +12,10 @@ function ConnectionStatus() {
   useEffect(() => {
     if (ws) {
       ws.on('getConnectionStatus', (newStatus) => {
+        console.log("Status changing")
         setConnectionStatus(newStatus);
       });
-      return () => {
-        ws.close();
-      };
+      
     }
   }, [ws]);
 

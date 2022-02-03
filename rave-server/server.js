@@ -39,7 +39,18 @@ io.on("connection", (socket) => {
     pythonSocket && pythonSocket.emit("forceRefresh");
     socket.emit("onFrameUpdate", mostRecentFrame);
   });
-  
+
+  socket.on("nextCalibTarget", () => {
+      console.log(socket.id + " next calibration target");
+      if (!pythonSocket) {
+        console.log(
+          "A user requested a to change target but the pythonSocket is not connected"
+        );
+        return;
+      }
+      pythonSocket && pythonSocket.emit("onNextCalibTarget");
+  });
+
   socket.on("muteFunction", (muteRequest) => {
     console.log(socket.id + " requested a muteFunction");
     if (!pythonSocket) {
@@ -49,7 +60,7 @@ io.on("connection", (socket) => {
       console.log("Want to mute? ", muteRequest);
       return;
     }
-
+    pythonSocket && pythonSocket.emit("muteFunction", (muteRequest));
   });
 
   socket.on("activateEyeTracking", (setEyeTrackingMode) => {
@@ -74,6 +85,8 @@ io.on("connection", (socket) => {
     }
   });
 
+  
+
   // The python script should send a pythonSocket event right after connect
   // this is a replacement for a full on authentification solution
   socket.on("pythonSocket", (socketId) => {
@@ -81,7 +94,7 @@ io.on("connection", (socket) => {
       pythonSocket = io.sockets.sockets.get(socketId);
       console.log("Python socket authentified : ", socketId);
       newStatus = 2;
-      io.emit('getConnectionStatus', newStatus);
+      //io.emit('getConnectionStatus', newStatus);
     } else {
       console.log(
         "Python socket tried to authenticate itself with an unknown socketId"
@@ -111,7 +124,7 @@ io.on("disconnect", (socket) => {
   if (socket.id === pythonSocketId) {
     console.log("Python socket disconnected");
     newStatus = 0;
-    io.emit('getConnectionStatus', newStatus);
+    // io.emit('getConnectionStatus', newStatus);
   } else {
     console.log("Web client socket closed : ", socket.id);
   }

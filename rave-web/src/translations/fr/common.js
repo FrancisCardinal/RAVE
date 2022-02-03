@@ -2,6 +2,8 @@ const common = {
   homePage: {
     title: 'Écoute assistée',
     eyeTrackingLabel: "Mode suivi de l'oeil",
+    faces: 'Visages :',
+    forceRefresh: 'Actualiser'
   },
   settingsPage: {
     title: 'Réglages',
@@ -11,7 +13,7 @@ const common = {
       english: 'Anglais',
     },
     connectionLabel: 'État de la connexion:',
-    eyeTrackingCalibration: 'Calibration pour le mode eye-tracking'
+    calibration: 'Calibration audio-visuelle',
   },
   helpPage: {
     title: 'Aide',
@@ -26,6 +28,9 @@ const common = {
     homePage: "Accueil",
     settingsPage: "Réglages",
     helpPage: 'Aide',
+  },
+  calibrationPage: {
+    title: 'Calibration audio-visuelle',
   },
 };
 export default common;
