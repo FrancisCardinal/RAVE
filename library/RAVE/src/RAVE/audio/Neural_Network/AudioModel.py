@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+import torchaudio
 
 class AudioModel(nn.Module):
     """
@@ -19,7 +20,13 @@ class AudioModel(nn.Module):
     def forward(self, x):
         #h0 = torch.zeros(self.num_layers*2, x.size(0), self.hidden_size)
         #c0 = torch.zeros(self.num_layers*2, x.size(0), self.hidden_size)
-
+        """
+        # todo: move to datasetloader
+        # x needs to be converted to a concatened tensor of 2 spectograms: the log mean spectogram of the array of mics, the spectogram of delay and sum signal
+        x1 = self.logMeanSpect(x)
+        x2 = self.delayAndSumSpect(x)
+        x = torch.cat(x1, x2, dim=0)
+        """
         x, _ = self.blstm(x)
         x = self.fc(x[:,-1,:])
         x = self.sig(x)

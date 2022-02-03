@@ -1,10 +1,13 @@
 import os
+from numpy import block
 
 import torch
 import argparse
+import matplotlib.pyplot as plt
 
 from RAVE.common.Trainer import Trainer
 from RAVE.audio.Neural_Network.AudioModel import AudioModel
+from RAVE.audio.Dataset.AudioDataset import AudioDataset
 
 def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
     """main function of the module
@@ -27,7 +30,12 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
         DEVICE = "cuda"
     
     # todo: call class method to create dataset if not on disk
-
+    dataset = AudioDataset(dataset_path='/Users/felixducharmeturcotte/Documents')
+    spect = next(iter(dataset))[0]
+    
+    
+    plt.pcolormesh(spect[0], shading='gouraud')
+    plt.show(block=True)
     BATCH_SIZE = 128
 
     # todo: get training subDataset with class method

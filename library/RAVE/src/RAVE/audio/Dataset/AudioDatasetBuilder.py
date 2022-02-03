@@ -18,6 +18,7 @@ HEIGHT_ID = 2         # Z
 SAMPLE_RATE = 16000
 SOUND_MARGIN = 0.5       # Assume every sound source is margins away from receiver and each other
 
+IS_DEBUG = False
 
 class AudioDatasetBuilder:
     """
@@ -52,7 +53,7 @@ class AudioDatasetBuilder:
         self.noise_count_range = [noise_count_range[0], noise_count_range[1]+1]
         self.speech_noise = speech_noise
         self.sample_per_speech = sample_per_speech
-        self.is_debug = debug
+        self.is_debug = IS_DEBUG
 
         self.receiver_abs = None
         self.noise_count = noise_count_range[0]
@@ -510,7 +511,7 @@ class AudioDatasetBuilder:
 
             # Run through every source
             for source_path in self.source_paths:
-                source_name = source_path.split('\\')[-1].split('.')[0]  # Get filename for source (before extension)
+                source_name = source_path.split('/')[-1].split('.')[0]  # Get filename for source (before extension)
                 source_audio_base = self.read_audio_file(source_path)
 
                 # Run SAMPLES_PER_SPEECH samples per speech clip
@@ -528,7 +529,7 @@ class AudioDatasetBuilder:
                     noise_name_list = []
                     noise_audio_list = []
                     for noise_source_path in noise_source_paths:
-                        noise_name_list.append(noise_source_path.split('\\')[-1].split('.')[0])
+                        noise_name_list.append(noise_source_path.split('/')[-1].split('.')[0])
                         noise_audio = self.read_audio_file(noise_source_path)
                         noise_audio_list.append(noise_audio)
 

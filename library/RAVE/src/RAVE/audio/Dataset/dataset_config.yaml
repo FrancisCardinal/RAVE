@@ -2,24 +2,19 @@
 
 # List of various room dimensions
 # Shape [x, y, z] ([left-right, front-back, up-down])
-room:
-  [
-    [10, 10, 10],
-    [20, 20, 20],
-    [30, 30, 30]
-  ]
+room: [[10, 10, 10], [20, 20, 20], [30, 30, 30]]
 
 # Path to folder containing source files
-source_folder: 'C:\\GitProjet\\MS-SNSD\\clean_train'
+source_folder: "/Users/felixducharmeturcotte/Documents/MS-SNSD/clean_train"
 
 # Path to folder containing noise files
-noise_folder: 'C:\\GitProjet\\MS-SNSD\\noise_train'
+noise_folder: "/Users/felixducharmeturcotte/Documents/MS-SNSD/noise_train"
 
 # Range of noises count to add to audio file
-noise_count_range: [5, 10]
+noise_count_range: [1, 1]
 
 # Whether to use speech as noise sources
-speech_as_noise: True
+speech_as_noise: False
 
 # Number of samples to get per speech source
 sample_per_speech: 5
