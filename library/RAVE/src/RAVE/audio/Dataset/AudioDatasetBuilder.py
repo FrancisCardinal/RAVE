@@ -25,8 +25,8 @@ class AudioDatasetBuilder:
     parameters passed through DatasetBuilder_config and input_path yaml files.
 
     Args:
-        sources_path (str): Path to sources directory.
-        noises_path (str): Path to noise directory.
+        sources_path (str): Path to sources directory. If None, gets folder from config file.
+        noises_path (str): Path to noise directory. If None, gets folder from config file.
         output_path (str): Path to output directory.
         noise_count_range (list(int, int)): Range of number of noises.
         speech_noise (bool): Whether to use speech as noise.
@@ -37,17 +37,19 @@ class AudioDatasetBuilder:
     source_direction = []
     current_room = []
     receiver_height = 1.5
-    receiver_rel = np.array(                # Receiver (microphone) positions relative to "user" [x, y, z] (m)
-                            ([-0.05, 0, 0],
-                             [0.05, 0, 0])
-                            )
-    c = 340                                 # Sound velocity (m/s)
-    reverb_time = 0.4                       # Reverberation time (s)
-    n_sample = 4096                         # Number of output samples
+    receiver_rel = np.array((                   # Receiver (microphone) positions relative to "user" [x, y, z] (m)
+                                [-0.05, 0, 0],
+                                [0.05, 0, 0]
+                            ))
+    c = 340                                     # Sound velocity (m/s)
+    reverb_time = 0.4                           # Reverberation time (s)
+    n_sample = 4096                             # Number of output samples
 
     def __init__(self, sources_path, noises_path, output_path, noise_count_range,
                  speech_noise, sample_per_speech, debug):
-        self.noise_count_range = noise_count_range
+
+        # Set object values from arguments
+        self.noise_count_range = [noise_count_range[0], noise_count_range[1]+1]
         self.speech_noise = speech_noise
         self.sample_per_speech = sample_per_speech
         self.is_debug = debug
@@ -58,7 +60,7 @@ class AudioDatasetBuilder:
         self.n_channels = len(self.receiver_rel)
 
         # Load params/configs
-        config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'DatasetBuilder_config.yaml')
+        config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'dataset_config.yaml')
         with open(config_path, "r") as stream:
             try:
                 self.configs = yaml.safe_load(stream)
@@ -77,13 +79,12 @@ class AudioDatasetBuilder:
         os.makedirs(self.output_subfolder, exist_ok=True)
 
         # Prepare lists for run-time generation
-        self.runtime_list = []
+        self.dataset_list = []
 
     @staticmethod
     def read_audio_file(file_path):
         """
-        Reads and extracts audio from a file. Uses PyODAS WavSource class
-        <https://introlab.github.io/pyodas/_build/html/pyodas/io/io.sources.html#module-pyodas.io.sources.wav_source>.
+        Reads and extracts audio from a file.
 
         Args:
             file_path (str): Path to audio file
@@ -112,11 +113,11 @@ class AudioDatasetBuilder:
             output(ndarray): Every RIR applied to monosignal
         """
         channels = rirs.shape[1]
-        frames = in_signal[0].shape[0]
+        frames = len(in_signal)
         output = np.empty((channels, frames))
 
         for channel_index in range(channels):
-            output[channel_index] = signal.convolve(in_signal[0], rirs[:, channel_index])[:frames]
+            output[channel_index] = signal.convolve(in_signal, rirs[:, channel_index])[:frames]
         return output
 
     @staticmethod
@@ -129,44 +130,66 @@ class AudioDatasetBuilder:
         Returns:
             combined_audio: Combined source with noises. Shape is like source (channels, [signal])
         """
-        # Get length of shortest audio
-        array_lengths = []
-        for audio_array in audios:
-            array_lengths.append(len(audio_array[0]))
-        max_length, small_array_idx = min(array_lengths), np.argmin(array_lengths)
-
-        combined_audio = audios[small_array_idx]
-        for audio in (audios[:small_array_idx] + audios[small_array_idx:]):
+        combined_audio = audios[0]
+        for audio in (audios[1:]):
             for combined_channel, noise_channel in zip(combined_audio, audio):
-                combined_channel += noise_channel[:max_length]
+                combined_channel += noise_channel
 
         return combined_audio
 
-    def generate_ground_truth(self, signal_x, signal_name=''):
+    @staticmethod
+    def truncate_sources(source, noise_list):
+        """
+        Method used to truncate audio sources to smallest one.
+
+        Args:
+            source (list[ndarray]): Speech source. Shape is (channels, [signal])
+            noise_list (list[list[ndarray]]): All noise sources. Shape is (noise_count, channels, [signal])
+        Returns:
+            Truncated speech source and noise source list
+        """
+        # Get length of shortest audio
+        shortest = len(source)
+        for noise in noise_list:
+            if len(noise) < shortest:
+                shortest = len(noise)
+
+        trunc_source = source[:shortest]
+        trunc_noise_list = []
+        for noise in noise_list:
+            trunc_noise = noise[:shortest]
+            trunc_noise_list.append(trunc_noise)
+
+        return trunc_source, trunc_noise_list
+
+    def generate_ground_truth(self, signal_x, title=''):
         """
         Determines the spectrogram of the input temporal signal through the  Short Term Fourier Transform (STFT)
         use as ground truth for dataset.
 
         Args:
             signal_x (ndarray): Signal on which to get spectrogram.
-            signal_name (str): Name of signal to plot on debug spectrogram.
+            title (str): Title used for spectrogram plot (in debug mode only).
         Returns:
-            stft_x: STFT of input signal x.
+            stft_list: List of channels of STFT of input signal x.
         """
         frame_size = 1024
         chunk_size = frame_size // 2
         window = sqrt_hann(chunk_size)
 
-        f, t, stft_x = signal.stft(signal_x[0], SAMPLE_RATE, window, chunk_size, nfft=frame_size)
+        stft_list = []
+        for channel_idx, channel in enumerate(signal_x):
+            f, t, stft_x = signal.stft(channel, SAMPLE_RATE, window, chunk_size, nfft=frame_size)
+            stft_list.append(stft_x)
 
-        if self.is_debug:
-            plt.pcolormesh(t, f, np.abs(stft_x), shading='gouraud', title=signal_name)
-            plt.title('STFT Magnitude')
-            plt.ylabel('Frequency [Hz]')
-            plt.xlabel('Time [sec]')
-            plt.show()
+            if self.is_debug:
+                plt.pcolormesh(t, f, np.abs(stft_x), shading='gouraud')
+                plt.title(title+f' Channel_{channel_idx}')
+                plt.ylabel('Frequency [Hz]')
+                plt.xlabel('Time [sec]')
+                plt.show()
 
-        return stft_x
+        return stft_list
 
     def generate_abs_receivers(self, room):
         """
@@ -187,7 +210,7 @@ class AudioDatasetBuilder:
             receiver_center = receiver + self.user_pos
             self.receiver_abs.append(receiver_center.tolist())
 
-    def generate_random_position(self, room, source_pos=np.array([])):
+    def get_random_position(self, room, source_pos=np.array([])):
         """
         Generates position for sound source (either main source or noise) inside room.
         Checks to not superpose source with receiver, and noise with either source and receiver.
@@ -257,8 +280,10 @@ class AudioDatasetBuilder:
         if number_noises:
             self.noise_count = number_noises
         else:
-            self.noise_count -= self.noise_count[0] + 1
-            self.noise_count = self.noise_count % (self.noise_count[1]-self.noise_count[0]) + self.noise_count[0]
+            self.noise_count -= self.noise_count_range[0]
+            self.noise_count += 1
+            self.noise_count = self.noise_count % (self.noise_count_range[1]-self.noise_count_range[0])
+            self.noise_count += self.noise_count_range[0]
 
         # Use noise + speech list if allowed in args
         if self.speech_noise:
@@ -331,7 +356,8 @@ class AudioDatasetBuilder:
     def generate_and_apply_rirs(self, source_audio, source_pos, room):
         """
         Function that generates Room Impulse Responses (RIRs) to source signal positions and applies them to signals.
-        See <https://pypi.org/project/rir-generator/>. Will have to look later on at
+        See <https://pypi.org/project/rir-generator/>.
+        Will have to look later on at
         <https://github.com/DavidDiazGuerra/gpuRIR#simulatetrajectory> for moving sources.
 
         Args:
@@ -363,7 +389,7 @@ class AudioDatasetBuilder:
         Generates dict about config for run.
 
         Args:
-            subfolder_name (str): Output subfolder path (contains source and nosie names if in real-time).
+            subfolder_name (str): Output subfolder path (contains source and noise names if in real-time).
             source_pos (ndarray): Source positions.
             noise_pos(list[ndarray]): Noise positions (list).
             source_name (str): Name of source audio file used.
@@ -394,7 +420,7 @@ class AudioDatasetBuilder:
             room(list[int, int, int]): Room dimensions to use.
             source (str): Source path to use.
             noise (list[str]): Noise paths to use.
-
+            number_noises (int): Force a number of noises.
         Returns:
             Dictionary containing single audio file with ground truths and configs.
         """
@@ -412,33 +438,43 @@ class AudioDatasetBuilder:
             source_path = self.source_paths[random_index]
         source_name = source_path.split('\\')[-1].split('.')[0]
         source_audio = self.read_audio_file(source_path)
-        source_pos = self.generate_random_position(room)
-        source_with_rir = self.generate_and_apply_rirs(source_audio, source_pos, room)
-        source_gt = self.generate_ground_truth(source_with_rir)
+        source_pos = self.get_random_position(room)
 
         # Get random noises if not given
         if noise:
             noise_path_list = noise
         else:
             noise_path_list = self.get_random_noise(number_noises)
-        noise_pos_list = self.generate_random_position(room, source_pos)
+        noise_pos_list = self.get_random_position(room, source_pos)
         # For each noise get name, RIR and ground truth
         noise_name_list = []
-        noise_rir_list = []
+        noise_audio_list = []
         for noise_source_path, noise_pos in zip(noise_path_list, noise_pos_list):
             noise_name_list.append(noise_source_path.split('\\')[-1].split('.')[0])
             noise_audio = self.read_audio_file(noise_source_path)
+            noise_audio_list.append(noise_audio)
+
+        # Truncate audio and noises
+        source_audio, noise_audio_list = self.truncate_sources(source_audio, noise_audio_list)
+
+        # Get audio RIR and ground truth
+        source_with_rir = self.generate_and_apply_rirs(source_audio, source_pos, room)
+        source_gt = self.generate_ground_truth(source_with_rir, 'Speech Source')
+
+        # Get noise RIR
+        noise_rir_list = []
+        for noise_audio, noise_pos in zip(noise_audio_list, noise_pos_list):
             noise_with_rir = self.generate_and_apply_rirs(noise_audio, noise_pos, room)
             noise_rir_list.append(noise_with_rir)
 
         # Combine noises and get gt
         combined_noise_rir = self.combine_sources(noise_rir_list)
-        combined_noise_gt = self.generate_ground_truth(combined_noise_rir)
+        combined_noise_gt = self.generate_ground_truth(combined_noise_rir, 'Combined Noise')
 
         # Combine source with noises
         audio = [source_with_rir, combined_noise_rir]
         combined_audio = self.combine_sources(audio)
-        combined_gt = self.generate_ground_truth(combined_audio)
+        combined_gt = self.generate_ground_truth(combined_audio, 'Combined Audio')
 
         # Save data to dict
         run_name = f'{source_name}'
@@ -475,40 +511,51 @@ class AudioDatasetBuilder:
             # Run through every source
             for source_path in self.source_paths:
                 source_name = source_path.split('\\')[-1].split('.')[0]  # Get filename for source (before extension)
-                source_audio = self.read_audio_file(source_path)
+                source_audio_base = self.read_audio_file(source_path)
 
                 # Run SAMPLES_PER_SPEECH samples per speech clip
                 for _ in range(self.sample_per_speech):
                     file_count += 1
-                    # Generate source audio and RIR
-                    source_pos = self.generate_random_position(room)
-                    source_with_rir = self.generate_and_apply_rirs(source_audio, source_pos, room)
-                    source_gt = self.generate_ground_truth(source_with_rir)
+                    # Generate source position and copy source_audio
+                    source_pos = self.get_random_position(room)
+                    source_audio = source_audio_base.copy()
 
                     # Add varying number of noise sources
                     noise_source_paths = self.get_random_noise()
-                    noise_pos_list = self.generate_random_position(room, source_pos)
+                    noise_pos_list = self.get_random_position(room, source_pos)
 
-                    # For each noise get name, RIR and ground truth
+                    # Get audi for every noise
                     noise_name_list = []
-                    noise_rir_list = []
-                    noise_gt_list = []
-                    for noise_source_path, noise_pos in zip(noise_source_paths, noise_pos_list):
+                    noise_audio_list = []
+                    for noise_source_path in noise_source_paths:
                         noise_name_list.append(noise_source_path.split('\\')[-1].split('.')[0])
                         noise_audio = self.read_audio_file(noise_source_path)
+                        noise_audio_list.append(noise_audio)
+
+                    # Truncate noise and source short to shortest length
+                    source_audio, noise_audio_list = self.truncate_sources(source_audio, noise_audio_list)
+
+                    # Generate source RIR and spectrogram
+                    source_with_rir = self.generate_and_apply_rirs(source_audio, source_pos, room)
+                    source_gt = self.generate_ground_truth(source_with_rir, 'Speech')
+
+                    # Calculate rir for noises
+                    noise_rir_list = []
+                    noise_gt_list = []
+                    for noise_audio, noise_pos in zip(noise_audio_list, noise_pos_list):
                         noise_with_rir = self.generate_and_apply_rirs(noise_audio, noise_pos, room)
                         noise_rir_list.append(noise_with_rir)
-                        if self.is_debug:
-                            noise_gt_list.append(self.generate_ground_truth(noise_with_rir))
+                        # if self.is_debug:
+                        #     noise_gt_list.append(self.generate_ground_truth(noise_with_rir))
 
                     # Combine noises and get gt
                     combined_noise_rir = self.combine_sources(noise_rir_list)
-                    combined_noise_gt = self.generate_ground_truth(combined_noise_rir)
+                    combined_noise_gt = self.generate_ground_truth(combined_noise_rir, 'Noise')
 
                     # Combine source with noises
                     audio = [source_with_rir, combined_noise_rir]
                     combined_audio = self.combine_sources(audio)
-                    combined_gt = self.generate_ground_truth(combined_audio)
+                    combined_gt = self.generate_ground_truth(combined_audio, 'Combined')
 
                     # Save elements
                     if save_run:
@@ -516,7 +563,9 @@ class AudioDatasetBuilder:
                                                          source_name, source_gt, source_pos,
                                                          noise_name_list, noise_pos_list, noise_gt_list,
                                                          combined_noise_gt)
-                        print("Created: " + subfolder_path)
+                        self.dataset_list.append(subfolder_path)
+                        if self.is_debug:
+                            print("Created: " + subfolder_path)
                     else:
                         # Generate config dict
                         run_name = f'{source_name}'
@@ -532,6 +581,6 @@ class AudioDatasetBuilder:
                         run_dict['source'] = source_gt
                         run_dict['noise'] = combined_noise_gt
                         run_dict['configs'] = config_dict
-                        self.runtime_list.append(run_dict)
+                        self.dataset_list.append(run_dict)
 
-        return file_count
+        return file_count, self.dataset_list

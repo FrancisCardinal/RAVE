@@ -37,7 +37,7 @@ class IOManager:
         self.source[source_name] = SOURCE_TYPES[source_type.lower()](**kwargs)
         return self.source[source_name]
 
-    def init_sink(self, sink_name, sink_type, **kwargs):
+    def add_sink(self, sink_name, sink_type, **kwargs):
         """
         Initialize sink to use for output.
         See PyODAS documentation <https://introlab.github.io/pyodas/_build/html/pyodas/io/io.sinks.html>
