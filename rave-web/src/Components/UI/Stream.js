@@ -17,9 +17,6 @@ function Stream() {
         });
         setFrame(newFrame);
       });
-      return () => {
-        ws.close();
-      };
     }
   }, [ws]);
 
