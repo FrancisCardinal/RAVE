@@ -220,7 +220,9 @@ class TrackingManager:
 
         if objects_detections_scores.size > 0:
             # Create matches by minimizing the cost with the 'Hungarian method'
-            row_ind, col_ind = linear_sum_assignment(objects_detections_scores)
+            row_ind, col_ind = linear_sum_assignment(
+                objects_detections_scores, maximize=True
+            )
             for i, object_ind in enumerate(row_ind):
                 detection_ind = col_ind[i]
                 # A face was matched
@@ -229,7 +231,7 @@ class TrackingManager:
 
                 # Verify that score is below the threshold for a match
                 score = objects_detections_scores[object_ind][detection_ind]
-                if score > self._verifier.distance_threshold:
+                if score < self._verifier.distance_threshold:
                     # Above threshold: do not accept match
                     continue
 
