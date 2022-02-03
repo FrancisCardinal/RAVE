@@ -46,8 +46,8 @@ class EyeTrackerDataset(Dataset):
         label = label["ellipse"]
 
         image = self.PRE_PROCESS_TRANSFORM(image)
-
         image = self.NORMALIZE_TRANSFORM(image)
+        
         label = torch.tensor(label)
 
         return image, label
@@ -205,8 +205,9 @@ class EyeTrackerInferenceDataset(EyeTrackerDataset):
 
         return image, success
         """
-        image, _ = self.get_image_and_label_on_disk(idx)
+        image, label = self.get_image_and_label_on_disk(idx)
+
         image = self.PRE_PROCESS_TRANSFORM(image)
         image = self.NORMALIZE_TRANSFORM(image)
 
-        return image, 0
+        return image, torch.tensor(label["ellipse"]), torch.tensor(label["out_angles"])

@@ -132,9 +132,10 @@ class Dataset(torch.utils.data.Dataset):
             List: The list of paths
         """
         paths = os.listdir(directory)
+
         # Just to make sure elements of a given batch don't look alike
-        random.Random(42).shuffle(paths)
-        return np.array([str(i) for i in paths], dtype=np.str)
+        #random.Random(42).shuffle(paths)
+        return np.array([str(i)+'.png' for i in range(len(paths))], dtype=np.str)
 
     @staticmethod
     @abstractmethod
