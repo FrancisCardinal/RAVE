@@ -16,7 +16,7 @@ class EyeTrackerModel(nn.Module):
         """
         super(EyeTrackerModel, self).__init__()
         self.model = torch.hub.load(
-            "pytorch/vision:v0.9.0", "resnet18", pretrained=True
+            "pytorch/vision:v0.9.0", "resnet34", pretrained=True
         )
         for param in self.model.parameters():
             param.requires_grad = False
@@ -29,20 +29,28 @@ class EyeTrackerModel(nn.Module):
 
         n_inputs = self.model.fc.in_features
 
-        DROPOUT = 0.05
+        DROPOUT = 0.01
         self.model.fc = nn.Sequential(
-            nn.Linear(n_inputs, 512),
+            nn.Linear(n_inputs, 1024),
+            nn.BatchNorm1d(num_features=1024),
+            nn.ReLU(),
+            nn.Dropout(DROPOUT),
+
+            nn.Linear(1024, 512),
             nn.BatchNorm1d(num_features=512),
             nn.ReLU(),
             nn.Dropout(DROPOUT),
+
             nn.Linear(512, 256),
             nn.BatchNorm1d(num_features=256),
             nn.ReLU(),
             nn.Dropout(DROPOUT),
+
             nn.Linear(256, 128),
             nn.BatchNorm1d(num_features=128),
             nn.ReLU(),
             nn.Dropout(DROPOUT),
+
             nn.Linear(128, 64),
             nn.BatchNorm1d(num_features=64),
             nn.ReLU(),

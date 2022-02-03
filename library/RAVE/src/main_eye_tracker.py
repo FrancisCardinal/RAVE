@@ -4,6 +4,7 @@ import argparse
 import os
 from PIL import Image
 import pickle
+import random
 
 from RAVE.common import Trainer
 from RAVE.common.image_utils import tensor_to_opencv_image, inverse_normalize
@@ -20,7 +21,7 @@ from RAVE.eye_tracker.ellipse_util import (
 )
 
 
-def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST, GPU_INDEX):
+def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST, GPU_INDEX, lr=1e-3):
     """main function of the module
 
     Args:
@@ -68,10 +69,11 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST, GPU_INDE
     eye_tracker_model.to(DEVICE)
     print(eye_tracker_model)
 
+    min_validation_loss = float('inf')
     if TRAIN:
         optimizer = torch.optim.SGD(
             eye_tracker_model.parameters(),
-            lr=1e-3,
+            lr=lr,
             weight_decay=1e-4,
             momentum=0.9,
         )
@@ -89,7 +91,7 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST, GPU_INDE
             CONTINUE_TRAINING,
         )
 
-        trainer.train_with_validation(NB_EPOCHS)
+        min_validation_loss = trainer.train_with_validation(NB_EPOCHS)
 
     Trainer.load_best_model(
         eye_tracker_model, EyeTrackerDataset.EYE_TRACKER_DIR_PATH
@@ -109,6 +111,8 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST, GPU_INDE
             persistent_workers=True,
         )
         visualize_predictions_test(eye_tracker_model, test_loader, DEVICE)
+    
+    return min_validation_loss
 
 
 def visualize_predictions(model, data_loader, DEVICE):
@@ -180,6 +184,26 @@ def visualize_predictions_test(model, data_loader, device):
             cv2.waitKey(1)
             #cv2.waitKey(int(1000/25.0))
 
+def grid_search():
+    lrs = [1e-2, 1e-3, 1e-4, 1e-5]  
+    best_val = float('inf')
+    best_lr = None 
+    for lr in lrs : 
+        current_val = main(
+        True,
+        150,
+        False,
+        False,
+        False,
+        1,
+        lr
+        )
+        if(current_val < best_val):
+            best_val = current_val 
+            best_lr = lr 
+            print('new best validation loss of {} was reached with {} lr'.format(best_val, best_lr))
+    print('Overall best validation loss of {} was reached with {} lr'.format(best_val, best_lr))
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -230,6 +254,11 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
+    torch.manual_seed(42)
+    random.seed(42)
+
+    #grid_search()
+     
     main(
         args.train,
         args.nb_epochs,

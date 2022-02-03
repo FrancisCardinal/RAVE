@@ -148,6 +148,7 @@ class Trainer:
             dpi=200,
         )
         plt.close(None)
+        return self.min_validation_loss
 
     def compute_training_loss(self):
         """
