@@ -3,6 +3,8 @@ import os
 import torch
 from torchvision import transforms
 
+import cv2
+
 from ..common.image_utils import apply_image_translation, apply_image_rotation
 from ..common.Dataset import Dataset
 from .NormalizedEllipse import NormalizedEllipse
@@ -138,3 +140,73 @@ class EyeTrackerDatasetOnlineDataAugmentation(Dataset):
         label = torch.tensor(label)
 
         return image, label
+
+
+class EyeTrackerInferenceDataset(EyeTrackerDataset):
+    """
+    Class that handles the management of the frames
+    of a video on disk or of a real time video feed
+    for inference.
+
+    Args:
+        opencv_device (String): OpenCV device, that is, a path
+                         to a video or a opencv device
+                         index
+    """
+
+    def __init__(self, opencv_device, is_real_time=True):
+        super().__init__(opencv_device) # TODO FC : Tmp until I get opencv to play nice with ffmpeg/videos  # TODO FC : Find a more elegant solution 
+
+        """
+        if(isinstance(opencv_device, str)):
+            opencv_device = os.path.join(EyeTrackerDataset.EYE_TRACKER_DIR_PATH, "GazeInferer", opencv_device)
+        
+        self._video_feed = cv2.VideoCapture(opencv_device) 
+        if not self._video_feed.isOpened():
+            raise IOError("Cannot open specified device ({})".format(opencv_device))
+        """ 
+            
+        self._length = 1
+        if(not is_real_time):
+            self._length = super().__len__() # TODO FC : Tmp until I get opencv to play nice with ffmpeg/videos 
+            #self._length = int(self._video_feed.get(cv2.CAP_PROP_FRAME_COUNT))
+
+
+    def __len__(self):
+        """
+        Method of the Dataset class that must be overwritten by this class.
+        Used to get the number of elements in the dataset
+
+        Returns:
+            int: The number of elements in the dataset
+        """
+        return self._length
+
+
+
+    def __getitem__(self, idx):
+        """
+        Method of the Dataset class that must be overwritten by this class.
+        Used to get an image 
+
+        Args:
+            idx (int): Index of the pair to get, ignored
+
+        Returns:
+            tuple: Image, 0
+        """
+
+        """# TODO FC : Tmp until I get opencv to play nice with ffmpeg/videos 
+        success, frame = self._video_feed.read()
+
+        if(success):
+            image = self.PRE_PROCESS_TRANSFORM(frame)
+            image = self.NORMALIZE_TRANSFORM(image)
+
+        return image, success
+        """
+        image, _ = self.get_image_and_label_on_disk(idx)
+        image = self.PRE_PROCESS_TRANSFORM(image)
+        image = self.NORMALIZE_TRANSFORM(image)
+
+        return image, 0

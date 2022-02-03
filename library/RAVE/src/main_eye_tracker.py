@@ -9,7 +9,7 @@ import random
 from RAVE.common import Trainer
 from RAVE.common.image_utils import tensor_to_opencv_image, inverse_normalize
 
-from RAVE.eye_tracker.EyeTrackerDataset import EyeTrackerDataset
+from RAVE.eye_tracker.EyeTrackerDataset import EyeTrackerDataset, EyeTrackerInferenceDataset
 
 from RAVE.eye_tracker.EyeTrackerDatasetBuilder import EyeTrackerDatasetBuilder
 from RAVE.eye_tracker.EyeTrackerSyntheticDatasetBuilder import EyeTrackerSyntheticDatasetBuilder
@@ -20,8 +20,10 @@ from RAVE.eye_tracker.ellipse_util import (
     draw_ellipse_on_image,
 )
 
+from RAVE.eye_tracker.GazeInferer.GazeInferer import GazeInferer
 
-def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST, GPU_INDEX, lr=1e-3):
+
+def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST, INFERENCE, GPU_INDEX, lr=1e-3):
     """main function of the module
 
     Args:
@@ -110,7 +112,10 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST, GPU_INDE
             pin_memory=True,
             persistent_workers=True,
         )
-        visualize_predictions_test(eye_tracker_model, test_loader, DEVICE)
+        visualize_predictions(eye_tracker_model, test_loader, DEVICE)
+    
+    if INFERENCE:
+        inference(eye_tracker_model, DEVICE)
     
     return min_validation_loss
 
@@ -146,43 +151,31 @@ def visualize_predictions(model, data_loader, DEVICE):
                 cv2.imshow("validation", image)
                 cv2.waitKey(1500)
 
-def visualize_predictions_test(model, data_loader, device):
-    with torch.no_grad():
-        model.eval()
+def inference(model, device):
+    eyeTracker_calibration_dataset = EyeTrackerInferenceDataset(os.path.join("calibration"), False)
+    calibration_loader = torch.utils.data.DataLoader(
+        eyeTracker_calibration_dataset,
+        batch_size=256,
+        shuffle=False,
+        num_workers=1,
+        pin_memory=True,
+        persistent_workers=True,
+    )
+    gaze_inferer = GazeInferer(model, calibration_loader, device)
+    gaze_inferer.fit()
 
-        root = '/home/rave/RAVE/library/RAVE/src/RAVE/eye_tracker/dataset/test/'
+    eyeTracker_conversation_dataset = EyeTrackerInferenceDataset(os.path.join("conversation"), False)
+    conversation_loader = torch.utils.data.DataLoader(
+        eyeTracker_conversation_dataset,
+        batch_size=1,
+        shuffle=False,
+        num_workers=1,
+        pin_memory=True,
+        persistent_workers=True,
+    )
+    gaze_inferer = GazeInferer(model, conversation_loader, device)
+    gaze_inferer.infer()
 
-        number_of_images = 1300
-        for i in range(number_of_images):
-            # Forward Pass
-            image_path = os.path.join(root + 'images/', str(i)+'.png')
-            image = Image.open(image_path)
-            image = data_loader.dataset.PRE_PROCESS_TRANSFORM(image)
-            image = data_loader.dataset.NORMALIZE_TRANSFORM(image)
-            image = image.unsqueeze(0) 
-
-            prediction = model(image.to(device))
-            label = pickle.load(open(root + 'labels/' + str(i) + '.bin', "rb"))
-            label = torch.tensor(label["ellipse"], device=device)
-
-            image = image.squeeze()
-            image = inverse_normalize(
-                image,
-                EyeTrackerDataset.TRAINING_MEAN,
-                EyeTrackerDataset.TRAINING_STD,
-            )
-            image = tensor_to_opencv_image(image)
-            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
-            cv2.imwrite('out/images/' + str(i)+'.png', image)
-            pickle.dump(prediction[0].cpu().numpy().tolist(), open('out/labels/' + str(i)+'.bin', "wb"))
-
-            image = draw_ellipse_on_image( image, prediction[0], color=(255, 0, 0))
-            #image = draw_ellipse_on_image(image, label, color=(0, 255, 0))
-
-            cv2.imshow("test", image)
-            cv2.waitKey(1)
-            #cv2.waitKey(int(1000/25.0))
 
 def grid_search():
     lrs = [1e-2, 1e-3, 1e-4, 1e-5]  
@@ -192,6 +185,7 @@ def grid_search():
         current_val = main(
         True,
         150,
+        False,
         False,
         False,
         False,
@@ -246,6 +240,17 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "-i",
+        "--inference",
+        action="store_true",
+        help=(
+            "Runs the network in inference mode, that is, the network"
+            "outputs predictions on the images of a video on disk or "
+            "on a real time video feed."
+        ),
+    )
+
+    parser.add_argument(
+        "-g",
         "--gpu_index",
         action="store",
         type=int,
@@ -265,5 +270,6 @@ if __name__ == "__main__":
         args.continue_training_from_checkpoint,
         args.display_validation,
         args.predict,
+        args.inference,
         args.gpu_index,
     )
