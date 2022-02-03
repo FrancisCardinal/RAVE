@@ -2,12 +2,15 @@ import time
 import cv2
 import threading
 import argparse
+import numpy as np  # TODO: could remove (change code)
+from scipy.optimize import linear_sum_assignment
 
 from collections import defaultdict
 
 # from tqdm import tqdm
 
 from face_detectors import DetectorFactory
+from face_verifiers import VerifierFactory
 from RAVE.common.image_utils import intersection
 from RAVE.face_detection.fpsHelper import FPS
 from pyodas.visualize import VideoSource, Monitor
@@ -19,6 +22,7 @@ class TrackingManager:
         self,
         tracker_type,
         detector_type,
+        verifier_type,
         frequency,
         intersection_threshold=0.5,
     ):
@@ -26,6 +30,7 @@ class TrackingManager:
 
         self._tracked_objects = {}
         self._pre_tracked_objects = {}
+        self._rejected_objects = {}
 
         self._frequency = frequency
         self._intersection_threshold = intersection_threshold
@@ -34,6 +39,8 @@ class TrackingManager:
         self._detector = DetectorFactory.create(detector_type)
         self._last_frame = None
         self._last_detect = 0
+
+        self._verifier = VerifierFactory.create(verifier_type, threshold=0.5)
 
     def tracking_count(self):
         return len(self._tracked_objects)
@@ -55,14 +62,23 @@ class TrackingManager:
             self._tracker_type, frame, bbox, mouth, new_id
         )
         self._pre_tracked_objects[new_tracked_object.id] = new_tracked_object
+        self.start_tracking_thread(new_tracked_object)
 
+    def start_tracking_thread(self, tracked_object):
         new_thread = threading.Thread(
-            target=self.track_loop, args=(new_tracked_object,), daemon=True
+            target=self.track_loop, args=(tracked_object,), daemon=True
         )
         new_thread.start()
 
     def remove_tracked_object(self, identifier):
-        self._tracked_objects.pop(identifier)
+        rejected_object = self._tracked_objects.pop(identifier)
+        self._rejected_objects[identifier] = rejected_object
+
+    def restore_rejected_object(self, identifier):
+        restored_object = self._rejected_objects.pop(identifier)
+        restored_object.restore()
+        self._tracked_objects[identifier] = restored_object
+        self.start_tracking_thread(restored_object)
 
     def remove_pre_tracked_object(self, identifier):
         self._pre_tracked_objects.pop(identifier)
@@ -125,6 +141,148 @@ class TrackingManager:
 
         return frame
 
+    def associate_faces_iou(self, frame, predicted_bboxes, mouths):
+        last_ids = set(self._tracked_objects.keys())
+        for i, predicted_bbox in enumerate(predicted_bboxes):
+
+            # TODO (JKealey): Find a better way to link previous
+            #  ids to the new bboxes
+            if mouths and len(mouths) > i:
+                mouth = mouths[i]
+            else:
+                mouth = None
+            intersection_scores = defaultdict(lambda: 0)
+
+            all_tracked_objects = self.get_all_objects()
+            for tracker_id, trackable_object in all_tracked_objects.items():
+                intersection_scores[tracker_id] = intersection(
+                    predicted_bbox, trackable_object.bbox
+                )
+
+            max_id = None
+            if intersection_scores:
+                max_id = max(intersection_scores, key=intersection_scores.get)
+
+            if (
+                intersection_scores
+                and intersection_scores[max_id] > self._intersection_threshold
+            ):
+                # A face was matched
+                if max_id in self._tracked_objects.keys():
+                    # Not not reset pre-tracked objects
+                    self._tracked_objects[max_id].reset(
+                        frame, predicted_bbox, mouth
+                    )
+                    self._tracked_objects[max_id].increment_evaluation_frames()
+                    last_ids.discard(max_id)
+            else:
+                # A new object was discovered
+                self.add_tracked_object(frame, predicted_bbox, mouth)
+
+        return last_ids
+
+    def associate_faces(self, frame, predicted_bboxes, mouths):
+        """
+        Associate detections to current tracked and pre-tracked faces
+        If no matches: try to match with old faces seen
+        If still no match: register new faces to track
+        Also unregister faces that did not get a new detection
+        """
+
+        # Verifier: get encodings for each detected face in the frame
+        encodings_to_match = self._verifier.get_encodings(
+            frame, predicted_bboxes
+        )
+
+        # Reference for current objects that were not matched
+        unmatched_tracked_objects_ids = list(self._tracked_objects.keys())
+
+        # Reference for predictions that were not matched
+        unmatched_predictions_dict = {}
+        for i, bbox in enumerate(predicted_bboxes):
+            mouth = mouths[i] if mouths and len(mouths) > i else None
+            prediction_group = (bbox, mouth, encodings_to_match[i])
+            unmatched_predictions_dict[i] = prediction_group
+
+        # Collect scores for each combination of faces/new detections
+        all_objects = self.get_all_objects()
+        all_objects_index_to_id = list(all_objects.keys())
+        objects_detections_scores = np.zeros(
+            (len(all_objects), len(encodings_to_match))
+        )
+        for object_index, trackable_object in enumerate(all_objects.values()):
+            object_encoding = trackable_object.encoding
+            scores = self._verifier.get_distances(
+                encodings_to_match, object_encoding
+            )
+            # TODO: account for threshold somewhere...
+            objects_detections_scores[object_index] = scores
+
+        if objects_detections_scores.size > 0:
+            # Create matches by minimizing the cost with the 'Hungarian method'
+            row_ind, col_ind = linear_sum_assignment(objects_detections_scores)
+            for i, object_ind in enumerate(row_ind):
+                detection_ind = col_ind[i]
+                # A face was matched
+                object_id = all_objects_index_to_id[object_ind]
+                matched_object = all_objects[object_id]
+
+                # Verify that score is below the threshold for a match
+                score = objects_detections_scores[object_ind][detection_ind]
+                if score > self._verifier.distance_threshold:
+                    # Above threshold: do not accept match
+                    continue
+
+                # Only reset tracked objects (not pre-tracked)
+                if matched_object.confirmed:
+                    bbox = unmatched_predictions_dict[detection_ind][0]
+                    mouth = unmatched_predictions_dict[detection_ind][1]
+                    matched_object.reset(frame, bbox, mouth)
+                    matched_object.increment_evaluation_frames()
+                    unmatched_tracked_objects_ids.remove(matched_object.id)
+                del unmatched_predictions_dict[detection_ind]
+
+        unmatched_encodings = [
+            pred[2] for pred in unmatched_predictions_dict.values()
+        ]
+        unmatched_predictions = list(unmatched_predictions_dict.values())
+
+        # Match remaining detections with old faces
+        # TODO: use hungarian for matching (like above) for cases with more
+        #  than one remaining prediction. Maybe extract hungarian matching to
+        #  another function for reuse in this case (could be placed in
+        #  verifier class)
+        if unmatched_predictions:
+            rejected_objects = {**self._rejected_objects}
+            for object_id, rejected_object in rejected_objects.items():
+                if not unmatched_predictions:
+                    break
+
+                object_encoding = rejected_object.encoding
+                match_index, match_score = self._verifier.get_closest_face(
+                    unmatched_encodings, object_encoding
+                )
+
+                if match_index is not None:
+                    # Matched with old face: start tracking again
+                    print(f"Restoring old face with score: {match_score}")
+                    self.restore_rejected_object(rejected_object.id)
+                    unmatched_encodings.pop(match_index)
+                    unmatched_predictions.pop(match_index)
+
+        # Unmatched detections must be new faces
+        if unmatched_predictions:
+            for i, (bbox, mouth, _) in enumerate(unmatched_predictions):
+                # A new object was discovered
+                self.add_tracked_object(frame, bbox, mouth)
+
+        # Reject tracked objects that are not re-detected
+        for tracker_id in unmatched_tracked_objects_ids:
+            self._tracked_objects[tracker_id].reject()
+            if self._tracked_objects[tracker_id].rejected:
+                self.remove_tracked_object(tracker_id)
+                print("Rejecting tracked object:", tracker_id)
+
     def preprocess_faces(self, frame, monitor):
 
         (
@@ -152,8 +310,6 @@ class TrackingManager:
                 and max_score > self._intersection_threshold
             ):
                 tracked_object.confirm()
-                max_index = intersection_scores.index(max_score)
-                pre_face_bboxes.pop(max_index)
             else:
                 tracked_object.increment_evaluation_frames()
 
@@ -165,6 +321,13 @@ class TrackingManager:
 
             if tracked_object.bbox is None:
                 continue
+
+            # TODO: Maybe throttle/control when to call verifier
+            if tracked_object.encoding is None:
+                encoding = self._verifier.get_encodings(
+                    frame, [tracked_object.bbox]
+                )[0]
+                tracked_object.update_encoding(encoding)
 
             pre_tracker_frame = self.draw_prediction_on_frame(
                 pre_tracker_frame, tracked_object
@@ -184,50 +347,9 @@ class TrackingManager:
                 frame.copy(), draw_on_frame=True
             )
         self._last_detect = time.time()
-
-        last_ids = set(self._tracked_objects.keys())
-        for i, predicted_bbox in enumerate(predicted_bboxes):
-            # TODO (JKealey): Find a better way to link previous
-            #  ids to the new bboxes
-            if mouths and len(mouths) > i:
-                mouth = mouths[i]
-            else:
-                mouth = None
-            intersection_scores = defaultdict(lambda: 0)
-
-            all_tracked_objects = self.get_all_objects()
-            for tracker_id, object in all_tracked_objects.items():
-                intersection_scores[tracker_id] = intersection(
-                    predicted_bbox, object.bbox
-                )
-
-            max_id = None
-            if intersection_scores:
-                max_id = max(intersection_scores, key=intersection_scores.get)
-
-            if (
-                intersection_scores
-                and intersection_scores[max_id] > self._intersection_threshold
-            ):
-                if max_id in self._tracked_objects.keys():
-                    self._tracked_objects[max_id].reset(
-                        frame, predicted_bbox, mouth
-                    )
-                    self._tracked_objects[max_id].increment_evaluation_frames()
-                    last_ids.discard(max_id)
-            else:
-                # A new object was discovered
-                self.add_tracked_object(frame, predicted_bbox, mouth)
-
-        # Remove tracked objects that are not re-detected
-        for tracker_id in last_ids:
-            self._tracked_objects[tracker_id].reject()
-            if self._tracked_objects[tracker_id].rejected:
-                # self._tracked_objects.pop(tracker_id, None)
-                self.remove_tracked_object(tracker_id)
-                print("Rejecting tracked object:", tracker_id)
-
         monitor.update("Detection", face_frame)
+
+        self.associate_faces(frame, predicted_bboxes, mouths)
 
     def main_loop(self, monitor, cap, fps):
         while monitor.window_is_alive():
@@ -328,6 +450,9 @@ if __name__ == "__main__":
 
     frequency = args.freq
     tracking_manager = TrackingManager(
-        tracker_type="kcf", detector_type="yolo", frequency=frequency
+        tracker_type="kcf",
+        detector_type="yolo",
+        verifier_type="dlib",
+        frequency=frequency,
     )
     tracking_manager.start(args)
