@@ -1,6 +1,11 @@
 # Randomized configs to use for dataset generation
 
-position: []
-
-room: []
+# List of various room dimensions
+# Shape [x, y, z] ([left-right, front-back, up-down])
+room:
+  [
+    [10, 10, 10],
+    [20, 20, 20],
+    [30, 30, 30]
+  ]
 
