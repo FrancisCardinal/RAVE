@@ -2,8 +2,8 @@ from trackers import TrackerFactory
 
 NB_FRAMES_TO_CONFIRMED = 10
 CONFIRMATION_THRESHOLD = 8
-NB_FRAMES_TO_REJECT = 20
-REJECTION_THRESHOLD = 10
+NB_FRAMES_TO_REJECT = 10
+REJECTION_THRESHOLD = 5
 
 
 class TrackedObject:
@@ -12,6 +12,7 @@ class TrackedObject:
         self._tracker_type = tracker_type
         self._id = identifier
         self.bbox = bbox
+        self._encoding = None
 
         # Validation
         self._evaluation_frames = 0
@@ -37,6 +38,10 @@ class TrackedObject:
     @property
     def id(self):
         return self._id
+
+    @property
+    def encoding(self):
+        return self._encoding
 
     @property
     def landmark(self):
@@ -66,6 +71,10 @@ class TrackedObject:
     def update_bbox(self, bbox):
         self.bbox = bbox
 
+    def update_encoding(self, encoding):
+        self._encoding = encoding
+        print("Encoding updated")
+
     def confirm(self):
         """Used to confirm a bbox in pre-processing"""
         if self.pending:
@@ -90,7 +99,16 @@ class TrackedObject:
             if self._evaluation_frames > self._nb_of_frames_to_reject:
                 self._evaluation_frames = 0
             elif self._rejected_frames >= self._rejection_threshold:
+                print(f"Setting rejected to true: {self.id}")
                 self._rejected = True
+
+    def restore(self):
+        """
+        Called when object is being restored and counters need to be reset
+        as if this is a new tracked object
+        """
+        self._evaluation_frames = 0
+        self._rejected_frames = 0
 
     def increment_evaluation_frames(self):
         self._evaluation_frames += 1
