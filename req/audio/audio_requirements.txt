@@ -2,4 +2,7 @@
 
 pyodas-JacobKealey
 
+soundfile
+scipy
+
 -r ../requirements.txt
