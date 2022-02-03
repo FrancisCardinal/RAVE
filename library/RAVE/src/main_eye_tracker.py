@@ -1,9 +1,9 @@
-import torch
-import cv2
-import argparse
 import os
-from PIL import Image
-import pickle
+import argparse
+
+import torch
+import numpy as np 
+import cv2
 import random
 
 from RAVE.common import Trainer
@@ -155,11 +155,9 @@ def inference(model, device):
     eyeTracker_calibration_dataset = EyeTrackerInferenceDataset(os.path.join("calibration"), False)
     calibration_loader = torch.utils.data.DataLoader(
         eyeTracker_calibration_dataset,
-        batch_size=256,
+        batch_size=512,
         shuffle=False,
-        num_workers=1,
-        pin_memory=True,
-        persistent_workers=True,
+        num_workers=0,
     )
     gaze_inferer = GazeInferer(model, calibration_loader, device)
     gaze_inferer.fit()
@@ -169,9 +167,7 @@ def inference(model, device):
         eyeTracker_conversation_dataset,
         batch_size=1,
         shuffle=False,
-        num_workers=1,
-        pin_memory=True,
-        persistent_workers=True,
+        num_workers=0,
     )
     gaze_inferer = GazeInferer(model, conversation_loader, device)
     gaze_inferer.infer()
@@ -260,6 +256,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     torch.manual_seed(42)
+    np.random.seed(0)
     random.seed(42)
 
     #grid_search()
