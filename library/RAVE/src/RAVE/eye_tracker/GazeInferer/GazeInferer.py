@@ -77,6 +77,8 @@ class GazeInferer:
                     _, n_list, _, _ = self._eyefitter.gen_consistent_pupil()
                     x, y = self._eyefitter.convert_vec2angle31(n_list[0])
                     print("x = {} y = {}".format(x,y))
+                    x -= 90
+                    y -= 90
 
     def load_eyeball_model(self):
         """
