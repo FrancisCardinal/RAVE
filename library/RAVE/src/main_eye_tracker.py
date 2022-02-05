@@ -73,11 +73,9 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST, INFERENC
 
     min_validation_loss = float('inf')
     if TRAIN:
-        optimizer = torch.optim.SGD(
+        optimizer = torch.optim.AdamW(
             eye_tracker_model.parameters(),
             lr=lr,
-            weight_decay=1e-4,
-            momentum=0.9,
         )
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer)
 
