@@ -3,23 +3,55 @@ import cv2
 import numpy as np
 import os
 
-from RAVE.common.image_utils import (
+from abc import ABC, abstractmethod
+from ..common.image_utils import (
     xyxy2xywh,
     opencv_image_to_tensor,
     scale_coords,
     scale_coords_landmarks,
 )
-from RAVE.face_detection.FaceDetectionModel import FaceDetectionModel
+from .FaceDetectionModel import FaceDetectionModel
 
 
-class Detector:
+class Detector(ABC):
+    """
+    Abstract class for detectors.
+    """
+
+    @abstractmethod
     def predict(self, frame, draw_on_frame):
+        """
+        Method to obtain the prediction on our model
+
+        Args:
+            frame (np.ndarray):
+                image form which we want to detect faces with shape (3xHxW)
+            draw_on_frame (bool):
+                Whether or not to draw the predictions on the return frame.
+
+        Return:
+            (np.ndarray, list, list):
+                A tuple containing the frame with or without the predictions
+                drawn on it, a list of bounding boxes and a list of mouth
+                positions in x,y.
+        """
         raise NotImplementedError()
 
 
 class DetectorFactory:
+    """
+    Factory for instantiating a Detector object
+    """
+
     @staticmethod
     def create(detector_type="yolo"):
+        """
+        Creates the specified Detector object
+
+        Args:
+            detector_type (string):
+             The type of the Detector. As of now, there's yolo or dnn.
+        """
         if detector_type == "yolo":
             return YoloFaceDetector()
         elif detector_type == "dnn":
@@ -30,9 +62,16 @@ class DetectorFactory:
 
 
 class DnnFaceDetector(Detector):
+    """
+    Detector using a dnn model from dlib
+
+    Attributes:
+        self.model (dnn_Net): Dnn model from dlib
+    """
+
     def __init__(self):
         resources_dir = os.path.join(
-            os.path.dirname(__file__), "RAVE/face_detection/model/dnn"
+            os.path.dirname(__file__), "detectors", "models", "dnn"
         )
         config_file = os.path.join(resources_dir, "deploy.prototxt.txt")
         model_file = os.path.join(
@@ -41,6 +80,22 @@ class DnnFaceDetector(Detector):
         self.model = cv2.dnn.readNetFromCaffe(config_file, model_file)
 
     def predict(self, frame, draw_on_frame=False):
+        """
+        Method to obtain the prediction of dnn
+
+        Args:
+            frame (np.ndarray):
+                image form which we want to detect faces with shape (3xHxW)
+            draw_on_frame (bool):
+                Whether or not to draw the predictions on the return frame.
+
+        Return:
+            (np.ndarray, list, None):
+                A tuple containing the frame with or without the predictions
+                drawn on it, a list of bounding boxes and a list of mouth
+                positions in x,y. For dnn, return None instead of a list
+                because it does not extract features.
+        """
         h, w = frame.shape[:2]
         blob = cv2.dnn.blobFromImage(
             cv2.resize(frame, (300, 300)),
@@ -80,6 +135,22 @@ class DnnFaceDetector(Detector):
 
 
 class YoloFaceDetector(Detector):
+    """
+    Detector using yolov5_face model
+
+    @article{
+        YOLO5Face,
+        title = {YOLO5Face: Why Reinventing a Face Detector},
+        author = {Delong Qi and Weijun Tan and Qi Yao and Jingfeng Liu},
+        booktitle = {ArXiv preprint ArXiv:2105.12931},
+        year = {2021}
+    }
+
+    Attributes:
+        self.device (string): cpu or cuda
+        self.model (FaceDetectionModel): yolov5_face model
+    """
+
     def __init__(self):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model = FaceDetectionModel(self.device)
@@ -88,6 +159,22 @@ class YoloFaceDetector(Detector):
     # TODO (Anthony): Code copied from main_face_detection;
     #  combine or remove one or the other eventually
     def predict(self, frame, draw_on_frame=False):
+        """
+        Method to obtain the prediction of yolov5_face
+
+        Args:
+            frame (np.ndarray):
+                image form which we want to detect faces with shape (3xHxW)
+            draw_on_frame (bool):
+                Whether or not to draw the predictions on the return frame.
+
+        Return:
+            (np.ndarray, list, None):
+                A tuple containing the frame with or without the predictions
+                drawn on it, a list of bounding boxes and a list of mouth
+                positions in x,y. For dnn, return None instead of a list
+                because it does not extract features.
+        """
         tensor = opencv_image_to_tensor(frame, self.device)
         tensor = torch.unsqueeze(tensor, 0)
         predictions = self.model(tensor)[0]
