@@ -30,11 +30,11 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
         DEVICE = "cuda"
     
     # todo: call class method to create dataset if not on disk
-    dataset = AudioDataset(dataset_path='/Users/felixducharmeturcotte/Documents')
+    dataset = AudioDataset(dataset_path='/Users/felixducharmeturcotte/Documents/audioDataset', device=DEVICE)
     spect = next(iter(dataset))[0]
+
     
-    
-    plt.pcolormesh(spect[0], shading='gouraud')
+    plt.pcolormesh(spect[0].float(), shading='gouraud')
     plt.show(block=True)
     BATCH_SIZE = 128
 
