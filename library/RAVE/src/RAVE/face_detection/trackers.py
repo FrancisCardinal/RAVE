@@ -2,16 +2,34 @@ import cv2
 import dlib
 import numpy as np
 from filterpy.kalman import KalmanFilter
+from abc import ABC, abstractmethod
 
 
-class Tracker:
+class Tracker(ABC):
+    """
+    Abstract class for trackers
+    """
 
-    # Initialize tracker
+    @abstractmethod
     def start(self, frame, initial_bbox):
+        """
+        Initialize the tracker to start tracking
+
+        Args:
+            frame (np.ndarray): image containing the object to track
+            initial_bbox (tuple: (x0, y0, w, h)):
+                bounding box indicating location of object in 'frame'
+        """
         raise NotImplementedError()
 
-    # Update tracker with new frames
+    @abstractmethod
     def update(self, frame):
+        """
+        Update the tracker with a new frame
+
+        Args:
+            frame (np.ndarray): new frame used to update the tracker
+        """
         raise NotImplementedError()
 
 
@@ -35,8 +53,23 @@ OPENCV_TRACKERS = {
 
 
 class TrackerFactory:
+    """
+    Static factory class used to instantiate new Tracker objects
+    """
+
     @staticmethod
     def create(tracker_type="kcf"):
+        """
+        Create new Tracker object of a specified type
+
+        Args:
+            tracker_type (str): Identifier for tracker type
+
+        Returns:
+            (Tracker):
+                Returns the created Tracker object or None if unknown
+                tracker_type supplied
+        """
         if OPENCV_TRACKERS.get(tracker_type, None) is not None:
             return TrackerOpenCV(tracker_name=tracker_type)
         elif tracker_type == "dlib":
@@ -49,24 +82,59 @@ class TrackerFactory:
 
 
 class TrackerOpenCV(Tracker):
+    """
+    Tracker class that acts as a wrapper for all OpenCV trackers
+    (csrt, kcf, mosse, mil, boosting, tld, medianflow)
+
+    Attributes:
+        tracker (Tracker): The OpenCV tracker
+    """
+
     def __init__(self, tracker_name="kcf"):
         self.tracker = OPENCV_TRACKERS[tracker_name]()
 
-    def start(self, frame, bbox):
-        self.tracker.init(frame, bbox)
+    def start(self, frame, initial_bbox):
+        """
+        Init the OpenCV tracker to start tracking
+
+        Args:
+            frame (np.ndarray): image containing the object to track
+            initial_bbox (tuple: (x0, y0, w, h)):
+                bounding box indicating location of object in 'frame'
+        """
+        self.tracker.init(frame, initial_bbox)
 
     def update(self, frame):
+        """
+        Update the tracker with a new frame
+
+        Args:
+            frame (np.ndarray): new frame used to update the tracker
+        """
         return self.tracker.update(frame)
 
 
-# Wrapper for dlib's correlation_tracker
 class CorrelationTracker(Tracker):
+    """
+    Tracker class acting as a wrapper for dlib's correlation_tracker
+
+    Attributes:
+        tracker (correlation_tracker): dlib's tracker
+    """
+
     def __init__(self):
-        self.tracker = (
-            dlib.correlation_tracker()
-        )  # OPENCV_TRACKERS[tracker_name]()  # Select and create tracker
+        self.tracker = dlib.correlation_tracker()
 
     def start(self, frame, bbox):
+        """
+        Init the OpenCV tracker to start tracking
+
+        Args:
+            frame (np.ndarray): image containing the object to track
+            initial_bbox (tuple: (x0, y0, w, h)):
+                bounding box indicating location of object in 'frame'
+        """
+
         # Convert to RGB for dlib (openCV uses BGR)
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
@@ -78,6 +146,13 @@ class CorrelationTracker(Tracker):
         self.tracker.start_track(frame_rgb, rect_dlib)
 
     def update(self, frame):
+        """
+        Update the tracker with a new frame
+
+        Args:
+            frame (np.ndarray): new frame used to update the tracker
+        """
+
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         self.tracker.update(frame_rgb)
 

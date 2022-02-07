@@ -26,7 +26,12 @@ class FaceDetectionModel(nn.Module):
         # project
         PROJECT_PATH = os.getcwd()
         MODEL_PATH = os.path.join(
-            PROJECT_PATH, "RAVE", "face_detection", "model", "yolov5"
+            PROJECT_PATH,
+            "RAVE",
+            "face_detection",
+            "detectors",
+            "models",
+            "yolov5",
         )
         sys.path.append(MODEL_PATH)
 
