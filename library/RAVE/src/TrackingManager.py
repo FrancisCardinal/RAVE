@@ -1,6 +1,7 @@
 import time
 import cv2
 import threading
+import torch
 import argparse
 import numpy as np  # TODO: could remove (change code)
 from scipy.optimize import linear_sum_assignment
@@ -40,7 +41,14 @@ class TrackingManager:
         self._last_frame = None
         self._last_detect = 0
 
-        self._verifier = VerifierFactory.create(verifier_type, threshold=0.5)
+        if torch.cuda.is_available():
+            device = "cuda"
+        else:
+            device = "cpu"
+
+        self._verifier = VerifierFactory.create(
+            verifier_type, threshold=0.5, device=device
+        )
 
     def tracking_count(self):
         return len(self._tracked_objects)
@@ -233,6 +241,7 @@ class TrackingManager:
                 score = objects_detections_scores[object_ind][detection_ind]
                 if score < self._verifier.score_threshold:
                     # Above threshold: do not accept match
+                    print("REJECTED above threshold")
                     continue
 
                 # Only reset tracked objects (not pre-tracked)
@@ -454,7 +463,7 @@ if __name__ == "__main__":
     tracking_manager = TrackingManager(
         tracker_type="kcf",
         detector_type="yolo",
-        verifier_type="dlib",
+        verifier_type="resnet_face_34",
         frequency=frequency,
     )
     tracking_manager.start(args)
