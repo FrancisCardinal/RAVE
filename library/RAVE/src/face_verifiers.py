@@ -23,8 +23,8 @@ class VerifierFactory:
 
 
 class DlibFaceRecognition(Verifier):
-    def __init__(self, distance_threshold):
-        self.distance_threshold = distance_threshold
+    def __init__(self, score_threshold):
+        self.score_threshold = score_threshold
 
     def get_encodings(self, frame, face_locations):
         """
@@ -49,17 +49,19 @@ class DlibFaceRecognition(Verifier):
         # print("Verifier time:", time.time() - t)
         return face_encodings
 
-    def get_distances(self, reference_encodings, face_encoding):
-        return face_recognition.face_distance(
+    def get_scores(self, reference_encodings, face_encoding):
+        distances = face_recognition.face_distance(
             reference_encodings, face_encoding
         )
+        scores = [1 - distance for distance in distances]
+        return scores
 
     def get_closest_face(self, reference_encodings, face_encoding):
-        face_distances = self.get_distances(reference_encodings, face_encoding)
-        best_match_index = np.argmin(face_distances)
-        best_distance = face_distances[best_match_index]
+        face_scores = self.get_scores(reference_encodings, face_encoding)
+        best_match_index = np.argmax(face_scores)
+        best_score = face_scores[best_match_index]
 
-        if best_distance <= self.distance_threshold:
-            return best_match_index, best_distance
+        if best_score >= self.score_threshold:
+            return best_match_index, best_score
         else:
             return None, None
