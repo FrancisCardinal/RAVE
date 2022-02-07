@@ -212,7 +212,7 @@ class TrackingManager:
         )
         for object_index, trackable_object in enumerate(all_objects.values()):
             object_encoding = trackable_object.encoding
-            scores = self._verifier.get_distances(
+            scores = self._verifier.get_scores(
                 encodings_to_match, object_encoding
             )
             # TODO: account for threshold somewhere...
@@ -231,7 +231,7 @@ class TrackingManager:
 
                 # Verify that score is below the threshold for a match
                 score = objects_detections_scores[object_ind][detection_ind]
-                if score < self._verifier.distance_threshold:
+                if score < self._verifier.score_threshold:
                     # Above threshold: do not accept match
                     continue
 
