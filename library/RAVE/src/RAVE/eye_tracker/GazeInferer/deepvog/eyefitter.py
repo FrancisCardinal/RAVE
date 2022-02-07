@@ -112,7 +112,7 @@ class SingleEyeFitter(object):
 
         # Normalisation of the 2D projection of gaze vectors is done inside intersect()
         if ransac == True:
-            samples_to_fit = np.ceil(a.shape[0]/5).astype(np.int)  # Assuming 20% of outliners
+            samples_to_fit = np.ceil(a.shape[0]/200).astype(np.int)  # Assuming 0.5% of outliners
             self.projected_eye_centre = fit_ransac(a, n, max_iters=max_iters, samples_to_fit=samples_to_fit,
                                                    min_distance=min_distance)
         else:
