@@ -129,51 +129,28 @@ class EyeTrackerDatasetBuilder(DatasetBuilder):
     def process_image_label_pair(
         self,
         processed_frame,
-        file_name,
-        annotations,
-        INPUT_IMAGE_WIDTH,
-        INPUT_IMAGE_HEIGHT,
+        file_name
     ):
         """
         To process the image and label from LPW
         """
-        (
-            angle,
-            center_x,
-            center_y,
-            ellipse_width,
-            ellipse_height,
-        ) = self.parse_current_annotation(annotations)
-
-        if angle == -1:
-            # The annotation files use '-1' when the pupil is not visible
-            # on a frame.
-            return
-
-        self.current_ellipse = NormalizedEllipse.get_from_opencv_ellipse(
-            center_x,
-            ellipse_width,
-            center_y,
-            ellipse_height,
-            angle,
-            INPUT_IMAGE_WIDTH,
-            INPUT_IMAGE_HEIGHT,
-        )
 
         self.save_image_label_pair(
             file_name, processed_frame, self.current_ellipse.to_list()
         )
 
-    def parse_current_annotation(self, annotations):
+    def parse_current_annotation(self, annotations, INPUT_IMAGE_WIDTH, INPUT_IMAGE_HEIGHT):
         """
         Parses the current annotation to extract the parameters of
         the ellipse as defined by opencv
 
         Args:
             annotations (List of strings): All the annotations
+            INPUT_IMAGE_WIDTH (int) The width of the input image
+            INPUT_IMAGE_HEIGHT (int) The height of the input image
 
         Returns:
-            quintuplet: The parameters of the ellipse as defined by opencv
+            bool: True if the parsing was a success, false if it wasn't.
         """
         annotation = annotations[self.annotation_line_index].split(";")
         # The end of the line has a ';' that must be removed
@@ -192,7 +169,21 @@ class EyeTrackerDatasetBuilder(DatasetBuilder):
         # the current frame
         assert self.video_frame_id == annotation_frame_id
 
-        return angle, center_x, center_y, ellipse_width, ellipse_height
+        if angle == -1:
+            # The annotation files use '-1' when the pupil is not visible
+            # on a frame.
+            return False
+
+        self.current_ellipse = NormalizedEllipse.get_from_opencv_ellipse(
+            center_x,
+            ellipse_width,
+            center_y,
+            ellipse_height,
+            angle,
+            INPUT_IMAGE_WIDTH,
+            INPUT_IMAGE_HEIGHT,
+        )
+        return True
 
 
 class EyeTrackerDatasetBuilderOfflineDataAugmentation(

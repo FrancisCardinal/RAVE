@@ -156,25 +156,40 @@ class DatasetBuilder(ABC):
             if not is_ok:
                 break
 
+            success = self.parse_current_annotation(
+                annotations, INPUT_IMAGE_WIDTH, INPUT_IMAGE_HEIGHT)
+            if not success:
+                continue
+
             processed_frame = self.process_frame(frame)
             self.process_image_label_pair(
                 processed_frame,
                 file_name,
-                annotations,
-                INPUT_IMAGE_WIDTH,
-                INPUT_IMAGE_HEIGHT,
             )
 
         cap.release()
 
     @abstractmethod
+    def parse_current_annotation(self, annotations, INPUT_IMAGE_WIDTH, INPUT_IMAGE_HEIGHT):
+        """
+        Parses the current annotation to extract the parameters of
+        the ellipse as defined by opencv
+
+        Args:
+            annotations (List of strings): All the annotations
+            INPUT_IMAGE_WIDTH (int) The width of the input image
+            INPUT_IMAGE_HEIGHT (int) The height of the input image
+
+        Returns:
+            bool: True if the parsing was a success, false if it wasn't.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
     def process_image_label_pair(
         self,
         frame,
-        file_name,
-        annotations,
-        INPUT_IMAGE_WIDTH,
-        INPUT_IMAGE_HEIGHT,
+        file_name
     ):
         """
         To process the image and label from the specific dataset
