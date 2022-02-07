@@ -2,7 +2,6 @@ import time
 import cv2
 import threading
 import torch
-import argparse
 import numpy as np  # TODO: could remove (change code)
 from scipy.optimize import linear_sum_assignment
 
@@ -10,15 +9,19 @@ from collections import defaultdict
 
 # from tqdm import tqdm
 
-from face_detectors import DetectorFactory
-from face_verifiers import VerifierFactory
-from RAVE.common.image_utils import intersection
-from RAVE.face_detection.fpsHelper import FPS
+from .face_detectors import DetectorFactory
+from .face_verifiers import VerifierFactory
+from ..common.image_utils import intersection
+from .fpsHelper import FPS
 from pyodas.visualize import VideoSource, Monitor
-from TrackedObject import TrackedObject
+from .TrackedObject import TrackedObject
 
 
 class TrackingManager:
+    """
+    ...
+    """
+
     def __init__(
         self,
         tracker_type,
@@ -47,24 +50,36 @@ class TrackingManager:
             device = "cpu"
 
         self._verifier = VerifierFactory.create(
-            verifier_type, threshold=0.5, device=device
+            verifier_type, threshold=0.25, device=device
         )
 
     def tracking_count(self):
+        """
+        ...
+        """
         return len(self._tracked_objects)
 
     # Returns a dictionary combining pre-tracked and tracked objects
     def get_all_objects(self):
+        """
+        ...
+        """
         return {**self._tracked_objects, **self._pre_tracked_objects}
 
     # Assumed to be called from main thread only
     def new_identifier(self):
+        """
+        ...
+        """
         new_id = str(self.count)
         self.count += 1
         return new_id
 
     # Register a new object to tracker. Assumed to be called from main thread
     def add_tracked_object(self, frame, bbox, mouth):
+        """
+        ...
+        """
         new_id = self.new_identifier()
         new_tracked_object = TrackedObject(
             self._tracker_type, frame, bbox, mouth, new_id
@@ -73,28 +88,46 @@ class TrackingManager:
         self.start_tracking_thread(new_tracked_object)
 
     def start_tracking_thread(self, tracked_object):
+        """
+        ...
+        """
         new_thread = threading.Thread(
             target=self.track_loop, args=(tracked_object,), daemon=True
         )
         new_thread.start()
 
     def remove_tracked_object(self, identifier):
+        """
+        ...
+        """
         rejected_object = self._tracked_objects.pop(identifier)
         self._rejected_objects[identifier] = rejected_object
 
     def restore_rejected_object(self, identifier):
+        """
+        ...
+        """
         restored_object = self._rejected_objects.pop(identifier)
         restored_object.restore()
         self._tracked_objects[identifier] = restored_object
         self.start_tracking_thread(restored_object)
 
     def remove_pre_tracked_object(self, identifier):
+        """
+        ...
+        """
         self._pre_tracked_objects.pop(identifier)
 
     def stop_tracking(self):
+        """
+        ...
+        """
         self._tracked_objects = {}
 
     def track_loop(self, tracked_object):
+        """
+        ...
+        """
         # with tqdm(desc=f"{tracked_object.id}", total=25000) as pbar:
         while (
             tracked_object in self._tracked_objects.values()
@@ -119,6 +152,9 @@ class TrackingManager:
         print(f"Stopped tracking object {tracked_object.id}")
 
     def listen_keyboard_input(self, frame, key_pressed):
+        """
+        ...
+        """
         key = key_pressed & 0xFF
         if key == ord("s"):
             # Select object to track manually
@@ -134,6 +170,9 @@ class TrackingManager:
             return True
 
     def draw_prediction_on_frame(self, frame, tracked_object):
+        """
+        ...
+        """
         x, y, w, h = tracked_object.bbox
         cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
         cv2.putText(
@@ -150,6 +189,9 @@ class TrackingManager:
         return frame
 
     def associate_faces_iou(self, frame, predicted_bboxes, mouths):
+        """
+        ...
+        """
         last_ids = set(self._tracked_objects.keys())
         for i, predicted_bbox in enumerate(predicted_bboxes):
 
@@ -241,7 +283,7 @@ class TrackingManager:
                 score = objects_detections_scores[object_ind][detection_ind]
                 if score < self._verifier.score_threshold:
                     # Above threshold: do not accept match
-                    print("REJECTED above threshold")
+                    print("REJECTED below threshold")
                     continue
 
                 # Only reset tracked objects (not pre-tracked)
@@ -295,6 +337,9 @@ class TrackingManager:
                 print("Rejecting tracked object:", tracker_id)
 
     def preprocess_faces(self, frame, monitor):
+        """
+        ...
+        """
 
         (
             pre_face_frame,
@@ -351,6 +396,9 @@ class TrackingManager:
         return pre_face_frame, pre_face_bboxes, pre_face_mouths
 
     def detector_update(self, frame, monitor, pre_detections):
+        """
+        ...
+        """
         if any([elem is not None for elem in pre_detections]):
             face_frame, predicted_bboxes, mouths = pre_detections
         else:
@@ -363,6 +411,9 @@ class TrackingManager:
         self.associate_faces(frame, predicted_bboxes, mouths)
 
     def main_loop(self, monitor, cap, fps):
+        """
+        ...
+        """
         while monitor.window_is_alive():
             # TODO (JKealey): Assign directly to sel._last_frame
             #  and add mutex(?)
@@ -411,6 +462,9 @@ class TrackingManager:
                 break
 
     def start(self, args):
+        """
+        ...
+        """
         cap = VideoSource(args.video_source)
         shape = (
             (cap.shape[1], cap.shape[0])
@@ -432,38 +486,3 @@ class TrackingManager:
         # Main display loop
         self.main_loop(monitor, cap, fps)
         self.stop_tracking()
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Face tracking")
-    parser.add_argument(
-        "--video_source",
-        dest="video_source",
-        type=int,
-        help="Video input source identifier",
-        default=0,
-    )
-    parser.add_argument(
-        "--flip_display_dim",
-        dest="flip_display_dim",
-        type=bool,
-        help="If true, will flip window dimensions to (width, height)",
-        default=False,
-    )
-    parser.add_argument(
-        "--freq",
-        dest="freq",
-        type=float,
-        help="Update frequency for the face detector (for adaptive scaling)",
-        default=1,
-    )
-    args = parser.parse_args()
-
-    frequency = args.freq
-    tracking_manager = TrackingManager(
-        tracker_type="kcf",
-        detector_type="yolo",
-        verifier_type="resnet_face_34",
-        frequency=frequency,
-    )
-    tracking_manager.start(args)
