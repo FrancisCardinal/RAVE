@@ -31,6 +31,10 @@ const common = {
   },
   calibrationPage: {
     title: 'Visual-Audio Calibration',
+    pointsLabel: 'Nb of points',
+    orderLabel: 'Order of polynomial',
+    confirm: 'Set',
+    next: 'Next',
   },
 };
 export default common;

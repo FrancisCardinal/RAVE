@@ -1,6 +1,6 @@
 import { MuteIcon, VolumeUp } from "../../Ressources/icons";
 import IconButton from "@mui/material/Button";
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useState } from "react";
 import SocketContext from "../../socketContext";
 
 function MuteButton() {
@@ -11,12 +11,6 @@ function MuteButton() {
 		ws.emit('muteFunction', soundOn);
 		console.log(soundOn);
 	}
-
-	useEffect(() => {
-		if (ws) {
-			ws.on();
-		}
-	}, [ws]);
 	
 	function SoundIcon() {
 		if (soundOn){
