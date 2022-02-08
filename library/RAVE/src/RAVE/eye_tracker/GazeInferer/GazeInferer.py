@@ -1,8 +1,10 @@
+import os 
 import torch
 import numpy as np
 from tqdm import tqdm
 import json
 
+from RAVE.eye_tracker.EyeTrackerDataset import EyeTrackerDataset
 from RAVE.eye_tracker.GazeInferer.deepvog.eyefitter import SingleEyeFitter
 
 """
@@ -15,7 +17,7 @@ class GazeInferer:
         self._ellipse_dnn = ellipse_dnn 
         self._dataloader = dataloader
         self._device = device
-        self._eyeball_model_path = eyeball_model_path
+        self._eyeball_model_path = os.path.join(EyeTrackerDataset.EYE_TRACKER_DIR_PATH, "GazeInferer", eyeball_model_path)
 
         image, _ = next(iter(self._dataloader))  
         self.shape = image.shape[2], image.shape[3]
