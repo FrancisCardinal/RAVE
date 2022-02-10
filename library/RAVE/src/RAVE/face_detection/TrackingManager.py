@@ -55,7 +55,7 @@ class TrackingManager:
         detector_type,
         verifier_type,
         frequency,
-        intersection_threshold=0.5,
+        intersection_threshold=0.2,
     ):
         self._tracker_type = tracker_type
 
@@ -263,32 +263,35 @@ class TrackingManager:
 
         return frame
 
-    def associate_faces_iou(self, frame, predicted_bboxes, mouths):
+    def match_faces_by_iou(self, objects, detections):
         """
-        Associate predictions to objects currently being tracked
+        Performs association between trackable objects and bouding boxes from
+        detection by analyzing the intersection overlap and applying a
+        threshold
 
         Args:
-            frame (ndarray): current frame with shape HxWx3
-            predicted_bboxes (list of bboxes):
-                each bounding box is in the x,y,w,h format
-            mouths (list of points):
-                each point is in the x,y format
-        """
-        last_ids = set(self._tracked_objects.keys())
-        for i, predicted_bbox in enumerate(predicted_bboxes):
+            objects (dict of id(str):objects): dict of objects to match
+            detections (list of Detection): the detections containing the xywh
+                bboxes to match
 
-            # TODO (JKealey): Find a better way to link previous
-            #  ids to the new bboxes
-            if mouths and len(mouths) > i:
-                mouth = mouths[i]
-            else:
-                mouth = None
+        Returns:
+            matched_pairs (list of tuples: (object, detection)): contains the
+                matched pairs between objects and detections
+            unmatched_objects (dict of id(str):objects): dict of all objects
+                that were not matched with predictions
+            unmatched_detections (list of detections): list of detections that
+                were not matched with an object
+        """
+
+        matched_pairs = []
+        unmatched_objects = objects.copy()
+        unmatched_detections = []
+        for i, detection in enumerate(detections):
             intersection_scores = defaultdict(lambda: 0)
 
-            all_tracked_objects = self.get_all_objects()
-            for tracker_id, trackable_object in all_tracked_objects.items():
+            for tracker_id, trackable_object in objects.items():
                 intersection_scores[tracker_id] = intersection(
-                    predicted_bbox, trackable_object.bbox
+                    detection.bbox, trackable_object.bbox
                 )
 
             max_id = None
@@ -300,25 +303,60 @@ class TrackingManager:
                 and intersection_scores[max_id] > self._intersection_threshold
             ):
                 # A face was matched
-                if max_id in self._tracked_objects.keys():
-                    # Do not reset pre-tracked objects
-                    self._tracked_objects[max_id].reset(
-                        frame, predicted_bbox, mouth
-                    )
-                    self._tracked_objects[max_id].increment_evaluation_frames()
-                    last_ids.discard(max_id)
+                matched_pairs.append((objects[max_id], detection))
+                unmatched_objects.pop(max_id)
             else:
                 # A new object was discovered
-                self.add_tracked_object(frame, predicted_bbox, mouth)
+                unmatched_detections.append(detection)
 
-        # Reject tracked objects that are not re-detected
-        for tracker_id in last_ids:
-            self._tracked_objects[tracker_id].reject()
-            if self._tracked_objects[tracker_id].rejected:
-                self.remove_tracked_object(tracker_id)
-                print("Rejecting tracked object:", tracker_id)
+        return matched_pairs, unmatched_objects, unmatched_detections
 
-    def associate_faces(self, frame, predicted_bboxes, mouths):
+    def associate_faces(self, frame, detections):
+        """
+        Associate predictions to objects currently being tracked
+
+        Args:
+            frame (ndarray): current frame with shape HxWx3
+            detections (list of Detection): each Detection contains a bounding
+                box is in the x,y,w,h format and a mouth landmark point in
+                the x,y format
+        """
+
+        all_tracked_objects = self.get_all_objects()
+        (
+            matched_pairs,
+            unmatched_objects,
+            unmatched_detections,
+        ) = self.match_faces_by_iou(all_tracked_objects, detections)
+
+        # Handle matches
+        for pair in matched_pairs:
+            # A face was matched
+            obj, detection = pair
+            if obj.id in self._tracked_objects.keys():
+                # Do not reset pre-tracked objects
+                self._tracked_objects[obj.id].reset(
+                    frame, detection.bbox, detection.mouth
+                )
+                self._tracked_objects[obj.id].increment_evaluation_frames()
+
+        # Handle unmatched detections
+        for new_detection in unmatched_detections:
+            # A new object was discovered
+            self.add_tracked_object(
+                frame, new_detection.bbox, new_detection.mouth
+            )
+
+        # Reject unmatched tracked objects
+        for obj_id, obj in unmatched_objects.items():
+            if obj.id in self._tracked_objects.keys():
+                tracked_object = self._tracked_objects[obj.id]
+                tracked_object.reject()
+                if tracked_object.rejected:
+                    self.remove_tracked_object(obj.id)
+                    print("Rejecting tracked object:", obj.id)
+
+    def associate_faces_verifier(self, frame, predicted_bboxes, mouths):
         """
         Associate detections to current tracked and pre-tracked faces
         If no matches: try to match with old faces seen
@@ -440,34 +478,27 @@ class TrackingManager:
             monitor (Monitor): pyodas monitor to display the frame
         """
 
-        (
-            pre_face_frame,
-            pre_face_bboxes,
-            pre_face_mouths,
-        ) = self._detector.predict(frame.copy(), draw_on_frame=True)
+        annotated_frame, detections = self._detector.predict(
+            frame.copy(), draw_on_frame=True
+        )
+
+        pre_tracked_objects = self._pre_tracked_objects.copy()
+        matched_pairs, unmatched_objects, _ = self.match_faces_by_iou(
+            pre_tracked_objects, detections
+        )
+
+        # Handle successful re-detections
+        for pair in matched_pairs:
+            obj, detection = pair
+            obj.confirm()
+
+        # Handle unmatched objects
+        for obj_id, obj in unmatched_objects.items():
+            obj.increment_evaluation_frames()
 
         finished_trackers = []
         pre_tracker_frame = frame.copy()
         for tracker_id, tracked_object in self._pre_tracked_objects.items():
-            # TODO (JKealey): Find a better way to link previous
-            #  ids to the new bboxes
-            intersection_scores = list()
-            for predicted_bbox in pre_face_bboxes:
-                intersection_scores.append(
-                    intersection(predicted_bbox, tracked_object.bbox)
-                )
-
-            max_score = (
-                max(intersection_scores) if intersection_scores else None
-            )
-            if (
-                intersection_scores
-                and max_score > self._intersection_threshold
-            ):
-                tracked_object.confirm()
-            else:
-                tracked_object.increment_evaluation_frames()
-
             if tracked_object.confirmed:
                 self._tracked_objects[tracker_id] = tracked_object
 
@@ -492,9 +523,9 @@ class TrackingManager:
             self.remove_pre_tracked_object(tracker)
 
         monitor.update("Pre-process", pre_tracker_frame)
-        return pre_face_frame, pre_face_bboxes, pre_face_mouths
+        return annotated_frame, detections
 
-    def detector_update(self, frame, monitor, pre_detections):
+    def detector_update(self, frame, monitor, pre_frame, pre_detections):
         """
         Obtain the detection predictions, unless the pre-process already
         called the detection then use those
@@ -502,18 +533,20 @@ class TrackingManager:
         Args:
             frame (ndarray): current frame with shape HxWx3
             monitor (Monitor): pyodas monitor to display the frame
-            pre_detections (tuple): Detections from the pre-process
+            pre_frame (ndarray or None): annotated frame from pre-process step
+            pre_detections (list(Detection)): Detections from the pre-process
         """
-        if any([elem is not None for elem in pre_detections]):
-            face_frame, predicted_bboxes, mouths = pre_detections
+        if pre_detections is not None:
+            face_frame = pre_frame
+            detections = pre_detections
         else:
-            (face_frame, predicted_bboxes, mouths) = self._detector.predict(
+            face_frame, detections = self._detector.predict(
                 frame.copy(), draw_on_frame=True
             )
         self._last_detect = time.time()
         monitor.update("Detection", face_frame)
 
-        self.associate_faces_iou(frame, predicted_bboxes, mouths)
+        self.associate_faces(frame, detections)
 
     def main_loop(self, monitor, cap, fps):
         """
@@ -538,15 +571,14 @@ class TrackingManager:
                 break
 
             # Do pre-processing of faces
-            pre_frame, pre_bboxes, pre_mouths = None, None, None
+            pre_frame, pre_detections = None, None
             if self._pre_tracked_objects:
-                pre_frame, pre_bboxes, pre_mouths = self.preprocess_faces(
+                pre_frame, pre_detections = self.preprocess_faces(
                     frame, monitor
                 )
 
             if time.time() - self._last_detect >= self._frequency:
-                pre_detections = (pre_frame, pre_bboxes, pre_mouths)
-                self.detector_update(frame, monitor, pre_detections)
+                self.detector_update(frame, monitor, pre_frame, pre_detections)
 
             # Draw detections from tracked objects
             tracking_frame = frame.copy()
