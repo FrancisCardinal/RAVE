@@ -1,7 +1,7 @@
 import argparse
 from tkinter import filedialog
 
-from audio import AudioDatasetBuilder
+from RAVE.audio import AudioDatasetBuilder
 
 
 # Script used to generate the audio dataset

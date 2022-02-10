@@ -4,5 +4,6 @@ pyodas-JacobKealey
 
 soundfile
 scipy
+rir-generator
 
 -r ../requirements.txt
