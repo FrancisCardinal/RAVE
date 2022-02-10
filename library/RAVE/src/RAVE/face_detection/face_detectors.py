@@ -13,6 +13,22 @@ from ..common.image_utils import (
 from .FaceDetectionModel import FaceDetectionModel
 
 
+class Detection:
+    """
+    Container class for detections.
+
+    Attributes:
+        frame (ndarray): image taken at the moment of detection
+        bbox (list(int)) xywh bounding box of detection
+        mouth (tuple (int)): x,y coordinates of mouth landmark
+    """
+
+    def __init__(self, frame, bbox, mouth=None):
+        self.frame = frame
+        self.bbox = bbox
+        self.mouth = mouth
+
+
 class Detector(ABC):
     """
     Abstract class for detectors.
@@ -30,10 +46,10 @@ class Detector(ABC):
                 Whether or not to draw the predictions on the return frame.
 
         Return:
-            (np.ndarray, list, list):
+            (np.ndarray, list of Detections):
                 A tuple containing the frame with or without the predictions
-                drawn on it, a list of bounding boxes and a list of mouth
-                positions in x,y.
+                drawn on it, a list of detections containing the bounding box
+                and mouth coordinate.
         """
         raise NotImplementedError()
 
@@ -90,12 +106,13 @@ class DnnFaceDetector(Detector):
                 Whether or not to draw the predictions on the return frame.
 
         Return:
-            (np.ndarray, list, None):
+            (np.ndarray, list of Detections):
                 A tuple containing the frame with or without the predictions
-                drawn on it, a list of bounding boxes and a list of mouth
-                positions in x,y. For dnn, return None instead of a list
-                because it does not extract features.
+                drawn on it, a list of detections containing the bounding box
+                and mouth coordinate. For dnn, the mought is always None
+                instead because it does not extract features.
         """
+        original_frame = frame.copy()
         h, w = frame.shape[:2]
         blob = cv2.dnn.blobFromImage(
             cv2.resize(frame, (300, 300)),
@@ -106,7 +123,7 @@ class DnnFaceDetector(Detector):
         self.model.setInput(blob)
         faces = self.model.forward()
 
-        predicted_bboxes = []
+        detections = []
         for i in range(faces.shape[2]):
             confidence = faces[0, 0, i, 2]
 
@@ -114,7 +131,9 @@ class DnnFaceDetector(Detector):
                 box = faces[0, 0, i, 3:7] * np.array([w, h, w, h])
                 (x, y, x1, y1) = box.astype("int")
                 xywh_rect = (x, y, int(x1 - x), int(y1 - y))
-                predicted_bboxes.append(xywh_rect)
+
+                new_detection = Detection(original_frame.copy(), xywh_rect)
+                detections.append(new_detection)
 
                 if draw_on_frame:
                     line_thickness = frame.shape[0] // 240 or 1
@@ -131,7 +150,7 @@ class DnnFaceDetector(Detector):
                         line_thickness,
                     )  # Display confidence
 
-        return frame, predicted_bboxes, None
+        return frame, detections
 
 
 class YoloFaceDetector(Detector):
@@ -169,12 +188,13 @@ class YoloFaceDetector(Detector):
                 Whether or not to draw the predictions on the return frame.
 
         Return:
-            (np.ndarray, list, None):
+            (np.ndarray, list of Detections):
                 A tuple containing the frame with or without the predictions
-                drawn on it, a list of bounding boxes and a list of mouth
-                positions in x,y. For dnn, return None instead of a list
-                because it does not extract features.
+                drawn on it, a list of detections containing the bounding box
+                and mouth coordinate. For dnn, the mought is always None
+                instead because it does not extract features.
         """
+        original_frame = frame.copy()
         tensor = opencv_image_to_tensor(frame, self.device)
         tensor = torch.unsqueeze(tensor, 0)
         predictions = self.model(tensor)[0]
@@ -187,8 +207,7 @@ class YoloFaceDetector(Detector):
             tensor.shape[2:], predictions[:, :4], frame.shape
         ).round()
 
-        predicted_bbox = []
-        mouths = []
+        detections = []
         for i in range(predictions.size()[0]):
             gn = torch.tensor(frame.shape)[[1, 0, 1, 0]].to(
                 self.device
@@ -216,19 +235,22 @@ class YoloFaceDetector(Detector):
                 int(xywh[2] * width),
                 int(xywh[3] * height),
             ]
-            predicted_bbox.append(bbox_scaled)
 
             mouth_x = int(((landmarks[6] + landmarks[8]) * width) / 2)
             mouth_y = int(((landmarks[7] + landmarks[9]) * height) / 2)
             mouth = (mouth_x, mouth_y)
-            mouths.append(mouth)
+
+            new_detection = Detection(
+                original_frame.copy(), bbox_scaled, mouth
+            )
+            detections.append(new_detection)
 
             if draw_on_frame:
                 frame = YoloFaceDetector.show_results(
                     frame, xywh, confidence, landmarks
                 )
 
-        return frame, predicted_bbox, mouths
+        return frame, detections
 
     @staticmethod
     def show_results(img, xywh, confidence, landmarks):

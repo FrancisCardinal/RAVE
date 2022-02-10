@@ -29,7 +29,7 @@ if __name__ == "__main__":
     frequency = args.freq
     tracking_manager = TrackingManager(
         tracker_type="kcf",
-        detector_type="dnn",
+        detector_type="yolo",
         verifier_type="resnet_face_34",
         frequency=frequency,
     )
