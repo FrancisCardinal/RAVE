@@ -1,6 +1,7 @@
 import torch
 import torchaudio
 from pyodas.utils import generate_mic_array, get_delays_based_on_mic_array
+from pyodas.core import IStft
 
 from tkinter import filedialog
 import glob
@@ -75,6 +76,10 @@ class AudioDataset(torch.utils.data.Dataset):
             power=None,
             return_complex=True
         )
+        self.waveform = torchaudio.transforms.InverseSpectrogram(
+             n_fft=1024,
+            hop_length= 256
+        )
         self.delay_and_sum = Beamformer('delaysum', frame_size=1024)
 
     def __len__(self):
@@ -90,10 +95,20 @@ class AudioDataset(torch.utils.data.Dataset):
 
         signal1 = self._formatAndConvertToSpectogram(audio_signal, audio_sr)
         signal2 = self._delaySum(audio_signal, config_dict)
-        signal = torch.cat([signal1, signal2], dim=1)
+        #signal = torch.cat([signal1, signal2], dim=1)
         target = self._formatAndConvertToSpectogram(audio_target, target_sr)
-
-        return signal, target
+        
+        """istft = IStft(1, 1024, 256, "hann")
+        flip_signal = np.einsum("ijk->kij", signal1.cpu().detach().numpy())
+        new_signal = np.zeros((1, 256, flip_signal.shape[0]),dtype=np.float32)
+        for index, item in enumerate(flip_signal):
+            new_signal[...,index] = istft(item)"""
+  
+        #new_signal = torch.istft(signal1, n_fft=1024, hop_length= 256).float()
+  
+        test = self.waveform(signal2)
+        torchaudio.save('./test_audio.wav', test.float() , 16000)
+        return signal1, target
     
     def _delaySum(self, signal, config):
         freq_signal = self.transformation(signal)
@@ -117,18 +132,18 @@ class AudioDataset(torch.utils.data.Dataset):
             signal[...,index] = self.delay_and_sum(freq_signal=item, delay=delay)
 
         signal = torch.from_numpy(signal).to(self.device)
-        signal = torch.log(signal)
+        #signal = torch.log(signal)
         return signal
         
     def _formatAndConvertToSpectogram(self, raw_signal, sr):
         signal = self._resample(raw_signal, sr)
-        #signal = self._cut(signal)
-        #signal = self._right_pad(signal)
+        signal = self._cut(signal)
+        signal = self._right_pad(signal)
 
         # get the log mean spectogram of the array of mics
         signal = self._set_mono(signal)
-        freq_signal = self.transformation(signal)
-        freq_signal = torch.log(freq_signal)
+        freq_signal = self.transformation(raw_signal)
+        #freq_signal = 20*torch.log10(torch.abs(freq_signal) + 1e-09)
         #freq_signal = torchaudio.functional.amplitude_to_DB(freq_signal, multiplier=20.0, amin=1e-10, db_multiplier=1.0 )
 
         return freq_signal
