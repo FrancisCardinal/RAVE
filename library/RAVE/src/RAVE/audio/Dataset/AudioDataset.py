@@ -29,7 +29,7 @@ class AudioDataset(torch.utils.data.Dataset):
         generate_dataset_runtime=False,
         is_debug=False,
         sample_rate = 16000,
-        num_samples = 48000,
+        num_samples = 16000,
         device= 'cpu'
     ):
         self.device = device
@@ -86,7 +86,6 @@ class AudioDataset(torch.utils.data.Dataset):
         return len(self.data)
 
     def __getitem__(self, idx):
-        # Get chosen items
         if self.generate_dataset_runtime:
             audio_signal, audio_mask, speech_mask, noise_mask, config_dict = self.run_dataset_builder() # todo: audio_signal needs to be a tensor 
         else:
@@ -94,23 +93,19 @@ class AudioDataset(torch.utils.data.Dataset):
             audio_signal, audio_sr, audio_target, target_sr, config_dict = self.load_item_from_disk(item_path)
 
         signal1 = self._formatAndConvertToSpectogram(audio_signal, audio_sr)
-        signal2 = self._delaySum(audio_signal, config_dict)
-        #signal = torch.cat([signal1, signal2], dim=1)
+        signal2 = self._delaySum(audio_signal, audio_sr, config_dict)
         target = self._formatAndConvertToSpectogram(audio_target, target_sr)
-        
-        """istft = IStft(1, 1024, 256, "hann")
-        flip_signal = np.einsum("ijk->kij", signal1.cpu().detach().numpy())
-        new_signal = np.zeros((1, 256, flip_signal.shape[0]),dtype=np.float32)
-        for index, item in enumerate(flip_signal):
-            new_signal[...,index] = istft(item)"""
-  
-        #new_signal = torch.istft(signal1, n_fft=1024, hop_length= 256).float()
-  
-        test = self.waveform(signal2)
-        torchaudio.save('./test_audio.wav', test.float() , 16000)
-        return signal1, target
+        signal = torch.cat([signal1, signal2], dim=1)
+
+        #test = self.waveform(signal2)
+        #test = test/torch.max(test)
+        #torchaudio.save('./test_audio.wav', test.float() , 16000)
+        return signal, target
     
-    def _delaySum(self, signal, config):
+    def _delaySum(self, raw_signal, sr, config):
+        signal = self._resample(raw_signal, sr)
+        signal = self._cut(signal) 
+        signal = self._right_pad(signal)
         freq_signal = self.transformation(signal)
         mic0 = list(np.subtract(config['microphones'][0], config['user_pos']))
         mic1 = list(np.subtract(config['microphones'][1], config['user_pos']))
@@ -132,20 +127,17 @@ class AudioDataset(torch.utils.data.Dataset):
             signal[...,index] = self.delay_and_sum(freq_signal=item, delay=delay)
 
         signal = torch.from_numpy(signal).to(self.device)
-        #signal = torch.log(signal)
+        signal = 20*torch.log10(torch.abs(signal) + 1e-09)
         return signal
         
     def _formatAndConvertToSpectogram(self, raw_signal, sr):
         signal = self._resample(raw_signal, sr)
-        signal = self._cut(signal)
+        signal = self._cut(signal) 
         signal = self._right_pad(signal)
 
-        # get the log mean spectogram of the array of mics
         signal = self._set_mono(signal)
-        freq_signal = self.transformation(raw_signal)
-        #freq_signal = 20*torch.log10(torch.abs(freq_signal) + 1e-09)
-        #freq_signal = torchaudio.functional.amplitude_to_DB(freq_signal, multiplier=20.0, amin=1e-10, db_multiplier=1.0 )
-
+        freq_signal = self.transformation(signal)
+        freq_signal = 20*torch.log10(torch.abs(freq_signal) + 1e-09)
         return freq_signal
 
     def _resample(self, signal, sr):
@@ -203,7 +195,7 @@ class AudioDataset(torch.utils.data.Dataset):
 
         # Get paths for files
         audio_file_path = os.path.join(subfolder_path, 'audio.wav')
-        audio_target_path = os.path.join(subfolder_path, 'target.wav')
+        audio_target_path = os.path.join(subfolder_path, 'noise.wav')
         configs_file_path = os.path.join(subfolder_path, 'configs.yaml')
 
         # Get config dict

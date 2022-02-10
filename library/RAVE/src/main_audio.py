@@ -1,3 +1,4 @@
+import multiprocessing
 import os
 from numpy import block
 
@@ -5,8 +6,9 @@ import torch
 import argparse
 import matplotlib.pyplot as plt
 
-from RAVE.common.Trainer import Trainer
+
 from RAVE.audio.Neural_Network.AudioModel import AudioModel
+from RAVE.audio.Neural_Network.Trainer import AudioTrainer
 from RAVE.audio.Dataset.AudioDataset import AudioDataset
 
 def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
@@ -30,40 +32,37 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
         DEVICE = "cuda"
     
     # todo: call class method to create dataset if not on disk
-    dataset = AudioDataset(dataset_path='/Users/felixducharmeturcotte/Documents/audioDataset', device=DEVICE)
-    spect = next(iter(dataset))[0]
-
+    dataset = AudioDataset(dataset_path='/Users/felixducharmeturcotte/Documents/audioDataset2', device=DEVICE)
     
+    
+    """spect = next(iter(dataset))[0]
     plt.pcolormesh(spect[0].float(), shading='gouraud')
-    plt.show(block=True)
-    BATCH_SIZE = 128
+    plt.show(block=True)"""
 
-    # todo: get training subDataset with class method
-    training_sub_dataset = None
-    # todo: get validation subDataset with class method
-    validation_sub_dataset = None
+    BATCH_SIZE = 32
+    lenght_dataset = len(dataset)
+    validation_size = round(lenght_dataset*0.3)
 
-    # todo: load training dataset
-    """trainer_loader = torch.utils.data.DataLoader(
+    training_sub_dataset, validation_sub_dataset = torch.utils.data.random_split(dataset, [ lenght_dataset - validation_size, validation_size])
+
+    trainer_loader = torch.utils.data.DataLoader(
         training_sub_dataset,
         batch_size=BATCH_SIZE,
         shuffle=True,
-        num_workers=8,
+        num_workers=6,
         pin_memory=True,
         persistent_workers=True
-    )"""
-    trainer_loader = None
+    )
 
-    # todo: load testing dataset
-    """validation_loader = torch.utils.data.DataLoader(
+
+    validation_loader = torch.utils.data.DataLoader(
         validation_sub_dataset,
         batch_size=BATCH_SIZE,
         shuffle=True,
-        num_workers=8,
+        num_workers=6,
         pin_memory=True,
         persistent_workers=True
-    )"""
-    validation_loader = None
+    )
 
     # todo: get directory from dataset class
     directory = os.path.join("RAVE", "audio")
@@ -78,8 +77,7 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
             lr=1e-03
         )
         scheduler = None
-
-        trainer = Trainer(
+        trainer = AudioTrainer(
             trainer_loader,
             validation_loader,
             torch.nn.MSELoss(reduction='sum'),
@@ -90,7 +88,7 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
             directory,
             CONTINUE_TRAINING
         )
-        #trainer.train_with_validation(NB_EPOCHS)
+        trainer.train_with_validation(NB_EPOCHS)
 
     if DISPLAY_VALIDATION:
         print('showing validation')
