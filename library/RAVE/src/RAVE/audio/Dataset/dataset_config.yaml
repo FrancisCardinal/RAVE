@@ -3,17 +3,46 @@
 # List of various room dimensions
 # Shape [x, y, z] ([left-right, front-back, up-down])
 room:
-  [
-    [10, 10, 10],
-    [20, 20, 20],
-    [30, 30, 30]
-  ]
+    [
+        [10, 10, 10],
+        [20, 20, 20],
+        [30, 30, 30]
+    ]
 
 # Path to folder containing source files
 source_folder: 'C:\\GitProjet\\MS-SNSD\\clean_train'
 
 # Path to folder containing noise files
 noise_folder: 'C:\\GitProjet\\MS-SNSD\\noise_train'
+
+# Authorized noises
+banned_noises:
+    [
+        'Bus_1',
+        'Car_1',
+        'Hallway_1',
+        'Office_1',
+        'Washing_1'
+    ]
+
+# Diffuse noises
+diffuse_noises:
+    [
+        'AirportAnnouncement',
+        'Babble',
+        'Field',
+        'Cafe',
+        'CafeTeria',
+        'Metro',
+        'Park',
+        'Restaurant',
+        'Square',
+        'Station',
+        'Traffic'
+    ]
+
+# Max diffuse noises
+max_diffuse_noises: 2
 
 # Range of noises count to add to audio file
 noise_count_range: [5, 10]
