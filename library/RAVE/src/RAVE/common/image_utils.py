@@ -387,28 +387,28 @@ def check_frontal_face(
 
     """
     if (
-        facial_landmarks[2][0] < facial_landmarks[0][0]
-        or facial_landmarks[2][1] < facial_landmarks[0][1]
-        or facial_landmarks[2][0] < facial_landmarks[3][0]
-        or facial_landmarks[2][1] > facial_landmarks[3][1]
-        or facial_landmarks[2][0] > facial_landmarks[1][0]
-        or facial_landmarks[2][1] < facial_landmarks[1][1]
-        or facial_landmarks[2][0] > facial_landmarks[4][0]
-        or facial_landmarks[2][1] > facial_landmarks[4][1]
+        facial_landmarks[4] < facial_landmarks[0]
+        or facial_landmarks[5] < facial_landmarks[1]
+        or facial_landmarks[4] < facial_landmarks[6]
+        or facial_landmarks[5] > facial_landmarks[7]
+        or facial_landmarks[4] > facial_landmarks[2]
+        or facial_landmarks[5] < facial_landmarks[3]
+        or facial_landmarks[4] > facial_landmarks[8]
+        or facial_landmarks[5] > facial_landmarks[9]
     ):
         return False
 
     wide_dist = np.linalg.norm(
-        np.array(facial_landmarks[0]) - np.array(facial_landmarks[1])
+        np.array(facial_landmarks[0:2]) - np.array(facial_landmarks[2:4])
     )
     high_dist = np.linalg.norm(
-        np.array(facial_landmarks[0]) - np.array(facial_landmarks[3])
+        np.array(facial_landmarks[0:2]) - np.array(facial_landmarks[6:8])
     )
     dist_rate = high_dist / wide_dist
 
     # cal std
-    vec_A = np.array(facial_landmarks[0]) - np.array(facial_landmarks[2])
-    vec_C = np.array(facial_landmarks[3]) - np.array(facial_landmarks[2])
+    vec_A = np.array(facial_landmarks[0:2]) - np.array(facial_landmarks[4:6])
+    vec_C = np.array(facial_landmarks[6:8]) - np.array(facial_landmarks[4:6])
     dist_A = np.linalg.norm(vec_A)
     dist_C = np.linalg.norm(vec_C)
 

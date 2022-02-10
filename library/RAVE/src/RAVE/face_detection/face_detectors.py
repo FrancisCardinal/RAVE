@@ -23,10 +23,11 @@ class Detection:
         mouth (tuple (int)): x,y coordinates of mouth landmark
     """
 
-    def __init__(self, frame, bbox, mouth=None):
+    def __init__(self, frame, bbox, mouth=None, landmarks=None):
         self.frame = frame
         self.bbox = bbox
         self.mouth = mouth
+        self.landmarks = landmarks
 
 
 class Detector(ABC):
@@ -236,24 +237,29 @@ class YoloFaceDetector(Detector):
                 int(xywh[3] * height),
             ]
 
-            mouth_x = int(((landmarks[6] + landmarks[8]) * width) / 2)
-            mouth_y = int(((landmarks[7] + landmarks[9]) * height) / 2)
+            # Landmarks
+            for i in range(5):
+                landmarks[2 * i] = int(landmarks[2 * i] * width)
+                landmarks[2 * i + 1] = int(landmarks[2 * i + 1] * height)
+
+            mouth_x = int((landmarks[6] + landmarks[8]) / 2)
+            mouth_y = int((landmarks[7] + landmarks[9]) / 2)
             mouth = (mouth_x, mouth_y)
 
             new_detection = Detection(
-                original_frame.copy(), bbox_scaled, mouth
+                original_frame.copy(), bbox_scaled, mouth, landmarks
             )
             detections.append(new_detection)
 
             if draw_on_frame:
                 frame = YoloFaceDetector.show_results(
-                    frame, xywh, confidence, landmarks
+                    frame, bbox_scaled, confidence, landmarks, mouth
                 )
 
         return frame, detections
 
     @staticmethod
-    def show_results(img, xywh, confidence, landmarks):
+    def show_results(img, xywh, confidence, landmarks, mouth):
         """
         Writes the bounding box, the confidence score and the landmarks to the
         frame. For now, it only shows the result of one prediction.
@@ -278,10 +284,10 @@ class YoloFaceDetector(Detector):
         line_thickness = 1 or round(0.002 * (height + width) / 2) + 1
 
         # Bounding box
-        x1 = int(xywh[0] * width - 0.5 * xywh[2] * width)
-        y1 = int(xywh[1] * height - 0.5 * xywh[3] * height)
-        x2 = int(xywh[0] * width + 0.5 * xywh[2] * width)
-        y2 = int(xywh[1] * height + 0.5 * xywh[3] * height)
+        x1 = xywh[0]
+        y1 = xywh[1]
+        x2 = xywh[0] + xywh[2]
+        y2 = xywh[1] + xywh[3]
         img = cv2.rectangle(
             img,
             (x1, y1),
@@ -301,17 +307,14 @@ class YoloFaceDetector(Detector):
 
         # Landmarks
         for i in range(5):
-            point_x = int(landmarks[2 * i] * width)
-            point_y = int(landmarks[2 * i + 1] * height)
+            point_x = landmarks[2 * i]
+            point_y = landmarks[2 * i + 1]
             img = cv2.circle(
                 img, (point_x, point_y), line_thickness + 1, colors[i], -1
             )
 
-        mouth_x = int(((landmarks[6] + landmarks[8]) * width) / 2)
-        mouth_y = int(((landmarks[7] + landmarks[9]) * height) / 2)
-
         img = cv2.circle(
-            img, (mouth_x, mouth_y), line_thickness + 1, (255, 0, 0), -1
+            img, (mouth[0], mouth[1]), line_thickness + 1, (255, 0, 0), -1
         )
 
         # Confidence score
