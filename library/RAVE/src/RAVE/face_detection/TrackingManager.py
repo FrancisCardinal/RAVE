@@ -19,7 +19,34 @@ from .TrackedObject import TrackedObject
 
 class TrackingManager:
     """
-    ...
+    Used to coordinate the detector, the trackers and the verifier together.
+
+    Args:
+        tracker_type (str): The type of tracker to use
+        detector_type (str): The type of detector to use
+        verifier_type (str) The type of verifier to use
+        frequency (float): Frequency at which the detector is called
+        intersection_threshold (float):
+            Threshold on the intersection criteria for reassigning an id to
+            a bounding box
+
+    Attributes:
+        count (int): for assigning ids.
+        _tracker_type (str): type of tracker
+        _tracked_objects (dict of TrackedObject):
+            dictionary of all faces currently being tracked having been
+            confirmed
+        _pre_tracked_objects (dict of TrackedObject):
+            dictionary of all faces currently being in the process of being
+            confirmed
+        _rejected_objects (dict of TrackedObject):
+            dictionary of all faces rejected by post-process
+        _frequency (float):
+            The frequency at which the detector/verifier are called
+        _intersection_threshold (float):
+            Threshold for reassigning an id to a new bbox
+        _detector (Detector): Network doing the detection job
+        _last_detect (float): The time of the last detection.
     """
 
     def __init__(
@@ -55,21 +82,27 @@ class TrackingManager:
 
     def tracking_count(self):
         """
-        ...
+        Returns:
+            int: The number of tracked objects
         """
         return len(self._tracked_objects)
 
     # Returns a dictionary combining pre-tracked and tracked objects
     def get_all_objects(self):
         """
-        ...
+        Returns:
+            dict of TrackedObject:
+                Dictionary of all faces being tracked confirmed and unconfirmed
         """
         return {**self._tracked_objects, **self._pre_tracked_objects}
 
     # Assumed to be called from main thread only
     def new_identifier(self):
         """
-        ...
+        Used to assign a new id to a new tracking object
+        Returns:
+            int:
+                A new id
         """
         new_id = str(self.count)
         self.count += 1
@@ -78,7 +111,16 @@ class TrackingManager:
     # Register a new object to tracker. Assumed to be called from main thread
     def add_tracked_object(self, frame, bbox, mouth):
         """
-        ...
+        Creates a new TrackedObject for the new bbox and adds it to the
+        pre-tracked list. It also starts the tracking thread.
+
+        Args:
+            frame (ndarray):
+                current frame with shape HxWx3
+            bbox (list):
+                in format x,y,w,h (superior left corner)
+            mouth (list):
+                The position of the mouth in x,y
         """
         new_id = self.new_identifier()
         new_tracked_object = TrackedObject(
@@ -89,7 +131,10 @@ class TrackingManager:
 
     def start_tracking_thread(self, tracked_object):
         """
-        ...
+        Start the tracker with the tracked_object
+
+        Args:
+            tracked_object (TrackedObject): The object to track
         """
         new_thread = threading.Thread(
             target=self.track_loop, args=(tracked_object,), daemon=True
@@ -98,14 +143,24 @@ class TrackingManager:
 
     def remove_tracked_object(self, identifier):
         """
-        ...
+        Remove tracked object from the _tracked_object dictionary
+        and add it to the _rejected_objects
+
+        Args:
+            identifier (int):
+                id of the tracked object to be removed
         """
         rejected_object = self._tracked_objects.pop(identifier)
         self._rejected_objects[identifier] = rejected_object
 
     def restore_rejected_object(self, identifier):
         """
-        ...
+        Remove tracked object from the _rejected_objects dictionary
+        and add it to the _tracked_object. Also start the tracking thread
+
+        Args:
+            identifier (int):
+                id of the tracked object to be removed
         """
         restored_object = self._rejected_objects.pop(identifier)
         restored_object.restore()
@@ -114,19 +169,26 @@ class TrackingManager:
 
     def remove_pre_tracked_object(self, identifier):
         """
-        ...
+        Remove tracked object from the _pre_tracked_object dictionary
+
+        Args:
+            identifier (int):
+                id of the tracked object to be removed
         """
         self._pre_tracked_objects.pop(identifier)
 
     def stop_tracking(self):
         """
-        ...
+        Remove all items from the _tracked_objects dictionary
         """
         self._tracked_objects = {}
 
     def track_loop(self, tracked_object):
         """
-        ...
+        Thread worker for calling the tracker on the TrackedObject
+
+        Args:
+            tracked_object (TrackedObject): The object to track
         """
         # with tqdm(desc=f"{tracked_object.id}", total=25000) as pbar:
         while (
@@ -153,7 +215,16 @@ class TrackingManager:
 
     def listen_keyboard_input(self, frame, key_pressed):
         """
-        ...
+        Opencv keyboard input handler for defining object to track manually
+        or exiting the program.
+
+        q or escape exits
+        x removes the last tracked object
+        s lets you defined an object to track
+
+        Args:
+            frame (ndarray): current frame with shape HxWx3
+            key_pressed (int): key pressed on the opencv window
         """
         key = key_pressed & 0xFF
         if key == ord("s"):
@@ -171,7 +242,11 @@ class TrackingManager:
 
     def draw_prediction_on_frame(self, frame, tracked_object):
         """
-        ...
+        Draw the tracker prediction on the frame
+
+        Args:
+            frame (ndarray): current frame with shape HxWx3
+            tracked_object (TrackedObject): tracked object to be drawn
         """
         x, y, w, h = tracked_object.bbox
         cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
@@ -190,7 +265,14 @@ class TrackingManager:
 
     def associate_faces_iou(self, frame, predicted_bboxes, mouths):
         """
-        ...
+        Associate predictions to objects currently being tracked
+
+        Args:
+            frame (ndarray): current frame with shape HxWx3
+            predicted_bboxes (list of bboxes):
+                each bounding box is in the x,y,w,h format
+            mouths (list of points):
+                each point is in the x,y format
         """
         last_ids = set(self._tracked_objects.keys())
         for i, predicted_bbox in enumerate(predicted_bboxes):
@@ -237,6 +319,13 @@ class TrackingManager:
         If no matches: try to match with old faces seen
         If still no match: register new faces to track
         Also unregister faces that did not get a new detection
+
+        Args:
+            frame (ndarray): current frame with shape HxWx3
+            predicted_bboxes (list of bboxes):
+                each bounding box is in the x,y,w,h format
+            mouths (list of points):
+                each point is in the x,y format
         """
 
         # Verifier: get encodings for each detected face in the frame
@@ -338,7 +427,12 @@ class TrackingManager:
 
     def preprocess_faces(self, frame, monitor):
         """
-        ...
+        Associate predictions to objects currently being pre-tracked to confirm
+        that they are faces.
+
+        Args:
+            frame (ndarray): current frame with shape HxWx3
+            monitor (Monitor): pyodas monitor to display the frame
         """
 
         (
@@ -397,7 +491,13 @@ class TrackingManager:
 
     def detector_update(self, frame, monitor, pre_detections):
         """
-        ...
+        Obtain the detection predictions, unless the pre-process already
+        called the detection then use those
+
+        Args:
+            frame (ndarray): current frame with shape HxWx3
+            monitor (Monitor): pyodas monitor to display the frame
+            pre_detections (tuple): Detections from the pre-process
         """
         if any([elem is not None for elem in pre_detections]):
             face_frame, predicted_bboxes, mouths = pre_detections
@@ -412,7 +512,15 @@ class TrackingManager:
 
     def main_loop(self, monitor, cap, fps):
         """
-        ...
+        Tracking algorithm with pre and post process for confirming and
+        rejecting bboxes.
+
+        Args:
+            monitor (Monitor):
+                pyodas monitor to display the frame
+            cap (VideoSource):
+                pyodas video source object to obtain video feed from camera
+            fps (FPS): To obtain the frames per second
         """
         while monitor.window_is_alive():
             # TODO (JKealey): Assign directly to sel._last_frame
@@ -463,7 +571,11 @@ class TrackingManager:
 
     def start(self, args):
         """
-        ...
+        Start tracking faces in a real-time video feed
+        Args:
+            args:
+                Arguments from argument parser, see main_tracking for more
+                information
         """
         cap = VideoSource(args.video_source)
         shape = (

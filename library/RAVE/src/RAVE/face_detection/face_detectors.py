@@ -164,7 +164,7 @@ class YoloFaceDetector(Detector):
 
         Args:
             frame (np.ndarray):
-                image form which we want to detect faces with shape (3xHxW)
+                image form which we want to detect faces with shape (HxWx3)
             draw_on_frame (bool):
                 Whether or not to draw the predictions on the return frame.
 
@@ -247,6 +247,9 @@ class YoloFaceDetector(Detector):
             landmarks (list):
                 Normalized landmarks of length 10. The x and y alternate in the
                 list like so: [x1, y1, x2, y2, ..., x5, y5]
+
+        Returns:
+            (ndarray) The image with the predictions on it
         """
         height, width, _ = img.shape
         img = np.ascontiguousarray(img, dtype=np.uint8)
