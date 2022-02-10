@@ -344,19 +344,22 @@ def intersection(bbox1, bbox2):
         Intersection scaled
     """
 
+    x1, y1, w1, h1 = bbox1
+    x2, y2, w2, h2 = bbox2
+
     # determine the (x, y) coordinates of the intersection rectangle
-    xA = max(bbox1[0], bbox2[0])
-    yA = max(bbox1[1], bbox2[1])
-    xB = min(bbox1[0] + bbox1[2], bbox1[0] + bbox2[2])
-    yB = min(bbox1[1] + bbox1[3], bbox2[1] + bbox2[3])
+    x0_inter = max(x1, x2)
+    y0_inter = max(y1, y2)
+    x1_inter = min(x1 + w1, x2 + w2)
+    y1_inter = min(y1 + h1, y2 + h2)
 
     # compute the area of intersection rectangle
-    inter_area = max(0, xB - xA + 1) * max(0, yB - yA + 1)
+    width_inter = max(0, x1_inter - x0_inter + 1)
+    height_inter = max(0, y1_inter - y0_inter + 1)
+    inter_area = width_inter * height_inter
 
     # determine the smallest area
-    smallest_area = min(
-        (bbox1[2] + 1) * (bbox1[3] + 1), (bbox2[2] + 1) * (bbox2[3] + 1)
-    )
+    smallest_area = min((w1 + 1) * (h1 + 1), (w2 + 1) * (h2 + 1))
 
     return inter_area / smallest_area
 

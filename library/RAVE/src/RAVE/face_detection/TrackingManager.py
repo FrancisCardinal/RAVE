@@ -301,7 +301,7 @@ class TrackingManager:
             ):
                 # A face was matched
                 if max_id in self._tracked_objects.keys():
-                    # Not not reset pre-tracked objects
+                    # Do not reset pre-tracked objects
                     self._tracked_objects[max_id].reset(
                         frame, predicted_bbox, mouth
                     )
@@ -311,7 +311,12 @@ class TrackingManager:
                 # A new object was discovered
                 self.add_tracked_object(frame, predicted_bbox, mouth)
 
-        return last_ids
+        # Reject tracked objects that are not re-detected
+        for tracker_id in last_ids:
+            self._tracked_objects[tracker_id].reject()
+            if self._tracked_objects[tracker_id].rejected:
+                self.remove_tracked_object(tracker_id)
+                print("Rejecting tracked object:", tracker_id)
 
     def associate_faces(self, frame, predicted_bboxes, mouths):
         """
@@ -508,7 +513,7 @@ class TrackingManager:
         self._last_detect = time.time()
         monitor.update("Detection", face_frame)
 
-        self.associate_faces(frame, predicted_bboxes, mouths)
+        self.associate_faces_iou(frame, predicted_bboxes, mouths)
 
     def main_loop(self, monitor, cap, fps):
         """
