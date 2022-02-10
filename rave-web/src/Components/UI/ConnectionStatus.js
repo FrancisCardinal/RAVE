@@ -15,7 +15,6 @@ function ConnectionStatus() {
         console.log("Status changing")
         setConnectionStatus(newStatus);
       });
-      
     }
   }, [ws]);
 

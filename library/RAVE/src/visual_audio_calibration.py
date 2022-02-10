@@ -100,16 +100,6 @@ class Calib:
         )
 
 
-@sio.on("forceRefresh")
-def onForceRefresh():
-    print("Client called forc e refresh, generating new faces")
-
-
-@sio.on("muteFunction")
-def onMuteRequest(request):
-    print("Client wants to mute?", request)
-
-
 @sio.event
 def disconnect():
     print("disconnected from server")

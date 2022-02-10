@@ -1,5 +1,5 @@
 import Switch from '@mui/material/Switch'
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import SocketContext from '../../socketContext';
 
@@ -13,12 +13,6 @@ function EyeTrackingMode() {
 		ws.emit('activateEyeTracking', event.target.checked);
 		console.log(event.target.checked);
 	};
-
-	useEffect(() => {
-		if (ws) {
-			ws.on();
-		}
-	}, [ws]);
 
 	return(
 	<div className="flex bg-grey rounded-lg m-2 items-center w-min">
