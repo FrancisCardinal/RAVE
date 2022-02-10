@@ -13,6 +13,10 @@ const io = new Server(server, {
 
 // Faces array
 let mostRecentFrame = {};
+let recentCalibFrame = {};
+
+// Wifi connection status to prototype (0=no connection, 1=pending, 2=connected)
+let newStatus = 0; //start off without connection
 
 // Python script socket
 let pythonSocket = undefined;
@@ -37,12 +41,92 @@ io.on("connection", (socket) => {
     socket.emit("onFrameUpdate", mostRecentFrame);
   });
 
+  socket.on("goToCalib", () => {
+    console.log(socket.id + " start calibration");
+    if (!pythonSocket) {
+      console.log(
+        "A user requested to start calibration but the pythonSocket is not connected"
+      );
+      return;
+    }
+    pythonSocket && pythonSocket.emit("startCalibration");
+  });
+
+  socket.on("quitCalibration", () => {
+    console.log(socket.id + " stop calibration");
+    if (!pythonSocket) {
+      console.log(
+        "A user requested to stop calibration but the pythonSocket is not connected"
+      );
+      return;
+    }
+    pythonSocket && pythonSocket.emit("stopCalibration");
+  });
+
+  socket.on("nextCalibTarget", () => {
+      console.log(socket.id + " next calibration target");
+      if (!pythonSocket) {
+        console.log(
+          "A user requested a to change target but the pythonSocket is not connected"
+        );
+        return;
+      }
+      pythonSocket && pythonSocket.emit("nextCalibTarget");
+  });
+
+  socket.on("muteFunction", (muteRequest) => {
+    console.log(socket.id + " requested a muteFunction");
+    if (!pythonSocket) {
+      console.log(
+        "A user requested a mute function but the pythonSocket is not connected"
+      );
+      console.log("Want to mute? ", muteRequest);
+      return;
+    }
+    pythonSocket && pythonSocket.emit("muteFunction", (muteRequest));
+  });
+
+  socket.on("activateEyeTracking", (setEyeTrackingMode) => {
+    console.log(socket.id + " requested a activateEyeTrackingMode");
+    if (!pythonSocket) {
+      console.log(
+        "A user requested a activate eye tracking but the pythonSocket is not connected"
+      );
+      console.log("Want to activate eye tracking mode? ", setEyeTrackingMode);
+      return;
+    }
+  });
+
+  socket.on("setVolume", (volume) => {
+    console.log(socket.id + " requested a setVolume");
+    if (!pythonSocket) {
+      console.log(
+        "A user requested a setVolume but the pythonSocket is not connected"
+      );
+      console.log("Want to set the volume to? ", volume);
+      return;
+    }
+  });
+
+  socket.on("changeCalibParams", (params) => {
+    console.log(socket.id + " wants to change the number of points in calibration to " + params.number+ "and"+ params.order);
+    if (!pythonSocket) {
+      console.log(
+        "A user requested a changeCalibParams but the pythonSocket is not connected"
+      );
+      return;
+    }
+    pythonSocket && pythonSocket.emit("changeCalibParams", params);
+  });
+
   // The python script should send a pythonSocket event right after connect
   // this is a replacement for a full on authentification solution
   socket.on("pythonSocket", (socketId) => {
     if (io.sockets.sockets.has(socketId)) {
       pythonSocket = io.sockets.sockets.get(socketId);
       console.log("Python socket authentified : ", socketId);
+      newStatus = 2;
+      io.emit('getConnectionStatus', newStatus);
     } else {
       console.log(
         "Python socket tried to authenticate itself with an unknown socketId"
@@ -57,11 +141,24 @@ io.on("connection", (socket) => {
     // Send them to the clients
     io.emit("onFrameUpdate", mostRecentFrame);
   });
+
+  socket.on("calibFrame", (newFrame) => {
+    recentCalibFrame = newFrame;
+    io.emit("onCalibFrame", recentCalibFrame);
+  });
+
+  socket.on("calibrationError", (errorMessage) => {
+    console.log("This a the error message: " + errorMessage)
+    io.emit("newErrorMsg", errorMessage);
+  });
+
 });
 
 io.on("disconnect", (socket) => {
   if (socket.id === pythonSocketId) {
     console.log("Python socket disconnected");
+    newStatus = 0;
+    io.emit('getConnectionStatus', newStatus);
   } else {
     console.log("Web client socket closed : ", socket.id);
   }
