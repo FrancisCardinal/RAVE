@@ -4,7 +4,9 @@ module.exports = {
     colors: {
       'red': '#D32F2F',
       'pale-red': '#E89393',
-      'grey': '#D1D5DB'
+      'grey': '#D1D5DB',
+      'black': '#000000',
+      'white': '#FFFFFF'
     },
     screens: {
       sm: '480px',

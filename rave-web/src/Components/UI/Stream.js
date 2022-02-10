@@ -2,8 +2,10 @@ import React from 'react';
 import { useEffect, useState, useRef, useContext } from 'react';
 import { Avatar, Card, CardActions, CardContent, Stack } from '@mui/material';
 import SocketContext from '../../socketContext';
+import { useTranslation } from 'react-i18next';
 
 function Stream() {
+  const [t] = useTranslation('common');
   const ws = useContext(SocketContext);
   const [frame, setFrame] = useState({});
   const [imgSource, setImgSource] = useState('');
@@ -19,9 +21,7 @@ function Stream() {
         setImgSource(newFrame.frame);
         setFrame(newFrame);
       });
-      return () => {
-        ws.close();
-      };
+      
     }
   }, [ws]);
 
@@ -60,7 +60,7 @@ function Stream() {
   const getRandomColor = () => Math.floor(Math.random() * 16777215).toString(16);
 
   return (
-    <div className="container mx-auto px-4">
+    <div className="container px-2">
       <div className="flex justify-center">
         <div style={{ maxWidth: '75vw', position: 'relative' }}>
           <img src={'data:image/jpeg;base64,' + imgSource} alt={'loading...'} />
@@ -80,9 +80,9 @@ function Stream() {
         </div>
       </div>
       <div className="flex justify-center">
-        <Card className="mt-5 w-full" sx={{ minWidth: 275, backgroundColor: 'rgb(51 65 85)' }}>
+        <Card className="mt-5 w-full" sx={{ minWidth: 275, backgroundColor: '#D32F2F' }}>
           <CardContent>
-            <h1 className="text-3xl font-bold underline text-white">Faces : </h1>
+            <h1 className="text-xl font-bold underline text-black">{t('homePage.faces')}</h1>
             <br />
             <Stack direction={'row'} spacing={2}>
               {frame.boundingBoxes?.map((box) => {
@@ -102,12 +102,12 @@ function Stream() {
           </CardContent>
           <CardActions>
             <button
-              className="px-4 py-2 font-semibold text-sm bg-sky-500 text-white rounded-none shadow-sm"
+              className="px-4 py-2 font-semibold text-sm bg-grey text-black rounded-md shadow-sm"
               onClick={() => {
                 ws.emit('forceRefresh');
               }}
             >
-              Force refresh
+              {t('homePage.forceRefresh')}
             </button>
           </CardActions>
         </Card>

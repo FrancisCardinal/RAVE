@@ -1,14 +1,17 @@
 import Stack from '@mui/material/Stack';
 import { VolumeDown, VolumeUp } from '../../Ressources/icons';
 import Slider from '@mui/material/Slider';
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useState } from 'react';
+import SocketContext from '../../socketContext';
 
 function VolumeSlider() {
+	const ws = useContext(SocketContext);
 	const [value, setValue] = useState(30);
 
 	const handleChange = (event, newValue) => {
 		setValue(newValue);
 		console.log(value);
+		ws.emit('setVolume', event.target.value);
 	};
 
 	return(<div className='w-80'>

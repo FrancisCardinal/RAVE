@@ -22,23 +22,29 @@ def send_data(frame, face_bboxes):
     start = time.time()
     boundingBoxes = []
     for index, bbox in enumerate(face_bboxes):
-        boundingBoxes.append({
-            "id": index,
-            "dx": int(bbox[0]),
-            "dy": int(bbox[1]),
-            "width": int(bbox[2]),
-            "height": int(bbox[3])
-        })
+        boundingBoxes.append(
+            {
+                "id": index,
+                "dx": int(bbox[0]),
+                "dy": int(bbox[1]),
+                "width": int(bbox[2]),
+                "height": int(bbox[3]),
+            }
+        )
 
     if len(face_bboxes) > 0:
         print("Sending data to server...")
         frame_string = base64.b64encode(
-            cv2.imencode('.jpg', frame)[1]).decode()
-        sio.emit("newFrameAvailable", {
-                 "frame": frame_string,
-                 "dimensions": frame.shape,
-                 "boundingBoxes": boundingBoxes
-                 })
+            cv2.imencode(".jpg", frame)[1]
+        ).decode()
+        sio.emit(
+            "newFrameAvailable",
+            {
+                "frame": frame_string,
+                "dimensions": frame.shape,
+                "boundingBoxes": boundingBoxes,
+            },
+        )
 
     end = time.time()
     print("Time elapsed:", end - start)
@@ -92,29 +98,27 @@ def stream_detect(detect_func, freq):
 
 @sio.event
 def connect():
-    print('connection established to server')
+    print("connection established to server")
     # Emit the socket id to the server to "authenticate yourself"
-    sio.emit('pythonSocket', sio.get_sid())
+    sio.emit("pythonSocket", sio.get_sid())
 
 
-@sio.on('forceRefresh')
-def onForceRefresh(data):
-    print("Client called force refresh, generating new faces")
-
+@sio.on("forceRefresh")
+def onForceRefresh():
+    print("Client called forc e refresh, generating new faces")
 
 @sio.on('targetSelect')
 def onSelectTarget(target):
     print(f"User selected id : {target}")
 
-
-@sio.on('setEyeTrackerMode')
-def onSetEyeTrackerMode(data):
+@sio.on("setEyeTrackerMode")
+def onSetEyeTrackerMode():
     print("Client togged eye tracker mode")
 
 
 @sio.event
 def disconnect():
-    print('disconnected from server')
+    print("disconnected from server")
 
 
 if __name__ == "__main__":
