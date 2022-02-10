@@ -107,9 +107,11 @@ def connect():
 def onForceRefresh():
     print("Client called forc e refresh, generating new faces")
 
+
 @sio.on('targetSelect')
 def onSelectTarget(target):
     print(f"User selected id : {target}")
+
 
 @sio.on("setEyeTrackerMode")
 def onSetEyeTrackerMode():
