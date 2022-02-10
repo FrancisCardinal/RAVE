@@ -41,6 +41,17 @@ io.on("connection", (socket) => {
     socket.emit("onFrameUpdate", mostRecentFrame);
   });
 
+  socket.on("targetSelect", (target) => {
+    console.log(socket.id + " requested a new target : " + target);
+    if (!pythonSocket) {
+      console.log(
+        "A user requested a new target but the pythonSocket is not connected"
+      );
+      return;
+    }
+    pythonSocket && pythonSocket.emit("targetSelect", target);
+  });
+            
   socket.on("goToCalib", () => {
     console.log(socket.id + " start calibration");
     if (!pythonSocket) {

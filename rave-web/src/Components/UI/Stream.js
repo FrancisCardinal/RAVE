@@ -1,5 +1,5 @@
 import React from 'react';
-import { useEffect, useState, useRef, useContext, useCallback } from 'react';
+import { useEffect, useState, useRef, useContext } from 'react';
 import { Avatar, Card, CardActions, CardContent, Stack } from '@mui/material';
 import SocketContext from '../../socketContext';
 import { useTranslation } from 'react-i18next';
@@ -8,6 +8,7 @@ function Stream() {
   const [t] = useTranslation('common');
   const ws = useContext(SocketContext);
   const [frame, setFrame] = useState({});
+  const [imgSource, setImgSource] = useState('');
   const roomCanvasRef = useRef(null);
 
   useEffect(() => {
@@ -17,28 +18,26 @@ function Stream() {
         newFrame.boundingBoxes?.forEach((box) => {
           box.color = '#' + getRandomColor();
         });
+        setImgSource(newFrame.frame);
         setFrame(newFrame);
       });
       
     }
   }, [ws]);
 
-  const onCanvasClick = useCallback(
-    (canvas, e) => {
-      const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      // Check if the click is in any box
-      frame.boundingBoxes?.forEach((box) => {
-        if (x >= box.dx && x <= box.dx + box.width && y >= box.dy && y <= box.dy + box.height) {
-          console.log('Clicked box # ', box.id);
-        } else {
-          console.log(`Clicked at (${x},${y})`);
-        }
-      });
-    },
-    [frame.boundingBoxes]
-  );
+  const onCanvasClick = (e) => {
+    const { target: canvas } = e;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    // Check if the click is in any box
+    frame.boundingBoxes?.forEach((box) => {
+      if (x >= box.dx && x <= box.dx + box.width && y >= box.dy && y <= box.dy + box.height) {
+        console.log('Clicked box # ', box.id);
+        ws.emit('targetSelect', box.id);
+      }
+    });
+  };
 
   useEffect(() => {
     if (roomCanvasRef && roomCanvasRef.current && frame.frame) {
@@ -48,9 +47,6 @@ function Stream() {
       const ctx = canvas.getContext('2d');
       ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
       ctx.globalAlpha = 1;
-      var img = new Image();
-      img.src = 'data:image/jpeg;base64,' + frame.frame;
-      ctx.drawImage(img, 0, 0);
       frame.boundingBoxes?.forEach((box) => {
         ctx.beginPath();
         ctx.lineWidth = '5';
@@ -61,28 +57,27 @@ function Stream() {
     }
   }, [frame]);
 
-  useEffect(() => {
-    if (roomCanvasRef && roomCanvasRef.current) {
-      const canvas = roomCanvasRef.current;
-      canvas.addEventListener('click', (e) => {
-        onCanvasClick(canvas, e);
-      });
-    }
-  }, [roomCanvasRef, onCanvasClick]);
-
   const getRandomColor = () => Math.floor(Math.random() * 16777215).toString(16);
 
   return (
     <div className="container px-2">
       <div className="flex justify-center">
-        <canvas
-          ref={roomCanvasRef}
-          style={{
-            height: '50vh',
-            maxWidth: '75vw',
-            backgroundColor: 'grey',
-          }}
-        ></canvas>
+        <div style={{ maxWidth: '75vw', position: 'relative' }}>
+          <img src={'data:image/jpeg;base64,' + imgSource} alt={'loading...'} />
+          <canvas
+            ref={roomCanvasRef}
+            style={{
+              width: '100%',
+              height: '100%',
+              position: 'absolute',
+              top: '0px',
+              left: '0px',
+              backgroundColor: 'rgba(0,0,0,.1)',
+              cursor: 'pointer',
+            }}
+            onClick={onCanvasClick}
+          ></canvas>
+        </div>
       </div>
       <div className="flex justify-center">
         <Card className="mt-5 w-full" sx={{ minWidth: 275, backgroundColor: '#D32F2F' }}>
