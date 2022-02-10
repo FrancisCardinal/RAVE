@@ -13,7 +13,7 @@ sio = socketio.Client()
 # Called when we want to send updated data to the server
 
 
-def send_data(frame, face_bboxes, sio):
+def send_data(frame, face_bboxes):
 
     # frame: image where the faces were detected
 
@@ -45,7 +45,7 @@ def send_data(frame, face_bboxes, sio):
 
 
 # Get faces from saved image (OPTION 1)
-def image_detect(detect_func, image_path, freq, sio):
+def image_detect(detect_func, image_path, freq):
     original_frame = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
     last_detect = 0
     frame = None
@@ -56,7 +56,7 @@ def image_detect(detect_func, image_path, freq, sio):
             last_detect = now
             frame = original_frame.copy()
             frame, faces, _ = detect_func(frame, draw_on_frame=True)
-            send_data(original_frame, faces, sio)
+            send_data(original_frame, faces)
 
         if frame is not None:
             cv2.imshow("Detections", frame)
@@ -102,6 +102,11 @@ def onForceRefresh(data):
     print("Client called force refresh, generating new faces")
 
 
+@sio.on('targetSelect')
+def onSelectTarget(target):
+    print(f"User selected id : {target}")
+
+
 @sio.on('setEyeTrackerMode')
 def onSetEyeTrackerMode(data):
     print("Client togged eye tracker mode")
@@ -124,4 +129,4 @@ if __name__ == "__main__":
     else:
         image_path = "test_image_faces.png"  # "test_image_faces2.png"
         image_detect(detect_func, image_path=image_path,
-                     freq=SEND_FREQ, sio=sio)
+                     freq=SEND_FREQ)

@@ -37,6 +37,17 @@ io.on("connection", (socket) => {
     socket.emit("onFrameUpdate", mostRecentFrame);
   });
 
+  socket.on("targetSelect", (target) => {
+    console.log(socket.id + " requested a new target : " + target);
+    if (!pythonSocket) {
+      console.log(
+        "A user requested a new target but the pythonSocket is not connected"
+      );
+      return;
+    }
+    pythonSocket && pythonSocket.emit("targetSelect", target);
+  });
+
   // The python script should send a pythonSocket event right after connect
   // this is a replacement for a full on authentification solution
   socket.on("pythonSocket", (socketId) => {
