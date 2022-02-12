@@ -64,9 +64,9 @@ def image_detect(detect_func, image_path, freq):
             frame, faces, _ = detect_func(frame, draw_on_frame=True)
             send_data(original_frame, faces)
 
-        if frame is not None:
-            cv2.imshow("Detections", frame)
-            cv2.waitKey(1)
+        # if frame is not None:
+        #    cv2.imshow("Detections", frame)
+        #    cv2.waitKey(1)
 
 
 # Get faces from video stream (OPTION 2)
@@ -85,12 +85,12 @@ def stream_detect(detect_func, freq):
             frame, faces, _ = detect_func(frame, draw_on_frame=True)
             send_data(original_frame, faces)
 
-        cv2.imshow("Detections", frame)
+        # cv2.imshow("Detections", frame)
 
         # Stop if escape key is pressed
-        k = cv2.waitKey(30) & 0xFF
-        if k == 27:
-            break
+        # k = cv2.waitKey(30) & 0xFF
+        # if k == 27:
+        #    break
 
     cap.release()
     cv2.destroyAllWindows()

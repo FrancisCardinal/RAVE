@@ -15,7 +15,10 @@ function App() {
 
   useEffect(() => {
     if (process.env.REACT_APP_ONLINE_MODE === 'true') {
-      const ws = io('ws://localhost:9000');
+      let URL = window.location.origin;
+      URL = URL.replace('http', 'ws');
+      URL = URL.replace(':3000', ':9000');
+      const ws = io(URL);
       ws.on('connect', () => {
         console.log('Websocket connected');
         setSocket(ws);
