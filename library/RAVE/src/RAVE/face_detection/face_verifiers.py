@@ -301,12 +301,12 @@ class ResNetVerifier(Verifier):
                 score. Or (None, None) if no match was possible
         """
 
-        face_distances = self.get_scores(reference_encodings, face_encoding)
-        best_match_index = np.argmin(face_distances)
-        best_distance = face_distances[best_match_index]
+        face_scores = self.get_scores(reference_encodings, face_encoding)
+        best_match_index = np.argmax(face_scores)
+        best_score = face_scores[best_match_index]
 
-        if best_distance <= self.score_threshold:
-            return best_match_index, best_distance
+        if best_score >= self.score_threshold:
+            return best_match_index, best_score
         else:
             return None, None
 
