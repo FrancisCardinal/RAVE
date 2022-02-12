@@ -77,7 +77,7 @@ class TrackingManager:
             device = "cpu"
 
         self._verifier = VerifierFactory.create(
-            verifier_type, threshold=0.25, device=device
+            verifier_type, threshold=0.5, device=device
         )
 
     def tracking_count(self):
@@ -356,6 +356,25 @@ class TrackingManager:
                     self.remove_tracked_object(obj.id)
                     print("Rejecting tracked object:", obj.id)
 
+    def compare_encoding_to_objects(self, objects, encoding_to_compare):
+        """
+        WIP: will be modified
+        Args:
+            ...
+        Returns:
+            ...
+        """
+        reference_encodings = [obj.encoding for obj in objects]
+        match_index, match_score = self._verifier.get_closest_face(
+            reference_encodings, encoding_to_compare
+        )
+
+        if match_index is not None:
+            print(f"Matched old face with score: {match_score}")
+            return objects[match_index]
+
+        return None
+
     def associate_faces_verifier(self, frame, predicted_bboxes, mouths):
         """
         Associate detections to current tracked and pre-tracked faces
@@ -478,6 +497,9 @@ class TrackingManager:
             monitor (Monitor): pyodas monitor to display the frame
         """
 
+        if len(self._pre_tracked_objects) == 0:
+            return
+
         annotated_frame, detections = self._detector.predict(
             frame.copy(), draw_on_frame=True
         )
@@ -496,31 +518,47 @@ class TrackingManager:
         for obj_id, obj in unmatched_objects.items():
             obj.increment_evaluation_frames()
 
-        finished_trackers = []
+        # Perform operations on all pre-tracked objects
+        finished_trackers_id = []
         pre_tracker_frame = frame.copy()
         for tracker_id, tracked_object in self._pre_tracked_objects.items():
             if tracked_object.confirmed:
                 self._tracked_objects[tracker_id] = tracked_object
 
             if not tracked_object.pending:
-                finished_trackers.append(tracker_id)
+                finished_trackers_id.append(tracker_id)
 
             if tracked_object.bbox is None:
                 continue
 
             # TODO: Maybe throttle/control when to call verifier
+            # TODO: Build average encoding for objects
             if tracked_object.encoding is None:
                 encoding = self._verifier.get_encodings(
                     frame, [tracked_object.bbox]
                 )[0]
                 tracked_object.update_encoding(encoding)
 
+            # Verify that this object does not match an old face
+            rejected_objects = list(self._rejected_objects.values())
+            if any(rejected_objects):
+                matched_object = self.compare_encoding_to_objects(
+                    rejected_objects, tracked_object.encoding
+                )
+                if matched_object:
+                    # Matched with old face: start tracking again
+                    self.restore_rejected_object(matched_object.id)
+                    # TODO: Do we want to by-pass the rest of pre-processing
+                    #  if the face has been identified as an old face:
+                    # End this objects pre-processing
+                    finished_trackers_id.append(tracker_id)
+
             pre_tracker_frame = self.draw_prediction_on_frame(
                 pre_tracker_frame, tracked_object
             )
 
-        for tracker in finished_trackers:
-            self.remove_pre_tracked_object(tracker)
+        for id in finished_trackers_id:
+            self.remove_pre_tracked_object(id)
 
         monitor.update("Pre-process", pre_tracker_frame)
         return annotated_frame, detections
