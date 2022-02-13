@@ -1,13 +1,18 @@
 # Randomized configs to use for dataset generation
 
-# List of various room dimensions
-# Shape [x, y, z] ([left-right, front-back, up-down])
-room:
+# List of various room shapes. Uses corners with polygon.
+room_shapes:
     [
-        [10, 10, 10],
-        [20, 20, 20],
-        [30, 30, 30]
+        [[0, 0], [0, 1], [1, 1] [1, 0]],
+        [[0, 0], [0, 1], [1, 1] [1, 0.5], [0.5, 0.5], [0.5, 0]],
+        [[0, 0], [0, 0.25], [0.5, 0.25] [0.5, 1], [1, 1], [1, 0]],
+        [[0, 0], [0, 0.25], [0.25, 0.25] [0.25, 1], [1, 1], [1, 0.75], [0.75, 0.75], [0.75, 0]],
+        [[0, 0.33], [0, 0.66], [0.33, 1], [0.66, 1], [1, 0.66], [1, 0.33], [0.66, 0], [0.33, 0]],
+        [[0, 0.33], [0, 0.66], [0.5, 1], [1, 0.66], [1, 0.33], [0.5, 0]],
     ]
+
+# Random room size multiplication factors to use on room shapes ([x, y, z])
+room_sizes: [[10, 100], [10, 100], [3, 20]]
 
 # Path to folder containing source files
 source_folder: 'C:\\GitProjet\\MS-SNSD\\clean_train'
