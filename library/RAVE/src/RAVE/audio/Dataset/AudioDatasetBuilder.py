@@ -3,6 +3,9 @@ import os
 import yaml
 from tqdm import tqdm
 
+import random
+from shapely.geometry import Polygon, Point
+
 import audiolib
 
 import numpy as np
@@ -23,6 +26,8 @@ SAMPLE_RATE = 16000
 FRAME_SIZE = 1024
 SOUND_MARGIN = 0.5       # Assume every sound source is margins away from receiver and each other
 
+MAX_POS_TRIES = 50
+TILT_RANGE = 0.25
 
 class AudioDatasetBuilder:
     """
@@ -39,8 +44,11 @@ class AudioDatasetBuilder:
     """
 
     user_pos = []
+    user_dir = []
     source_direction = []
     current_room = []
+    current_room_shape = []
+    current_room_size = []
     receiver_height = 1.5
     receiver_rel = np.array((                   # Receiver (microphone) positions relative to "user" [x, y, z] (m)
                                 [-0.05, 0, 0],
@@ -263,39 +271,25 @@ class AudioDatasetBuilder:
 
         """
         # TODO: VARY COLOR INTENSITY BY SNR
-        plt.figure()
-        ax = plt.axes(projection='3d')
+        # TODO: TEST AIR ABSORPTION
+        # plt.figure()
+        # ax = plt.axes(projection='3d')
+
+        # Room
+        fig, ax = self.current_room.plot()
         ax.set_xlabel('Side (x)')
         ax.set_ylabel('Depth (y)')
         ax.set_zlabel('Height (z)')
 
-        # # Room
-        # r = [
-        #     [0, self.current_room[SIDE_ID]],
-        #     [0, self.current_room[DEPTH_ID]],
-        #     [0, self.current_room[HEIGHT_ID]]
-        # ]
-        # for idx, (s, e) in enumerate(combinations(np.array(list(product(r[0], r[1], r[2]))), 2)):
-        #     if np.sum(np.abs(s - e)) == r[idx][1] - r[idx][0]:
-        #         ax.plot3D(*zip(s, e), color="gray", linestyle='--')
-        #
-        # # User and microphones
-        # u = [
-        #     [self.user_pos[SIDE_ID] - SOUND_MARGIN, self.user_pos[SIDE_ID] + SOUND_MARGIN],
-        #     [self.user_pos[DEPTH_ID] - SOUND_MARGIN, self.user_pos[DEPTH_ID] + SOUND_MARGIN],
-        #     [self.user_pos[HEIGHT_ID] - SOUND_MARGIN, self.user_pos[HEIGHT_ID] + SOUND_MARGIN]
-        # ]
-        # for idx, (s, e) in enumerate(combinations(np.array(list(product(r[0], u[1], u[2]))), 2)):
-        #     if np.sum(np.abs(s - e)) == u[idx][1] - u[idx][0]:
-        #         ax.plot3D(*zip(s, e), color="b", linestyle=':')
+        # User
         for mic_pos in self.receiver_abs:
-            ax.scatter3D(mic_pos[SIDE_ID], mic_pos[DEPTH_ID], mic_pos[HEIGHT_ID], cmap='Blues')
+            ax.scatter3D(mic_pos[SIDE_ID], mic_pos[DEPTH_ID], mic_pos[HEIGHT_ID], c='b')
         ax.text(mic_pos[SIDE_ID], mic_pos[DEPTH_ID], mic_pos[HEIGHT_ID], 'User')
 
         # Source
         ax.scatter3D(source_pos[SIDE_ID], source_pos[DEPTH_ID], source_pos[HEIGHT_ID], cmap='Greens')
         ax.text(source_pos[SIDE_ID], source_pos[DEPTH_ID], source_pos[HEIGHT_ID], source_name)
-        # ADD SNR WHERE c = SNR
+
         # ax.scatter3D(source_pos[SIDE_ID], source_pos[DEPTH_ID], source_pos[HEIGHT_ID], c=SNR, cmap='Greens')
 
         # Noise
@@ -307,26 +301,86 @@ class AudioDatasetBuilder:
         plt.show()
 
     def generate_random_room(self):
-        # TODO: GENERATE ROOM WITH PYROOMACOUSTICS
-        pass
+        # TODO: VARY ORDER AND ABSORPTION
+        # Get random room from room shapes and sizes
+        random_room_shape = self.room_shapes[np.random.randint(0, len(self.room_shapes))]
+        self.current_room_size = self.room_sizes[np.random.randint(0, len(self.room_sizes))]
+        self.current_room_shape = []
+        for corner in random_room_shape:
+            self.current_room_shape.append([corner[0]*self.current_room_size[0], corner[1]*self.current_room_size[1]])
+        corners = np.array(self.current_room_shape).T
+
+        # Generate room from corners and height
+        room = pra.Room.from_corners(corners, fs=SAMPLE_RATE, max_order=12, absorption=0.15)
+        room.extrude(self.current_room_size[2])
+        self.current_room = room
+
+        return room
 
     def generate_user(self):
         """
         Generate absolute position for user (and for receivers).
         """
+        # TODO: GENERATE SPEECH SOURCE ON USER TO REPRESENT USER TALKING?
         # TODO: GENERATE USER HEAD WITH PYROOMACOUSTICS
-        # TODO: ROTATE MICROPHONE MATRICE
         # Get random position and assign x and y wth sound margins (user not stuck on wall)
         random_pos = np.array([np.random.rand(), np.random.rand(), self.receiver_height])
         random_pos[SIDE_ID] = random_pos[SIDE_ID] * (self.current_room[SIDE_ID] - SOUND_MARGIN*2) + SOUND_MARGIN
         random_pos[DEPTH_ID] = random_pos[DEPTH_ID] * (self.current_room[DEPTH_ID] - SOUND_MARGIN*2) + SOUND_MARGIN
         self.user_pos = random_pos
+        x_dir = (np.random.rand() - 0.5) * 2
+        y_dir = (np.random.rand() - 0.5) * 2
+        z_dir = (np.random.rand() - 0.5) * 2 / TILT_RANGE
+        self.user_dir = [x_dir, y_dir, z_dir]
 
+        # TODO: ROTATE MICROPHONE MATRIX
         # For every receiver, set x and y by room dimension and add human height as z
         self.receiver_abs = []
         for receiver in self.receiver_rel:
             receiver_center = receiver + self.user_pos
             self.receiver_abs.append(receiver_center.tolist())
+
+    def get_random_position(self, source_pos=np.array([])):
+
+        # Get room polygon
+        room_poly = Polygon(self.current_room_shape)
+        minx, miny, maxx, maxy = room_poly.bounds
+
+        for i in range(MAX_POS_TRIES):
+            # Create random point inside polygon bounds and check if contained
+            p = Point(random.uniform(minx, maxx), random.uniform(miny, maxy))
+            if not room_poly.contains(p):
+                continue
+
+            # TODO: ADD OPTION TO HAVE NOISE ON TOP OR UNDER USER AND/OR SPEECH SOURCE
+            # Check it isn't on superposed on user with circle radius
+            dx_user = p.x() - self.user_pos[0]
+            dy_user = p.y() - self.user_pos[1]
+            is_point_in_user_circle = dx_user*dx_user + dy_user*dy_user <= SOUND_MARGIN*SOUND_MARGIN
+            if is_point_in_user_circle:
+                continue
+
+            # Set height position for source
+            z = self.receiver_height
+
+            if source_pos.size == 0:
+                # If source, check it is in front of user
+
+            else:
+                # If noise, check it is not on top of source
+                dx_src = p.x() - self.user_pos[0]
+                dy_src = p.y() - self.user_pos[1]
+                is_point_in_src_circle = dx_src*dx_src + dy_src*dy_src <= SOUND_MARGIN*SOUND_MARGIN
+                if is_point_in_src_circle:
+                    continue
+
+                # Set height position for noise
+                z = np.random.rand() * self.current_room_size[2]
+
+            position = [p.x(), p.y(), z]
+            return position
+
+        return -1
 
     def get_random_position(self, source_pos=np.array([])):
         """
@@ -690,6 +744,10 @@ class AudioDatasetBuilder:
 
                 # Generate source position and copy source_audio
                 source_pos = self.get_random_position()
+                if source_pos == -1:
+                    print(f"Source position could not be made with {MAX_POS_TRIES}. Restarting new room.")
+                    file_count -= 1
+                    continue
                 source_audio = source_audio_base.copy()
 
                 # Add varying number of directional noise sources
