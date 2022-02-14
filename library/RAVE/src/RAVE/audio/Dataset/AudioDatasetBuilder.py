@@ -270,11 +270,6 @@ class AudioDatasetBuilder:
             noise_name_list (list[str]):  List of names of noise sources.
 
         """
-        # TODO: VARY COLOR INTENSITY BY SNR
-        # TODO: TEST AIR ABSORPTION
-        # plt.figure()
-        # ax = plt.axes(projection='3d')
-
         # Room
         fig, ax = self.current_room.plot()
         ax.set_xlabel('Side (x)')
@@ -291,12 +286,10 @@ class AudioDatasetBuilder:
         ax.scatter3D(source_pos[SIDE_ID], source_pos[DEPTH_ID], source_pos[HEIGHT_ID], c='g')
         ax.text(source_pos[SIDE_ID], source_pos[DEPTH_ID], source_pos[HEIGHT_ID], source_name)
 
-        # ax.scatter3D(source_pos[SIDE_ID], source_pos[DEPTH_ID], source_pos[HEIGHT_ID], c=SNR, cmap='Greens')
 
         # Noise
         for noise_pos, noise_name in zip(noise_pos_list, noise_name_list):
             ax.scatter3D(noise_pos[SIDE_ID], noise_pos[DEPTH_ID], noise_pos[HEIGHT_ID], c='r')
-            # ax.scatter3D(noise_pos[SIDE_ID], noise_pos[DEPTH_ID], noise_pos[HEIGHT_ID], c=SNR, cmap='Reds')
             ax.text(noise_pos[SIDE_ID], noise_pos[DEPTH_ID], noise_pos[HEIGHT_ID], noise_name)
 
         plt.show()
@@ -409,62 +402,6 @@ class AudioDatasetBuilder:
             return position
 
         return -1
-
-    # def get_random_position(self, source_pos=np.array([])):
-    #     """
-    #     Generates position for sound source (either main source or noise) inside room.
-    #     Checks to not superpose source with receiver, and noise with either source and receiver.
-    #
-    #     Args:
-    #         source_pos (ndarray): Position of source, in order to not superpose with noise (None if source).
-    #     Returns:
-    #         Returns random position (or position list if more than one) for sound source.
-    #     """
-    #     # TODO: CHANGE RANDOM_POSITION TO WORK INSIDE POLYGON
-    #     if source_pos.size == 0:
-    #         random_pos = np.array([np.random.rand(), np.random.rand(), self.receiver_height])
-    #
-    #         # Add sources only in front of receiver as use-case (depth)
-    #         random_pos[DEPTH_ID] *= (self.current_room[DEPTH_ID] - self.user_pos[DEPTH_ID] - SOUND_MARGIN)
-    #         random_pos[DEPTH_ID] += self.user_pos[DEPTH_ID] + SOUND_MARGIN
-    #         # x
-    #         random_pos[SIDE_ID] *= self.current_room[SIDE_ID]
-    #
-    #         self.source_direction = random_pos - self.user_pos
-    #
-    #         return random_pos
-    #
-    #     else:
-    #         # TODO: Make sure noises are not superposed (maybe useful?)
-    #         # Sources can be anywhere in room except on source or receiver
-    #         random_pos_list = []
-    #         for noise_i in range(self.dir_noise_count):
-    #             # TODO: Check if more intelligent way to do than loop
-    #             while len(random_pos_list) == noise_i:
-    #                 random_pos = np.array([np.random.rand(), np.random.rand(), np.random.rand()])
-    #                 random_pos *= self.current_room
-    #
-    #                 # If noise on source or on receiver, reroll
-    #                 if self.receiver_height-SOUND_MARGIN <= random_pos[HEIGHT_ID] <= self.receiver_height+SOUND_MARGIN:
-    #
-    #                     # Check if on receiver
-    #                     side_user_bounds = [self.user_pos[SIDE_ID]-SOUND_MARGIN, self.user_pos[SIDE_ID]+SOUND_MARGIN]
-    #                     depth_user_bounds = [self.user_pos[DEPTH_ID]-SOUND_MARGIN, self.user_pos[DEPTH_ID]+SOUND_MARGIN]
-    #                     if side_user_bounds[0] <= random_pos[SIDE_ID] <= side_user_bounds[1] and \
-    #                        depth_user_bounds[0] <= random_pos[DEPTH_ID] <= depth_user_bounds[1]:
-    #                         continue
-    #
-    #                     # Check if on source
-    #                     side_src_bounds = [source_pos[SIDE_ID]-SOUND_MARGIN, source_pos[SIDE_ID]+SOUND_MARGIN]
-    #                     depth_src_bounds = [source_pos[DEPTH_ID]-SOUND_MARGIN, source_pos[DEPTH_ID]+SOUND_MARGIN]
-    #                     if side_src_bounds[0] <= random_pos[SIDE_ID] <= side_src_bounds[1] and \
-    #                        depth_src_bounds[0] <= random_pos[DEPTH_ID] <= depth_src_bounds[1]:
-    #                         continue
-    #
-    #                 # If not on source or user, add position to random position list
-    #                 random_pos_list.append(random_pos)
-    #
-    #         return random_pos_list
 
     def get_random_noise(self, number_noises=None, diffuse_noise=False):
         """
@@ -615,7 +552,6 @@ class AudioDatasetBuilder:
                 #     plt.show()
 
                 # Remove peaks from RIR
-                # TODO: CHECK IF REMOVED ENOUGH PEAKS
                 min_peak_idx = peaks[10]
                 channel_rir[:min_peak_idx] = 0
 
@@ -766,7 +702,6 @@ class AudioDatasetBuilder:
             for _ in range(self.sample_per_speech):
                 file_count += 1
                 # Get random roon and generate user at a position in room
-                # TODO: CHANGE ROOM FOR A POLYGON
                 self.generate_random_room()
                 self.generate_user()
 
