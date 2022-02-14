@@ -282,19 +282,20 @@ class AudioDatasetBuilder:
         ax.set_zlabel('Height (z)')
 
         # User
+        # TODO: ADD VECTOR FOR USER DIR
         for mic_pos in self.receiver_abs:
             ax.scatter3D(mic_pos[SIDE_ID], mic_pos[DEPTH_ID], mic_pos[HEIGHT_ID], c='b')
         ax.text(mic_pos[SIDE_ID], mic_pos[DEPTH_ID], mic_pos[HEIGHT_ID], 'User')
 
         # Source
-        ax.scatter3D(source_pos[SIDE_ID], source_pos[DEPTH_ID], source_pos[HEIGHT_ID], cmap='Greens')
+        ax.scatter3D(source_pos[SIDE_ID], source_pos[DEPTH_ID], source_pos[HEIGHT_ID], c='g')
         ax.text(source_pos[SIDE_ID], source_pos[DEPTH_ID], source_pos[HEIGHT_ID], source_name)
 
         # ax.scatter3D(source_pos[SIDE_ID], source_pos[DEPTH_ID], source_pos[HEIGHT_ID], c=SNR, cmap='Greens')
 
         # Noise
         for noise_pos, noise_name in zip(noise_pos_list, noise_name_list):
-            ax.scatter3D(noise_pos[SIDE_ID], noise_pos[DEPTH_ID], noise_pos[HEIGHT_ID], cmap='Reds')
+            ax.scatter3D(noise_pos[SIDE_ID], noise_pos[DEPTH_ID], noise_pos[HEIGHT_ID], c='r')
             # ax.scatter3D(noise_pos[SIDE_ID], noise_pos[DEPTH_ID], noise_pos[HEIGHT_ID], c=SNR, cmap='Reds')
             ax.text(noise_pos[SIDE_ID], noise_pos[DEPTH_ID], noise_pos[HEIGHT_ID], noise_name)
 
@@ -304,7 +305,12 @@ class AudioDatasetBuilder:
         # TODO: VARY ORDER AND ABSORPTION
         # Get random room from room shapes and sizes
         random_room_shape = self.room_shapes[np.random.randint(0, len(self.room_shapes))]
-        self.current_room_size = self.room_sizes[np.random.randint(0, len(self.room_sizes))]
+        x_factor = np.random.randint(self.room_sizes[0][0], self.room_sizes[0][1])
+        y_factor = np.random.randint(self.room_sizes[1][0], self.room_sizes[1][1])
+        z_factor = np.random.randint(self.room_sizes[2][0], self.room_sizes[2][1])
+        self.current_room_size = [x_factor, y_factor, z_factor]
+
+        # Apply size to room shape
         self.current_room_shape = []
         for corner in random_room_shape:
             self.current_room_shape.append([corner[0]*self.current_room_size[0], corner[1]*self.current_room_size[1]])
@@ -324,13 +330,14 @@ class AudioDatasetBuilder:
         # TODO: GENERATE SPEECH SOURCE ON USER TO REPRESENT USER TALKING?
         # TODO: GENERATE USER HEAD WITH PYROOMACOUSTICS
         # Get random position and assign x and y wth sound margins (user not stuck on wall)
-        random_pos = np.array([np.random.rand(), np.random.rand(), self.receiver_height])
-        random_pos[SIDE_ID] = random_pos[SIDE_ID] * (self.current_room[SIDE_ID] - SOUND_MARGIN*2) + SOUND_MARGIN
-        random_pos[DEPTH_ID] = random_pos[DEPTH_ID] * (self.current_room[DEPTH_ID] - SOUND_MARGIN*2) + SOUND_MARGIN
-        self.user_pos = random_pos
-        x_dir = (np.random.rand() - 0.5) * 2
-        y_dir = (np.random.rand() - 0.5) * 2
-        z_dir = (np.random.rand() - 0.5) * 2 / TILT_RANGE
+
+        self.user_pos = self.get_random_position(user=True)
+        while True:
+            x_dir = (np.random.rand() - 0.5) * 2
+            y_dir = (np.random.rand() - 0.5) * 2
+            z_dir = (np.random.rand() - 0.5) * 2 / TILT_RANGE
+            if x_dir and y_dir and z_dir:
+                break
         self.user_dir = [x_dir, y_dir, z_dir]
 
         # TODO: ROTATE MICROPHONE MATRIX
@@ -340,7 +347,7 @@ class AudioDatasetBuilder:
             receiver_center = receiver + self.user_pos
             self.receiver_abs.append(receiver_center.tolist())
 
-    def get_random_position(self, source_pos=np.array([])):
+    def get_random_position(self, source_pos=None, user=False):
 
         # Get room polygon
         room_poly = Polygon(self.current_room_shape)
@@ -352,91 +359,112 @@ class AudioDatasetBuilder:
             if not room_poly.contains(p):
                 continue
 
-            # TODO: ADD OPTION TO HAVE NOISE ON TOP OR UNDER USER AND/OR SPEECH SOURCE
-            # Check it isn't on superposed on user with circle radius
-            dx_user = p.x() - self.user_pos[0]
-            dy_user = p.y() - self.user_pos[1]
-            is_point_in_user_circle = dx_user*dx_user + dy_user*dy_user <= SOUND_MARGIN*SOUND_MARGIN
-            if is_point_in_user_circle:
-                continue
-
-            # Set height position for source
+            # Set height position for user and/or source
             z = self.receiver_height
 
-            if source_pos.size == 0:
-                # If source, check it is in front of user
-
-            else:
-                # If noise, check it is not on top of source
-                dx_src = p.x() - self.user_pos[0]
-                dy_src = p.y() - self.user_pos[1]
-                is_point_in_src_circle = dx_src*dx_src + dy_src*dy_src <= SOUND_MARGIN*SOUND_MARGIN
-                if is_point_in_src_circle:
+            if not user:
+                # TODO: ADD OPTION TO HAVE NOISE ON TOP OR UNDER USER AND/OR SPEECH SOURCE
+                # Check it isn't on superposed on user with circle radius
+                dx_user = p.x - self.user_pos[0]
+                dy_user = p.y - self.user_pos[1]
+                is_point_in_user_circle = dx_user*dx_user + dy_user*dy_user <= SOUND_MARGIN*SOUND_MARGIN
+                if is_point_in_user_circle:
                     continue
 
-                # Set height position for noise
-                z = np.random.rand() * self.current_room_size[2]
+                if not source_pos:
+                    # If source, check it is in front of user
+                    # Get function of line perpendicular to user direction
+                    user_dir_point = [self.user_pos[0] + self.user_dir[0], self.user_pos[1] + self.user_dir[1]]
+                    # # Check for vertical line (horizontal user pos vs dir)
+                    # if self.user_pos[1]-user_dir_point[1] == 0:
+                    #     if (self.user_dir[0] < 0 and p.x() > 0) or (self.user_dir[0] > 0 and p.x() < 0):
+                    #         continue
+                    # # Check for horizontal line (vertical user pos vs dir)
+                    # if self.user_pos[0]-user_dir_point[0] == 0:
+                    #     if (self.user_dir[1] < 0 and p.y() > 0) or (self.user_dir[1] > 0 and p.y() < 0):
+                    #         continue
 
-            position = [p.x(), p.y(), z]
+                    user_dir_slope = (self.user_pos[1]-user_dir_point[1]) / (self.user_pos[0]-user_dir_point[0])
+                    mic_slope = -1 / user_dir_slope
+                    mic_fct_origin = self.user_pos[1] - mic_slope * self.user_pos[0]
+                    # If point is not in the correct direction, restart
+                    calculated_y_point = p.x * mic_slope + mic_fct_origin
+                    if self.user_dir[1] > 0 and p.y < calculated_y_point:
+                        continue
+                    if self.user_dir[1] < 0 and p.y > calculated_y_point:
+                        continue
+
+                else:
+                    # If noise, check it is not on top of source
+                    dx_src = p.x - self.user_pos[0]
+                    dy_src = p.y - self.user_pos[1]
+                    is_point_in_src_circle = dx_src*dx_src + dy_src*dy_src <= SOUND_MARGIN*SOUND_MARGIN
+                    if is_point_in_src_circle:
+                        continue
+
+                    # Set height position for noise
+                    z = np.random.rand() * self.current_room_size[2]
+
+            position = [p.x, p.y, z]
             return position
 
         return -1
 
-    def get_random_position(self, source_pos=np.array([])):
-        """
-        Generates position for sound source (either main source or noise) inside room.
-        Checks to not superpose source with receiver, and noise with either source and receiver.
-
-        Args:
-            source_pos (ndarray): Position of source, in order to not superpose with noise (None if source).
-        Returns:
-            Returns random position (or position list if more than one) for sound source.
-        """
-        # TODO: CHANGE RANDOM_POSITION TO WORK INSIDE POLYGON
-        if source_pos.size == 0:
-            random_pos = np.array([np.random.rand(), np.random.rand(), self.receiver_height])
-
-            # Add sources only in front of receiver as use-case (depth)
-            random_pos[DEPTH_ID] *= (self.current_room[DEPTH_ID] - self.user_pos[DEPTH_ID] - SOUND_MARGIN)
-            random_pos[DEPTH_ID] += self.user_pos[DEPTH_ID] + SOUND_MARGIN
-            # x
-            random_pos[SIDE_ID] *= self.current_room[SIDE_ID]
-
-            self.source_direction = random_pos - self.user_pos
-
-            return random_pos
-
-        else:
-            # TODO: Make sure noises are not superposed (maybe useful?)
-            # Sources can be anywhere in room except on source or receiver
-            random_pos_list = []
-            for noise_i in range(self.dir_noise_count):
-                # TODO: Check if more intelligent way to do than loop
-                while len(random_pos_list) == noise_i:
-                    random_pos = np.array([np.random.rand(), np.random.rand(), np.random.rand()])
-                    random_pos *= self.current_room
-
-                    # If noise on source or on receiver, reroll
-                    if self.receiver_height-SOUND_MARGIN <= random_pos[HEIGHT_ID] <= self.receiver_height+SOUND_MARGIN:
-
-                        # Check if on receiver
-                        side_user_bounds = [self.user_pos[SIDE_ID]-SOUND_MARGIN, self.user_pos[SIDE_ID]+SOUND_MARGIN]
-                        depth_user_bounds = [self.user_pos[DEPTH_ID]-SOUND_MARGIN, self.user_pos[DEPTH_ID]+SOUND_MARGIN]
-                        if side_user_bounds[0] <= random_pos[SIDE_ID] <= side_user_bounds[1] and \
-                           depth_user_bounds[0] <= random_pos[DEPTH_ID] <= depth_user_bounds[1]:
-                            continue
-
-                        # Check if on source
-                        side_src_bounds = [source_pos[SIDE_ID]-SOUND_MARGIN, source_pos[SIDE_ID]+SOUND_MARGIN]
-                        depth_src_bounds = [source_pos[DEPTH_ID]-SOUND_MARGIN, source_pos[DEPTH_ID]+SOUND_MARGIN]
-                        if side_src_bounds[0] <= random_pos[SIDE_ID] <= side_src_bounds[1] and \
-                           depth_src_bounds[0] <= random_pos[DEPTH_ID] <= depth_src_bounds[1]:
-                            continue
-
-                    # If not on source or user, add position to random position list
-                    random_pos_list.append(random_pos)
-
-            return random_pos_list
+    # def get_random_position(self, source_pos=np.array([])):
+    #     """
+    #     Generates position for sound source (either main source or noise) inside room.
+    #     Checks to not superpose source with receiver, and noise with either source and receiver.
+    #
+    #     Args:
+    #         source_pos (ndarray): Position of source, in order to not superpose with noise (None if source).
+    #     Returns:
+    #         Returns random position (or position list if more than one) for sound source.
+    #     """
+    #     # TODO: CHANGE RANDOM_POSITION TO WORK INSIDE POLYGON
+    #     if source_pos.size == 0:
+    #         random_pos = np.array([np.random.rand(), np.random.rand(), self.receiver_height])
+    #
+    #         # Add sources only in front of receiver as use-case (depth)
+    #         random_pos[DEPTH_ID] *= (self.current_room[DEPTH_ID] - self.user_pos[DEPTH_ID] - SOUND_MARGIN)
+    #         random_pos[DEPTH_ID] += self.user_pos[DEPTH_ID] + SOUND_MARGIN
+    #         # x
+    #         random_pos[SIDE_ID] *= self.current_room[SIDE_ID]
+    #
+    #         self.source_direction = random_pos - self.user_pos
+    #
+    #         return random_pos
+    #
+    #     else:
+    #         # TODO: Make sure noises are not superposed (maybe useful?)
+    #         # Sources can be anywhere in room except on source or receiver
+    #         random_pos_list = []
+    #         for noise_i in range(self.dir_noise_count):
+    #             # TODO: Check if more intelligent way to do than loop
+    #             while len(random_pos_list) == noise_i:
+    #                 random_pos = np.array([np.random.rand(), np.random.rand(), np.random.rand()])
+    #                 random_pos *= self.current_room
+    #
+    #                 # If noise on source or on receiver, reroll
+    #                 if self.receiver_height-SOUND_MARGIN <= random_pos[HEIGHT_ID] <= self.receiver_height+SOUND_MARGIN:
+    #
+    #                     # Check if on receiver
+    #                     side_user_bounds = [self.user_pos[SIDE_ID]-SOUND_MARGIN, self.user_pos[SIDE_ID]+SOUND_MARGIN]
+    #                     depth_user_bounds = [self.user_pos[DEPTH_ID]-SOUND_MARGIN, self.user_pos[DEPTH_ID]+SOUND_MARGIN]
+    #                     if side_user_bounds[0] <= random_pos[SIDE_ID] <= side_user_bounds[1] and \
+    #                        depth_user_bounds[0] <= random_pos[DEPTH_ID] <= depth_user_bounds[1]:
+    #                         continue
+    #
+    #                     # Check if on source
+    #                     side_src_bounds = [source_pos[SIDE_ID]-SOUND_MARGIN, source_pos[SIDE_ID]+SOUND_MARGIN]
+    #                     depth_src_bounds = [source_pos[DEPTH_ID]-SOUND_MARGIN, source_pos[DEPTH_ID]+SOUND_MARGIN]
+    #                     if side_src_bounds[0] <= random_pos[SIDE_ID] <= side_src_bounds[1] and \
+    #                        depth_src_bounds[0] <= random_pos[DEPTH_ID] <= depth_src_bounds[1]:
+    #                         continue
+    #
+    #                 # If not on source or user, add position to random position list
+    #                 random_pos_list.append(random_pos)
+    #
+    #         return random_pos_list
 
     def get_random_noise(self, number_noises=None, diffuse_noise=False):
         """
@@ -752,23 +780,25 @@ class AudioDatasetBuilder:
 
                 # Add varying number of directional noise sources
                 dir_noise_source_paths = self.get_random_noise()
-                dir_noise_pos_list = self.get_random_position(source_pos)
                 dir_noise_name_list = []
                 dir_noise_audio_list = []
+                dir_noise_pos_list = []
                 for noise_source_path in dir_noise_source_paths:
                     dir_noise_name_list.append(noise_source_path.split('\\')[-1].split('.')[0])
-                    noise_audio = self.read_audio_file(noise_source_path)
-                    dir_noise_audio_list.append(noise_audio)
+                    dir_noise_audio_list.append(self.read_audio_file(noise_source_path))
+                    dir_noise_pos_list.append(self.get_random_position(source_pos))
 
                 # Add varying number of directional noise sources
                 dif_noise_source_paths = self.get_random_noise(diffuse_noise=True)
-                dif_noise_pos_list = self.get_random_position(source_pos)
                 dif_noise_name_list = []
                 dif_noise_audio_list = []
+                dif_noise_pos_list = []
                 for noise_source_path in dif_noise_source_paths:
                     dif_noise_name_list.append(noise_source_path.split('\\')[-1].split('.')[0])
-                    noise_audio = self.read_audio_file(noise_source_path)
-                    dif_noise_audio_list.append(noise_audio)
+                    dif_noise_audio_list.append(self.read_audio_file(noise_source_path))
+                    dif_noise_pos_list.append(self.get_random_position(source_pos))
+
+                self.plot_3d_room(source_pos, source_name, dir_noise_pos_list, dir_noise_name_list)
 
                 # Truncate noise and source short to shortest length
                 source_audio, dir_noise_audio_list, dif_noise_audio_list = \
