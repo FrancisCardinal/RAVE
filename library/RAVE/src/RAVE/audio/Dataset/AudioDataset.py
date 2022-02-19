@@ -74,7 +74,8 @@ class AudioDataset(torch.utils.data.Dataset):
             n_fft=1024,
             hop_length= 256,
             power=None,
-            return_complex=True
+            return_complex=True,
+            normalized=True
         )
         self.waveform = torchaudio.transforms.InverseSpectrogram(
              n_fft=1024,
@@ -86,6 +87,7 @@ class AudioDataset(torch.utils.data.Dataset):
         return len(self.data)
 
     def __getitem__(self, idx):
+        idx = 1
         if self.generate_dataset_runtime:
             audio_signal, audio_mask, speech_mask, noise_mask, config_dict = self.run_dataset_builder() # todo: audio_signal needs to be a tensor 
         else:
@@ -96,11 +98,11 @@ class AudioDataset(torch.utils.data.Dataset):
         signal2 = self._delaySum(audio_signal, audio_sr, config_dict)
         target = self._formatAndConvertToSpectogram(audio_target, target_sr)
         signal = torch.cat([signal1, signal2], dim=1)
-
         #test = self.waveform(signal2)
         #test = test/torch.max(test)
         #torchaudio.save('./test_audio.wav', test.float() , 16000)
-        return signal, target
+        #return torch.squeeze(torch.tanh(signal)), torch.squeeze(torch.tanh(target))
+        return torch.squeeze((signal+127)/255), torch.squeeze((target + 127)/255)
     
     def _delaySum(self, raw_signal, sr, config):
         signal = self._resample(raw_signal, sr)

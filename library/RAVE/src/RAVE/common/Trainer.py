@@ -181,7 +181,7 @@ class Trainer:
             training_loss += loss.item()
             number_of_images += len(images)
 
-        return training_loss / number_of_images
+        return training_loss / (number_of_images * labels.shape[1] * labels.shape[2])
 
     def compute_validation_loss(self):
         """
@@ -208,7 +208,7 @@ class Trainer:
                 validation_loss += loss.item()
                 number_of_images += len(images)
 
-            return validation_loss / number_of_images
+            return validation_loss / (number_of_images * labels.shape[1] * labels.shape[2])
 
     def update_plot(self):
         """

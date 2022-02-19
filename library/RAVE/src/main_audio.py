@@ -6,6 +6,7 @@ import torch
 import argparse
 import matplotlib.pyplot as plt
 
+from RAVE.common.Trainer import Trainer
 
 from RAVE.audio.Neural_Network.AudioModel import AudioModel
 from RAVE.audio.Neural_Network.Trainer import AudioTrainer
@@ -35,9 +36,12 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
     dataset = AudioDataset(dataset_path='/Users/felixducharmeturcotte/Documents/audioDataset2', device=DEVICE)
     
     
-    """spect = next(iter(dataset))[0]
-    plt.pcolormesh(spect[0].float(), shading='gouraud')
-    plt.show(block=True)"""
+    spect = next(iter(dataset))[0]
+    plt.pcolormesh(spect.float(), shading='gouraud')
+    plt.show(block=True)
+    spect = next(iter(dataset))[1]
+    plt.pcolormesh(spect.float(), shading='gouraud')
+    plt.show(block=True)
 
     BATCH_SIZE = 32
     lenght_dataset = len(dataset)
@@ -67,17 +71,17 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
     # todo: get directory from dataset class
     directory = os.path.join("RAVE", "audio")
 
-    audioModel = AudioModel(input_size=16000, hidden_size=10, num_layers=1)
+    audioModel = AudioModel(input_size=63, hidden_size=128, num_layers=1)
     audioModel.to(DEVICE)
     print(audioModel)
 
     if TRAIN:
         optimizer = torch.optim.SGD(
             audioModel.parameters(),
-            lr=1e-03
+            lr=1e-04
         )
-        scheduler = None
-        trainer = AudioTrainer(
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer)
+        trainer = Trainer(
             trainer_loader,
             validation_loader,
             torch.nn.MSELoss(reduction='sum'),
@@ -90,12 +94,37 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
         )
         trainer.train_with_validation(NB_EPOCHS)
 
+    Trainer.load_best_model(
+        audioModel, directory
+    )
     if DISPLAY_VALIDATION:
-        print('showing validation')
+        visualize_predictions(audioModel, validation_loader, DEVICE)
 
     if TEST:
         print('testing')
 
+
+def visualize_predictions(model, data_loader, DEVICE):
+    """Used to visualize the target and the predictions of the model on some
+       input images
+
+    Args:
+        model (Module): The model used to perform the predictions
+        data_loader (Dataloader):
+            The dataloader that provides the images and the targets
+        DEVICE (String): Device on which to perform the computations
+    """
+    with torch.no_grad():
+        for audios, labels in data_loader:
+            audios, labels = audios.to(DEVICE), labels.to(DEVICE)
+            predictions = model(audios)
+            for audio, prediction, label in zip(audios, predictions, labels):
+                fig, axs = plt.subplots(3)
+                fig.suptitle('Vertically stacked subplots')
+                axs[0].pcolormesh(audio[:513,:].float(), shading='gouraud')
+                axs[1].pcolormesh(prediction.float(), shading='gouraud')
+                axs[2].pcolormesh(label.float(), shading='gouraud')
+                plt.show()
 
 
 if __name__ == "__main__":
