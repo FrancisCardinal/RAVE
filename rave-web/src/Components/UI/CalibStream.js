@@ -14,7 +14,7 @@ function CalibStream() {
   }, [ws]);
 
   return(
-    <div className="m-2">
+    <div className="mx-4 mt-2">
       <img src={'data:image/jpeg;base64,' + frame.frame} alt="calib video" />
     </div>
   );

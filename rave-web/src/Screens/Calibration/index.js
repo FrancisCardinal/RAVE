@@ -1,2 +1,2 @@
-import CalibrationScreen from "./Calibration";
+import CalibrationScreen from "./CalibrationVision";
 export default CalibrationScreen;

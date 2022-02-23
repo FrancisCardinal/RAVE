@@ -9,6 +9,7 @@ import io from 'socket.io-client';
 import DesktopMainBar from './Components/UI/DesktopMainBar';
 import MobileMainBar from './Components/UI/MobileMainBar';
 import { BrowserView, MobileView } from 'react-device-detect';
+import EyeTrackerCalibScreen from './Screens/Calibration/CalibrationEyeTracker';
 
 function App() {
   const [socket, setSocket] = useState(null);
@@ -47,6 +48,7 @@ function App() {
             <Route path="/settings" element={<SettingsScreen />} />
             <Route path="/help" element={<HelpScreen />} />
             <Route path="/calibration" element={<CalibrationScreen />} />
+            <Route path="/calibration-eye-tracker" element={<EyeTrackerCalibScreen />} />
           </Routes>
         </BrowserRouter>
       </SocketProvider>

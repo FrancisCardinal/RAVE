@@ -1,11 +1,9 @@
 import React from 'react';
 import { useEffect, useState, useRef, useContext } from 'react';
-import { Avatar, Card, CardActions, CardContent, Stack } from '@mui/material';
+import { BrowserView, MobileView } from 'react-device-detect';
 import SocketContext from '../../socketContext';
-import { useTranslation } from 'react-i18next';
 
 function Stream() {
-  const [t] = useTranslation('common');
   const ws = useContext(SocketContext);
   const [frame, setFrame] = useState({});
   const [imgSource, setImgSource] = useState('');
@@ -61,57 +59,48 @@ function Stream() {
 
   return (
     <div className="container px-2">
-      <div className="flex justify-center">
-        <div style={{ maxWidth: '75vw', position: 'relative' }}>
-          <img src={'data:image/jpeg;base64,' + imgSource} alt={'loading...'} />
-          <canvas
-            ref={roomCanvasRef}
-            style={{
-              width: '100%',
-              height: '100%',
-              position: 'absolute',
-              top: '0px',
-              left: '0px',
-              backgroundColor: 'rgba(0,0,0,.1)',
-              cursor: 'pointer',
-            }}
-            onClick={onCanvasClick}
-          ></canvas>
-        </div>
-      </div>
-      <div className="flex justify-center">
-        <Card className="mt-5 w-full" sx={{ minWidth: 275, backgroundColor: '#D32F2F' }}>
-          <CardContent>
-            <h1 className="text-xl font-bold underline text-black">{t('homePage.faces')}</h1>
-            <br />
-            <Stack direction={'row'} spacing={2}>
-              {frame.boundingBoxes?.map((box) => {
-                return (
-                  <Avatar
-                    key={box.id}
-                    src="invalidImg"
-                    sx={{
-                      border: '5px',
-                      borderStyle: 'solid',
-                      borderColor: box.color,
-                    }}
-                  />
-                );
-              })}
-            </Stack>
-          </CardContent>
-          <CardActions>
-            <button
-              className="px-4 py-2 font-semibold text-sm bg-grey text-black rounded-md shadow-sm"
-              onClick={() => {
-                ws.emit('forceRefresh');
+      <div className="flex flex-col justify-center">
+        <BrowserView className='flex justify-center'>
+          <div className="flex relative w-4/6 ">
+            <div className=''>
+              <img src={'data:image/jpeg;base64,' + imgSource} alt={'loading...'} />
+            <canvas
+              ref={roomCanvasRef}
+              style={{
+                width: '100%',
+                height: '100%',
+                position: 'absolute',
+                top: '0px',
+                left: '0px',
+                backgroundColor: 'rgba(0,0,0,.1)',
+                cursor: 'pointer',
               }}
-            >
-              {t('homePage.forceRefresh')}
-            </button>
-          </CardActions>
-        </Card>
-      </div>
+              onClick={onCanvasClick}
+            ></canvas>
+            </div>
+            
+          </div>
+        </BrowserView>
+        <MobileView>
+          <div className="relative w-fit">
+            <img src={'data:image/jpeg;base64,' + imgSource} alt={'loading...'} />
+            <canvas
+              ref={roomCanvasRef}
+              style={{
+                width: '100%',
+                height: '100%',
+                position: 'absolute',
+                top: '0px',
+                left: '0px',
+                backgroundColor: 'rgba(0,0,0,.1)',
+                cursor: 'pointer',
+              }}
+              onClick={onCanvasClick}
+            ></canvas>
+          </div>
+        </MobileView>
+        
+      </div>  
     </div>
   );
 }

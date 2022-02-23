@@ -52,7 +52,7 @@ io.on("connection", (socket) => {
     pythonSocket && pythonSocket.emit("targetSelect", target);
   });
             
-  socket.on("goToCalib", () => {
+  socket.on("goToVisionCalib", () => {
     console.log(socket.id + " start calibration");
     if (!pythonSocket) {
       console.log(
@@ -60,7 +60,18 @@ io.on("connection", (socket) => {
       );
       return;
     }
-    pythonSocket && pythonSocket.emit("startCalibration");
+    pythonSocket && pythonSocket.emit("startVisionCalibration");
+  });
+
+  socket.on("goToEyeTrackerCalib", () => {
+    console.log(socket.id + " start eye tracker calibration");
+    if (!pythonSocket) {
+      console.log(
+        "A user requested to start eye-tracking calibration but the pythonSocket is not connected"
+      );
+      return;
+    }
+    pythonSocket && pythonSocket.emit("startEyeTrackerCalibration");
   });
 
   socket.on("quitCalibration", () => {
@@ -71,7 +82,7 @@ io.on("connection", (socket) => {
       );
       return;
     }
-    pythonSocket && pythonSocket.emit("stopCalibration");
+    pythonSocket && pythonSocket.emit("stopVisionCalibration");
   });
 
   socket.on("nextCalibTarget", () => {

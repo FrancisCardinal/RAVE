@@ -7,14 +7,14 @@ function CalibButton() {
 	const ws = useContext(SocketContext);
 
   return (
-    <div className="">
+    <div>
       <button
               className="px-4 py-2 font-semibold text-sm bg-grey text-black rounded-md shadow-sm"
               onClick={() => {
                 ws.emit('nextCalibTarget');
               }}
             >
-              {t('calibrationPage.next')}
+              {t('visionCalibrationPage.next')}
       </button>
     </div>
   );

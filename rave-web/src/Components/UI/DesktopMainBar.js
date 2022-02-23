@@ -1,11 +1,9 @@
 import RAVE from '../../Ressources/RAVE.png'
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import React, { useContext } from 'react';
-import SocketContext from '../../socketContext';
+import React from 'react';
 
 function DesktopMainBar() {
-	const ws = useContext(SocketContext);
 	const [t] = useTranslation('common');
 	return (
 	<nav className='flex flex-row bg-grey text-black font-mono inset-x-0 top-0 items-center'>
@@ -14,25 +12,16 @@ function DesktopMainBar() {
 		<Link 
 			className='font-bold px-3 hover:font-medium'
 			to={`/`}
-			onClick={() => {
-        ws.emit("quitCalibration");
-      }} 
 		>
 			{t('navigationBar.homePage')}
 		</Link>
 		<Link className='font-bold hover:font-medium px-3' 
-			onClick={() => {
-        ws.emit("quitCalibration");
-      }} 
 			to={`/settings`}>
 				{t('navigationBar.settingsPage')}
 		</Link>
 		<Link 
 			className='font-bold hover:font-medium px-3' 
 			to={`/help`}
-			onClick={() => {
-        ws.emit("quitCalibration");
-      }} 
 		>
 		{t('navigationBar.helpPage')}
 		</Link>
