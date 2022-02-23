@@ -65,7 +65,7 @@ class TrackingManager:
         self._intersection_threshold = intersection_threshold
         self.count = 0
 
-        self._detector = DetectorFactory.create(detector_type)
+        self._detector = DetectorFactory.create(detector_type, threshold=0.5)
         self._last_frame = None
         self._last_detect = 0
 
@@ -410,21 +410,22 @@ class TrackingManager:
             obj.increment_evaluation_frames()
 
         # Perform operations on all pre-tracked objects
-        finished_trackers_id = []
+        finished_trackers_id = set()
         pre_tracker_frame = frame.copy()
         for tracker_id, tracked_object in self._pre_tracked_objects.items():
             if tracked_object.confirmed:
                 self._tracked_objects[tracker_id] = tracked_object
 
             if not tracked_object.pending:
-                finished_trackers_id.append(tracker_id)
+                finished_trackers_id.add(tracker_id)
+                print("Adding finished tracker:", tracker_id)
 
             if tracked_object.bbox is None:
                 continue
 
             # TODO: Maybe throttle/control when to call verifier
             # TODO: Build average encoding for objects
-            if tracked_object.encoding is None:
+            if tracked_object.encoding is None or not tracked_object.pending:
                 encoding = self._verifier.get_encodings(
                     frame, [tracked_object.bbox]
                 )[0]
@@ -444,7 +445,7 @@ class TrackingManager:
                     # TODO: Do we want to by-pass the rest of pre-processing
                     #  if the face has been identified as an old face?
                     # End this object's pre-processing
-                    finished_trackers_id.append(tracker_id)
+                    finished_trackers_id.add(tracker_id)
 
             pre_tracker_frame = self.draw_prediction_on_frame(
                 pre_tracker_frame, tracked_object
