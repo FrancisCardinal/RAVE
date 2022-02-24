@@ -47,7 +47,7 @@ diffuse_noises:
     ]
 
 # Max diffuse noises
-max_diffuse_noises: 2
+max_diffuse_noises: 1
 
 # Range of noises count to add to audio file
 noise_count_range: [5, 10]
@@ -63,3 +63,6 @@ sample_per_speech: 5
 
 # Data split to use for [train, val, test]
 data_split: [0.7, 0.15, 0.15]
+
+# Wall absorption range
+wall_absorption_limits: [0.75, 0.95]
