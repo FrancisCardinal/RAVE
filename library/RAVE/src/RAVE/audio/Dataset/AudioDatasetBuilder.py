@@ -32,6 +32,8 @@ TILT_RANGE = 0.25
 
 HEAD_RADIUS = 0.1       # in meters
 
+SHOW_GRAPHS = False
+
 
 class AudioDatasetBuilder:
     """
@@ -219,10 +221,11 @@ class AudioDatasetBuilder:
             signal_x = [signal_x]
 
         # Generate plot
-        fig, ax = plt.subplots(len(signal_x), constrained_layout=True)
-        fig.suptitle(title)
-        fig.supylabel('Frequency [Hz]')
-        fig.supxlabel('Time [sec]')
+        if SHOW_GRAPHS:
+            fig, ax = plt.subplots(len(signal_x), constrained_layout=True)
+            fig.suptitle(title)
+            fig.supylabel('Frequency [Hz]')
+            fig.supxlabel('Time [sec]')
 
         stft_list = []
         for channel_idx, channel in enumerate(signal_x):
@@ -233,17 +236,19 @@ class AudioDatasetBuilder:
             stft_list.append(stft_x)
 
             # Add log and non-log plots
-            if mono:
-                im = ax.pcolormesh(t, f_log, stft_log, shading='gouraud')
-                ax.set_yscale('log')
-                fig.colorbar(im, ax=ax)
-            else:
-                im = ax[channel_idx].pcolormesh(t, f_log, stft_log, shading='gouraud')
-                ax[channel_idx].set_ylabel(f'Channel_{channel_idx}')
-                ax[channel_idx].set_yscale('log')
-                fig.colorbar(im, ax=ax[channel_idx])
+            if SHOW_GRAPHS:
+                if mono:
+                    im = ax.pcolormesh(t, f_log, stft_log, shading='gouraud')
+                    ax.set_yscale('log')
+                    fig.colorbar(im, ax=ax)
+                else:
+                    im = ax[channel_idx].pcolormesh(t, f_log, stft_log, shading='gouraud')
+                    ax[channel_idx].set_ylabel(f'Channel_{channel_idx}')
+                    ax[channel_idx].set_yscale('log')
+                    fig.colorbar(im, ax=ax[channel_idx])
 
-        plt.show()
+        if SHOW_GRAPHS:
+            plt.show()
 
         return stft_list
 
@@ -275,7 +280,7 @@ class AudioDatasetBuilder:
 
         return combined_audio, noise_audio, source_audio
 
-    def plot_3d_room(self, source_pos, source_name, noise_pos_list, noise_name_list):
+    def plot_scene(self, source_pos, source_name, noise_pos_list, noise_name_list, save_path=None):
         """
         Visualize the virtual room by plotting.
 
@@ -286,8 +291,9 @@ class AudioDatasetBuilder:
             noise_name_list (list[str]):  List of names of noise sources.
 
         """
+        # 3D
         # Room
-        fig, ax = self.current_room.plot(img_order=0)
+        fig3d, ax = self.current_room.plot(img_order=0)
         ax.set_xlabel('Side (x)')
         ax.set_ylabel('Depth (y)')
         ax.set_zlabel('Height (z)')
@@ -312,7 +318,44 @@ class AudioDatasetBuilder:
             ax.scatter3D(noise_pos[SIDE_ID], noise_pos[DEPTH_ID], noise_pos[HEIGHT_ID], c='r')
             ax.text(noise_pos[SIDE_ID], noise_pos[DEPTH_ID], noise_pos[HEIGHT_ID], noise_name)
 
-        plt.show()
+        if SHOW_GRAPHS:
+            plt.show()
+
+        # 2D
+        # Room
+        fig2d, ax = self.current_room.plot(img_order=0)
+        ax.set_xlabel('Side (x)')
+        ax.set_ylabel('Depth (y)')
+        room_corners = self.current_room_shape
+        for corner_idx in range(len(room_corners)):
+            ax.plot(room_corners[corner_idx], room_corners[(corner_idx+1)%len(room_corners)])
+
+        # User
+        for mic_pos in self.receiver_abs:
+            ax.scatter(mic_pos[SIDE_ID], mic_pos[DEPTH_ID], c='b')
+        ax.text(mic_pos[SIDE_ID], mic_pos[DEPTH_ID], 'User')
+        user_dir_point = [self.user_pos[0] + self.user_dir[0],
+                          self.user_pos[1] + self.user_dir[1]]
+        ax.plot([self.user_pos[0], user_dir_point[0]],
+                [self.user_pos[1], user_dir_point[1]])
+
+        # Source
+        ax.scatter(source_pos[SIDE_ID], source_pos[DEPTH_ID], c='g')
+        ax.text(source_pos[SIDE_ID], source_pos[DEPTH_ID], source_name)
+
+        # Noise
+        for noise_pos, noise_name in zip(noise_pos_list, noise_name_list):
+            ax.scatter(noise_pos[SIDE_ID], noise_pos[DEPTH_ID], c='r')
+            ax.text(noise_pos[SIDE_ID], noise_pos[DEPTH_ID], noise_name)
+
+        plt.savefig(os.path.join(save_path, 'scene2d.jpg'))
+
+        if SHOW_GRAPHS:
+            plt.show()
+
+
+
+
 
     def generate_random_room(self):
         # Get random room from room shapes and sizes
@@ -578,6 +621,10 @@ class AudioDatasetBuilder:
         with open(config_dict_file_name, 'w') as outfile:
             yaml.dump(config_dict, outfile, default_flow_style=None)
 
+        # Visualize and save scene
+        if self.is_debug:
+            self.plot_scene(source_pos, source_name, noise_pos, noise_names, subfolder_path)
+
         return subfolder_path
 
     def generate_and_apply_rirs(self, source_audio):
@@ -754,7 +801,7 @@ class AudioDatasetBuilder:
 
         # Visualize 3D room
         if self.is_debug:
-            self.plot_3d_room(source_pos, source_name, noise_pos_list, noise_name_list)
+            self.plot_scene(source_pos, source_name, noise_pos_list, noise_name_list, )
 
         # Save data to dict
         run_name = f'{source_name}'
@@ -855,10 +902,6 @@ class AudioDatasetBuilder:
                 self.snr = 20 * np.log10(snr)
                 combined_audio, combined_noise_rir, source_with_rir = self.combine_sources(audio, self.snr)
                 self.snr = float(10**(snr/20))
-
-                # Visualize 3D room
-                if self.is_debug:
-                    self.plot_3d_room(source_pos, source_name, dir_noise_pos_list, dir_noise_name_list)
 
                 # Save elements
                 if save_run:
