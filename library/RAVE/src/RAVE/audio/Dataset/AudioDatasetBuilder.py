@@ -25,7 +25,8 @@ HEIGHT_ID = 2         # Z
 
 SAMPLE_RATE = 16000
 FRAME_SIZE = 1024
-SOUND_MARGIN = 0.5       # Assume every sound source is margins away from receiver and each other
+SOUND_MARGIN = 0.5          # Assume every sound source is margins away from receiver and each other
+SOURCE_MAX_DISTANCE = 10    # maximum distance between user and source
 
 MAX_POS_TRIES = 50
 TILT_RANGE = 0.25
@@ -323,17 +324,21 @@ class AudioDatasetBuilder:
 
         # 2D
         # Room
-        fig2d, ax = self.current_room.plot(img_order=0)
+        fig2d, ax = plt.subplots()
         ax.set_xlabel('Side (x)')
+        plt.xlim([0, max(self.current_room_size[0], self.current_room_size[1])])
+        plt.ylim([0, max(self.current_room_size[0], self.current_room_size[1])])
         ax.set_ylabel('Depth (y)')
         room_corners = self.current_room_shape
         for corner_idx in range(len(room_corners)):
-            ax.plot(room_corners[corner_idx], room_corners[(corner_idx+1)%len(room_corners)])
+            corner_1 = room_corners[corner_idx]
+            corner_2 = room_corners[(corner_idx+1)%len(room_corners)]
+            ax.plot([corner_1[0], corner_2[0]], [corner_1[1], corner_2[1]])
 
         # User
         for mic_pos in self.receiver_abs:
             ax.scatter(mic_pos[SIDE_ID], mic_pos[DEPTH_ID], c='b')
-        ax.text(mic_pos[SIDE_ID], mic_pos[DEPTH_ID], 'User')
+        # ax.text(mic_pos[SIDE_ID], mic_pos[DEPTH_ID], 'User')
         user_dir_point = [self.user_pos[0] + self.user_dir[0],
                           self.user_pos[1] + self.user_dir[1]]
         ax.plot([self.user_pos[0], user_dir_point[0]],
@@ -354,14 +359,12 @@ class AudioDatasetBuilder:
             plt.show()
 
 
-
-
-
     def generate_random_room(self):
         # Get random room from room shapes and sizes
         random_room_shape = self.room_shapes[np.random.randint(0, len(self.room_shapes))]
+        size_factor = np.random.rand() / 2 + 0.75
         x_factor = np.random.randint(self.room_sizes[0][0], self.room_sizes[0][1])
-        y_factor = np.random.randint(self.room_sizes[1][0], self.room_sizes[1][1])
+        y_factor = x_factor * size_factor
         z_factor = np.random.randint(self.room_sizes[2][0], self.room_sizes[2][1])
         self.current_room_size = [x_factor, y_factor, z_factor]
 
@@ -458,6 +461,12 @@ class AudioDatasetBuilder:
         # Get room polygon
         room_poly = Polygon(self.current_room_shape)
         minx, miny, maxx, maxy = room_poly.bounds
+
+        if not user and not source_pos:
+            minx = max(minx, self.user_pos[0] - SOURCE_MAX_DISTANCE)
+            miny = max(miny, self.user_pos[1] - SOURCE_MAX_DISTANCE)
+            maxx = min(maxx, self.user_pos[0] + SOURCE_MAX_DISTANCE)
+            maxy = min(maxy, self.user_pos[1] + SOURCE_MAX_DISTANCE)
 
         for i in range(MAX_POS_TRIES):
             # Create random point inside polygon bounds and check if contained
