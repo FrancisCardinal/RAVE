@@ -25,8 +25,10 @@ HEIGHT_ID = 2         # Z
 
 SAMPLE_RATE = 16000
 FRAME_SIZE = 1024
-SOUND_MARGIN = 0.5          # Assume every sound source is margins away from receiver and each other
-SOURCE_MAX_DISTANCE = 10    # maximum distance between user and source
+SOUND_MARGIN = 1            # Assume every sound source is margins away from receiver and each other
+SOURCE_USER_DISTANCE = 5    # Radius of circle in which source can be
+USER_MIN_DISTANCE = 2       # Minimum distance needed between user and walls
+
 
 MAX_POS_TRIES = 50
 TILT_RANGE = 0.25
@@ -59,10 +61,10 @@ class AudioDatasetBuilder:
     snr = 1
     receiver_height = 1.5
     receiver_rel = np.array((                   # Receiver (microphone) positions relative to "user" [x, y, z] (m)
-                                [-0.5, -0.5, 0],
-                                [-0.5, 0.5, 0],
-                                [0.5, -0.5, 0],
-                                [0.5, 0.5, 0]
+                                [-0.1, -0.1, 0],
+                                [-0.1, 0.1, 0],
+                                [0.1, -0.1, 0],
+                                [0.1, 0.1, 0]
                             ))
     # c = 340                                     # Sound velocity (m/s)
     # reverb_time = 0.4                           # Reverberation time (s)
@@ -326,8 +328,8 @@ class AudioDatasetBuilder:
         # Room
         fig2d, ax = plt.subplots()
         ax.set_xlabel('Side (x)')
-        plt.xlim([0, max(self.current_room_size[0], self.current_room_size[1])])
-        plt.ylim([0, max(self.current_room_size[0], self.current_room_size[1])])
+        plt.xlim([-5, max(self.current_room_size[0], self.current_room_size[1])+5])
+        plt.ylim([-5, max(self.current_room_size[0], self.current_room_size[1])+5])
         ax.set_ylabel('Depth (y)')
         room_corners = self.current_room_shape
         for corner_idx in range(len(room_corners)):
@@ -347,6 +349,9 @@ class AudioDatasetBuilder:
         # Source
         ax.scatter(source_pos[SIDE_ID], source_pos[DEPTH_ID], c='g')
         ax.text(source_pos[SIDE_ID], source_pos[DEPTH_ID], source_name)
+        source_circle = plt.Circle((self.user_pos[0]+self.user_dir[0],
+                                    self.user_pos[1]+self.user_dir[1]), SOURCE_USER_DISTANCE, color='g', fill=False)
+        ax.add_patch(source_circle)
 
         # Noise
         for noise_pos, noise_name in zip(noise_pos_list, noise_name_list):
@@ -397,8 +402,8 @@ class AudioDatasetBuilder:
         while True:
             xy_angle = (np.random.rand() * 2 * math.pi) - math.pi
             z_angle = (np.random.rand() - 0.5) * 2 * TILT_RANGE
-            x_dir = 5 * math.cos(xy_angle+0.5*math.pi)
-            y_dir = 5 * math.sin(xy_angle+0.5*math.pi)
+            x_dir = (SOURCE_USER_DISTANCE+1) * math.cos(xy_angle+0.5*math.pi)
+            y_dir = (SOURCE_USER_DISTANCE+1) * math.sin(xy_angle+0.5*math.pi)
             z_dir = 0.001
             # z_dir = (np.random.rand() - 0.5) * 2 * TILT_RANGE
             if x_dir and y_dir and z_dir:
@@ -462,16 +467,20 @@ class AudioDatasetBuilder:
         room_poly = Polygon(self.current_room_shape)
         minx, miny, maxx, maxy = room_poly.bounds
 
+        # If source, change min and max to generate close to user
         if not user and not source_pos:
-            minx = max(minx, self.user_pos[0] - SOURCE_MAX_DISTANCE)
-            miny = max(miny, self.user_pos[1] - SOURCE_MAX_DISTANCE)
-            maxx = min(maxx, self.user_pos[0] + SOURCE_MAX_DISTANCE)
-            maxy = min(maxy, self.user_pos[1] + SOURCE_MAX_DISTANCE)
+            user_dir_point = [self.user_pos[0] + self.user_dir[0], self.user_pos[1] + self.user_dir[1]]
+            minx = max(minx, user_dir_point[0] - SOURCE_USER_DISTANCE)
+            miny = max(miny, user_dir_point[1] - SOURCE_USER_DISTANCE)
+            maxx = min(maxx, user_dir_point[0] + SOURCE_USER_DISTANCE)
+            maxy = min(maxy, user_dir_point[1] + SOURCE_USER_DISTANCE)
 
         for i in range(MAX_POS_TRIES):
             # Create random point inside polygon bounds and check if contained
             p = Point(random.uniform(minx, maxx), random.uniform(miny, maxy))
-            if not room_poly.contains(p):
+            source_radius = USER_MIN_DISTANCE if user else SOUND_MARGIN
+            circle = p.buffer(source_radius)
+            if not room_poly.contains(circle):
                 continue
 
             # Set height position for user and/or source
@@ -479,42 +488,29 @@ class AudioDatasetBuilder:
 
             if not user:
                 # TODO: ADD OPTION TO HAVE NOISE ON TOP OR UNDER USER AND/OR SPEECH SOURCE
-                # Check it isn't on superposed on user with circle radius
-                dx_user = p.x - self.user_pos[0]
-                dy_user = p.y - self.user_pos[1]
-                is_point_in_user_circle = dx_user*dx_user + dy_user*dy_user <= SOUND_MARGIN*SOUND_MARGIN
-                if is_point_in_user_circle:
-                    continue
 
                 if not source_pos:
                     # If source, check it is in front of user
-                    # Get function of line perpendicular to user direction
-                    user_dir_point = [self.user_pos[0] + self.user_dir[0], self.user_pos[1] + self.user_dir[1]]
-                    # # Check for vertical line (horizontal user pos vs dir)
-                    # if self.user_pos[1]-user_dir_point[1] == 0:
-                    #     if (self.user_dir[0] < 0 and p.x() > 0) or (self.user_dir[0] > 0 and p.x() < 0):
-                    #         continue
-                    # # Check for horizontal line (vertical user pos vs dir)
-                    # if self.user_pos[0]-user_dir_point[0] == 0:
-                    #     if (self.user_dir[1] < 0 and p.y() > 0) or (self.user_dir[1] > 0 and p.y() < 0):
-                    #         continue
-
-                    user_dir_slope = (self.user_pos[1]-user_dir_point[1]) / (self.user_pos[0]-user_dir_point[0])
-                    mic_slope = -1 / user_dir_slope
-                    mic_fct_origin = self.user_pos[1] - mic_slope * self.user_pos[0]
-                    # If point is not in the correct direction, restart
-                    calculated_y_point = p.x * mic_slope + mic_fct_origin
-                    if self.user_dir[1] > 0 and p.y < calculated_y_point:
-                        continue
-                    if self.user_dir[1] < 0 and p.y > calculated_y_point:
+                    # Check it is contained in circle in front of user
+                    dx_user = p.x - user_dir_point[0]
+                    dy_user = p.y - user_dir_point[1]
+                    is_point_in_user_circle = dx_user**2 + dy_user**2 <= SOURCE_USER_DISTANCE**2
+                    if not is_point_in_user_circle:
                         continue
 
                     self.source_direction = [p.x-self.user_pos[0], p.y-self.user_pos[1], z-self.user_pos[2]]
 
                 else:
-                    # If noise, check it is not on top of source
-                    dx_src = p.x - self.user_pos[0]
-                    dy_src = p.y - self.user_pos[1]
+                    # Check if noise is not on user
+                    dx_user = p.x - self.user_pos[0]
+                    dy_user = p.y - self.user_pos[1]
+                    is_point_in_user_circle = dx_user * dx_user + dy_user * dy_user <= SOUND_MARGIN * SOUND_MARGIN
+                    if is_point_in_user_circle:
+                        continue
+
+                    # Check it is not on top of source
+                    dx_src = p.x - source_pos[0]
+                    dy_src = p.y - source_pos[1]
                     is_point_in_src_circle = dx_src*dx_src + dy_src*dy_src <= SOUND_MARGIN*SOUND_MARGIN
                     if is_point_in_src_circle:
                         continue
@@ -659,10 +655,14 @@ class AudioDatasetBuilder:
         #     rirs = [rirs.squeeze()]
 
         # Normalise RIR
-        for channel_rirs in rirs:
+        zero_channel = None
+        for channel_idx, channel_rirs in enumerate(rirs):
             for rir in channel_rirs:
                 max_val = np.max(np.abs(rir))
-                rir /= max_val
+                if max_val == 0:
+                    zero_channel = channel_idx
+                else:
+                    rir /= max_val
 
         # If diffuse, remove early RIR peaks (remove direct and non-diffuse peaks)
         for rir_channel in rirs:
@@ -677,26 +677,28 @@ class AudioDatasetBuilder:
                 #     plt.show()
 
                 # Remove peaks from RIR
-                min_peak_idx = peaks[len(peaks)//2]
-                rir[:min_peak_idx] = 0
+                if len(peaks) == 0:
+                    print('No Peaks')
+                else:
+                    min_peak_idx = peaks[len(peaks)//2]
+                    rir[:min_peak_idx] = 0
 
                 # Renormalise RIR
                 max_val = np.max(np.abs(rir))
-                rir /= max_val
+                if max_val != 0:
+                    rir /= max_val
 
                 # if self.is_debug:
                 #     plt.figure()
                 #     plt.plot(rir)
                 #     plt.show()
 
-        # if self.is_debug:
-        #     plt.figure()
-        #     rir_plot = rirs[0].T
-        #     plt.plot(rir_plot[0])
-        #     plt.show()
-        #     plt.figure()
-        #     plt.plot(source_audio['source'][0])
-        #     plt.show()
+        if self.is_debug and zero_channel:
+            for channel_rir in rirs:
+                plt.figure()
+                rir_plot = channel_rir[0].T
+                plt.plot(rir_plot)
+            plt.show()
 
         # Apply RIR to signal
         rir_upper_bound = 0
@@ -707,10 +709,12 @@ class AudioDatasetBuilder:
             rir = rirs[:, rir_lower_bound:rir_upper_bound]
             source_with_rir[source_types] = self.apply_rir(rir.T, source_type_lists)
 
-        # if self.is_debug:
-        #     plt.figure()
-        #     plt.plot(source_with_rir[0].T)
-        #     plt.show()
+        if self.is_debug and zero_channel:
+            plt.figure()
+            plt.plot(source_audio['source'][0])
+            plt.figure()
+            plt.plot(source_with_rir['source'][0].T)
+            plt.show()
 
         return source_with_rir
 
@@ -880,8 +884,6 @@ class AudioDatasetBuilder:
                     dif_noise_name_list.append(noise_source_path.split('\\')[-1].split('.')[0])
                     dif_noise_audio_list.append(self.read_audio_file(noise_source_path))
                     dif_noise_pos_list.append(self.get_random_position(source_pos))
-
-                # self.plot_3d_room(source_pos, source_name, dir_noise_pos_list, dir_noise_name_list)
 
                 # Truncate noise and source short to shortest length
                 source_audio, dir_noise_audio_list, dif_noise_audio_list = \
