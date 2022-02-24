@@ -1,8 +1,12 @@
 import argparse
-from RAVE.face_detection.TrackingManager import TrackingManager
+
+from RAVE.face_detection.OutputManager import OutputManager
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Face tracking")
+    parser = argparse.ArgumentParser(
+        description="Web interface for face tracking"
+    )
+
     parser.add_argument(
         "--video_source",
         dest="video_source",
@@ -27,17 +31,11 @@ if __name__ == "__main__":
     parser.add_argument(
         "--visualize",
         dest="visualize",
-        type=bool,
         help="If true, will show the different tracking frames",
-        action="store_true",
+        action="store_false",
     )
     args = parser.parse_args()
 
-    frequency = args.freq
-    tracking_manager = TrackingManager(
-        tracker_type="kcf",
-        detector_type="yolo",
-        verifier_type="resnet_face_34",
-        frequency=frequency,
-    )
-    tracking_manager.start(args)
+    manager = OutputManager(args)
+
+    manager.start()

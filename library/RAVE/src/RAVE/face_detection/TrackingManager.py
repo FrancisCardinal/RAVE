@@ -27,13 +27,15 @@ class TrackingManager:
         intersection_threshold (float):
             Threshold on the intersection criteria for reassigning an id to
             a bounding box
+        visualize (bool): If true, will show the different tracking frames
 
     Attributes:
         count (int): for assigning ids.
-        _tracker_type (str): type of tracker
-        _tracked_objects (dict of TrackedObject):
+        last_frame (ndarray): Last frame acquired by the camera
+        tracked_objects (dict of TrackedObject):
             dictionary of all faces currently being tracked having been
             confirmed
+        _tracker_type (str): type of tracker
         _pre_tracked_objects (dict of TrackedObject):
             dictionary of all faces currently being in the process of being
             confirmed
@@ -45,6 +47,7 @@ class TrackingManager:
             Threshold for reassigning an id to a new bbox
         _detector (Detector): Network doing the detection job
         _last_detect (float): The time of the last detection.
+        _is_alive (bool): whether the loops should be running or not
     """
 
     def __init__(
@@ -54,10 +57,11 @@ class TrackingManager:
         verifier_type,
         frequency,
         intersection_threshold=0.2,
+        visualize=True,
     ):
         self._tracker_type = tracker_type
 
-        self._tracked_objects = {}
+        self.tracked_objects = {}
         self._pre_tracked_objects = {}
         self._rejected_objects = {}
 
@@ -65,9 +69,11 @@ class TrackingManager:
         self._intersection_threshold = intersection_threshold
         self.count = 0
 
-        self._detector = DetectorFactory.create(detector_type, threshold=0.5)
-        self._last_frame = None
+        self._detector = DetectorFactory.create(detector_type)
+        self.last_frame = None
         self._last_detect = 0
+        self._is_alive = False
+        self._visualize = visualize
 
         if torch.cuda.is_available():
             device = "cuda"
@@ -75,7 +81,7 @@ class TrackingManager:
             device = "cpu"
 
         self._verifier = VerifierFactory.create(
-            verifier_type, threshold=0.5, device=device
+            verifier_type, threshold=0.25, device=device
         )
 
     def tracking_count(self):
@@ -83,7 +89,7 @@ class TrackingManager:
         Returns:
             int: The number of tracked objects
         """
-        return len(self._tracked_objects)
+        return len(self.tracked_objects)
 
     # Returns a dictionary combining pre-tracked and tracked objects
     def get_all_objects(self):
@@ -92,7 +98,7 @@ class TrackingManager:
             dict of TrackedObject:
                 Dictionary of all faces being tracked confirmed and unconfirmed
         """
-        return {**self._tracked_objects, **self._pre_tracked_objects}
+        return {**self.tracked_objects, **self._pre_tracked_objects}
 
     # Assumed to be called from main thread only
     def new_identifier(self):
@@ -141,20 +147,20 @@ class TrackingManager:
 
     def remove_tracked_object(self, identifier):
         """
-        Remove tracked object from the _tracked_object dictionary
+        Remove tracked object from the tracked_object dictionary
         and add it to the _rejected_objects
 
         Args:
             identifier (int):
                 id of the tracked object to be removed
         """
-        rejected_object = self._tracked_objects.pop(identifier)
+        rejected_object = self.tracked_objects.pop(identifier)
         self._rejected_objects[identifier] = rejected_object
 
     def restore_rejected_object(self, identifier, pre_tracked_object):
         """
         Remove tracked object from the _rejected_objects dictionary
-        and add it to the _tracked_object. Also start the tracking thread
+        and add it to the tracked_object. Also start the tracking thread
 
         Args:
             identifier (int):
@@ -167,7 +173,7 @@ class TrackingManager:
         """
         restored_object = self._rejected_objects.pop(identifier)
         restored_object.restore(pre_tracked_object)
-        self._tracked_objects[identifier] = restored_object
+        self.tracked_objects[identifier] = restored_object
         self.start_tracking_thread(restored_object)
 
     def remove_pre_tracked_object(self, identifier):
@@ -182,9 +188,11 @@ class TrackingManager:
 
     def stop_tracking(self):
         """
-        Remove all items from the _tracked_objects dictionary
+        Remove all items from the tracked_objects dictionary
         """
-        self._tracked_objects = {}
+        self.tracked_objects = {}
+        self._pre_tracked_objects = {}
+        self._rejected_objects = {}
 
     def track_loop(self, tracked_object):
         """
@@ -195,10 +203,10 @@ class TrackingManager:
         """
         # with tqdm(desc=f"{tracked_object.id}", total=25000) as pbar:
         while (
-            tracked_object in self._tracked_objects.values()
+            tracked_object in self.tracked_objects.values()
             or tracked_object in self._pre_tracked_objects.values()
         ):
-            frame = self._last_frame
+            frame = self.last_frame
 
             if frame is None:
                 print("No frame received")
@@ -238,8 +246,8 @@ class TrackingManager:
             self.add_tracked_object(frame, selected_roi, None)
         elif key == ord("x"):
             # Remove last tracked object
-            if len(self._tracked_objects) > 0:
-                self._tracked_objects.popitem()
+            if len(self.tracked_objects) > 0:
+                self.tracked_objects.popitem()
         elif key == ord("q") or key == 27:
             return True
 
@@ -258,9 +266,9 @@ class TrackingManager:
             tracked_object.id,
             (x, y - 2),
             0,
-            1 / 3,
-            [225, 255, 255],
-            thickness=1,
+            1,
+            [0, 0, 255],
+            thickness=2,
             lineType=cv2.LINE_AA,
         )
 
@@ -336,12 +344,12 @@ class TrackingManager:
         for pair in matched_pairs:
             # A face was matched
             obj, detection = pair
-            if obj.id in self._tracked_objects.keys():
+            if obj.id in self.tracked_objects.keys():
                 # Do not reset pre-tracked objects
-                self._tracked_objects[obj.id].reset(
+                self.tracked_objects[obj.id].reset(
                     frame, detection.bbox, detection.mouth
                 )
-                self._tracked_objects[obj.id].increment_evaluation_frames()
+                self.tracked_objects[obj.id].increment_evaluation_frames()
 
         # Handle unmatched detections
         for new_detection in unmatched_detections:
@@ -352,8 +360,8 @@ class TrackingManager:
 
         # Reject unmatched tracked objects
         for obj_id, obj in unmatched_objects.items():
-            if obj.id in self._tracked_objects.keys():
-                tracked_object = self._tracked_objects[obj.id]
+            if obj.id in self.tracked_objects.keys():
+                tracked_object = self.tracked_objects[obj.id]
                 tracked_object.reject()
                 if tracked_object.rejected:
                     self.remove_tracked_object(obj.id)
@@ -414,7 +422,7 @@ class TrackingManager:
         pre_tracker_frame = frame.copy()
         for tracker_id, tracked_object in self._pre_tracked_objects.items():
             if tracked_object.confirmed:
-                self._tracked_objects[tracker_id] = tracked_object
+                self.tracked_objects[tracker_id] = tracked_object
 
             if not tracked_object.pending:
                 finished_trackers_id.add(tracker_id)
@@ -453,8 +461,8 @@ class TrackingManager:
 
         for id in finished_trackers_id:
             self.remove_pre_tracked_object(id)
-
-        monitor.update("Pre-process", pre_tracker_frame)
+        if monitor is not None:
+            monitor.update("Pre-process", pre_tracker_frame)
         return annotated_frame, detections
 
     def detector_update(self, frame, monitor, pre_frame, pre_detections):
@@ -476,11 +484,12 @@ class TrackingManager:
                 frame.copy(), draw_on_frame=True
             )
         self._last_detect = time.time()
-        monitor.update("Detection", face_frame)
+        if monitor is not None:
+            monitor.update("Detection", face_frame)
 
         self.associate_faces(frame, detections)
 
-    def capture_loop(self, monitor, cap):
+    def capture_loop(self, cap):
         """
         Loop to be called on separate thread that handles retrieving new image
         frames from video input
@@ -491,8 +500,9 @@ class TrackingManager:
             cap (VideoSource):
                 pyodas video source object to obtain video feed from camera
         """
-        while monitor.window_is_alive():
-            self._last_frame = cap()
+
+        while self._is_alive:
+            self.last_frame = cap()
             time.sleep(0.01)
 
     def main_loop(self, monitor, fps):
@@ -507,11 +517,11 @@ class TrackingManager:
         """
 
         # Wait for first frame to be available
-        while self._last_frame is None:
+        while self.last_frame is None:
             time.sleep(0.1)
 
-        while monitor.window_is_alive():
-            frame = self._last_frame
+        while self._is_alive:
+            frame = self.last_frame
 
             if frame is None:
                 print("No frame received, exiting")
@@ -529,7 +539,7 @@ class TrackingManager:
 
             # Draw detections from tracked objects
             tracking_frame = frame.copy()
-            for tracked_object in self._tracked_objects.values():
+            for tracked_object in self.tracked_objects.values():
                 if tracked_object.bbox is None:
                     continue
                 self.draw_prediction_on_frame(tracking_frame, tracked_object)
@@ -542,16 +552,20 @@ class TrackingManager:
                         tracking_frame, (x_mouth, y_mouth), 5, [0, 0, 255], -1
                     )
 
-            # Update display
-            fps.setFps()
-            # TODO: Fix fps? Delta too short?
-            # frame = fps.writeFpsToFrame(frame)
-            monitor.update("Tracking", tracking_frame)
+            if monitor is not None:
+                # Update display
+                fps.setFps()
+                # TODO: Fix fps? Delta too short?
+                # frame = fps.writeFpsToFrame(frame)
+                monitor.update("Tracking", tracking_frame)
 
-            # Keyboard input controls
-            terminate = self.listen_keyboard_input(frame, monitor.key_pressed)
-            if terminate:
-                break
+                # Keyboard input controls
+                terminate = self.listen_keyboard_input(
+                    frame, monitor.key_pressed
+                )
+                if terminate or not monitor.window_is_alive():
+                    self._is_alive = False
+                    break
 
     def start(self, args):
         """
@@ -567,21 +581,25 @@ class TrackingManager:
             if args.flip_display_dim
             else cap.shape
         )
-        monitor = Monitor(
-            "Detection",
-            shape,
-            "Tracking",
-            shape,
-            "Pre-process",
-            shape,
-            refresh_rate=30,
-        )
+        self._is_alive = True
+        if self._visualize:
+            monitor = Monitor(
+                "Detection",
+                shape,
+                "Tracking",
+                shape,
+                "Pre-process",
+                shape,
+                refresh_rate=30,
+            )
+        else:
+            monitor = None
         cap.set(cv2.CAP_PROP_FPS, 60)
         fps = FPS()
 
         # Image capture loop
         capture_thread = threading.Thread(
-            target=self.capture_loop, args=(monitor, cap), daemon=True
+            target=self.capture_loop, args=(cap,), daemon=True
         )
         capture_thread.start()
 
