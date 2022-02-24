@@ -12,6 +12,36 @@ from .verifiers.models.resnet import (
 )
 
 
+class Encoding:
+    """
+    Class used to contain feature vectors for a given face
+
+    Attributes:
+        feature (list of floats): the main feature vector of the encoding
+    """
+
+    def __init__(self, feature):
+        self.feature = feature
+
+    def update(self, feature):
+        """
+        Update feature vector WIP
+        """
+        self.feature = feature
+
+    @staticmethod
+    def create_encodings(feature_vectors):
+        """
+        Create encoding instances from list of feature vectors
+        """
+        all_encodings = []
+        for feature in feature_vectors:
+            new_encoding = Encoding(feature)
+            all_encodings.append(new_encoding)
+
+        return all_encodings
+
+
 class Verifier(ABC):
     """
     Abstract class for verifiers
@@ -137,9 +167,11 @@ class DlibFaceRecognition(Verifier):
             bbox_converted = (y, x + w, y + h, x)
             converted_face_locations.append(bbox_converted)
 
-        face_encodings = face_recognition.face_encodings(
+        face_feature_vectors = face_recognition.face_encodings(
             rgb_frame, converted_face_locations, num_jitters=1, model="small"
         )
+
+        face_encodings = Encoding.create_encodings(face_feature_vectors)
 
         return face_encodings
 
@@ -150,8 +182,9 @@ class DlibFaceRecognition(Verifier):
         supplied encoding
 
         Args:
-            reference_encodings (list of encodings): to compare with
-            face_encoding (list): encoding to compare against other encodings
+            reference_encodings (list of Encodings): to compare with
+            face_encoding (Encoding): encoding to compare against other
+                encodings
 
         Returns:
             (list(float)): List of same length as reference_encodings
@@ -159,8 +192,13 @@ class DlibFaceRecognition(Verifier):
                 and supplied encoding
         """
 
+        reference_features = [
+            encoding.feature for encoding in reference_encodings
+        ]
+        target_feature = face_encoding.feature
+
         distances = face_recognition.face_distance(
-            reference_encodings, face_encoding
+            reference_features, target_feature
         )
         scores = [1 - distance for distance in distances]
         return scores
@@ -171,8 +209,9 @@ class DlibFaceRecognition(Verifier):
         face encoding that also respects the set threshold
 
         Args:
-            reference_encodings (list of encodings): to compare with
-            face_encoding (list): encoding to compare against other encodings
+            reference_encodings (list of Encodings): to compare with
+            face_encoding (encoding): encoding to compare against other
+                encodings
 
         Returns:
             (int, float): Returns the index of the encoding that best matched
@@ -257,7 +296,9 @@ class ResNetVerifier(Verifier):
             else:
                 features = np.concatenate((features, feature), axis=0)
 
-        return features
+        face_encodings = Encoding.create_encodings(features)
+
+        return face_encodings
 
     @staticmethod
     def get_scores(reference_encodings, face_encoding):
@@ -266,8 +307,9 @@ class ResNetVerifier(Verifier):
         supplied encoding
 
         Args:
-            reference_encodings (list of encodings): to compare with
-            face_encoding (list): encoding to compare against other encodings
+            reference_encodings (list of Encodings): to compare with
+            face_encoding (Encoding): encoding to compare against other
+                encodings
 
         Returns:
             (list(float)): List of same length as reference_encodings
@@ -277,11 +319,14 @@ class ResNetVerifier(Verifier):
 
         dist = []
         for reference_encoding in reference_encodings:
+            reference_feature = reference_encoding.feature
+            target_feature = face_encoding.feature
+
             dist.append(
-                np.dot(face_encoding, reference_encoding)
+                np.dot(target_feature, reference_feature)
                 / (
-                    np.linalg.norm(face_encoding)
-                    * np.linalg.norm(reference_encoding)
+                    np.linalg.norm(target_feature)
+                    * np.linalg.norm(reference_feature)
                 )
             )
         return np.array(dist)
@@ -292,8 +337,9 @@ class ResNetVerifier(Verifier):
         face encoding that also respects the set threshold
 
         Args:
-            reference_encodings (list of encodings): to compare with
-            face_encoding (list): encoding to compare against other encodings
+            reference_encodings (list of Encodings): to compare with
+            face_encoding (Encoding): encoding to compare against other
+                encodings
 
         Returns:
             (int, float): Returns the index of the encoding that best matched

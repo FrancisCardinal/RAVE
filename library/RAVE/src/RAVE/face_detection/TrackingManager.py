@@ -2,8 +2,6 @@ import time
 import cv2
 import threading
 import torch
-import numpy as np  # TODO: could remove (change code)
-from scipy.optimize import linear_sum_assignment
 
 from collections import defaultdict
 
@@ -67,7 +65,7 @@ class TrackingManager:
         self._intersection_threshold = intersection_threshold
         self.count = 0
 
-        self._detector = DetectorFactory.create(detector_type)
+        self._detector = DetectorFactory.create(detector_type, threshold=0.5)
         self._last_frame = None
         self._last_detect = 0
 
@@ -153,17 +151,22 @@ class TrackingManager:
         rejected_object = self._tracked_objects.pop(identifier)
         self._rejected_objects[identifier] = rejected_object
 
-    def restore_rejected_object(self, identifier):
+    def restore_rejected_object(self, identifier, pre_tracked_object):
         """
         Remove tracked object from the _rejected_objects dictionary
         and add it to the _tracked_object. Also start the tracking thread
 
         Args:
             identifier (int):
-                id of the tracked object to be removed
+                id of the rejected object to be restored
+            pre_tracked_object (TrackedObject):
+                Object created upon detection of this face, but will now be
+                replaced by the restored object. This object if useful because
+                it contains information on the new detection (ex.: bbox
+                position)
         """
         restored_object = self._rejected_objects.pop(identifier)
-        restored_object.restore()
+        restored_object.restore(pre_tracked_object)
         self._tracked_objects[identifier] = restored_object
         self.start_tracking_thread(restored_object)
 
@@ -375,118 +378,6 @@ class TrackingManager:
 
         return None
 
-    def associate_faces_verifier(self, frame, predicted_bboxes, mouths):
-        """
-        Associate detections to current tracked and pre-tracked faces
-        If no matches: try to match with old faces seen
-        If still no match: register new faces to track
-        Also unregister faces that did not get a new detection
-
-        Args:
-            frame (ndarray): current frame with shape HxWx3
-            predicted_bboxes (list of bboxes):
-                each bounding box is in the x,y,w,h format
-            mouths (list of points):
-                each point is in the x,y format
-        """
-
-        # Verifier: get encodings for each detected face in the frame
-        encodings_to_match = self._verifier.get_encodings(
-            frame, predicted_bboxes
-        )
-
-        # Reference for current objects that were not matched
-        unmatched_tracked_objects_ids = list(self._tracked_objects.keys())
-
-        # Reference for predictions that were not matched
-        unmatched_predictions_dict = {}
-        for i, bbox in enumerate(predicted_bboxes):
-            mouth = mouths[i] if mouths and len(mouths) > i else None
-            prediction_group = (bbox, mouth, encodings_to_match[i])
-            unmatched_predictions_dict[i] = prediction_group
-
-        # Collect scores for each combination of faces/new detections
-        all_objects = self.get_all_objects()
-        all_objects_index_to_id = list(all_objects.keys())
-        objects_detections_scores = np.zeros(
-            (len(all_objects), len(encodings_to_match))
-        )
-        for object_index, trackable_object in enumerate(all_objects.values()):
-            object_encoding = trackable_object.encoding
-            scores = self._verifier.get_scores(
-                encodings_to_match, object_encoding
-            )
-            # TODO: account for threshold somewhere...
-            objects_detections_scores[object_index] = scores
-
-        if objects_detections_scores.size > 0:
-            # Create matches by minimizing the cost with the 'Hungarian method'
-            row_ind, col_ind = linear_sum_assignment(
-                objects_detections_scores, maximize=True
-            )
-            for i, object_ind in enumerate(row_ind):
-                detection_ind = col_ind[i]
-                # A face was matched
-                object_id = all_objects_index_to_id[object_ind]
-                matched_object = all_objects[object_id]
-
-                # Verify that score is below the threshold for a match
-                score = objects_detections_scores[object_ind][detection_ind]
-                if score < self._verifier.score_threshold:
-                    # Above threshold: do not accept match
-                    print("REJECTED below threshold")
-                    continue
-
-                # Only reset tracked objects (not pre-tracked)
-                if matched_object.confirmed:
-                    bbox = unmatched_predictions_dict[detection_ind][0]
-                    mouth = unmatched_predictions_dict[detection_ind][1]
-                    matched_object.reset(frame, bbox, mouth)
-                    matched_object.increment_evaluation_frames()
-                    unmatched_tracked_objects_ids.remove(matched_object.id)
-                del unmatched_predictions_dict[detection_ind]
-
-        unmatched_encodings = [
-            pred[2] for pred in unmatched_predictions_dict.values()
-        ]
-        unmatched_predictions = list(unmatched_predictions_dict.values())
-
-        # Match remaining detections with old faces
-        # TODO: use hungarian for matching (like above) for cases with more
-        #  than one remaining prediction. Maybe extract hungarian matching to
-        #  another function for reuse in this case (could be placed in
-        #  verifier class)
-        if unmatched_predictions:
-            rejected_objects = {**self._rejected_objects}
-            for object_id, rejected_object in rejected_objects.items():
-                if not unmatched_predictions:
-                    break
-
-                object_encoding = rejected_object.encoding
-                match_index, match_score = self._verifier.get_closest_face(
-                    unmatched_encodings, object_encoding
-                )
-
-                if match_index is not None:
-                    # Matched with old face: start tracking again
-                    print(f"Restoring old face with score: {match_score}")
-                    self.restore_rejected_object(rejected_object.id)
-                    unmatched_encodings.pop(match_index)
-                    unmatched_predictions.pop(match_index)
-
-        # Unmatched detections must be new faces
-        if unmatched_predictions:
-            for i, (bbox, mouth, _) in enumerate(unmatched_predictions):
-                # A new object was discovered
-                self.add_tracked_object(frame, bbox, mouth)
-
-        # Reject tracked objects that are not re-detected
-        for tracker_id in unmatched_tracked_objects_ids:
-            self._tracked_objects[tracker_id].reject()
-            if self._tracked_objects[tracker_id].rejected:
-                self.remove_tracked_object(tracker_id)
-                print("Rejecting tracked object:", tracker_id)
-
     def preprocess_faces(self, frame, monitor):
         """
         Associate predictions to objects currently being pre-tracked to confirm
@@ -519,27 +410,28 @@ class TrackingManager:
             obj.increment_evaluation_frames()
 
         # Perform operations on all pre-tracked objects
-        finished_trackers_id = []
+        finished_trackers_id = set()
         pre_tracker_frame = frame.copy()
         for tracker_id, tracked_object in self._pre_tracked_objects.items():
             if tracked_object.confirmed:
                 self._tracked_objects[tracker_id] = tracked_object
 
             if not tracked_object.pending:
-                finished_trackers_id.append(tracker_id)
+                finished_trackers_id.add(tracker_id)
+                print("Adding finished tracker:", tracker_id)
 
             if tracked_object.bbox is None:
                 continue
 
             # TODO: Maybe throttle/control when to call verifier
             # TODO: Build average encoding for objects
-            if tracked_object.encoding is None:
+            if tracked_object.encoding is None or not tracked_object.pending:
                 encoding = self._verifier.get_encodings(
                     frame, [tracked_object.bbox]
                 )[0]
                 tracked_object.update_encoding(encoding)
 
-            # Verify that this object does not match an old face
+            # Check if this object matches an old face
             rejected_objects = list(self._rejected_objects.values())
             if any(rejected_objects):
                 matched_object = self.compare_encoding_to_objects(
@@ -547,11 +439,13 @@ class TrackingManager:
                 )
                 if matched_object:
                     # Matched with old face: start tracking again
-                    self.restore_rejected_object(matched_object.id)
+                    self.restore_rejected_object(
+                        matched_object.id, tracked_object
+                    )
                     # TODO: Do we want to by-pass the rest of pre-processing
-                    #  if the face has been identified as an old face:
-                    # End this objects pre-processing
-                    finished_trackers_id.append(tracker_id)
+                    #  if the face has been identified as an old face?
+                    # End this object's pre-processing
+                    finished_trackers_id.add(tracker_id)
 
             pre_tracker_frame = self.draw_prediction_on_frame(
                 pre_tracker_frame, tracked_object
@@ -586,7 +480,22 @@ class TrackingManager:
 
         self.associate_faces(frame, detections)
 
-    def main_loop(self, monitor, cap, fps):
+    def capture_loop(self, monitor, cap):
+        """
+        Loop to be called on separate thread that handles retrieving new image
+        frames from video input
+
+        Args:
+            monitor (Monitor):
+                pyodas monitor to display the frame
+            cap (VideoSource):
+                pyodas video source object to obtain video feed from camera
+        """
+        while monitor.window_is_alive():
+            self._last_frame = cap()
+            time.sleep(0.01)
+
+    def main_loop(self, monitor, fps):
         """
         Tracking algorithm with pre and post process for confirming and
         rejecting bboxes.
@@ -594,15 +503,15 @@ class TrackingManager:
         Args:
             monitor (Monitor):
                 pyodas monitor to display the frame
-            cap (VideoSource):
-                pyodas video source object to obtain video feed from camera
             fps (FPS): To obtain the frames per second
         """
+
+        # Wait for first frame to be available
+        while self._last_frame is None:
+            time.sleep(0.1)
+
         while monitor.window_is_alive():
-            # TODO (JKealey): Assign directly to sel._last_frame
-            #  and add mutex(?)
-            frame = cap()
-            self._last_frame = frame
+            frame = self._last_frame
 
             if frame is None:
                 print("No frame received, exiting")
@@ -670,6 +579,12 @@ class TrackingManager:
         cap.set(cv2.CAP_PROP_FPS, 60)
         fps = FPS()
 
+        # Image capture loop
+        capture_thread = threading.Thread(
+            target=self.capture_loop, args=(monitor, cap), daemon=True
+        )
+        capture_thread.start()
+
         # Main display loop
-        self.main_loop(monitor, cap, fps)
+        self.main_loop(monitor, fps)
         self.stop_tracking()

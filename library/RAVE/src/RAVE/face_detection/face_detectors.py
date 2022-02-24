@@ -61,18 +61,20 @@ class DetectorFactory:
     """
 
     @staticmethod
-    def create(detector_type="yolo"):
+    def create(detector_type="yolo", threshold=0.5):
         """
         Creates the specified Detector object
 
         Args:
             detector_type (string):
-             The type of the Detector. As of now, there's yolo or dnn.
+                The type of the Detector. As of now, there's yolo or dnn.
+            threshold (float):
+                Threshold for detection confidence score (0-1)
         """
         if detector_type == "yolo":
-            return YoloFaceDetector()
+            return YoloFaceDetector(threshold=threshold)
         elif detector_type == "dnn":
-            return DnnFaceDetector()
+            return DnnFaceDetector(threshold=threshold)
         else:
             print("Unknown detector type:", detector_type)
             return None
@@ -84,9 +86,13 @@ class DnnFaceDetector(Detector):
 
     Attributes:
         self.model (dnn_Net): Dnn model from dlib
+        self.threshold (float):
+                Threshold for detection confidence score (0-1)
     """
 
-    def __init__(self):
+    def __init__(self, threshold=0.5):
+        self.threshold = threshold
+
         resources_dir = os.path.join(
             os.path.dirname(__file__), "detectors", "models", "dnn"
         )
@@ -128,7 +134,7 @@ class DnnFaceDetector(Detector):
         for i in range(faces.shape[2]):
             confidence = faces[0, 0, i, 2]
 
-            if confidence > 0.5:
+            if confidence >= self.threshold:
                 box = faces[0, 0, i, 3:7] * np.array([w, h, w, h])
                 (x, y, x1, y1) = box.astype("int")
                 xywh_rect = (x, y, int(x1 - x), int(y1 - y))
@@ -169,9 +175,12 @@ class YoloFaceDetector(Detector):
     Attributes:
         self.device (string): cpu or cuda
         self.model (FaceDetectionModel): yolov5_face model
+        threshold (float):
+                Threshold for detection confidence score (0-1)
     """
 
-    def __init__(self):
+    def __init__(self, threshold=0.5):
+        self.threshold = threshold
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model = FaceDetectionModel(self.device)
         self.model.to(self.device)
@@ -210,6 +219,16 @@ class YoloFaceDetector(Detector):
 
         detections = []
         for i in range(predictions.size()[0]):
+
+            # Make sure confidence is over threshold for each detection
+            confidence = predictions[i, 4].cpu().item()
+            if confidence < self.threshold:
+                print(
+                    f"Rejecting face detection below threshold"
+                    f": {confidence} < {self.threshold}"
+                )
+                continue
+
             gn = torch.tensor(frame.shape)[[1, 0, 1, 0]].to(
                 self.device
             )  # normalization gain whwh
@@ -223,7 +242,6 @@ class YoloFaceDetector(Detector):
                 .view(-1)
                 .tolist()
             )
-            confidence = predictions[i, 4].cpu().item()
             landmarks = (
                 (predictions[i, 5:15].view(1, 10) / gn_lks).view(-1).tolist()
             )

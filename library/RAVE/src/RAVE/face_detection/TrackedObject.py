@@ -3,7 +3,7 @@ from .trackers import TrackerFactory
 NB_FRAMES_TO_CONFIRMED = 10
 CONFIRMATION_THRESHOLD = 8
 NB_FRAMES_TO_REJECT = 10
-REJECTION_THRESHOLD = 5
+REJECTION_THRESHOLD = 2
 
 
 class TrackedObject:
@@ -28,7 +28,7 @@ class TrackedObject:
 
         _confirmation_threshold (int): Number of re-detections required to
             complete the pre-process of the object
-        __nb_of_frames_to_confirmed (int): Total number of re-detection
+        _nb_of_frames_to_confirmed (int): Total number of re-detection
             attempts to perform during pre-process
         _confirmed_frames (int): Counter for the number of successful
             re-detections during pre-process
@@ -181,17 +181,28 @@ class TrackedObject:
 
             if self._evaluation_frames > self._nb_of_frames_to_reject:
                 self._evaluation_frames = 0
+                self._rejected_frames = 0
+                # print(f"Resetting evaluation frames for {self.id}")
             elif self._rejected_frames >= self._rejection_threshold:
-                print(f"Setting rejected to true: {self.id}")
                 self._rejected = True
 
-    def restore(self):
+    def restore(self, pre_tracked_object):
         """
         Called when object is being restored and counters need to be reset
         as if this is a new tracked object
+
+        Args:
+            pre_tracked_object (TrackedObject):
+                Object created upon detection of this face, but will now be
+                replaced by the restored object. This object if useful because
+                it contains information on the new detection (ex.: bbox
+                position)
         """
         self._evaluation_frames = 0
         self._rejected_frames = 0
+        self._rejected = False
+        self.bbox = pre_tracked_object.bbox
+        self._relative_landmark = pre_tracked_object._relative_landmark
 
     def increment_evaluation_frames(self):
         """
