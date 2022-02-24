@@ -2,24 +2,24 @@ import { useTranslation } from "react-i18next";
 import ConnectionStatus from "../../Components/UI/ConnectionStatus";
 import LanguageSelection from "../../Components/UI/LanguageSelection";
 import { Link } from 'react-router-dom';
-import React, { useContext } from "react";
-import SocketContext from "../../socketContext";
+import React from "react";
 
 function SettingsScreen() {
-  const ws = useContext(SocketContext);
   const [t] = useTranslation('common');
 
   return (
-    <div>
-      <h1 className="text-3xl ml-4 font-bold underline">{t('settingsPage.title')}</h1>
-      <LanguageSelection className={"py-4 mx-4 max-w-md"}/>
-      <ConnectionStatus />
+    <div className="flex flex-col items-center">
+      <h1 className="text-3xl font-bold underline text-center">{t('settingsPage.title')}</h1>
+      <LanguageSelection className={"py-4 mx-4 w-3/4"}/>
+      <ConnectionStatus className={""}/>
       <Link 
         to={`/calibration`}
-        onClick={() => {
-          ws.emit("goToCalib");
-        }}
-        className="flex flex-row border border-grey max-w-md pl-3 mt-4 py-4 mx-4 rounded hover:border-black">{t('settingsPage.calibration')}</Link>
+        className="border border-grey p-2 w-3/4 mt-4 py-4 rounded hover:border-black">{t('settingsPage.visionCalibration')}
+      </Link>
+      <Link 
+        to={`/calibration-eye-tracker`}
+        className=" border border-grey p-2 w-3/4 mt-4 py-4 rounded hover:border-black">{t('settingsPage.eyeTrackerCalibration')}
+      </Link>
     </div>
   );
 }

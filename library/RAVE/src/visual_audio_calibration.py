@@ -45,8 +45,8 @@ class Calib:
         self.mic_source = MicSource(self.CHANNELS, chunk_size=self.CHUNK_SIZE)
         sio.on("nextCalibTarget", self.go_next_target)
         sio.on("changeCalibParams", self.change_nb_points)
-        sio.on("startCalibration", self.start_calib)
-        sio.on("stopCalibration", self.stop_calib)
+        sio.on("startVisionCalibration", self.start_calib)
+        sio.on("stopVisionCalibration", self.stop_calib)
 
     # @sio.on("nextCalibTarget")
     def go_next_target(self):
