@@ -296,32 +296,32 @@ class AudioDatasetBuilder:
         """
         # 3D
         # Room
-        fig3d, ax = self.current_room.plot(img_order=0)
-        ax.set_xlabel('Side (x)')
-        ax.set_ylabel('Depth (y)')
-        ax.set_zlabel('Height (z)')
+        if self.is_debug:
+            fig3d, ax = self.current_room.plot(img_order=0)
+            ax.set_xlabel('Side (x)')
+            ax.set_ylabel('Depth (y)')
+            ax.set_zlabel('Height (z)')
 
-        # User
-        for mic_pos in self.receiver_abs:
-            ax.scatter3D(mic_pos[SIDE_ID], mic_pos[DEPTH_ID], mic_pos[HEIGHT_ID], c='b')
-        ax.text(mic_pos[SIDE_ID], mic_pos[DEPTH_ID], mic_pos[HEIGHT_ID], 'User')
-        user_dir_point = [self.user_pos[0] + self.user_dir[0],
-                          self.user_pos[1] + self.user_dir[1],
-                          self.user_pos[2] + self.user_dir[2]]
-        ax.plot([self.user_pos[0], user_dir_point[0]],
-                [self.user_pos[1], user_dir_point[1]],
-                [self.user_pos[2], user_dir_point[2]])
+            # User
+            for mic_pos in self.receiver_abs:
+                ax.scatter3D(mic_pos[SIDE_ID], mic_pos[DEPTH_ID], mic_pos[HEIGHT_ID], c='b')
+            ax.text(mic_pos[SIDE_ID], mic_pos[DEPTH_ID], mic_pos[HEIGHT_ID], 'User')
+            user_dir_point = [self.user_pos[0] + self.user_dir[0],
+                              self.user_pos[1] + self.user_dir[1],
+                              self.user_pos[2] + self.user_dir[2]]
+            ax.plot([self.user_pos[0], user_dir_point[0]],
+                    [self.user_pos[1], user_dir_point[1]],
+                    [self.user_pos[2], user_dir_point[2]])
 
-        # Source
-        ax.scatter3D(source_pos[SIDE_ID], source_pos[DEPTH_ID], source_pos[HEIGHT_ID], c='g')
-        ax.text(source_pos[SIDE_ID], source_pos[DEPTH_ID], source_pos[HEIGHT_ID], source_name)
+            # Source
+            ax.scatter3D(source_pos[SIDE_ID], source_pos[DEPTH_ID], source_pos[HEIGHT_ID], c='g')
+            ax.text(source_pos[SIDE_ID], source_pos[DEPTH_ID], source_pos[HEIGHT_ID], source_name)
 
-        # Noise
-        for noise_pos, noise_name in zip(noise_pos_list, noise_name_list):
-            ax.scatter3D(noise_pos[SIDE_ID], noise_pos[DEPTH_ID], noise_pos[HEIGHT_ID], c='r')
-            ax.text(noise_pos[SIDE_ID], noise_pos[DEPTH_ID], noise_pos[HEIGHT_ID], noise_name)
+            # Noise
+            for noise_pos, noise_name in zip(noise_pos_list, noise_name_list):
+                ax.scatter3D(noise_pos[SIDE_ID], noise_pos[DEPTH_ID], noise_pos[HEIGHT_ID], c='r')
+                ax.text(noise_pos[SIDE_ID], noise_pos[DEPTH_ID], noise_pos[HEIGHT_ID], noise_name)
 
-        if SHOW_GRAPHS:
             plt.show()
 
         # 2D
@@ -627,8 +627,7 @@ class AudioDatasetBuilder:
             yaml.dump(config_dict, outfile, default_flow_style=None)
 
         # Visualize and save scene
-        if self.is_debug:
-            self.plot_scene(source_pos, source_name, noise_pos, noise_names, subfolder_path)
+        self.plot_scene(source_pos, source_name, noise_pos, noise_names, subfolder_path)
 
         return subfolder_path
 
