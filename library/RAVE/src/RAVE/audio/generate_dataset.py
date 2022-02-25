@@ -1,14 +1,21 @@
 import argparse
 from tkinter import filedialog
 
-from RAVE.audio import AudioDatasetBuilder
+import time
+
+import sys
+sys.path.insert(1, './Dataset')
+from Dataset.AudioDatasetBuilder import AudioDatasetBuilder
 
 
 # Script used to generate the audio dataset
 def main(SOURCES, NOISES, OUTPUT, NOISE_COUNT, SPEECH_AS_NOISE, SAMPLE_COUNT, DEBUG):
+    start_time = time.time()
     dataset_builder = AudioDatasetBuilder(SOURCES, NOISES, OUTPUT, NOISE_COUNT, SPEECH_AS_NOISE, SAMPLE_COUNT, DEBUG)
     file_count, dataset_list = dataset_builder.generate_dataset(save_run=True)
+    end_time = time.time()
     print(f"Finished generating dataset. Generated {file_count} files into {OUTPUT}.")
+    print(f"In total, took {end_time-start_time} seconds to generate.")
 
 
 if __name__ == '__main__':
