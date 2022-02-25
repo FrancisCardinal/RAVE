@@ -4,7 +4,6 @@ import ReactDOM from "react-dom";
 import App from "./App";
 import i18next from "i18next";
 import { I18nextProvider } from "react-i18next";
-
 import common_en from "./translations/en/common";
 import common_fr from "./translations/fr/common";
 

@@ -1,47 +1,43 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useState } from "react";
 import AddCalibConfigs from "./AddCalibConfigs";
 import List from "@mui/material/List";
 import { DeleteIcon } from "../../Ressources/icons";
 import IconButton from "@mui/material/IconButton";
 import { ListItem } from "@mui/material";
-import SocketContext from "../../socketContext";
 import { useTranslation } from "react-i18next";
+import { useEventListener, useEmit } from "../../Hooks";
+import { CLIENT_EVENTS } from 'rave-protocol/clientEvents';
+import { DeleteConfigEvent, EyeTrackingConfigSelectedEvent } from 'rave-protocol/pythonEvents';
 
 function CalibConfigs() {
   const [t] = useTranslation("common");
+  const emit = useEmit();
   const dummy_list = [
     {id: 1, name: 'Amélie Rioux-Joyal'},
     {id: 2, name: 'Jacob Kealy'},
     {id: 3, name: 'Jérémy Bélec'},
     {id: 4, name: 'Francis Cardinal'}
   ];
-  const ws = useContext(SocketContext);
   const [configs, setConfigs] = useState(dummy_list);
-  // const [selection, setSelection] = useState(  )
   
-  const handleSelect = (name) => {
-    // setSelection(name);
+  const handleSelect = (name : string) => {
     var ptag = document.getElementById('selection-text');
-    ptag.innerHTML = name;
-    ws.emit("eyeTrackingConfigSelected", name);
+    ptag && (ptag.innerHTML = name);
+    emit(EyeTrackingConfigSelectedEvent(name));
   }
 
-  const deleteConfig = (id) => {
+  const deleteConfig = (id : number) => {
     const new_lists = configs.filter(x => {
       return x.id !== id;
     })
     setConfigs(new_lists);
-    ws.emit("deleteConfig");
+    emit(DeleteConfigEvent());
   }
-  
-  useEffect(() => {
-    if (ws) {
-      ws.on('getEyeTrackingConfigs', (newconfigs) => {
-        console.log("New configs");
-        setConfigs(newconfigs);
-      });
-    }
-  }, [ws]);
+
+  useEventListener(CLIENT_EVENTS.EYE_TRACKING_CONFIGURATIONS, ({configurations}) => {
+    console.log("New configs");
+    setConfigs(configurations);
+  });
 
   return (
     <div>

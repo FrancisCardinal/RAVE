@@ -1,9 +1,8 @@
 
 import { Modal, TextField } from "@mui/material";
-import React, { useEffect, useState } from "react";
+import React, { FC, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SaveIcon } from "../../Ressources/icons";
-import PropTypes from "prop-types";
 import { styled } from "@mui/material/styles";
 
 const CustomTextField = styled(TextField)({
@@ -17,35 +16,38 @@ const CustomTextField = styled(TextField)({
   },
 });
 
-CalibInstructions.propTypes = {
-  setInstructionModalOpen: PropTypes.func,
+const gifs = [
+  "https://giphy.com/embed/GJi6ZBzgkWNmU",
+  "https://giphy.com/embed/l41YdAa3Yll5NHfwI",
+  "https://giphy.com/embed/65QZtTQC06Ot08sf50",
+]
+interface CalibInstructionsProps {
+  setInstructionModalOpen: (openState : boolean) => void,
 }
-function CalibInstructions({setInstructionModalOpen}) {
-  const gifs = [
-    "https://giphy.com/embed/GJi6ZBzgkWNmU",
-    "https://giphy.com/embed/l41YdAa3Yll5NHfwI",
-    "https://giphy.com/embed/65QZtTQC06Ot08sf50",
-  ]
+
+const CalibInstructions : FC<CalibInstructionsProps> = ({setInstructionModalOpen}) => {
   const [t] = useTranslation('common');
   const [step, setStep] = useState(0);
-  const nextStep = () => {
-    const newStep = step + 1;
-    setStep(newStep);
-  }
-
   const [open, setOpen] = useState(false);
   const handleClose = () => setOpen(false);
+  const [name_id, setName_id] = useState("");
+  
   useEffect(() => {
     if (step >= 3) {
       setOpen(true);
     }
   }, [step]);
 
-  const [name_id, setName_id] = useState("");
-  const handleNameIdChange = event => {
+  const nextStep = () => {
+    const newStep = step + 1;
+    setStep(newStep);
+  }
+
+  const handleNameIdChange = (event : React.ChangeEvent<HTMLInputElement>) => {
     setName_id(event.target.value);
   };
-  const handleSubmit = event => {
+  
+  const handleSubmit = (_event : React.FormEvent<HTMLFormElement>) => {
     setInstructionModalOpen(false);
   };
 

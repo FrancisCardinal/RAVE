@@ -1,6 +1,6 @@
+import React, { useState } from "react";
 import Fab from "@mui/material/Fab";
 import { AddIcon } from "../../Ressources/icons";
-import React, { useState } from "react";
 import CalibInstructions from "./CalibInstructions";
 import { Modal } from "@mui/material";
 import { BrowserView, MobileView } from 'react-device-detect';
@@ -12,6 +12,7 @@ function AddCalibConfigs() {
 
   return (
     <div className="absolute border-l  border-grey right-0 inset-y-0 p-2">
+      {/* @ts-ignore */}
       <Fab size="small" color="error" aria-label="add" onClick={handleOpen}>
         <AddIcon className={"w-5 h-5"} />
       </Fab>

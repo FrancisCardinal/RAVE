@@ -1,3 +1,4 @@
+from email import message
 import pyodas.visualize as vis
 import socketio
 from pyodas.io import MicSource
@@ -9,11 +10,21 @@ import time
 sio = socketio.Client()
 
 
+def emit(eventName, destination, payload):
+    sio.emit(
+        eventName,
+        {
+            "destination": destination,
+            "payload": payload
+        }
+    )
+
+
 @sio.event
 def connect():
     print("connection established to server")
     # Emit the socket id to the server to "authenticate yourself"
-    sio.emit("pythonSocket", sio.get_sid())
+    emit("pythonSocketAuth", 'server', {"socketId": sio.get_sid()})
 
 
 class Calib:
@@ -70,7 +81,7 @@ class Calib:
             self.nb_points = int(nb["number"])
             self.order_of_polynomial = int(nb["order"])
         except Exception as e:
-            sio.emit("calibrationError", str(e))
+            emit("calibrationError", 'client', {"message": str(e)})
 
     def reset_calibration(self):
         self.update_params = False
@@ -84,20 +95,17 @@ class Calib:
                 save_path="./visual_calibration.json",
             )
         except Exception as e:
-            sio.emit("calibrationError", str(e))
+            emit("calibrationError", 'client', {"message": str(e)})
 
     @staticmethod
     def send_calib_frame(frames):
         frame_string = base64.b64encode(
             cv2.imencode(".jpg", frames)[1]
         ).decode()
-        sio.emit(
-            "calibFrame",
-            {
-                "frame": frame_string,
-                "dimensions": frames.shape,
-            },
-        )
+        emit("calibrationFrame", 'client', {
+            "frame": frame_string,
+            "dimensions": frames.shape,
+        })
 
 
 @sio.event

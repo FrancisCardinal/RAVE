@@ -1,19 +1,18 @@
-import React, { useContext, useEffect } from "react";
-import { useTranslation } from "react-i18next";
-import CalibStream from "../../Components/UI/CalibStream";
-import SocketContext from "../../socketContext";
+import React, { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import CalibStream from '../../Components/UI/CalibStream';
 import { BrowserView, MobileView } from 'react-device-detect';
-import CalibSettings from "../../Components/UI/CalibSettings";
-
-
+import CalibSettings from '../../Components/UI/CalibSettings';
+import { useEmit } from '../../Hooks';
+import { GoToVisionCalibrationEvent } from 'rave-protocol/pythonEvents';
 
 function CalibrationScreen() {
-  const ws = useContext(SocketContext);
+  const emit = useEmit();
   const [t] = useTranslation('common');
 
   useEffect(() => {
-    ws && ws.emit("goToVisionCalib");
-  }, []);
+    emit(GoToVisionCalibrationEvent());
+  }, [emit]);
 
   return (
     <div className="flex flex-col">
@@ -25,12 +24,11 @@ function CalibrationScreen() {
         </div>
       </BrowserView>
       <MobileView>
-      <div className="flex flex-col">
+        <div className="flex flex-col">
           <CalibStream />
           <CalibSettings />
         </div>
       </MobileView>
-      
     </div>
   );
 }
