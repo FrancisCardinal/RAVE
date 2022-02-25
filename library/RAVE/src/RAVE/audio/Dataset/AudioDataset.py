@@ -1,5 +1,6 @@
 import torch
 import torchaudio
+import torchvision
 from pyodas.utils import generate_mic_array, get_delays_based_on_mic_array
 from pyodas.core import IStft
 
@@ -87,22 +88,28 @@ class AudioDataset(torch.utils.data.Dataset):
         return len(self.data)
 
     def __getitem__(self, idx):
-        idx = 1
         if self.generate_dataset_runtime:
             audio_signal, audio_mask, speech_mask, noise_mask, config_dict = self.run_dataset_builder() # todo: audio_signal needs to be a tensor 
         else:
             item_path = self.data[idx]
-            audio_signal, audio_sr, audio_target, target_sr, config_dict = self.load_item_from_disk(item_path)
+            audio_signal, audio_sr, noise_target, noise_sr, speech_target, speech_sr, config_dict = self.load_item_from_disk(item_path)
 
         signal1 = self._formatAndConvertToSpectogram(audio_signal, audio_sr)
         signal2 = self._delaySum(audio_signal, audio_sr, config_dict)
-        target = self._formatAndConvertToSpectogram(audio_target, target_sr)
+        noise_target = self._formatAndConvertToSpectogram(noise_target, noise_sr)
+        speech_target = self._formatAndConvertToSpectogram(speech_target, speech_sr)
+
         signal = torch.cat([signal1, signal2], dim=1)
-        #test = self.waveform(signal2)
-        #test = test/torch.max(test)
-        #torchaudio.save('./test_audio.wav', test.float() , 16000)
-        #return torch.squeeze(torch.tanh(signal)), torch.squeeze(torch.tanh(target))
-        return torch.squeeze((signal+127)/255), torch.squeeze((target + 127)/255)
+
+        #noise_target -= noise_target.float().min()
+        #noise_target /= noise_target.float().max()
+        target = noise_target**2 / (noise_target**2 + speech_target**2 + 1e-10)
+
+        total_energy =noise_target**2 + speech_target**2
+        total_energy -= torch.min(total_energy)
+        total_energy /= torch.max(total_energy)
+
+        return torch.squeeze(signal), torch.squeeze(target), total_energy
     
     def _delaySum(self, raw_signal, sr, config):
         signal = self._resample(raw_signal, sr)
@@ -139,6 +146,8 @@ class AudioDataset(torch.utils.data.Dataset):
 
         signal = self._set_mono(signal)
         freq_signal = self.transformation(signal)
+        #print(freq_signal.float().max())
+        #print(freq_signal.float().min())
         freq_signal = 20*torch.log10(torch.abs(freq_signal) + 1e-09)
         return freq_signal
 
@@ -197,7 +206,8 @@ class AudioDataset(torch.utils.data.Dataset):
 
         # Get paths for files
         audio_file_path = os.path.join(subfolder_path, 'audio.wav')
-        audio_target_path = os.path.join(subfolder_path, 'noise.wav')
+        noise_target_path = os.path.join(subfolder_path, 'noise.wav')
+        speech_target_path = os.path.join(subfolder_path, 'speech.wav')
         configs_file_path = os.path.join(subfolder_path, 'configs.yaml')
 
         # Get config dict
@@ -210,9 +220,10 @@ class AudioDataset(torch.utils.data.Dataset):
         # Get audio file
         #audio_signal, fs = sf.read(audio_file_path)
         audio_signal, audio_sr = torchaudio.load(audio_file_path)
-        audio_target, target_sr = torchaudio.load(audio_target_path)
+        noise_target, noise_sr = torchaudio.load(noise_target_path)
+        speech_target, speech_sr = torchaudio.load(speech_target_path)
 
-        return audio_signal, audio_sr, audio_target, target_sr, config_dict
+        return audio_signal, audio_sr, noise_target, noise_sr, speech_target, speech_sr, config_dict
 
     def run_dataset_builder(self):
 

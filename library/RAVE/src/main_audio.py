@@ -2,6 +2,7 @@ import multiprocessing
 import os
 from numpy import block
 
+import numpy as np
 import torch
 import argparse
 import matplotlib.pyplot as plt
@@ -9,7 +10,7 @@ import matplotlib.pyplot as plt
 from RAVE.common.Trainer import Trainer
 
 from RAVE.audio.Neural_Network.AudioModel import AudioModel
-from RAVE.audio.Neural_Network.Trainer import AudioTrainer
+from RAVE.audio.Neural_Network.AudioTrainer import AudioTrainer
 from RAVE.audio.Dataset.AudioDataset import AudioDataset
 
 def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
@@ -31,17 +32,12 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
     DEVICE = "cpu"
     if torch.cuda.is_available():
         DEVICE = "cuda"
-    
-    # todo: call class method to create dataset if not on disk
-    dataset = AudioDataset(dataset_path='/Users/felixducharmeturcotte/Documents/audioDataset2', device=DEVICE)
-    
-    
-    spect = next(iter(dataset))[0]
-    plt.pcolormesh(spect.float(), shading='gouraud')
-    plt.show(block=True)
-    spect = next(iter(dataset))[1]
-    plt.pcolormesh(spect.float(), shading='gouraud')
-    plt.show(block=True)
+
+    # training_sub_dataset = AudioDataset(dataset_path='/Users/felixducharmeturcotte/Documents/datasetV2/training', device=DEVICE)
+    # validation_sub_dataset = AudioDataset(dataset_path='/Users/felixducharmeturcotte/Documents/datasetV2/validation', device=DEVICE)
+
+    dataset = AudioDataset(dataset_path='/Users/felixducharmeturcotte/Documents/datasetV3',
+                                          device=DEVICE)
 
     BATCH_SIZE = 32
     lenght_dataset = len(dataset)
@@ -62,7 +58,7 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
     validation_loader = torch.utils.data.DataLoader(
         validation_sub_dataset,
         batch_size=BATCH_SIZE,
-        shuffle=True,
+        shuffle=False,
         num_workers=6,
         pin_memory=True,
         persistent_workers=True
@@ -71,17 +67,17 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
     # todo: get directory from dataset class
     directory = os.path.join("RAVE", "audio")
 
-    audioModel = AudioModel(input_size=63, hidden_size=128, num_layers=1)
+    audioModel = AudioModel(input_size=1026, hidden_size=128, num_layers=2)
     audioModel.to(DEVICE)
     print(audioModel)
 
     if TRAIN:
-        optimizer = torch.optim.SGD(
+        optimizer = torch.optim.Adam(
             audioModel.parameters(),
-            lr=1e-04
+            lr=4e-03
         )
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer)
-        trainer = Trainer(
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,verbose=True)
+        trainer = AudioTrainer(
             trainer_loader,
             validation_loader,
             torch.nn.MSELoss(reduction='sum'),
@@ -94,7 +90,7 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
         )
         trainer.train_with_validation(NB_EPOCHS)
 
-    Trainer.load_best_model(
+    AudioTrainer.load_best_model(
         audioModel, directory
     )
     if DISPLAY_VALIDATION:
@@ -115,15 +111,20 @@ def visualize_predictions(model, data_loader, DEVICE):
         DEVICE (String): Device on which to perform the computations
     """
     with torch.no_grad():
-        for audios, labels in data_loader:
+        for audios, labels, _ in data_loader:
             audios, labels = audios.to(DEVICE), labels.to(DEVICE)
             predictions = model(audios)
             for audio, prediction, label in zip(audios, predictions, labels):
+                y, x = np.mgrid[slice(0, 513, 1),
+                                slice(0, 1, 1/63)]
+
                 fig, axs = plt.subplots(3)
                 fig.suptitle('Vertically stacked subplots')
-                axs[0].pcolormesh(audio[:513,:].float(), shading='gouraud')
-                axs[1].pcolormesh(prediction.float(), shading='gouraud')
-                axs[2].pcolormesh(label.float(), shading='gouraud')
+                axs[0].pcolormesh(x,y,audio[:513,:].float(), shading='gouraud')
+                axs[1].pcolormesh(x,y,prediction.float(), shading='gouraud')
+                axs[2].pcolormesh(x,y,label.float(), shading='gouraud')
+                axs[2].set_xlabel("Temps(s)")
+                axs[1].set_ylabel("Fréquences (hz)")
                 plt.show()
 
 
