@@ -1,6 +1,6 @@
 import argparse
 
-from RAVE.face_detection.OutputManager import OutputManager
+from RAVE.AppManager import AppManager
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -29,6 +29,20 @@ if __name__ == "__main__":
         default=1,
     )
     parser.add_argument(
+        "--height",
+        dest="height",
+        type=int,
+        help="Height of the image to be captured by the camera",
+        default=480,
+    )
+    parser.add_argument(
+        "--width",
+        dest="width",
+        type=int,
+        help="Width of the image to be captured by the camera",
+        default=600,
+    )
+    parser.add_argument(
         "--visualize",
         dest="visualize",
         help="If true, will show the different tracking frames",
@@ -36,6 +50,6 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    manager = OutputManager(args)
+    manager = AppManager(args)
 
     manager.start()

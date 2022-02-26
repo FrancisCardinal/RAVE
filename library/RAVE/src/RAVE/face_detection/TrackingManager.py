@@ -575,7 +575,7 @@ class TrackingManager:
                 Arguments from argument parser, see main_tracking for more
                 information
         """
-        cap = VideoSource(args.video_source)
+        cap = VideoSource(args.video_source, args.width, args.height)
         shape = (
             (cap.shape[1], cap.shape[0])
             if args.flip_display_dim

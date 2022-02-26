@@ -18,6 +18,20 @@ if __name__ == "__main__":
         default=False,
     )
     parser.add_argument(
+        "--height",
+        dest="height",
+        type=int,
+        help="Height of the image to be captured by the camera",
+        default=480,
+    )
+    parser.add_argument(
+        "--width",
+        dest="width",
+        type=int,
+        help="Width of the image to be captured by the camera",
+        default=600,
+    )
+    parser.add_argument(
         "--freq",
         dest="freq",
         type=float,
