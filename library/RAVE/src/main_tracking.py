@@ -27,7 +27,6 @@ if __name__ == "__main__":
     parser.add_argument(
         "--visualize",
         dest="visualize",
-        type=bool,
         help="If true, will show the different tracking frames",
         action="store_true",
     )
