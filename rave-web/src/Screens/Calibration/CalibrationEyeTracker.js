@@ -5,10 +5,10 @@ import SocketContext from "../../socketContext";
 
 function EyeTrackerCalibScreen() {
   const ws = useContext(SocketContext);
+  const [t] = useTranslation('common');
   useEffect(() => {
     ws && ws.emit("goToEyeTrackerCalib");
   }, []);
-  const [t] = useTranslation('common');
   return (
     <div>
       <h1 className="text-3xl mx-2 font-bold text-center underline">{t('eyeTrackerCalibrationPage.title')}</h1>

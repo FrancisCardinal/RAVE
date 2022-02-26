@@ -52,6 +52,85 @@ io.on("connection", (socket) => {
     pythonSocket && pythonSocket.emit("targetSelect", target);
   });
             
+ 
+
+
+  //----------------------------- Section Eye Tracker Calibration -------------------------
+  socket.on("goToEyeTrackerCalib", () => {
+    console.log(socket.id + " go to eye tracker calibration");
+    if (!pythonSocket) {
+      console.log(
+        "A user requested to open eye-tracking calibration but the pythonSocket is not connected"
+      );
+      return;
+    }
+    pythonSocket && pythonSocket.emit("activateEyeTrackingCalibration");
+  });
+  
+  socket.on("startEyeTrackerCalib", () => {
+    console.log(socket.id + " start eye tracker calibration");
+    if (!pythonSocket) {
+      console.log(
+        "A user requested to start eye-tracking calibration but the pythonSocket is not connected"
+      );
+      return;
+    }
+    pythonSocket && pythonSocket.emit("startEyeTrackingCalibration");
+  });
+
+  socket.on("nextCalibStep", () => {
+    console.log(socket.id + " next step eye tracker calibration");
+    if (!pythonSocket) {
+      console.log(
+        "A user requested to next step eye-tracking calibration but the pythonSocket is not connected"
+      );
+      return;
+    }
+    pythonSocket && pythonSocket.emit("nextCalibStep");
+  });
+
+  socket.on("configList", (listCalib) => {
+    io.emit("onConfigList", listCalib);
+  });
+
+  socket.on("addNewConfig", (newConfig) => {
+    console.log(socket.id + " wants to add new eye tracker calib config.");
+    if (!pythonSocket) {
+      console.log(
+        "A user requested to add calib config eye-tracking but the pythonSocket is not connected"
+      );
+      return;
+    }
+    pythonSocket && pythonSocket.emit("addEyeTrackingCalib", newConfig);
+  });
+
+  socket.on("deleteConfig", (config_id) => {
+    console.log(socket.id + " wants to delete a calib config.");
+    if (!pythonSocket) {
+      console.log(
+        "A user requested to delete a calib config eye-tracking but the pythonSocket is not connected"
+      );
+      return;
+    }
+    pythonSocket && pythonSocket.emit("deleteEyeTrackingCalib", config_id);
+  });
+
+  socket.on("eyeTrackingConfigSelected", (selection) => {
+    console.log(socket.id + " selected a calib config.");
+    if (!pythonSocket) {
+      console.log(
+        "A user requested to select a calib config eye-tracking but the pythonSocket is not connected"
+      );
+      return;
+    }
+    pythonSocket && pythonSocket.emit("selectEyeTrackingCalib", selection);
+  });
+
+  //----------------------------- End of Section Eye Tracker Calibration -------------------------
+  
+  
+
+  //----------------------------- Section Audio Vision Calibration -------------------------
   socket.on("goToVisionCalib", () => {
     console.log(socket.id + " start calibration");
     if (!pythonSocket) {
@@ -61,17 +140,6 @@ io.on("connection", (socket) => {
       return;
     }
     pythonSocket && pythonSocket.emit("startVisionCalibration");
-  });
-
-  socket.on("goToEyeTrackerCalib", () => {
-    console.log(socket.id + " start eye tracker calibration");
-    if (!pythonSocket) {
-      console.log(
-        "A user requested to start eye-tracking calibration but the pythonSocket is not connected"
-      );
-      return;
-    }
-    pythonSocket && pythonSocket.emit("startEyeTrackerCalibration");
   });
 
   socket.on("quitCalibration", () => {
@@ -95,6 +163,17 @@ io.on("connection", (socket) => {
       }
       pythonSocket && pythonSocket.emit("nextCalibTarget");
   });
+  socket.on("calibFrame", (newFrame) => {
+    recentCalibFrame = newFrame;
+    io.emit("onCalibFrame", recentCalibFrame);
+  });
+
+  socket.on("calibrationError", (errorMessage) => {
+    console.log("This a the error message: " + errorMessage)
+    io.emit("newErrorMsg", errorMessage);
+  });
+//----------------------------- End of Section Audio Vision Calibration -------------------------
+
 
   socket.on("muteFunction", (muteRequest) => {
     console.log(socket.id + " requested a muteFunction");
@@ -164,15 +243,7 @@ io.on("connection", (socket) => {
     io.emit("onFrameUpdate", mostRecentFrame);
   });
 
-  socket.on("calibFrame", (newFrame) => {
-    recentCalibFrame = newFrame;
-    io.emit("onCalibFrame", recentCalibFrame);
-  });
-
-  socket.on("calibrationError", (errorMessage) => {
-    console.log("This a the error message: " + errorMessage)
-    io.emit("newErrorMsg", errorMessage);
-  });
+  
 
 });
 
