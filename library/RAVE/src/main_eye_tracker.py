@@ -152,7 +152,7 @@ def visualize_predictions(model, data_loader, DEVICE):
                 cv2.waitKey(1500)
 
 def inference(model, device):
-    eyeTracker_calibration_dataset = EyeTrackerInferenceDataset(os.path.join("calibration"), False)
+    eyeTracker_calibration_dataset = EyeTrackerInferenceDataset(os.path.join("calibration_45_deg"), False)
     calibration_loader = torch.utils.data.DataLoader(
         eyeTracker_calibration_dataset,
         batch_size=512,
@@ -162,7 +162,7 @@ def inference(model, device):
     gaze_inferer = GazeInferer(model, calibration_loader, device)
     gaze_inferer.fit()
 
-    eyeTracker_conversation_dataset = EyeTrackerInferenceDataset(os.path.join("conversation"), False)
+    eyeTracker_conversation_dataset = EyeTrackerInferenceDataset(os.path.join("conversation_45_deg"), False)
     conversation_loader = torch.utils.data.DataLoader(
         eyeTracker_conversation_dataset,
         batch_size=1,
