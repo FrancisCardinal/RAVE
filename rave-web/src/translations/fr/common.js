@@ -45,7 +45,8 @@ const common = {
     instruction: 'Faire le mouvement indiqué et appuyer sur "Prochain":',
     modalTitle: 'Sauvegarder la configuration',
     configName: 'Nom',
-    configPlaceholder: 'Entrer votre nom complet'
+    configPlaceholder: 'Entrer votre nom complet',
+    errorMessage: 'Le nom que vous avez choisi existe déjà, choisir un nouveau.',
   }
 };
 export default common;
