@@ -1,5 +1,5 @@
 import numpy as np
-
+from tqdm import tqdm
 
 class NoIntersectionError(Exception):
     pass
@@ -43,7 +43,7 @@ def fit_ransac(a,n, max_iters = 2000, samples_to_fit = 20, min_distance = 2000):
     
     best_model = None
     best_distance = min_distance
-    for i in range(max_iters):
+    for i in tqdm(range(max_iters), desc='Fitting', leave=False ):
         # print("\rRANSAC: Currently {0}".format(i), flush=True)
         sampling_index = np.random.choice(num_lines, size = samples_to_fit, replace=False)
         a_sampled = a[sampling_index,:]
