@@ -7,7 +7,12 @@ Unless specified, all units are in pixels.
 All calculations are in camera frame (conversion would be commented)
 
 """
-
+T4 = np.eye(4)
+theta = np.deg2rad(45) 
+T4[1, 1] = np.cos(theta)
+T4[2, 2] = np.cos(theta)
+T4[2, 1] = np.sin(theta)
+T4[1, 2] = -np.sin(theta)
 
 class SingleEyeFitter(object):
 
@@ -49,6 +54,12 @@ class SingleEyeFitter(object):
 
     def unproject_single_observation(self, observation):
         centre, w, h, radian = observation
+        centre = T4[0:2, 0:2] @ centre 
+
+        wh =[w, h]
+        wh =T4[0:2, 0:2] @ wh
+        w, h = wh[0], wh[1]
+        
         centre_cam = centre.copy()
         centre_cam[0] = centre_cam[0] - self.image_shape[1] / 2
         centre_cam[1] = centre_cam[1] - self.image_shape[0] / 2
@@ -112,7 +123,7 @@ class SingleEyeFitter(object):
 
         # Normalisation of the 2D projection of gaze vectors is done inside intersect()
         if ransac == True:
-            samples_to_fit = np.ceil(a.shape[0]/5).astype(np.int)  # Assuming 20% of outliners
+            samples_to_fit = np.ceil(a.shape[0]/200).astype(np.int)  # Assuming 0.5% of outliners
             self.projected_eye_centre = fit_ransac(a, n, max_iters=max_iters, samples_to_fit=samples_to_fit,
                                                    min_distance=min_distance)
         else:
