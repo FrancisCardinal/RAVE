@@ -1,6 +1,6 @@
 matplotlib
 numpy
-opencv-python
+opencv-contrib-python
 tqdm
 torch
 torchaudio
