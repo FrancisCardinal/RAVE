@@ -43,7 +43,7 @@ class GazeInferer:
                     self._eyefitter.add_to_fitting()
 
         # Fit eyeball models. Parameters are stored as internal attributes of Eyefitter instance.
-        self._eyefitter.fit_projected_eye_centre(ransac=True, max_iters=1000, min_distance=2* len(self._dataloader.dataset))
+        self._eyefitter.fit_projected_eye_centre(ransac=True, max_iters=2000, min_distance=10* len(self._dataloader.dataset))
         self._eyefitter.estimate_eye_sphere()
 
         # Issue error if eyeball model still does not exist after fitting.
