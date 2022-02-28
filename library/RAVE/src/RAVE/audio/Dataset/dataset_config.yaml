@@ -15,10 +15,10 @@ room_shapes:
 room_sizes: [[10, 100], [10, 100], [3, 20]]
 
 # Path to folder containing source files
-source_folder: 'C:\\GitProjet\\MS-SNSD\\clean_train'
+source_folder: "/Users/felixducharmeturcotte/Documents/MS-SNSD/clean_train"
 
 # Path to folder containing noise files
-noise_folder: 'C:\\GitProjet\\MS-SNSD\\noise_train'
+noise_folder: "/Users/felixducharmeturcotte/Documents/MS-SNSD/noise_train"
 
 # Authorized noises
 banned_noises:
@@ -50,10 +50,10 @@ diffuse_noises:
 max_diffuse_noises: 1
 
 # Range of noises count to add to audio file
-noise_count_range: [5, 10]
+noise_count_range: [1, 1]
 
 # Whether to use speech as noise sources
-speech_as_noise: True
+speech_as_noise: False
 
 # SNR limit values
 snr_limits: [0.5, 1]

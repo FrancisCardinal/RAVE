@@ -34,6 +34,7 @@ HEAD_RADIUS = 0.1       # in meters
 
 SHOW_GRAPHS = False
 
+IS_DEBUG = False
 
 class AudioDatasetBuilder:
     """
@@ -74,7 +75,7 @@ class AudioDatasetBuilder:
         self.dir_noise_count_range = [noise_count_range[0], noise_count_range[1] + 1]
         self.speech_noise = speech_noise
         self.sample_per_speech = sample_per_speech
-        self.is_debug = debug
+        self.is_debug = IS_DEBUG
 
         self.receiver_abs = None
         self.dir_noise_count = noise_count_range[0]
@@ -847,7 +848,7 @@ class AudioDatasetBuilder:
         # Run through every source
         for source_path in tqdm(self.source_paths, desc="Source Paths used"):
             # Get source_audio for every source file
-            source_name = source_path.split('\\')[-1].split('.')[0]  # Get filename for source (before extension)
+            source_name = os.path.split(source_path)[1].split('.')[0]  # Get filename for source (before extension)
             source_audio_base = self.read_audio_file(source_path)
 
             # Run SAMPLES_PER_SPEECH samples per speech clip
@@ -872,7 +873,7 @@ class AudioDatasetBuilder:
                 dir_noise_source_paths = self.get_random_noise()
                 for noise_source_path in dir_noise_source_paths:
                     dir_noise = dict()
-                    dir_noise['name'] = noise_source_path.split('\\')[-1].split('.')[0]
+                    dir_noise['name'] = os.path.split(noise_source_path)[1].split('.')[0]
                     dir_noise['signal'] = self.read_audio_file(noise_source_path)
                     dir_noise['position'] = self.get_random_position(source_pos)
                     audio_source_dict['dir_noise'].append(dir_noise)
@@ -882,7 +883,7 @@ class AudioDatasetBuilder:
                 dif_noise_source_paths = self.get_random_noise(diffuse_noise=True)
                 for noise_source_path in dif_noise_source_paths:
                     dif_noise = dict()
-                    dif_noise['name'] = noise_source_path.split('\\')[-1].split('.')[0]
+                    dif_noise['name'] = os.path.split(noise_source_path)[1].split('.')[0]
                     dif_noise['signal'] = self.read_audio_file(noise_source_path)
                     dif_noise['position'] = self.get_random_position(source_pos)
                     audio_source_dict['dif_noise'].append(dif_noise)
