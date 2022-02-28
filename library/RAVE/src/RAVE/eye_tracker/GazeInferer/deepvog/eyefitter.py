@@ -11,14 +11,7 @@ All calculations are in camera frame (conversion would be commented)
 
 class SingleEyeFitter(object):
 
-    def __init__(self, focal_length, pupil_radius, initial_eye_z, x_angle, image_shape):
-        self.focal_length = focal_length
-        self.image_shape = image_shape
-
-        self.pupil_radius = pupil_radius
-        self.vertex = [0, 0, -focal_length]
-        self.initial_eye_z = initial_eye_z
-
+    def __init__(self, focal_length, pupil_radius, initial_eye_z, x_angle, image_shape, sensor_size):
         self.camera_rotation_matrix = np.eye(3)
         theta = np.deg2rad(x_angle) 
         self.camera_rotation_matrix[1, 1] = np.cos(theta)
@@ -26,6 +19,19 @@ class SingleEyeFitter(object):
         self.camera_rotation_matrix[2, 1] = np.sin(theta)
         self.camera_rotation_matrix[1, 2] = -np.sin(theta)
         self.camera_rotation_matrix = self.camera_rotation_matrix[0:2, 0:2]
+
+        mm2px_scaling = np.linalg.norm(self.camera_rotation_matrix @ image_shape) / np.linalg.norm(sensor_size)
+
+        focal_length = focal_length * mm2px_scaling
+        pupil_radius = pupil_radius * mm2px_scaling
+        initial_eye_z = initial_eye_z * mm2px_scaling
+
+        self.focal_length = focal_length
+        self.image_shape = image_shape
+
+        self.pupil_radius = pupil_radius
+        self.vertex = [0, 0, -focal_length]
+        self.initial_eye_z = initial_eye_z
 
         # (p,n) of unprojected gaze vector and pupil 3D position in SINGLE OBSERVATION
         self.current_gaze_pos = 0  # reserved for (3,1) np.array in camera frame

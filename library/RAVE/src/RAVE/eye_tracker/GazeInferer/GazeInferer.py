@@ -21,14 +21,14 @@ class GazeInferer:
 
         image, _ = next(iter(self._dataloader))  
         self.shape = image.shape[2], image.shape[3]
-        self.mm2px_scaling = np.linalg.norm(self.shape) / np.linalg.norm(sensor_size)
 
         #TODO FC : deal with image_scaling_factor when we'll have real images
-        self._eyefitter = SingleEyeFitter(focal_length=flen * self.mm2px_scaling * image_scaling_factor,
-                                    pupil_radius = pupil_radius * self.mm2px_scaling * image_scaling_factor,
-                                    initial_eye_z = initial_eye_z * self.mm2px_scaling * image_scaling_factor,
+        self._eyefitter = SingleEyeFitter(focal_length=flen  * image_scaling_factor,
+                                    pupil_radius = pupil_radius  * image_scaling_factor,
+                                    initial_eye_z = initial_eye_z  * image_scaling_factor,
                                     x_angle = x_angle,
-                                    image_shape=self.shape)
+                                    image_shape=self.shape,
+                                    sensor_size=sensor_size)
 
     def fit(self):
         with torch.no_grad():
