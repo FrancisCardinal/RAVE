@@ -1,13 +1,13 @@
 from pyodas.io import WavSource, MicSource, PlaybackSink, WavSink
 
 SOURCE_TYPES = {
-    "source_wav": WavSource,
-    "source_mic": MicSource,
+    "sim": WavSource,
+    "mic": MicSource,
 }
 
 SINK_TYPES = {
-    "sink_wav": PlaybackSink,
-    "sink_playback": WavSink,
+    "sim": WavSink,
+    "play": PlaybackSink,
 }
 
 

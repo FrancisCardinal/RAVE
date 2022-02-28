@@ -1,177 +1,209 @@
-import multiprocessing
-import os
-from numpy import block
-
 import numpy as np
-import torch
 import argparse
-import matplotlib.pyplot as plt
+from tkinter import filedialog
+import torch
+import os
+import yaml
 
-from RAVE.common.Trainer import Trainer
+from pyodas.core import (
+    Stft,
+    IStft,
+    KissMask,
+    SpatialCov
+)
+from pyodas.utils import CONST, generate_mic_array
 
+from RAVE.audio.IO.IO_manager import IOManager
 from RAVE.audio.Neural_Network.AudioModel import AudioModel
-from RAVE.audio.Neural_Network.AudioTrainer import AudioTrainer
-from RAVE.audio.Dataset.AudioDataset import AudioDataset
+from RAVE.audio.Beamformer.Beamformer import Beamformer
 
-def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
-    """main function of the module
+DEVICE = "cpu"
+if torch.cuda.is_available():
+    DEVICE = "cuda"
 
-    Args:
-        TRAIN (bool): Whether to train the model or not
-        NB_EPOCHS (int):
-            Number of epochs for which to train the network(ignored if TRAIN is
-            set to false)
-        CONTINUE_TRAINING(bool):
-            Whether to continue the training from the
-            checkpoint on disk or not
-        DISPLAY_VALIDATION (bool):
-            Whether to display the predictions on the validation dataset or not
-        TEST (bool):
-            Whether to display the predictions on the test dataset or not
-    """
-    DEVICE = "cpu"
-    if torch.cuda.is_available():
-        DEVICE = "cuda"
+# Constants
+# TODO: Uniformise microphone array in config file or such
+MIC_ARRAY = generate_mic_array({
+    'mics': {
+        '0': [-0.1, -0.1, 0],
+        '1': [-0.1, 0.1, 0],
+        '2': [0.1, -0.1, 0],
+        '3': [0.1, 0.1, 0]
+    },
+    'nb_of_channels': 4
+})
 
-    # training_sub_dataset = AudioDataset(dataset_path='/Users/felixducharmeturcotte/Documents/datasetV2/training', device=DEVICE)
-    # validation_sub_dataset = AudioDataset(dataset_path='/Users/felixducharmeturcotte/Documents/datasetV2/validation', device=DEVICE)
+CHUNK_SIZE = 256
+FRAME_SIZE = 2 * CHUNK_SIZE
+UNPROCESSED_MIX = "../../../audio_files/unprocessed_mix.wav"
+KISS_MVDR_MIX = "../../../audio_files/kiss_mvdr_ref_mix.wav"
+KISS_GEV_MIX = "../../../audio_files/kiss_gev_mix.wav"
+# TARGET = np.array([0, 1, 0.25])
 
-    dataset = AudioDataset(dataset_path='/Users/felixducharmeturcotte/Documents/datasetV3',
-                                          device=DEVICE)
-
-    BATCH_SIZE = 32
-    lenght_dataset = len(dataset)
-    validation_size = round(lenght_dataset*0.3)
-
-    training_sub_dataset, validation_sub_dataset = torch.utils.data.random_split(dataset, [ lenght_dataset - validation_size, validation_size])
-
-    trainer_loader = torch.utils.data.DataLoader(
-        training_sub_dataset,
-        batch_size=BATCH_SIZE,
-        shuffle=True,
-        num_workers=6,
-        pin_memory=True,
-        persistent_workers=True
-    )
+# Params: .wav file channels, int16 byte size, sampling rate, nb of samples,
+#         compression type, compression name
+FILE_PARAMS = (
+    1,
+    2,
+    CONST.SAMPLING_RATE,
+    CONST.SAMPLING_RATE * 6,
+    "NONE",
+    "NONE",
+)
 
 
-    validation_loader = torch.utils.data.DataLoader(
-        validation_sub_dataset,
-        batch_size=BATCH_SIZE,
-        shuffle=False,
-        num_workers=6,
-        pin_memory=True,
-        persistent_workers=True
-    )
+def main(DEBUG, INPUT, OUTPUT, TIME, MASK):
+    # TODO: add multiple source/sink support?
+    # TODO: simplify io abstraction kwargs
 
-    # todo: get directory from dataset class
-    directory = os.path.join("RAVE", "audio")
+    # Paths
+    subfolder_path = os.path.split(INPUT)[0]
+    original = os.path.join(subfolder_path, 'output.wav')
+    if OUTPUT == '':
+        OUTPUT = os.path.join(subfolder_path, 'output.wav')
+    config_path = os.path.join(subfolder_path, 'configs.yaml')
+    with open(config_path, "r") as stream:
+        try:
+            configs = yaml.safe_load(stream)
+        except yaml.YAMLError as exc:
+            print(exc)
+            exit()
 
-    audioModel = AudioModel(input_size=1026, hidden_size=128, num_layers=2)
-    audioModel.to(DEVICE)
-    print(audioModel)
+    # Microphone array
+    if configs['mic_rel']:
+        mic_dict = {'mics': dict(), 'nb_of_channels': 0}
+        for mic_idx, mic in enumerate(configs['mic_rel']):
+            mic_dict['mics'][f'{mic_idx}'] = mic
+            mic_dict['nb_of_channels'] += 1
+        mic_array = generate_mic_array(mic_dict)
+    else:
+        mic_dict = MIC_ARRAY
+    channels = mic_dict['nb_of_channels']
 
-    if TRAIN:
-        optimizer = torch.optim.Adam(
-            audioModel.parameters(),
-            lr=4e-03
-        )
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,verbose=True)
-        trainer = AudioTrainer(
-            trainer_loader,
-            validation_loader,
-            torch.nn.MSELoss(reduction='sum'),
-            DEVICE,
-            audioModel,
-            optimizer,
-            scheduler,
-            directory,
-            CONTINUE_TRAINING
-        )
-        trainer.train_with_validation(NB_EPOCHS)
+    # IO
+    io_manager = IOManager()
+    source = io_manager.add_source(source_name='source1', source_type='sim',
+                                   file=INPUT, chunk_size=CHUNK_SIZE)
+    wav_params = source.wav_params
+    original_sink = io_manager.add_sink(sink_name='original', sink_type='sim',
+                               file=original, wav_params=wav_params, chunk_size=CHUNK_SIZE)
+    output_sink = io_manager.add_sink(sink_name='output', sink_type='sim',
+                               file=OUTPUT, wav_params=wav_params, chunk_size=CHUNK_SIZE)
 
-    AudioTrainer.load_best_model(
-        audioModel, directory
-    )
-    if DISPLAY_VALIDATION:
-        visualize_predictions(audioModel, validation_loader, DEVICE)
+    # Masks
+    # TODO: Add abstraction to model for info not needed in main script
+    target = configs['source_dir']
+    if MASK:
+        masks = KissMask(mic_array, buffer_size=30)
+    else:
+        model = AudioModel(input_size=FRAME_SIZE, hidden_size=128, num_layers=2)
+        model.to(DEVICE)
+        if DEBUG:
+            print(model)
 
-    if TEST:
-        print('testing')
+    # Beamformer
+    # TODO: simplify beamformer abstraction kwargs
+    beamformer = Beamformer(name='mvdr', channels=channels)
 
+    # Utils
+    # TODO: Check if we want to handle stft and istft in IOManager class
+    stft = Stft(channels, FRAME_SIZE, "sqrt_hann")
+    istft = IStft(1, FRAME_SIZE, CHUNK_SIZE, "sqrt_hann")
+    speech_spatial_cov = SpatialCov(channels, FRAME_SIZE, weight=0.03)
+    noise_spatial_cov = SpatialCov(channels, FRAME_SIZE, weight=0.03)
 
-def visualize_predictions(model, data_loader, DEVICE):
-    """Used to visualize the target and the predictions of the model on some
-       input images
+    # Record for 6 seconds
+    samples = 0
+    while samples / CONST.SAMPLING_RATE < TIME:
+        # Record from microphone
+        x = source()
+        if x.all() == None:
+            print('End of transmission. Closing.')
+            exit()
 
-    Args:
-        model (Module): The model used to perform the predictions
-        data_loader (Dataloader):
-            The dataloader that provides the images and the targets
-        DEVICE (String): Device on which to perform the computations
-    """
-    with torch.no_grad():
-        for audios, labels, _ in data_loader:
-            audios, labels = audios.to(DEVICE), labels.to(DEVICE)
-            predictions = model(audios)
-            for audio, prediction, label in zip(audios, predictions, labels):
-                y, x = np.mgrid[slice(0, 513, 1),
-                                slice(0, 1, 1/63)]
+        # Save the unprocessed recording
+        # TODO: Why [0:1] ?
+        original_sink(x)
 
-                fig, axs = plt.subplots(3)
-                fig.suptitle('Vertically stacked subplots')
-                axs[0].pcolormesh(x,y,audio[:513,:].float(), shading='gouraud')
-                axs[1].pcolormesh(x,y,prediction.float(), shading='gouraud')
-                axs[2].pcolormesh(x,y,label.float(), shading='gouraud')
-                axs[2].set_xlabel("Temps(s)")
-                axs[1].set_ylabel("Fréquences (hz)")
-                plt.show()
+        # Get the signal in the frequency domain
+        X = stft(x)
+
+        # Compute the masks
+        if MASK:
+            speech_mask, noise_mask = masks(X, target)
+        else:
+            speech_mask = model(X)
+            noise_mask = 1 - speech_mask
+
+        # Compute the spatial covariance matrices
+        target_scm = speech_spatial_cov(X, speech_mask)
+        noise_scm = noise_spatial_cov(X, noise_mask)
+
+        # ---- GEV ----
+        # gev_Y = gev(X, target_scm, noise_scm)
+        # gev_Y *= CHANNELS ** 2
+        # gev_y = gev_istft(gev_Y)
+        # kiss_gev_wav_sink(gev_y)
+
+        # ---- MVDR -----
+        Y = beamformer(signal=X, target_scm=target_scm, noise_scm=noise_scm)
+        y = istft(Y)
+        output_sink(y)
+
+        samples += CHUNK_SIZE
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+
     parser.add_argument(
-        "-t", "--train", action="store_true", help="Train the neural network"
+        "-d", "--debug", action="store_true", help="Run the script in debug mode. Is more verbose."
     )
     parser.add_argument(
-        "-e",
-        "--nb_epochs",
-        action="store",
-        type=int,
-        default=20,
-        help="Number of epoch for which to train the neural network",
-    )
-    parser.add_argument(
-        "-c",
-        "--continue_training_from_checkpoint",
-        action="store_true",
-        help="Continue training from checkpoint",
+        "-m", "--mask", action="store_true", help="Use predefined masks instead of network."
     )
 
     parser.add_argument(
-        "-v",
-        "--display_validation",
-        action="store_true",
-        help=(
-            "Display the predictions of the neural network on the validation"
-            "dataset"
-        ),
+        "-i",
+        "--input",
+        action="store",
+        type=str,
+        default='tkinter',
+        help="Source to use as input signals (can be microphone matrix or simulated .wav file)."
     )
     parser.add_argument(
-        "-p",
-        "--predict",
-        action="store_true",
-        help=(
-            "Display the predictions of the neural network on the test"
-            "dataset"
-        ),
+        "-o",
+        "--output",
+        action="store",
+        type=str,
+        default='',
+        help="Sink to use to output signals (can be speakers or simulated .wav file)."
+    )
+
+    parser.add_argument(
+        "-t",
+        "--time",
+        action="store",
+        type=int,
+        default=float('inf'),
+        help="Time to run audio for."
     )
     args = parser.parse_args()
 
+    # parse sources
+    input = args.input
+    if input == 'tkinter':
+        input = filedialog.askopenfilename(title="Input .wave file.")
+
+    # parse noises
+    output = args.output
+    if output == 'tkinter':
+        output = filedialog.askopenfilename(title="Output .wav file.")
+
     main(
-        args.train,
-        args.nb_epochs,
-        args.continue_training_from_checkpoint,
-        args.display_validation,
-        args.predict,
+        args.debug,
+        input,
+        output,
+        args.time,
+        args.mask
     )

@@ -734,7 +734,8 @@ class AudioDatasetBuilder:
         config_dict = dict(
             path=subfolder_name,
             n_channels=self.n_channels,
-            microphones=self.receiver_abs,
+            mic_rel=self.receiver_rel,
+            mic_abs=self.receiver_abs,
             room_shape=self.current_room_shape,
             room_size=self.current_room_size,
             user_pos=self.user_pos,
