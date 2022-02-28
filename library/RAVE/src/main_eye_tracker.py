@@ -94,7 +94,7 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST, INFERENC
         min_validation_loss = trainer.train_with_validation(NB_EPOCHS)
 
     Trainer.load_best_model(
-        eye_tracker_model, EyeTrackerDataset.EYE_TRACKER_DIR_PATH
+        eye_tracker_model, EyeTrackerDataset.EYE_TRACKER_DIR_PATH, DEVICE
     )
 
     if DISPLAY_VALIDATION:
@@ -149,20 +149,21 @@ def visualize_predictions(model, data_loader, DEVICE):
                 cv2.imshow("validation", image)
                 cv2.waitKey(1500)
 
+
 def inference(model, device):
-    eyeTracker_calibration_dataset = EyeTrackerInferenceDataset(os.path.join("calibration"), False)
+    eye_tracker_calibration_dataset = EyeTrackerInferenceDataset(2, True)
     calibration_loader = torch.utils.data.DataLoader(
-        eyeTracker_calibration_dataset,
-        batch_size=512,
+        eye_tracker_calibration_dataset,
+        batch_size=1,
         shuffle=False,
         num_workers=0,
     )
     gaze_inferer = GazeInferer(model, calibration_loader, device)
     gaze_inferer.fit()
 
-    eyeTracker_conversation_dataset = EyeTrackerInferenceDataset(os.path.join("conversation"), False)
+    eye_tracker_conversation_dataset = EyeTrackerInferenceDataset(2, True)
     conversation_loader = torch.utils.data.DataLoader(
-        eyeTracker_conversation_dataset,
+        eye_tracker_conversation_dataset,
         batch_size=1,
         shuffle=False,
         num_workers=0,

@@ -4,6 +4,8 @@ import torch
 from torchvision import transforms
 
 import cv2
+from PIL import Image
+import numpy as np
 
 from ..common.image_utils import apply_image_translation, apply_image_rotation
 from ..common.Dataset import Dataset
@@ -20,7 +22,7 @@ class EyeTrackerDataset(Dataset):
 
     EYE_TRACKER_DIR_PATH = os.path.join("RAVE", "eye_tracker")
     TRAINING_MEAN, TRAINING_STD = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
-    IMAGE_DIMENSIONS = (1, 240, 320)
+    IMAGE_DIMENSIONS = (3, 450, 600)
 
     def __init__(self, sub_dataset_dir):
         super().__init__(
@@ -155,22 +157,38 @@ class EyeTrackerInferenceDataset(EyeTrackerDataset):
     """
 
     def __init__(self, opencv_device, is_real_time=True):
-        super().__init__(opencv_device) # TODO FC : Tmp until I get opencv to play nice with ffmpeg/videos  # TODO FC : Find a more elegant solution 
+        super().__init__("test")  # TODO FC : Find a more elegant solution
 
-        """
         if(isinstance(opencv_device, str)):
-            opencv_device = os.path.join(EyeTrackerDataset.EYE_TRACKER_DIR_PATH, "GazeInferer", opencv_device)
-        
-        self._video_feed = cv2.VideoCapture(opencv_device) 
+            opencv_device = os.path.join(
+                EyeTrackerDataset.EYE_TRACKER_DIR_PATH, "GazeInferer", opencv_device)
+
+        self._video_feed = cv2.VideoCapture(opencv_device)
+
         if not self._video_feed.isOpened():
-            raise IOError("Cannot open specified device ({})".format(opencv_device))
-        """ 
-            
+            raise IOError(
+                "Cannot open specified device ({})".format(opencv_device))
+
+        if(not isinstance(opencv_device, str)):
+            WIDTH, HEIGHT = 600, 800
+
+            exp_val = -8
+
+            codec = 0x47504A4D  # MJPG
+            self._video_feed.set(cv2.CAP_PROP_FPS, 30.0)
+            self._video_feed.set(cv2.CAP_PROP_FOURCC, codec)
+            self._video_feed.set(cv2.CAP_PROP_FRAME_WIDTH, HEIGHT)
+            self._video_feed.set(cv2.CAP_PROP_FRAME_HEIGHT, WIDTH)
+            self._video_feed.set(cv2.CAP_PROP_EXPOSURE, exp_val)
+            self._video_feed.set(cv2.CAP_PROP_AUTOFOCUS, 0)
+            self._video_feed.set(cv2.CAP_PROP_FOCUS, 800)
+
+            self.crop_bound_y1 = int(abs(self.IMAGE_DIMENSIONS[1] - HEIGHT)/2)
+            self.crop_bound_y2 = int((self.IMAGE_DIMENSIONS[1] + HEIGHT)/2)
+
         self._length = 1
         if(not is_real_time):
-            self._length = super().__len__() # TODO FC : Tmp until I get opencv to play nice with ffmpeg/videos 
-            #self._length = int(self._video_feed.get(cv2.CAP_PROP_FRAME_COUNT))
-
+            self._length = int(self._video_feed.get(cv2.CAP_PROP_FRAME_COUNT))
 
     def __len__(self):
         """
@@ -181,8 +199,6 @@ class EyeTrackerInferenceDataset(EyeTrackerDataset):
             int: The number of elements in the dataset
         """
         return self._length
-
-
 
     def __getitem__(self, idx):
         """
@@ -196,17 +212,13 @@ class EyeTrackerInferenceDataset(EyeTrackerDataset):
             tuple: Image, 0
         """
 
-        """# TODO FC : Tmp until I get opencv to play nice with ffmpeg/videos 
         success, frame = self._video_feed.read()
 
         if(success):
+            frame = frame[:, self.crop_bound_y1:self.crop_bound_y2]
+            frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
+            frame = Image.fromarray(frame, 'RGB')
             image = self.PRE_PROCESS_TRANSFORM(frame)
             image = self.NORMALIZE_TRANSFORM(image)
 
         return image, success
-        """
-        image, _ = self.get_image_and_label_on_disk(idx)
-        image = self.PRE_PROCESS_TRANSFORM(image)
-        image = self.NORMALIZE_TRANSFORM(image)
-
-        return image, 0

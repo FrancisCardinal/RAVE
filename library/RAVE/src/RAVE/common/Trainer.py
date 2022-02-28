@@ -259,7 +259,7 @@ class Trainer:
         self.min_validation_loss = checkpoint["min_validation_loss"]
 
     @staticmethod
-    def load_best_model(model, MODEL_DIR_PATH):
+    def load_best_model(model, MODEL_DIR_PATH, device):
         """
         Used to get the best version of a model from disk
 
@@ -267,7 +267,8 @@ class Trainer:
             model (Module): Model on which to update the weights
         """
         checkpoint = torch.load(
-            os.path.join(MODEL_DIR_PATH, Trainer.MODEL_INFO_FILE_NAME)
+            os.path.join(MODEL_DIR_PATH, Trainer.MODEL_INFO_FILE_NAME),
+            map_location=device
         )
         model.load_state_dict(checkpoint["model_state_dict"])
 
