@@ -18,7 +18,7 @@ class EllipseAnnotationTool:
     SKIP_STATE = 2
     QUITTING_STATE = 3
 
-    OUTPUT_DIR = "real_dataset"
+    WORKING_DIR = "real_dataset"
     ANNOTATION_FILE_EXTENSION = '.json'
 
     def __init__(self, root,
@@ -26,9 +26,9 @@ class EllipseAnnotationTool:
                  annotations_directory_path="annotations"):
 
         self._videos_paths = glob.glob(
-            os.path.join(root, self.OUTPUT_DIR, videos_directory_path, '*'))
+            os.path.join(root, self.WORKING_DIR, videos_directory_path, '*'))
         self._annotations_directory_path = os.path.join(
-            root, self.OUTPUT_DIR, annotations_directory_path)
+            root, self.WORKING_DIR, annotations_directory_path)
 
         self._points = []
         self._MIN_NB_POINTS_FOR_FIT = 5

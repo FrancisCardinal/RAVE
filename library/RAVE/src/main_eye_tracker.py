@@ -2,7 +2,7 @@ import os
 import argparse
 
 import torch
-import numpy as np 
+import numpy as np
 import cv2
 import random
 
@@ -24,7 +24,7 @@ from RAVE.eye_tracker.ellipse_util import (
 from RAVE.eye_tracker.GazeInferer.GazeInferer import GazeInferer
 
 
-def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST, INFERENCE, ANNOTATE, GPU_INDEX, lr=1e-3):
+def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST, INFERENCE, ANNOTATE, FILM, GPU_INDEX, lr=1e-3):
     """main function of the module
 
     Args:
@@ -44,10 +44,11 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST, INFERENC
     if torch.cuda.is_available():
         DEVICE = "cuda:{}".format(GPU_INDEX)
 
+    if FILM:
+        film(EyeTrackerDataset.EYE_TRACKER_DIR_PATH)
+
     if ANNOTATE:
-        ellipse_annotation_tool = EllipseAnnotationTool(
-            EyeTrackerDataset.EYE_TRACKER_DIR_PATH)
-        ellipse_annotation_tool.annotate()
+        annotate(EyeTrackerDataset.EYE_TRACKER_DIR_PATH)
 
     EyeTrackerDatasetBuilder.create_images_datasets_with_videos()
 
@@ -117,10 +118,10 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST, INFERENC
             persistent_workers=True,
         )
         visualize_predictions(eye_tracker_model, test_loader, DEVICE)
-    
+
     if INFERENCE:
         inference(eye_tracker_model, DEVICE)
-    
+
     return min_validation_loss
 
 
@@ -145,7 +146,6 @@ def visualize_predictions(model, data_loader, DEVICE):
                     EyeTrackerDataset.TRAINING_STD,
                 )
                 image = tensor_to_opencv_image(image)
-                image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
                 image = draw_ellipse_on_image(image, label, color=(0, 255, 0))
                 image = draw_ellipse_on_image(
@@ -154,6 +154,48 @@ def visualize_predictions(model, data_loader, DEVICE):
 
                 cv2.imshow("validation", image)
                 cv2.waitKey(1500)
+
+
+def film(root):
+    camera_dataset = EyeTrackerInferenceDataset(2, True)
+    camera_loader = torch.utils.data.DataLoader(
+        camera_dataset,
+        batch_size=1,
+        shuffle=False,
+        num_workers=0,
+    )
+    frame_height = EyeTrackerDataset.IMAGE_DIMENSIONS[1]
+    frame_width = EyeTrackerDataset.IMAGE_DIMENSIONS[2]
+    # TODO FC : Generate / ask for a filename
+    output_path = os.path.join(
+        root, EllipseAnnotationTool.WORKING_DIR, 'videos', 'test.avi')
+    out = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(
+        'M', 'J', 'P', 'G'), 30, (frame_width, frame_height))
+    should_run = True
+    while should_run:
+        with torch.no_grad():
+            for images, _ in camera_loader:
+                image = inverse_normalize(
+                    images[0],
+                    EyeTrackerDataset.TRAINING_MEAN,
+                    EyeTrackerDataset.TRAINING_STD,
+                )
+                image = tensor_to_opencv_image(image)
+
+                out.write(image)
+
+                cv2.imshow("video", image)
+                key = cv2.waitKey(1)
+
+                if key == ord('q'):
+                    should_run = False
+
+    out.release()
+
+
+def annotate(root):
+    ellipse_annotation_tool = EllipseAnnotationTool(root)
+    ellipse_annotation_tool.annotate()
 
 
 def inference(model, device):
@@ -260,6 +302,15 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
+        "-f",
+        "--film",
+        action="store_true",
+        help=(
+            "Uses the camera to film a video for the dataset."
+        ),
+    )
+
+    parser.add_argument(
         "-g",
         "--gpu_index",
         action="store",
@@ -283,5 +334,6 @@ if __name__ == "__main__":
         args.predict,
         args.inference,
         args.annotate,
+        args.film,
         args.gpu_index,
     )
