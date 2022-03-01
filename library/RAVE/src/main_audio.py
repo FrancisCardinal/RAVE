@@ -42,14 +42,14 @@ KISS_GEV_MIX = "../../../audio_files/kiss_gev_mix.wav"
 
 # Params: .wav file channels, int16 byte size, sampling rate, nb of samples,
 #         compression type, compression name
-FILE_PARAMS = (
-    1,
-    2,
-    CONST.SAMPLING_RATE,
-    CONST.SAMPLING_RATE * 6,
-    "NONE",
-    "NONE",
-)
+# FILE_PARAMS = (
+#     4,
+#     2,
+#     CONST.SAMPLING_RATE,
+#     CONST.SAMPLING_RATE * TIME,
+#     "NONE",
+#     "NONE",
+# )
 
 
 def main(DEBUG, INPUT, OUTPUT, TIME, MASK):
@@ -58,7 +58,7 @@ def main(DEBUG, INPUT, OUTPUT, TIME, MASK):
 
     # Paths
     subfolder_path = os.path.split(INPUT)[0]
-    original = os.path.join(subfolder_path, 'output.wav')
+    original = os.path.join(subfolder_path, 'original.wav')
     if OUTPUT == '':
         OUTPUT = os.path.join(subfolder_path, 'output.wav')
     config_path = os.path.join(subfolder_path, 'configs.yaml')
@@ -108,7 +108,7 @@ def main(DEBUG, INPUT, OUTPUT, TIME, MASK):
     # Utils
     # TODO: Check if we want to handle stft and istft in IOManager class
     stft = Stft(channels, FRAME_SIZE, "sqrt_hann")
-    istft = IStft(1, FRAME_SIZE, CHUNK_SIZE, "sqrt_hann")
+    istft = IStft(channels, FRAME_SIZE, CHUNK_SIZE, "sqrt_hann")
     speech_spatial_cov = SpatialCov(channels, FRAME_SIZE, weight=0.03)
     noise_spatial_cov = SpatialCov(channels, FRAME_SIZE, weight=0.03)
 
@@ -122,10 +122,7 @@ def main(DEBUG, INPUT, OUTPUT, TIME, MASK):
             exit()
 
         # Save the unprocessed recording
-        # TODO: Why [0:1] ?
         original_sink(x)
-
-        # Get the signal in the frequency domain
         X = stft(x)
 
         # Compute the masks
@@ -135,7 +132,7 @@ def main(DEBUG, INPUT, OUTPUT, TIME, MASK):
             speech_mask = model(X)
             noise_mask = 1 - speech_mask
 
-        # Compute the spatial covariance matrices
+        # Spatial covariance matrices
         target_scm = speech_spatial_cov(X, speech_mask)
         noise_scm = noise_spatial_cov(X, noise_mask)
 
@@ -145,7 +142,7 @@ def main(DEBUG, INPUT, OUTPUT, TIME, MASK):
         # gev_y = gev_istft(gev_Y)
         # kiss_gev_wav_sink(gev_y)
 
-        # ---- MVDR -----
+        # MVDR
         Y = beamformer(signal=X, target_scm=target_scm, noise_scm=noise_scm)
         y = istft(Y)
         output_sink(y)
