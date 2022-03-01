@@ -53,6 +53,7 @@ class AudioDatasetBuilder:
 
     user_pos = []
     user_dir = []
+    rotation_matrix = []
     source_direction = []
     current_room = []
     current_room_shape = []
@@ -410,11 +411,13 @@ class AudioDatasetBuilder:
             z_angle = (np.random.rand() - 0.5) * 2 * TILT_RANGE
             x_dir = (SOURCE_USER_DISTANCE+1) * math.cos(xy_angle+0.5*math.pi)
             y_dir = (SOURCE_USER_DISTANCE+1) * math.sin(xy_angle+0.5*math.pi)
-            z_dir = 0.001
+            z_dir = 1e-5
             # z_dir = (np.random.rand() - 0.5) * 2 * TILT_RANGE
+
             if x_dir and y_dir and z_dir:
                 break
         self.user_dir = [x_dir, y_dir, z_dir]
+        self.rotation_matrix = [math.cos(xy_angle + 0.5*math.pi), math.sin(xy_angle + 0.5*math.pi), 1e-5]
 
         # TODO: IMPLEMENT HEIGHT TILT
         # For every receiver, set x and y by room dimension and add human height as z
@@ -512,7 +515,12 @@ class AudioDatasetBuilder:
                     if not is_point_in_user_circle:
                         continue
 
-                    self.source_direction = [p.x-self.user_pos[0], p.y-self.user_pos[1], z-self.user_pos[2]]
+                    # Calculate source direction based on user direction
+                    # TODO: add tilt
+                    x_dir = (p.x-self.user_pos[0]) * self.rotation_matrix[SIDE_ID]
+                    y_dir = (p.y-self.user_pos[1]) * self.rotation_matrix[DEPTH_ID]
+                    z_dir = (z-self.user_pos[2]) * self.rotation_matrix[HEIGHT_ID]
+                    self.source_direction = [x_dir, y_dir, z_dir]
 
                 else:
                     # Check if noise is not on user
