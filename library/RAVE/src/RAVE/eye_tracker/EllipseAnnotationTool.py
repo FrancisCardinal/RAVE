@@ -62,6 +62,7 @@ class EllipseAnnotationTool:
                     "Cannot open specified file ({})".format(video_path))
 
             self._annotate_one_video(Path(video_path).stem)
+            current_video_index += 1
 
     def _annotate_one_video(self, video_name):
         current_frame = 0
@@ -78,7 +79,7 @@ class EllipseAnnotationTool:
         success = True
         while(success and self._state != self.QUITTING_STATE):
             success, frame = self._video_feed.read()
-            if not (current_frame in annoted_frames):
+            if success and not (current_frame in annoted_frames):
                 self._state = EllipseAnnotationTool.ANNOTATING_STATE
                 self._annotate_one_frame(frame, annotations, current_frame)
             current_frame += 1
