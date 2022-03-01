@@ -11,6 +11,7 @@ from RAVE.common.image_utils import tensor_to_opencv_image, inverse_normalize
 
 from RAVE.eye_tracker.EyeTrackerDataset import EyeTrackerDataset, EyeTrackerInferenceDataset
 
+from RAVE.eye_tracker.EllipseAnnotationTool import EllipseAnnotationTool
 from RAVE.eye_tracker.EyeTrackerDatasetBuilder import EyeTrackerDatasetBuilder
 from RAVE.eye_tracker.EyeTrackerSyntheticDatasetBuilder import EyeTrackerSyntheticDatasetBuilder
 
@@ -23,7 +24,7 @@ from RAVE.eye_tracker.ellipse_util import (
 from RAVE.eye_tracker.GazeInferer.GazeInferer import GazeInferer
 
 
-def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST, INFERENCE, GPU_INDEX, lr=1e-3):
+def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST, INFERENCE, ANNOTATE, GPU_INDEX, lr=1e-3):
     """main function of the module
 
     Args:
@@ -43,7 +44,12 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST, INFERENC
     if torch.cuda.is_available():
         DEVICE = "cuda:{}".format(GPU_INDEX)
 
-    EyeTrackerSyntheticDatasetBuilder.create_images_datasets_with_synthetic_images()
+    if ANNOTATE:
+        ellipse_annotation_tool = EllipseAnnotationTool(
+            EyeTrackerDataset.EYE_TRACKER_DIR_PATH)
+        ellipse_annotation_tool.annotate()
+
+    EyeTrackerDatasetBuilder.create_images_datasets_with_videos()
 
     BATCH_SIZE = 128
     training_sub_dataset = EyeTrackerDataset.get_training_sub_dataset()
@@ -245,6 +251,15 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
+        "-a",
+        "--annotate",
+        action="store_true",
+        help=(
+            "Runs the annotation tool."
+        ),
+    )
+
+    parser.add_argument(
         "-g",
         "--gpu_index",
         action="store",
@@ -267,5 +282,6 @@ if __name__ == "__main__":
         args.display_validation,
         args.predict,
         args.inference,
+        args.annotate,
         args.gpu_index,
     )

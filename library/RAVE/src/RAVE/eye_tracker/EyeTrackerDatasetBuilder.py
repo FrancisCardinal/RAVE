@@ -43,7 +43,7 @@ class EyeTrackerDatasetBuilder(DatasetBuilder):
     """
 
     @staticmethod
-    def create_images_datasets_with_LPW_videos():
+    def create_images_datasets_with_videos():
         """
         Main method of the EyeTrackerDatasetBuilder class.
         This method checks if the dataset as already been built, and builds it
@@ -75,7 +75,7 @@ class EyeTrackerDatasetBuilder(DatasetBuilder):
                 (one for each sub-dataset)
         """
         SOURCE_DIR = os.path.join(
-            EyeTrackerDataset.EYE_TRACKER_DIR_PATH, "LPW"
+            EyeTrackerDataset.EYE_TRACKER_DIR_PATH, "real_dataset"
         )
 
         TRAINING_PATH = os.path.join(
@@ -139,7 +139,7 @@ class EyeTrackerDatasetBuilder(DatasetBuilder):
             file_name, processed_frame, self.current_ellipse.to_list()
         )
 
-    def parse_current_annotation(self, annotations, INPUT_IMAGE_WIDTH, INPUT_IMAGE_HEIGHT):
+    def parse_current_annotation(self, annotations):
         """
         Parses the current annotation to extract the parameters of
         the ellipse as defined by opencv
@@ -152,37 +152,13 @@ class EyeTrackerDatasetBuilder(DatasetBuilder):
         Returns:
             bool: True if the parsing was a success, false if it wasn't.
         """
-        annotation = annotations[self.annotation_line_index].split(";")
-        # The end of the line has a ';' that must be removed
-        annotation = annotation[0:-1]
-        # To go from strings to floats
-        annotation = [float(i) for i in annotation]
-        (
-            annotation_frame_id,
-            angle,
-            center_x,
-            center_y,
-            ellipse_width,
-            ellipse_height,
-        ) = annotation
-        # To make sure that the current annotation really belongs to
-        # the current frame
-        assert self.video_frame_id == annotation_frame_id
-
-        if angle == -1:
+        annotation = annotations[str(self.annotation_line_index)]
+        if annotation[0] == -1:
             # The annotation files use '-1' when the pupil is not visible
             # on a frame.
             return False
 
-        self.current_ellipse = NormalizedEllipse.get_from_opencv_ellipse(
-            center_x,
-            ellipse_width,
-            center_y,
-            ellipse_height,
-            angle,
-            INPUT_IMAGE_WIDTH,
-            INPUT_IMAGE_HEIGHT,
-        )
+        self.current_ellipse = NormalizedEllipse.get_from_list(annotation)
         return True
 
 

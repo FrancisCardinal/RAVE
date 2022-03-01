@@ -112,51 +112,17 @@ def draw_ellipse_on_image(image, ellipse, color=(255, 0, 0), thickness=1):
     h, k, a, b, theta = ellipse
     h, k, a, b = h * WIDTH, k * HEIGHT, a * WIDTH, b * HEIGHT
     theta = theta * 2 * pi
-    points = get_points_of_an_ellipse(h, k, a, b, theta, ellipse.device, 360)
-    points = points.cpu().numpy()
+    x, y = get_points_of_ellipses(torch.tensor(
+        [h, k, a, b, theta]).unsqueeze(0), 360)
+    x, y = x.squeeze().cpu().numpy(), y.squeeze().cpu().numpy()
+
+    points = np.zeros((x.shape[0], 2))
+    points[:, 0] = x
+    points[:, 1] = y
 
     image = cv2.polylines(image, np.int32([points]), False, color, thickness)
 
     return image
-
-
-def get_points_of_an_ellipse(h, k, a, b, theta, device, NUMBER_OF_POINTS):
-    """
-    Generates points that lie on the ellipse (using its parameters)
-    TODO : Change calls to this function to the 'get_points_of_ellipses'
-    function instead, which uses paralellism to compute points faster
-
-    Args:
-        h (float): x coordinate of the center of the ellipse
-        k (float): y coordinate of the center of the ellipse
-        a (float): length of the horizontal axis
-        b (float): length of the vertical axis
-        theta (float): rotation angle of the ellipse relative to the x axis
-        device (String): device on which to run the computations
-        NUMBER_OF_POINTS (int): Number of points to generate
-
-    Returns:
-        tuple of pytorch tensor: The x and y coordinates of the points
-    """
-    output_points = torch.empty(
-        (NUMBER_OF_POINTS, 2), device=device, requires_grad=True
-    )
-
-    alphas = torch.linspace(
-        0, 2 * pi, NUMBER_OF_POINTS, device=device, requires_grad=True
-    )
-
-    current_point_index = 0
-    for alpha in alphas:
-        x = a * cos(alpha) * cos(theta) - b * sin(alpha) * sin(theta) + h
-        y = a * cos(alpha) * sin(theta) + b * sin(alpha) * cos(theta) + k
-
-        output_points.data[current_point_index, :] = torch.tensor(
-            (x, y), device=device, requires_grad=True
-        )
-        current_point_index += 1
-
-    return output_points
 
 
 if __name__ == "__main__":

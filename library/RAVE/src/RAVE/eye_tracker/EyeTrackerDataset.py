@@ -45,7 +45,6 @@ class EyeTrackerDataset(Dataset):
             tuple: Image and label pair
         """
         image, label = self.get_image_and_label_on_disk(idx)
-        label = label["ellipse"]
 
         image = self.PRE_PROCESS_TRANSFORM(image)
 
@@ -120,7 +119,6 @@ class EyeTrackerDatasetOnlineDataAugmentation(Dataset):
             tuple: Image and label pair
         """
         image, label = self.get_image_and_label_on_disk(idx)
-        label = label["ellipse"]
 
         image = self.PRE_PROCESS_TRANSFORM(image)
 

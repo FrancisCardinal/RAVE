@@ -5,6 +5,8 @@ from PIL import Image
 import pickle
 from tqdm import tqdm
 
+import json
+
 from torchvision import transforms
 
 from .Dataset import Dataset
@@ -118,10 +120,11 @@ class DatasetBuilder(ABC):
                 return
 
             file_name = os.path.splitext(os.path.basename(video_file_name))[0]
-            annotations_file = open(
-                os.path.join(self.ANNOTATIONS_PATH, file_name + ".txt"), "r"
-            )
-            annotations = annotations_file.readlines()
+            annotations_file = os.path.join(
+                self.ANNOTATIONS_PATH, file_name + ".json")
+
+            with open(annotations_file, 'r') as file:
+                annotations = json.load(file)
 
             self.create_images_dataset_with_one_video(
                 file_name, video_path, annotations
@@ -143,11 +146,8 @@ class DatasetBuilder(ABC):
         """
         cap = cv2.VideoCapture(video_path)
 
-        INPUT_IMAGE_WIDTH = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
-        INPUT_IMAGE_HEIGHT = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
-
-        self.annotation_line_index = 0
-        self.video_frame_id = 0
+        self.annotation_line_index = -1
+        self.video_frame_id = -1
         while cap.isOpened():
             self.annotation_line_index += 1
             self.video_frame_id += 1
@@ -156,8 +156,7 @@ class DatasetBuilder(ABC):
             if not is_ok:
                 break
 
-            success = self.parse_current_annotation(
-                annotations, INPUT_IMAGE_WIDTH, INPUT_IMAGE_HEIGHT)
+            success = self.parse_current_annotation(annotations)
             if not success:
                 continue
 
