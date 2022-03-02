@@ -99,9 +99,16 @@ class EllipseAnnotationTool:
 
             if len(self._points) >= self._MIN_NB_POINTS_FOR_FIT:
                 ellipse = cv2.fitEllipse(np.array(self._points))
-                center_coordinates, axes, angle = ellipse
+                center_coordinates, axis, angle = ellipse
+
+                # We may or may not need to adjust 'angle' (see this schema :
+                # https://docs.opencv.org/4.x/d6/d6e/group__imgproc__draw.html#ga28b2267d35786f5f890ca167236cbc69)
+                x_axis, y_axis = max(axis), min(axis)
+                if(axis[0] < axis[1]):
+                    angle += 90  # degrees
+
                 normalized_ellipse = NormalizedEllipse.get_from_opencv_ellipse(
-                    center_coordinates[0], axes[0], center_coordinates[1], axes[1], angle, WIDTH, HEIGHT)
+                    center_coordinates[0], x_axis, center_coordinates[1], y_axis, angle, WIDTH, HEIGHT)
 
                 with torch.no_grad():
                     altered_frame = draw_ellipse_on_image(

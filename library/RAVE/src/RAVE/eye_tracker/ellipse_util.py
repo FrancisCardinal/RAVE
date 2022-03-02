@@ -111,7 +111,6 @@ def draw_ellipse_on_image(image, ellipse, color=(255, 0, 0), thickness=1):
     HEIGHT, WIDTH, _ = image.shape
     h, k, a, b, theta = ellipse
     h, k, a, b = h * WIDTH, k * HEIGHT, a * WIDTH, b * HEIGHT
-    theta = theta * 2 * pi
     x, y = get_points_of_ellipses(torch.tensor(
         [h, k, a, b, theta]).unsqueeze(0), 360)
     x, y = x.squeeze().cpu().numpy(), y.squeeze().cpu().numpy()
