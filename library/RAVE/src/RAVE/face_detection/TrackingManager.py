@@ -300,7 +300,7 @@ class TrackingManager:
         for i, detection in enumerate(detections):
             intersection_scores = defaultdict(lambda: 0)
 
-            for tracker_id, trackable_object in objects.items():
+            for tracker_id, trackable_object in unmatched_objects.items():
                 intersection_scores[tracker_id] = intersection(
                     detection.bbox, trackable_object.bbox
                 )
