@@ -1,4 +1,3 @@
-from email import message
 import pyodas.visualize as vis
 import socketio
 from pyodas.io import MicSource
