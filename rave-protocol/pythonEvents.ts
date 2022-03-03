@@ -42,7 +42,6 @@ export function NextCalibTargetEvent() {
   return {
     destination : MESSAGE_DESTINATIONS.PYTHON,
     event: PYTHON_EVENTS.NEXT_CALIBRATION_TARGET,
-    payload : {}
   }
 };
 
@@ -50,7 +49,6 @@ export function DeleteConfigEvent() {
   return {
     destination : MESSAGE_DESTINATIONS.PYTHON,
     event: PYTHON_EVENTS.DELETE_CONFIG,
-    payload : {}
   }
 };
 
@@ -72,7 +70,6 @@ export function QuitCalibrationEvent() {
   return {
     destination : MESSAGE_DESTINATIONS.PYTHON,
     event: PYTHON_EVENTS.QUIT_CALIBRATION,
-    payload : {}
   }
 };
 
@@ -126,7 +123,6 @@ export function GoToEyeTrackerCalibrationEvent(){
   return {
     destination : MESSAGE_DESTINATIONS.PYTHON,
     event: PYTHON_EVENTS.GO_TO_EYE_TRACKER_CALIBRATION,
-    payload : {}
   }
 }
 
@@ -134,7 +130,6 @@ export function GoToVisionCalibrationEvent(){
   return {
     destination : MESSAGE_DESTINATIONS.PYTHON,
     event: PYTHON_EVENTS.GO_TO_VISION_CALIBRATION,
-    payload : {}
   }
 }
 
@@ -142,7 +137,6 @@ export function ForceRefreshEvent(){
   return {
     destination : MESSAGE_DESTINATIONS.PYTHON,
     event: PYTHON_EVENTS.FORCE_REFRESH,
-    payload : {}
   }
 }
 
@@ -150,7 +144,6 @@ export function StartEyeTrackerCalibrationEvent(){
   return {
     destination : MESSAGE_DESTINATIONS.PYTHON,
     event: PYTHON_EVENTS.START_EYE_TRACKER_CALIBRATION,
-    payload : {}
   }
 }
 
@@ -158,7 +151,6 @@ export function EyeTrackerNextCalibrationStepEvent(){
   return {
     destination : MESSAGE_DESTINATIONS.PYTHON,
     event: PYTHON_EVENTS.EYE_TRACKER_NEXT_CALIBRATION_STEP,
-    payload : {}
   }
 }
 

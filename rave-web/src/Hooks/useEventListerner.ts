@@ -8,20 +8,23 @@ export type WsFunctionHandler = {
 
 
 export function useEventListener(event: CLIENT_EVENTS, handler : WsFunctionHandler){
-
+  // Prevents refresh on parent component refresh
+  const [handlerFunction,] = useState(() => handler);
   const [cleanUpFunction, setCleanUpFunction] = useState<Function | null>(null);
   const ws = useContext(SocketContext);
-  
+
   useEffect(()=> {
     if(ws?.connected){
       ws.on(event,(payload) => {
-        const cleanup = handler(payload);
-        cleanup && setCleanUpFunction(cleanup);
+        if(handlerFunction instanceof Function){
+          const cleanup = handlerFunction(payload);
+          cleanup && cleanup !== cleanUpFunction && setCleanUpFunction(cleanup);
+        }
       });
     }
     return () => {
       ws?.removeAllListeners(event);
       cleanUpFunction && cleanUpFunction();
     }
-  },[cleanUpFunction, event, handler, ws])
+  },[cleanUpFunction, event, handlerFunction, ws]);
 }

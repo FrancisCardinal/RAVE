@@ -20,11 +20,15 @@ let connectionStatus = 0; //start off without connection
 let pythonSocket : Socket | undefined = undefined;
 let pythonSocketId = "";
 
+interface AnyObject {
+  [key: string]: any;
+}
+
 io.on("connection", (socket) => {
 
   console.log("New socket connection : ", socket.id);
 
-  socket.onAny((event : WS_EVENTS, { destination, payload } : { destination : MESSAGE_DESTINATIONS, payload : Object} ) => {
+  socket.onAny((event : WS_EVENTS, { destination, payload } : { destination : MESSAGE_DESTINATIONS, payload : AnyObject | undefined} ) => {
     switch(destination){
       case MESSAGE_DESTINATIONS.CLIENT:
         handleClientMessage(event as CLIENT_EVENTS, payload);
@@ -57,7 +61,7 @@ server.listen(9000, () => {
   console.log("listening on *:9000");
 });
 
-function handlePythonMessage(event : PYTHON_EVENTS, payload : Object){
+function handlePythonMessage(event : PYTHON_EVENTS, payload : AnyObject | undefined){
   if (!pythonSocket) {
     console.log(
       `A user requested ${event} but the pythonSocket is not connected`
@@ -69,11 +73,11 @@ function handlePythonMessage(event : PYTHON_EVENTS, payload : Object){
     console.error(`Python event of type ${event} is unknown`);
     return;
   }
-  if(Object.keys(payload).length === 0) pythonSocket.emit(event);
+  if(!payload || Object.keys(payload).length === 0) pythonSocket.emit(event);
   else pythonSocket.emit(event,payload);
 }
 
-function handleClientMessage(event : CLIENT_EVENTS, payload : any){
+function handleClientMessage(event : CLIENT_EVENTS, payload : AnyObject | undefined){
   if(!Object.values(CLIENT_EVENTS).includes(event)){
     console.error(`Client event of type ${event} is unknown`);
     return;
@@ -81,7 +85,7 @@ function handleClientMessage(event : CLIENT_EVENTS, payload : any){
   io.emit(event,payload);
 }
 
-function handleServerMessage(event : SERVER_EVENTS, payload : any){
+function handleServerMessage(event : SERVER_EVENTS, payload : AnyObject | undefined){
   if(!Object.values(SERVER_EVENTS).includes(event)){
     console.error(`Server event of type ${event} is unknown`);
     return;
@@ -94,7 +98,14 @@ function handleServerMessage(event : SERVER_EVENTS, payload : any){
   }
 }
 
-function authenticatePythonSocket({socketId}: {socketId : string}){
+function authenticatePythonSocket(payload : AnyObject | undefined){
+  if(!payload || payload.socketId === undefined){
+    console.error("pythonSocket tried to authenticate without sending it's {socketId}");
+    return;
+  }
+
+  const {socketId} = payload;
+
   if (io.sockets.sockets.has(socketId)) {
     pythonSocket = io.sockets.sockets.get(socketId);
     pythonSocketId = socketId;
