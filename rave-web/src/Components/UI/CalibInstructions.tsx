@@ -1,10 +1,12 @@
 
-import { Modal, TextField } from "@mui/material";
+import { Collapse, Modal, TextField } from "@mui/material";
 import React, { FC, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SaveIcon } from "../../Ressources/icons";
 import { styled } from "@mui/material/styles";
-import SocketContext from "../../socketContext";
+import { useEmit } from "../../Hooks";
+import { EyeTrackerNextCalibrationStepEvent, EyeTrackerAddNewConfigEvent } from 'rave-protocol/pythonEvents';
+
 
 const CustomTextField = styled(TextField)({
   '& label.Mui-focused': {
@@ -23,15 +25,18 @@ const gifs = [
   "https://giphy.com/embed/65QZtTQC06Ot08sf50",
 ]
 interface CalibInstructionsProps {
-  setInstructionModalOpen: (openState : boolean) => void,
+  setInstructionModalOpen: (openState : boolean) => void;
+  name_history: {id : number, name : string}[],
 }
 
-const CalibInstructions : FC<CalibInstructionsProps> = ({setInstructionModalOpen}) => {
+const CalibInstructions : FC<CalibInstructionsProps> = ({setInstructionModalOpen, name_history}) => {
+  const emit = useEmit();
   const [t] = useTranslation('common');
   const [step, setStep] = useState(0);
   const [open, setOpen] = useState(false);
   const handleClose = () => setOpen(false);
   const [name_id, setName_id] = useState("");
+  const [error_open, setError_open] = useState(false);
   
   useEffect(() => {
     if (step >= 3) {
@@ -42,6 +47,7 @@ const CalibInstructions : FC<CalibInstructionsProps> = ({setInstructionModalOpen
   const nextStep = () => {
     const newStep = step + 1;
     setStep(newStep);
+    emit(EyeTrackerNextCalibrationStepEvent());
   }
 
   const handleNameIdChange = (event : React.ChangeEvent<HTMLInputElement>) => {
@@ -50,7 +56,17 @@ const CalibInstructions : FC<CalibInstructionsProps> = ({setInstructionModalOpen
   };
   
   const handleSubmit = (_event : React.FormEvent<HTMLFormElement>) => {
-    setInstructionModalOpen(false);
+    _event.preventDefault();
+    if (!name_history.find((element) => element.name === name_id))
+    {
+      setOpen(false);
+      setInstructionModalOpen(false);
+      emit(EyeTrackerAddNewConfigEvent(name_id));
+    }
+    else 
+    {
+      setError_open(true);
+    }
   };
 
   return (

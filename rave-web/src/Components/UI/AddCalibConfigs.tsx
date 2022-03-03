@@ -1,22 +1,23 @@
-import React, { useState } from "react";
+import React, { useState, FC } from "react";
 import Fab from "@mui/material/Fab";
 import { AddIcon } from "../../Ressources/icons";
 import CalibInstructions from "./CalibInstructions";
 import { Modal } from "@mui/material";
 import { BrowserView, MobileView } from 'react-device-detect';
-import SocketContext from "../../socketContext";
-import PropTypes from "prop-types";
+import { useEmit } from "../../Hooks";
+import { StartEyeTrackerCalibrationEvent } from 'rave-protocol/pythonEvents';
 
-AddCalibConfigs.propTypes = {
-  name_history: PropTypes.array,
+interface AddCalibConfigsProps {
+  name_history: {id : number, name : string}[],
 }
-function AddCalibConfigs({name_history}) {
-  const ws = useContext(SocketContext);
+
+const AddCalibConfigs : FC<AddCalibConfigsProps> = ({name_history}) => {
+  const emit = useEmit();
   const [open, setOpen] = useState(false);
   const handleClose = () => setOpen(false);
   const handleOpen = () => {
     setOpen(true);
-    ws.emit("startEyeTrackerCalib");
+    emit(StartEyeTrackerCalibrationEvent());
   }
 
   return (

@@ -19,6 +19,9 @@ export enum PYTHON_EVENTS {
   DELETE_CONFIG = 'deleteConfig',
   EYE_TRACKING_CONFIG_SELECTED = 'eyeTrackingConfigSelected',
   QUIT_CALIBRATION = 'quitCalibration',
+  START_EYE_TRACKER_CALIBRATION = 'startEyeTrackerCalib',
+  EYE_TRACKER_NEXT_CALIBRATION_STEP = 'nextCalibStep',
+  EYE_TRACKER_ADD_NEW_CONFIG = 'addNewConfig',
 }
 
 export interface TargetSelectPayload {
@@ -140,5 +143,31 @@ export function ForceRefreshEvent(){
     destination : MESSAGE_DESTINATIONS.PYTHON,
     event: PYTHON_EVENTS.FORCE_REFRESH,
     payload : {}
+  }
+}
+
+export function StartEyeTrackerCalibrationEvent(){
+  return {
+    destination : MESSAGE_DESTINATIONS.PYTHON,
+    event: PYTHON_EVENTS.START_EYE_TRACKER_CALIBRATION,
+    payload : {}
+  }
+}
+
+export function EyeTrackerNextCalibrationStepEvent(){
+  return {
+    destination : MESSAGE_DESTINATIONS.PYTHON,
+    event: PYTHON_EVENTS.EYE_TRACKER_NEXT_CALIBRATION_STEP,
+    payload : {}
+  }
+}
+
+export function EyeTrackerAddNewConfigEvent(configName : string){
+  return {
+    destination : MESSAGE_DESTINATIONS.PYTHON,
+    event: PYTHON_EVENTS.EYE_TRACKER_ADD_NEW_CONFIG,
+    payload : {
+      configName
+    }
   }
 }

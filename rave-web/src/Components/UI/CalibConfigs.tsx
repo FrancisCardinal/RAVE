@@ -54,7 +54,7 @@ function CalibConfigs() {
              sx={{hover: {fontWeight: "bold"}}}>
               <p className="hover:font-medium" onClick={() => handleSelect(item.name)}>{item.name}</p>  
               <div className=" absolute right-0 p-5">
-                <IconButton edge="end" aria-label="delete" onClick={() => deleteConfig(item.name)}>
+                <IconButton edge="end" aria-label="delete" onClick={() => deleteConfig(item.id)}>
                 <DeleteIcon className={"w-5 h-5"}/>
               </IconButton>
               </div>
