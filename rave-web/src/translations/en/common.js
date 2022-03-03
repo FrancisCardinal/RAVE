@@ -45,7 +45,8 @@ const common = {
     instruction: 'Replicate the mouvement shown bellow and press "Next" for the following mouvement:',
     modalTitle: 'Save new configuration',
     configName: 'Name',
-    configPlaceholder: 'Enter your full name'
+    configPlaceholder: 'Enter your full name',
+    errorMessage: 'The name you have chosen alreay exists, choose another one.',
   }
 };
 export default common;

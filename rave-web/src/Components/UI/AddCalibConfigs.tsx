@@ -4,11 +4,20 @@ import { AddIcon } from "../../Ressources/icons";
 import CalibInstructions from "./CalibInstructions";
 import { Modal } from "@mui/material";
 import { BrowserView, MobileView } from 'react-device-detect';
+import SocketContext from "../../socketContext";
+import PropTypes from "prop-types";
 
-function AddCalibConfigs() {
+AddCalibConfigs.propTypes = {
+  name_history: PropTypes.array,
+}
+function AddCalibConfigs({name_history}) {
+  const ws = useContext(SocketContext);
   const [open, setOpen] = useState(false);
   const handleClose = () => setOpen(false);
-  const handleOpen = () => setOpen(true);
+  const handleOpen = () => {
+    setOpen(true);
+    ws.emit("startEyeTrackerCalib");
+  }
 
   return (
     <div className="absolute border-l  border-grey right-0 inset-y-0 p-2">
@@ -24,7 +33,7 @@ function AddCalibConfigs() {
           aria-describedby="modal-create-description"
         >
           <div className="absolute bg-grey shadow-lg shadow-red rounded-md p-4 w-11/12 h-3/4 left-1/2 top-1/2 -translate-y-1/2 -translate-x-1/2">
-            <CalibInstructions setInstructionModalOpen={setOpen} />
+            <CalibInstructions name_history={name_history} setInstructionModalOpen={setOpen} />
           </div>
         </Modal>
       </MobileView>
@@ -36,7 +45,7 @@ function AddCalibConfigs() {
           aria-describedby="modal-create-description"
         >
           <div className="absolute bg-grey shadow-lg rounded-md p-4 w-3/4 h-3/4 left-1/2 top-1/2 -translate-y-1/2 -translate-x-1/2">
-            <CalibInstructions setInstructionModalOpen={setOpen} />
+            <CalibInstructions name_history={name_history} setInstructionModalOpen={setOpen} />
           </div>
         </Modal>
       </BrowserView>

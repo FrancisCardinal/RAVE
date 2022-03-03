@@ -45,16 +45,16 @@ function CalibConfigs() {
         <div className="w-fit">
           <p id="selection-text">{t('eyeTrackerCalibrationPage.placeholder')}</p>
         </div>
-        <AddCalibConfigs />
+        <AddCalibConfigs name_history={configs}/>
       </div>
       <div className="bg-grey rounded m-2">
         <List>
           {configs.map((item) => <ListItem
-            key={item.id}
+            key={item.name}
              sx={{hover: {fontWeight: "bold"}}}>
               <p className="hover:font-medium" onClick={() => handleSelect(item.name)}>{item.name}</p>  
               <div className=" absolute right-0 p-5">
-                <IconButton edge="end" aria-label="delete" onClick={() => deleteConfig(item.id)}>
+                <IconButton edge="end" aria-label="delete" onClick={() => deleteConfig(item.name)}>
                 <DeleteIcon className={"w-5 h-5"}/>
               </IconButton>
               </div>

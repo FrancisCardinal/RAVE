@@ -4,6 +4,7 @@ import React, { FC, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SaveIcon } from "../../Ressources/icons";
 import { styled } from "@mui/material/styles";
+import SocketContext from "../../socketContext";
 
 const CustomTextField = styled(TextField)({
   '& label.Mui-focused': {
@@ -45,6 +46,7 @@ const CalibInstructions : FC<CalibInstructionsProps> = ({setInstructionModalOpen
 
   const handleNameIdChange = (event : React.ChangeEvent<HTMLInputElement>) => {
     setName_id(event.target.value);
+    setError_open(false);
   };
   
   const handleSubmit = (_event : React.FormEvent<HTMLFormElement>) => {
@@ -69,7 +71,7 @@ const CalibInstructions : FC<CalibInstructionsProps> = ({setInstructionModalOpen
         aria-labelledby="modal-save-config"
         aria-describedby="modal-save-description"
       >
-        <div className="flex shadow-lg bg-red rounded w-max p-2 absolute left-1/2 top-1/2 -translate-y-1/2 -translate-x-1/2">
+        <div className="flex shadow-lg bg-white rounded w-max p-2 absolute left-1/2 top-1/2 -translate-y-1/2 -translate-x-1/2">
           <form onSubmit={handleSubmit} id="new-calib-config">
             <h1 className="font-bold underline decoration-2 w-max">{t('eyeTrackerCalibrationPage.modalTitle')}</h1>
             <div className="flex flex-row pt-2">
@@ -83,6 +85,9 @@ const CalibInstructions : FC<CalibInstructionsProps> = ({setInstructionModalOpen
               />
               <button type="submit"><SaveIcon className={"w-6 h-6 ml-2"}/></button>
             </div>
+            <Collapse in={error_open}>
+              <p className="text-red text-xs relative w-fit">{t('eyeTrackerCalibrationPage.errorMessage')}</p>
+            </Collapse>
           </form>
         </div>
       </Modal>
