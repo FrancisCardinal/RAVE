@@ -53,6 +53,7 @@ class AudioDatasetBuilder:
 
     user_pos = []
     user_dir = []
+    xy_angle = 0
     source_direction = []
     current_room = []
     current_room_shape = []
@@ -272,6 +273,38 @@ class AudioDatasetBuilder:
             audio_dict[output_name][0]['name'] = audio_dict[output_name][0]['name'][:-1]
             audio_dict[output_name][0]['signal_w_rir'] /= source_count
 
+    @staticmethod
+    def rotate_coords(coords, angle, inverse=False):
+        """
+        Method to apply rotation matrix to coordinates (only works for x,y).
+
+        Args:
+            coords (list[float]): Original coordinates to rotate ([x, y] or [x, y, z]).
+            angle (float): Angle around which to rotate (rads).
+            inverse (bool): Whether to proceed to inverse rotation.
+
+        Returns:
+            List with new coordinates ([x, y] or [x, y, z]).
+        """
+        # TODO: implement 3d rotation matrix when adding head tilt
+        old_coords = np.array([coords[SIDE_ID], coords[DEPTH_ID]]).T
+
+        # Get correct rotation matrix
+        x_rot = [math.cos(angle), -math.sin(angle)]
+        y_rot = [math.sin(angle), math.cos(angle)]
+        if inverse:
+            x_rot = [math.cos(angle), math.sin(angle)]
+            y_rot = [-math.sin(angle), math.cos(angle)]
+        rot_matrix = np.array([x_rot, y_rot])
+
+        # Apply rotation matrix
+        new_coords = rot_matrix @ old_coords
+        if len(coords) == HEIGHT_ID+1:
+            new_coords = new_coords.tolist()
+            new_coords.append(coords[HEIGHT_ID])
+
+        return new_coords
+
     def plot_scene(self, audio_dict, save_path=None):
         """
         Visualize the virtual room by plotting.
@@ -400,18 +433,20 @@ class AudioDatasetBuilder:
         """
         Generate absolute position for user (and for receivers).
         """
-        # TODO: GENERATE SPEECH SOURCE ON USER TO REPRESENT USER TALKING?
+        # TODO: GENERATE A NOISE SPEECH SOURCE ON USER TO REPRESENT USER TALKING?
         # TODO: TEST USER HEAD WITH PYROOMACOUSTICS
 
         # Get random position and assign x and y wth sound margins (user not stuck on wall)
         self.user_pos = self.get_random_position(user=True)
         while True:
-            xy_angle = (np.random.rand() * 2 * math.pi) - math.pi
+            self.xy_angle = (np.random.rand() * 2 * math.pi) - math.pi
             z_angle = (np.random.rand() - 0.5) * 2 * TILT_RANGE
-            x_dir = (SOURCE_USER_DISTANCE+1) * math.cos(xy_angle+0.5*math.pi)
-            y_dir = (SOURCE_USER_DISTANCE+1) * math.sin(xy_angle+0.5*math.pi)
-            z_dir = 0.001
+            x_dir = (SOURCE_USER_DISTANCE+1) * math.cos(self.xy_angle)
+            y_dir = (SOURCE_USER_DISTANCE+1) * math.sin(self.xy_angle)
+            print(f'angle:{self.xy_angle}, x:{x_dir}, y:{y_dir}')
+            z_dir = 1e-5
             # z_dir = (np.random.rand() - 0.5) * 2 * TILT_RANGE
+
             if x_dir and y_dir and z_dir:
                 break
         self.user_dir = [x_dir, y_dir, z_dir]
@@ -421,8 +456,7 @@ class AudioDatasetBuilder:
         self.receiver_abs = []
         for receiver in self.receiver_rel:
             receiver_center = self.user_pos.copy()
-            new_x = receiver[0]*math.cos(xy_angle) - receiver[1]*math.sin(xy_angle)
-            new_y = receiver[0]*math.sin(xy_angle) + receiver[1]*math.cos(xy_angle)
+            new_x, new_y, new_z = self.rotate_coords(receiver, self.xy_angle, inverse=False)
             receiver_center[0] += float(new_x)
             receiver_center[1] += float(new_y)
             self.receiver_abs.append(receiver_center)
@@ -433,8 +467,7 @@ class AudioDatasetBuilder:
         abs_bot_corners = []
         for rel_corner in rel_corners:
             # Rotated axis
-            new_x = rel_corner[0] * math.cos(xy_angle) - rel_corner[1] * math.sin(xy_angle)
-            new_y = rel_corner[0] * math.sin(xy_angle) + rel_corner[1] * math.cos(xy_angle)
+            new_x, new_y = self.rotate_coords(rel_corner, self.xy_angle, inverse=False)
             # Top corners
             corner_top = self.user_pos.copy()
             corner_top[0] += new_x
@@ -452,8 +485,8 @@ class AudioDatasetBuilder:
         bot_plane = np.array(abs_bot_corners).T
         planes = [top_plane, bot_plane]
         for i in range(4):
-            side_plane = np.array([abs_top_corners[i], abs_top_corners[(i+1)%4],
-                                   abs_bot_corners[(i+1)%4], abs_bot_corners[i]]).T
+            side_plane = np.array([abs_top_corners[i], abs_top_corners[(i+1) % 4],
+                                   abs_bot_corners[(i+1) % 4], abs_bot_corners[i]]).T
             planes.append(side_plane)
 
         wall_absorption = np.array([0.95])
@@ -478,12 +511,11 @@ class AudioDatasetBuilder:
         Returns: Position composed of shapely.Point with coordinates [x, y, z]. -1 if no position could be made.
 
         """
-
         # Get room polygon
         room_poly = Polygon(self.current_room_shape)
         minx, miny, maxx, maxy = room_poly.bounds
 
-        # If source, change min and max to generate close to user
+        # If source, change min and max to generate in user front circle
         if not user and not source_pos:
             user_dir_point = [self.user_pos[0] + self.user_dir[0], self.user_pos[1] + self.user_dir[1]]
             minx = max(minx, user_dir_point[0] - SOURCE_USER_DISTANCE)
@@ -503,7 +535,6 @@ class AudioDatasetBuilder:
             z = self.receiver_height
 
             if not user:
-
                 if not source_pos:
                     # If source, check it is contained in circle in front of user
                     dx_user = p.x - user_dir_point[0]
@@ -512,7 +543,14 @@ class AudioDatasetBuilder:
                     if not is_point_in_user_circle:
                         continue
 
-                    self.source_direction = [p.x-self.user_pos[0], p.y-self.user_pos[1], z-self.user_pos[2]]
+                    # Calculate source direction based on user direction
+                    # TODO: add tilt
+                    coords = [p.x-self.user_pos[SIDE_ID], p.y-self.user_pos[DEPTH_ID], z-self.user_pos[HEIGHT_ID]]
+                    new_x, new_y, new_z = self.rotate_coords(coords, self.xy_angle, inverse=True)
+                    front_facing_angle = 0.5 * math.pi
+                    new_x, new_y, new_z = self.rotate_coords([new_x, new_y, new_z], front_facing_angle, inverse=False)
+                    self.source_direction = [new_x, new_y, new_z]
+                    print(f'Source: {self.source_direction}')
 
                 else:
                     # Check if noise is not on user
