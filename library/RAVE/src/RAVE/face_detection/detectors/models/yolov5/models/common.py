@@ -18,7 +18,7 @@ def autopad(k, p=None):  # kernel, padding
 
 def channel_shuffle(x, groups):
     batchsize, num_channels, height, width = x.data.size()
-    channels_per_group = num_channels // groups
+    channels_per_group = torch.div(num_channels, groups, rounding_mode="trunc")
 
     # reshape
     x = x.view(batchsize, groups, channels_per_group, height, width)

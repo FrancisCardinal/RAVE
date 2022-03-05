@@ -43,7 +43,7 @@ if __name__ == "__main__":
         default=600,
     )
     parser.add_argument(
-        "--visualize",
+        "--dont-visualize",
         dest="visualize",
         help="If true, will show the different tracking frames",
         action="store_false",
