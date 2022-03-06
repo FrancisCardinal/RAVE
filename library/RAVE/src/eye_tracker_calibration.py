@@ -1,14 +1,19 @@
 import socketio
 import os
+from datetime import datetime
 
 sio = socketio.Client()
+
+
+def emit(eventName, destination, payload):
+    sio.emit(eventName, {"destination": destination, "payload": payload})
 
 
 @sio.event
 def connect():
     print("connection established to server")
     # Emit the socket id to the server to "authenticate yourself"
-    sio.emit("pythonSocket", sio.get_sid())
+    emit("pythonSocketAuth", "server", {"socketId": sio.get_sid()})
 
 
 class EyeTrackerCalib:
@@ -19,34 +24,39 @@ class EyeTrackerCalib:
             self.list_calibs.append({"name": file_name.rstrip(".json")})
         self.activate = False
         self.selection = None
-        sio.emit("configList", self.list_calibs)
+        emit("configList", "client", {"configuration": self.list_calibs})
         sio.on("addEyeTrackingCalib", self.add_new_config)
         sio.on("deleteEyeTrackingCalib", self.delete_config)
         sio.on("selectEyeTrackingCalib", self.select_config)
-        sio.on("activateEyeTrackingCalibration", self.activate_on)
+        sio.on("goToEyeTrackingCalibration", self.activate_on)
         sio.on("startEyeTrackingCalibration", self.start_calib)
         sio.on("nextCalibStep", self.next_step)
 
     def activate_on(self):
         self.activate = True
-        sio.emit("configList", self.list_calibs)
+        emit("configList", "client", {"configuration": self.list_calibs})
 
     def add_new_config(self, new_name):
-        self.list_calibs.append({"name": new_name})
-        sio.emit("configList", self.list_calibs)
+        self.list_calibs.append(
+            {
+                "name": new_name["configName"]
+                + datetime.now().strftime("-%d-%m-%Y %H:%M:%S")
+            }
+        )
+        emit("configList", "client", {"configuration": self.list_calibs})
 
     def delete_config(self, config_name):
         self.list_calibs[:] = [
-            d for d in self.list_calibs if d.get("name") != config_name
+            d for d in self.list_calibs if d.get("name") != config_name["id"]
         ]
-        sio.emit("configList", self.list_calibs)
+        emit("configList", "client", {"configuration": self.list_calibs})
 
     def select_config(self, selection_name):
         self.selection = [
             d["name"] + ".json"
             for d in self.list_calibs
-            if selection_name == d.get("name")
-        ][0]
+            if selection_name["name"] == d.get("name")
+        ]
         print(self.selection)
 
     def start_calib(self):

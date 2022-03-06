@@ -13,10 +13,10 @@ import {MenuIcon} from "../../Ressources/icons";
  */
 export function MobileMainBar() {
   const [t] = useTranslation('common');
-	const [anchorEl, setAnchorEl] = useState(null);
+	const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
 	const open = Boolean(anchorEl);
 
-  const handleClick = (event) => {
+  const handleClick = (event : React.MouseEvent<HTMLButtonElement>) => {
 		setAnchorEl(event.currentTarget);
 	};
 

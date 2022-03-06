@@ -1,11 +1,12 @@
 
-import { Collapse, Modal, TextField } from "@mui/material";
-import React, { useContext, useEffect, useState } from "react";
+import { Modal, TextField } from "@mui/material";
+import React, { FC, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SaveIcon } from "../../Ressources/icons";
-import PropTypes from "prop-types";
 import { styled } from "@mui/material/styles";
-import SocketContext from "../../socketContext";
+import { useEmit } from "../../Hooks";
+import { EyeTrackerNextCalibrationStepEvent, EyeTrackerAddNewConfigEvent } from 'rave-protocol/pythonEvents';
+
 
 const CustomTextField = styled(TextField)({
   '& label.Mui-focused': {
@@ -18,65 +19,46 @@ const CustomTextField = styled(TextField)({
   },
 });
 
-CalibInstructions.propTypes = {
-  setInstructionModalOpen: PropTypes.func,
-  name_history: PropTypes.array,
+interface CalibInstructionsProps {
+  setInstructionModalOpen: (openState : boolean) => void;
 }
 
-/**
- * This component describes the steps to follow to calibrate the eye-tracker camera for the user
- * and pops a form to save the calibratio once it's done.
- * The steps are described by gifs showing the eye movement need.
- */
-function CalibInstructions({setInstructionModalOpen, name_history}) {
+const CalibInstructions : FC<CalibInstructionsProps> = ({setInstructionModalOpen}) => {
+  const emit = useEmit();
+
   const gifs = [
     "https://giphy.com/embed/GJi6ZBzgkWNmU",
     "https://giphy.com/embed/l41YdAa3Yll5NHfwI",
     "https://giphy.com/embed/65QZtTQC06Ot08sf50",
   ]
-  const ws = useContext(SocketContext);
   const [t] = useTranslation('common');
   const [step, setStep] = useState(0);
-  const nextStep = () => {
-    const newStep = step + 1;
-    setStep(newStep);
-    ws.emit("nextCalibStep");
-  }
-
-  const [error_open, setError_open] = useState(false);
   const [open, setOpen] = useState(false);
   const handleClose = () => setOpen(false);
+  const [name_id, setName_id] = useState("");
+  
   useEffect(() => {
     if (step >= 3) {
       setOpen(true);
-      document.getElementById('next-button').disabled = true;
+      (document.getElementById('next-button') as HTMLButtonElement).disabled = true;
     }
   }, [step]);
 
-  const [name_id, setName_id] = useState("");
-  const handleNameIdChange = event => {
-    setName_id(event.target.value);
-    setError_open(false);
-  };
+  const nextStep = () => {
+    const newStep = step + 1;
+    setStep(newStep);
+    emit(EyeTrackerNextCalibrationStepEvent());
+  }
 
-  /**
-   * This function is called when the user clicks on the save button of the saving form.
-   * It verifies if the input value is already a calibration files and displays an error if it is.
-   * If the name is valid, the saving form and instructions are close and it sends the new 
-   * calibartion to the server.
-   */
-  const handleSubmit = event => {
-    event.preventDefault();
-    if (!name_history.find((element) => element.name === name_id))
-    {
-      setOpen(false);
-      setInstructionModalOpen(false);
-      ws.emit("addNewConfig", name_id);
-    }
-    else 
-    {
-      setError_open(true);
-    }
+  const handleNameIdChange = (event : React.ChangeEvent<HTMLInputElement>) => {
+    setName_id(event.target.value);
+  };
+  
+  const handleSubmit = (_event : React.FormEvent<HTMLFormElement>) => {
+    _event.preventDefault();
+    setOpen(false);
+    setInstructionModalOpen(false);
+    emit(EyeTrackerAddNewConfigEvent(name_id));
   };
 
   return (
@@ -112,9 +94,6 @@ function CalibInstructions({setInstructionModalOpen, name_history}) {
               />
               <button type="submit"><SaveIcon className={"w-6 h-6 ml-2"}/></button>
             </div>
-            <Collapse in={error_open}>
-              <p className="text-red text-xs relative w-fit">{t('eyeTrackerCalibrationPage.errorMessage')}</p>
-            </Collapse>
           </form>
         </div>
       </Modal>

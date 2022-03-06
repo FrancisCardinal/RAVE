@@ -1,7 +1,7 @@
-import RAVE from '../../Ressources/RAVE.png'
+import React from 'react';
+import RAVE from '../../Ressources/RAVE.png';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import React from 'react';
 
 function DesktopMainBar() {
 	const [t] = useTranslation('common');

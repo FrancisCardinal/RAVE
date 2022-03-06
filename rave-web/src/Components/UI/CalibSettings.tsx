@@ -1,10 +1,11 @@
-import React, { useContext, useState, useEffect } from "react";
-import CalibButton from "../../Components/UI/CalibButton";
-import TextField from "@mui/material/TextField";
-import { styled } from "@mui/material/styles";
-import { ErrorIcon } from "../../Ressources/icons";
-import { useTranslation } from "react-i18next";
-import SocketContext from "../../socketContext";
+import React, { useState } from 'react';
+import CalibButton from './CalibButton';
+import TextField from '@mui/material/TextField';
+import { styled } from '@mui/material/styles';
+import { ErrorIcon } from '../../Ressources/icons';
+import { useTranslation } from 'react-i18next';
+import { useEmit, useEventListener } from '../../Hooks';
+import { CLIENT_EVENTS, ChangeVisionCalibrationParamsEvent } from 'rave-protocol';
 
 const CustomTextField = styled(TextField)({
   '& label.Mui-focused': {
@@ -22,31 +23,24 @@ const CustomTextField = styled(TextField)({
  * (number of points and the polynomial). It also displays all the error messages concerning the calibration.
  */
 function CalibSettings() {
-  const ws = useContext(SocketContext);
+  const emit = useEmit();
   const [t] = useTranslation('common');
-  
+  const [errorMessage, setErrorMessage] = useState('');
   const [nbPoints, setNbPoints] = useState(5);
-  const handlePointsChange = (event) => {
-    setNbPoints(event.target.value);
+  const [orderPoly, setOrderPoly] = useState(3);
+
+  useEventListener(CLIENT_EVENTS.CALIBRATION_ERROR, ({ message }) => {
+    setErrorMessage(message);
+  });
+
+  const handlePointsChange = (event : React.ChangeEvent<HTMLInputElement>) => {
+    setNbPoints(Number(event.target.value));
   };
 
-  const [orderPoly, setOrderPoly] = useState(3);
-  
-  const handleOrderChange = (event) => {
-    setOrderPoly(event.target.value);
+  const handleOrderChange = (event : React.ChangeEvent<HTMLInputElement>) => {
+    setOrderPoly(Number(event.target.value));
   };
-  
-  const [errorMessage, setErrorMessage] = useState('');
-  useEffect(() => {
-    if (ws) {
-      ws.on('newErrorMsg', (newErrorMessage) => {
-        setErrorMessage(newErrorMessage);
-      });
-    }
-    return (() => {
-      ws && ws.emit('quitCalibration');
-    });
-  }, [ws]);
+
   return (
     <div className="flex flex-col border-2 rounded-md p-2 mx-4 mt-2 h-min shadow-md border-grey">
       <CalibButton />
@@ -69,7 +63,7 @@ function CalibSettings() {
       <button
         className="px-4 py-2 mt-2 font-semibold text-sm bg-grey text-black rounded-md shadow-sm"
         onClick={() => {
-          ws.emit('changeCalibParams', {number:nbPoints, order:orderPoly});
+          emit(ChangeVisionCalibrationParamsEvent(nbPoints,orderPoly));
           setErrorMessage('');
         }}
       >

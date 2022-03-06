@@ -1,34 +1,34 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useState } from "react";
 import AddCalibConfigs from "./AddCalibConfigs";
 import List from "@mui/material/List";
 import { DeleteIcon } from "../../Ressources/icons";
 import IconButton from "@mui/material/IconButton";
 import { ListItem } from "@mui/material";
-import SocketContext from "../../socketContext";
 import { useTranslation } from "react-i18next";
+import { useEventListener, useEmit } from "../../Hooks";
+import { CLIENT_EVENTS } from 'rave-protocol/clientEvents';
+import { DeleteConfigEvent, EyeTrackingConfigSelectedEvent } from 'rave-protocol/pythonEvents';
 
 function CalibConfigs() {
   const [t] = useTranslation("common");
-  const ws = useContext(SocketContext);
-  const [configs, setConfigs] = useState([]);
+  const emit = useEmit();
+
+  const [configs, setConfigs] = useState<{name : string}[]>([]);
   
-  const handleSelect = (name) => {
+  const handleSelect = (name : string) => {
     var ptag = document.getElementById('selection-text');
-    ptag.innerHTML = name;
-    ws.emit("eyeTrackingConfigSelected", name);
+    ptag && (ptag.innerHTML = name);
+    emit(EyeTrackingConfigSelectedEvent(name));
   }
 
-  const deleteConfig = (id) => {
-    ws.emit("deleteConfig", (id));
+  const deleteConfig = (name : string) => {
+    emit(DeleteConfigEvent(name));
   }
-  
-  useEffect(() => {
-    if (ws) {
-      ws.on('onConfigList', (configList) => {
-        setConfigs(configList);
-      });
-    }
-  }, [ws]);
+
+  useEventListener(CLIENT_EVENTS.EYE_TRACKING_CONFIGURATIONS, ({configuration}) => {
+    console.log("New configs");
+    setConfigs(configuration);
+  });
 
   return (
     <div>
@@ -36,11 +36,11 @@ function CalibConfigs() {
         <div className="w-fit">
           <p id="selection-text">{t('eyeTrackerCalibrationPage.placeholder')}</p>
         </div>
-        <AddCalibConfigs name_history={configs}/>
+        <AddCalibConfigs />
       </div>
       <div className="bg-grey rounded m-2">
         <List>
-          {configs.map((item) => <ListItem
+          {configs?.map((item) => <ListItem
             key={item.name}
              sx={{hover: {fontWeight: "bold"}}}>
               <p className="hover:font-medium" onClick={() => handleSelect(item.name)}>{item.name}</p>  

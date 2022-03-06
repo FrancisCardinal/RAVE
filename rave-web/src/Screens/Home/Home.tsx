@@ -1,15 +1,16 @@
+import React from 'react';
 import EyeTrackingMode from '../../Components/UI/EyeTrackingMode';
 import MuteButton from '../../Components/UI/MuteButton';
 import VolumeSlider from '../../Components/UI/VolumeSlider';
 import Stream from '../../Components/UI/Stream';
 import { BrowserView, MobileView } from 'react-device-detect';
 import { useTranslation } from 'react-i18next';
-import SocketContext from '../../socketContext';
-import React, {useContext} from 'react';
+import { useEmit } from "../../Hooks";
+import { ForceRefreshEvent } from 'rave-protocol/pythonEvents';
 
 function HomeScreen() {
+  const emit = useEmit();
   const [t] = useTranslation('common');
-  const ws = useContext(SocketContext);
   return (
     <div className=" flex flex-col max-h-full items-center">
       <div className="p-1">
@@ -27,7 +28,7 @@ function HomeScreen() {
           <button
           className="flex mt-2 bg-grey h-min text-black rounded-lg shadow-sm"
           onClick={() => {
-            ws.emit('forceRefresh');
+            emit(ForceRefreshEvent());
           }}
         >
           <h1 className='p-2 font-medium w-max'>{t('homePage.forceRefresh')}</h1>
