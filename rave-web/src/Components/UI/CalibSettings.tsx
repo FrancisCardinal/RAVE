@@ -5,7 +5,7 @@ import { styled } from '@mui/material/styles';
 import { ErrorIcon } from '../../Ressources/icons';
 import { useTranslation } from 'react-i18next';
 import { useEmit, useEventListener } from '../../Hooks';
-import { CLIENT_EVENTS, QuitCalibrationEvent, ChangeCalibrationParamsEvent } from 'rave-protocol';
+import { CLIENT_EVENTS, QuitCalibrationEvent, ChangeVisionCalibrationParamsEvent } from 'rave-protocol';
 
 const CustomTextField = styled(TextField)({
   '& label.Mui-focused': {
@@ -66,7 +66,7 @@ function CalibSettings() {
       <button
         className="px-4 py-2 mt-2 font-semibold text-sm bg-grey text-black rounded-md shadow-sm"
         onClick={() => {
-          ws.emit('changeCalibParams', {number:nbPoints, order:orderPoly});
+          emit(ChangeVisionCalibrationParamsEvent(nbPoints,orderPoly));
           setErrorMessage('');
         }}
       >

@@ -15,13 +15,13 @@ export enum PYTHON_EVENTS {
   MUTE_REQUEST = 'muteRequest',
   ACTIVATE_EYE_TRACKING = 'activateEyeTracking',
   SET_VOLUME = 'setVolume',
-  CHANGE_CALIBRATION_PARAMS = 'changeCalibrationParams',
   DELETE_CONFIG = 'deleteConfig',
   EYE_TRACKING_CONFIG_SELECTED = 'eyeTrackingConfigSelected',
   QUIT_CALIBRATION = 'quitCalibration',
   START_EYE_TRACKER_CALIBRATION = 'startEyeTrackerCalib',
   EYE_TRACKER_NEXT_CALIBRATION_STEP = 'nextCalibStep',
   EYE_TRACKER_ADD_NEW_CONFIG = 'addNewConfig',
+  CHANGE_VISION_CALIBRATION_PARAMS = 'changeCalibParams',
 }
 
 export interface TargetSelectPayload {
@@ -81,10 +81,10 @@ interface ChangeCalibrationParamsEvent {
   order : number;
 }
 
-export function ChangeCalibrationParamsEvent(numberOfPoints : number, orderPolynomial : number) {
+export function ChangeVisionCalibrationParamsEvent(numberOfPoints : number, orderPolynomial : number) {
   return {
     destination : MESSAGE_DESTINATIONS.PYTHON,
-    event: PYTHON_EVENTS.CHANGE_CALIBRATION_PARAMS,
+    event: PYTHON_EVENTS.CHANGE_VISION_CALIBRATION_PARAMS,
     payload : {
       number : numberOfPoints,
       order : orderPolynomial,

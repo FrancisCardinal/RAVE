@@ -19,11 +19,6 @@ const CustomTextField = styled(TextField)({
   },
 });
 
-const gifs = [
-  "https://giphy.com/embed/GJi6ZBzgkWNmU",
-  "https://giphy.com/embed/l41YdAa3Yll5NHfwI",
-  "https://giphy.com/embed/65QZtTQC06Ot08sf50",
-]
 interface CalibInstructionsProps {
   setInstructionModalOpen: (openState : boolean) => void;
   name_history: {id : string, name : string}[],
@@ -47,7 +42,7 @@ const CalibInstructions : FC<CalibInstructionsProps> = ({setInstructionModalOpen
   useEffect(() => {
     if (step >= 3) {
       setOpen(true);
-      document.getElementById('next-button').disabled = true;
+      (document.getElementById('next-button') as HTMLButtonElement).disabled = true;
     }
   }, [step]);
 

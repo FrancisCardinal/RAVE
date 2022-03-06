@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import SocketContext from '../socketContext';
 import { CLIENT_EVENTS } from "rave-protocol";
 
