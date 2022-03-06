@@ -17,6 +17,10 @@ const CustomTextField = styled(TextField)({
   },
 });
 
+/**
+ * This component lets the user change the visual-audio calibration settings
+ * (number of points and the polynomial). It also displays all the error messages concerning the calibration.
+ */
 function CalibSettings() {
   const ws = useContext(SocketContext);
   const [t] = useTranslation('common');
@@ -45,33 +49,33 @@ function CalibSettings() {
   }, [ws]);
   return (
     <div className="flex flex-col border-2 rounded-md p-2 mx-4 mt-2 h-min shadow-md border-grey">
-            <CalibButton />
-            <CustomTextField id="nb_points" 
-                      label={t('visionCalibrationPage.pointsLabel')}
-                      defaultValue={5}
-                      value={nbPoints}
-                      onChange={handlePointsChange}
-                      margin="normal"/>
-            <CustomTextField id="order_polynom" 
-                      label={t('visionCalibrationPage.orderLabel')}
-                      defaultValue={3}
-                      value={orderPoly}
-                      onChange={handleOrderChange}
-                      margin="normal"/>
-            <div className='border p-2 my-2 border-red rounded'>
-              <ErrorIcon className={"w-6 h-6"}/>
-              <p className="text-red">{errorMessage}</p>
-            </div>
-            <button
-                className="px-4 py-2 mt-2 font-semibold text-sm bg-grey text-black rounded-md shadow-sm"
-                onClick={() => {
-                  ws.emit('changeCalibParams', {number:nbPoints, order:orderPoly});
-                  setErrorMessage('');
-                }}
-              >
-                {t('visionCalibrationPage.confirm')}
-            </button>
-          </div>
+      <CalibButton />
+      <CustomTextField id="nb_points" 
+        label={t('visionCalibrationPage.pointsLabel')}
+        defaultValue={5}
+        value={nbPoints}
+        onChange={handlePointsChange}
+        margin="normal"/>
+      <CustomTextField id="order_polynom" 
+        label={t('visionCalibrationPage.orderLabel')}
+        defaultValue={3}
+        value={orderPoly}
+        onChange={handleOrderChange}
+        margin="normal"/>
+      <div className='border p-2 my-2 border-red rounded'>
+        <ErrorIcon className={"w-6 h-6"}/>
+        <p className="text-red">{errorMessage}</p>
+      </div>
+      <button
+        className="px-4 py-2 mt-2 font-semibold text-sm bg-grey text-black rounded-md shadow-sm"
+        onClick={() => {
+          ws.emit('changeCalibParams', {number:nbPoints, order:orderPoly});
+          setErrorMessage('');
+        }}
+      >
+        {t('visionCalibrationPage.confirm')}
+      </button>
+    </div>
   );
 }
 

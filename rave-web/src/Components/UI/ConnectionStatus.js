@@ -3,6 +3,9 @@ import { useTranslation } from "react-i18next"
 import { WifiCheckedIcon, NoWifiConnectionIcon } from "../../Ressources/icons";
 import SocketContext from "../../socketContext";
 
+/**
+ * This component displays the current connection with the prototype.
+ */
 function ConnectionStatus() {
   const ws = useContext(SocketContext);
   const [t] = useTranslation('common'); 
@@ -28,8 +31,8 @@ function ConnectionStatus() {
 
   return (
     <div className="flex flex-row border w-3/4 border-grey px-2 py-4 rounded hover:border-black">
-        <h1 className="pr-2">{t('settingsPage.connectionLabel')}</h1>
-        <StatusIcon /> 
+      <h1 className="pr-2">{t('settingsPage.connectionLabel')}</h1>
+      <StatusIcon /> 
     </div>
   );
 }

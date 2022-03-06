@@ -31,7 +31,7 @@ function AddCalibConfigs({name_history}) {
           aria-labelledby="modal-create-config"
           aria-describedby="modal-create-description"
         >
-          <div className="absolute bg-grey shadow-lg shadow-red rounded-md p-4 w-11/12 h-3/4 left-1/2 top-1/2 -translate-y-1/2 -translate-x-1/2">
+          <div className="absolute bg-white shadow-md shadow-red rounded-md w-fit p-4 left-1/2 top-1/2 -translate-y-1/2 -translate-x-1/2">
             <CalibInstructions name_history={name_history} setInstructionModalOpen={setOpen} />
           </div>
         </Modal>
@@ -43,7 +43,7 @@ function AddCalibConfigs({name_history}) {
           aria-labelledby="modal-create-config"
           aria-describedby="modal-create-description"
         >
-          <div className="absolute bg-grey shadow-lg rounded-md p-4 w-3/4 h-3/4 left-1/2 top-1/2 -translate-y-1/2 -translate-x-1/2">
+          <div className="absolute bg-white shadow-md shadow-red rounded-md w-3/4 h-3/4 p-4 left-1/2 top-1/2 -translate-y-1/2 -translate-x-1/2">
             <CalibInstructions name_history={name_history} setInstructionModalOpen={setOpen} />
           </div>
         </Modal>
