@@ -22,6 +22,12 @@ CalibInstructions.propTypes = {
   setInstructionModalOpen: PropTypes.func,
   name_history: PropTypes.array,
 }
+
+/**
+ * This component describes the steps to follow to calibrate the eye-tracker camera for the user
+ * and pops a form to save the calibratio once it's done.
+ * The steps are described by gifs showing the eye movement need.
+ */
 function CalibInstructions({setInstructionModalOpen, name_history}) {
   const gifs = [
     "https://giphy.com/embed/GJi6ZBzgkWNmU",
@@ -43,6 +49,7 @@ function CalibInstructions({setInstructionModalOpen, name_history}) {
   useEffect(() => {
     if (step >= 3) {
       setOpen(true);
+      document.getElementById('next-button').disabled = true;
     }
   }, [step]);
 
@@ -52,6 +59,12 @@ function CalibInstructions({setInstructionModalOpen, name_history}) {
     setError_open(false);
   };
 
+  /**
+   * This function is called when the user clicks on the save button of the saving form.
+   * It verifies if the input value is already a calibration files and displays an error if it is.
+   * If the name is valid, the saving form and instructions are close and it sends the new 
+   * calibartion to the server.
+   */
   const handleSubmit = event => {
     event.preventDefault();
     if (!name_history.find((element) => element.name === name_id))
@@ -67,13 +80,14 @@ function CalibInstructions({setInstructionModalOpen, name_history}) {
   };
 
   return (
-    <div>
-      <p className="bg-white w-fit rounded p-2 shadow">{t('eyeTrackerCalibrationPage.instruction')}</p>
-      <div className="flex justify-center">
-        <iframe className="p-2 justify-center" title="moving-eye" src={gifs[step]} width="480" height="298"></iframe>
+    <div className="h-full">
+      <p className="bg-grey w-fit rounded p-2 shadow">{t('eyeTrackerCalibrationPage.instruction')}</p>
+      <div className="flex justify-center h-full pb-8">
+        <iframe className="p-2 justify-center" width="100%" height="100%" title="moving-eye" src={gifs[step]}></iframe>
       </div>
       <button
-        className="absolute animate-pulse bottom-0 right-0 px-4 m-4 py-2 font-semibold text-sm bg-red text-black rounded-md shadow-sm"
+        id="next-button"
+        className="absolute bottom-0 right-0 px-4 m-4 py-2 font-semibold text-sm bg-grey text-black rounded-md shadow-sm"
         onClick={nextStep}
       >
         {t('eyeTrackerCalibrationPage.next')}
@@ -84,10 +98,10 @@ function CalibInstructions({setInstructionModalOpen, name_history}) {
         aria-labelledby="modal-save-config"
         aria-describedby="modal-save-description"
       >
-        <div className="flex shadow-lg bg-white rounded w-max p-2 absolute left-1/2 top-1/2 -translate-y-1/2 -translate-x-1/2">
-          <form onSubmit={handleSubmit} id="new-calib-config">
-            <h1 className="font-bold underline decoration-2 w-max">{t('eyeTrackerCalibrationPage.modalTitle')}</h1>
-            <div className="flex flex-row pt-2">
+        <div className="flex shadow-lg bg-white rounded w-fit p-2 absolute left-1/2 top-1/2 -translate-y-1/2 -translate-x-1/2">
+          <form onSubmit={handleSubmit} id="new-calib-config" className="flex flex-col content-center">
+            <h1 className="font-bold underline text-center decoration-2 w-full">{t('eyeTrackerCalibrationPage.modalTitle')}</h1>
+            <div className="flex flex-row pt-2 justify-center">
               <CustomTextField
                 label={t('eyeTrackerCalibrationPage.configName')}
                 id="name"
