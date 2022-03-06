@@ -31,6 +31,12 @@ interface CalibInstructionsProps {
 
 const CalibInstructions : FC<CalibInstructionsProps> = ({setInstructionModalOpen, name_history}) => {
   const emit = useEmit();
+
+  const gifs = [
+    "https://giphy.com/embed/GJi6ZBzgkWNmU",
+    "https://giphy.com/embed/l41YdAa3Yll5NHfwI",
+    "https://giphy.com/embed/65QZtTQC06Ot08sf50",
+  ]
   const [t] = useTranslation('common');
   const [step, setStep] = useState(0);
   const [open, setOpen] = useState(false);
@@ -41,6 +47,7 @@ const CalibInstructions : FC<CalibInstructionsProps> = ({setInstructionModalOpen
   useEffect(() => {
     if (step >= 3) {
       setOpen(true);
+      document.getElementById('next-button').disabled = true;
     }
   }, [step]);
 
@@ -70,13 +77,14 @@ const CalibInstructions : FC<CalibInstructionsProps> = ({setInstructionModalOpen
   };
 
   return (
-    <div>
-      <p className="bg-white w-fit rounded p-2 shadow">{t('eyeTrackerCalibrationPage.instruction')}</p>
-      <div className="flex justify-center">
-        <iframe className="p-2 justify-center" title="moving-eye" src={gifs[step]} width="480" height="298"></iframe>
+    <div className="h-full">
+      <p className="bg-grey w-fit rounded p-2 shadow">{t('eyeTrackerCalibrationPage.instruction')}</p>
+      <div className="flex justify-center h-full pb-8">
+        <iframe className="p-2 justify-center" width="100%" height="100%" title="moving-eye" src={gifs[step]}></iframe>
       </div>
       <button
-        className="absolute animate-pulse bottom-0 right-0 px-4 m-4 py-2 font-semibold text-sm bg-red text-black rounded-md shadow-sm"
+        id="next-button"
+        className="absolute bottom-0 right-0 px-4 m-4 py-2 font-semibold text-sm bg-grey text-black rounded-md shadow-sm"
         onClick={nextStep}
       >
         {t('eyeTrackerCalibrationPage.next')}
@@ -87,10 +95,10 @@ const CalibInstructions : FC<CalibInstructionsProps> = ({setInstructionModalOpen
         aria-labelledby="modal-save-config"
         aria-describedby="modal-save-description"
       >
-        <div className="flex shadow-lg bg-white rounded w-max p-2 absolute left-1/2 top-1/2 -translate-y-1/2 -translate-x-1/2">
-          <form onSubmit={handleSubmit} id="new-calib-config">
-            <h1 className="font-bold underline decoration-2 w-max">{t('eyeTrackerCalibrationPage.modalTitle')}</h1>
-            <div className="flex flex-row pt-2">
+        <div className="flex shadow-lg bg-white rounded w-fit p-2 absolute left-1/2 top-1/2 -translate-y-1/2 -translate-x-1/2">
+          <form onSubmit={handleSubmit} id="new-calib-config" className="flex flex-col content-center">
+            <h1 className="font-bold underline text-center decoration-2 w-full">{t('eyeTrackerCalibrationPage.modalTitle')}</h1>
+            <div className="flex flex-row pt-2 justify-center">
               <CustomTextField
                 label={t('eyeTrackerCalibrationPage.configName')}
                 id="name"
