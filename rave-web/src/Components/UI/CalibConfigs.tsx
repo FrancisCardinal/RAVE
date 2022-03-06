@@ -13,7 +13,7 @@ function CalibConfigs() {
   const [t] = useTranslation("common");
   const emit = useEmit();
 
-  const [configs, setConfigs] = useState<{id : string, name : string}[]>([]);
+  const [configs, setConfigs] = useState<{name : string}[]>([]);
   
   const handleSelect = (name : string) => {
     var ptag = document.getElementById('selection-text');
@@ -21,13 +21,13 @@ function CalibConfigs() {
     emit(EyeTrackingConfigSelectedEvent(name));
   }
 
-  const deleteConfig = (id : string) => {
-    emit(DeleteConfigEvent(id));
+  const deleteConfig = (name : string) => {
+    emit(DeleteConfigEvent(name));
   }
 
-  useEventListener(CLIENT_EVENTS.EYE_TRACKING_CONFIGURATIONS, ({configurations}) => {
+  useEventListener(CLIENT_EVENTS.EYE_TRACKING_CONFIGURATIONS, ({configuration}) => {
     console.log("New configs");
-    setConfigs(configurations);
+    setConfigs(configuration);
   });
 
   return (
@@ -36,16 +36,16 @@ function CalibConfigs() {
         <div className="w-fit">
           <p id="selection-text">{t('eyeTrackerCalibrationPage.placeholder')}</p>
         </div>
-        <AddCalibConfigs name_history={configs}/>
+        <AddCalibConfigs />
       </div>
       <div className="bg-grey rounded m-2">
         <List>
-          {configs.map((item) => <ListItem
+          {configs?.map((item) => <ListItem
             key={item.name}
              sx={{hover: {fontWeight: "bold"}}}>
               <p className="hover:font-medium" onClick={() => handleSelect(item.name)}>{item.name}</p>  
               <div className=" absolute right-0 p-5">
-                <IconButton edge="end" aria-label="delete" onClick={() => deleteConfig(item.id)}>
+                <IconButton edge="end" aria-label="delete" onClick={() => deleteConfig(item.name)}>
                 <DeleteIcon className={"w-5 h-5"}/>
               </IconButton>
               </div>

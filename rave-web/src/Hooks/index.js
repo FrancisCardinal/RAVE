@@ -1,2 +1,2 @@
 export * from './useEmit';
-export * from './useEventListerner';
+export * from './useEventListener';

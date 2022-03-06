@@ -5,7 +5,7 @@ import { styled } from '@mui/material/styles';
 import { ErrorIcon } from '../../Ressources/icons';
 import { useTranslation } from 'react-i18next';
 import { useEmit, useEventListener } from '../../Hooks';
-import { CLIENT_EVENTS, QuitCalibrationEvent, ChangeVisionCalibrationParamsEvent } from 'rave-protocol';
+import { CLIENT_EVENTS, ChangeVisionCalibrationParamsEvent } from 'rave-protocol';
 
 const CustomTextField = styled(TextField)({
   '& label.Mui-focused': {
@@ -29,11 +29,8 @@ function CalibSettings() {
   const [nbPoints, setNbPoints] = useState(5);
   const [orderPoly, setOrderPoly] = useState(3);
 
-  useEventListener(CLIENT_EVENTS.NEW_ERROR_MESSAGE, ({ newErrorMessage }) => {
-    setErrorMessage(newErrorMessage);
-    return () => {
-      emit(QuitCalibrationEvent());
-    };
+  useEventListener(CLIENT_EVENTS.CALIBRATION_ERROR, ({ message }) => {
+    setErrorMessage(message);
   });
 
   const handlePointsChange = (event : React.ChangeEvent<HTMLInputElement>) => {

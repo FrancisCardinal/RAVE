@@ -1,5 +1,5 @@
 
-import { Collapse, Modal, TextField } from "@mui/material";
+import { Modal, TextField } from "@mui/material";
 import React, { FC, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SaveIcon } from "../../Ressources/icons";
@@ -21,10 +21,9 @@ const CustomTextField = styled(TextField)({
 
 interface CalibInstructionsProps {
   setInstructionModalOpen: (openState : boolean) => void;
-  name_history: {id : string, name : string}[],
 }
 
-const CalibInstructions : FC<CalibInstructionsProps> = ({setInstructionModalOpen, name_history}) => {
+const CalibInstructions : FC<CalibInstructionsProps> = ({setInstructionModalOpen}) => {
   const emit = useEmit();
 
   const gifs = [
@@ -37,7 +36,6 @@ const CalibInstructions : FC<CalibInstructionsProps> = ({setInstructionModalOpen
   const [open, setOpen] = useState(false);
   const handleClose = () => setOpen(false);
   const [name_id, setName_id] = useState("");
-  const [error_open, setError_open] = useState(false);
   
   useEffect(() => {
     if (step >= 3) {
@@ -54,21 +52,13 @@ const CalibInstructions : FC<CalibInstructionsProps> = ({setInstructionModalOpen
 
   const handleNameIdChange = (event : React.ChangeEvent<HTMLInputElement>) => {
     setName_id(event.target.value);
-    setError_open(false);
   };
   
   const handleSubmit = (_event : React.FormEvent<HTMLFormElement>) => {
     _event.preventDefault();
-    if (!name_history.find((element) => element.name === name_id))
-    {
-      setOpen(false);
-      setInstructionModalOpen(false);
-      emit(EyeTrackerAddNewConfigEvent(name_id));
-    }
-    else 
-    {
-      setError_open(true);
-    }
+    setOpen(false);
+    setInstructionModalOpen(false);
+    emit(EyeTrackerAddNewConfigEvent(name_id));
   };
 
   return (
@@ -104,9 +94,6 @@ const CalibInstructions : FC<CalibInstructionsProps> = ({setInstructionModalOpen
               />
               <button type="submit"><SaveIcon className={"w-6 h-6 ml-2"}/></button>
             </div>
-            <Collapse in={error_open}>
-              <p className="text-red text-xs relative w-fit">{t('eyeTrackerCalibrationPage.errorMessage')}</p>
-            </Collapse>
           </form>
         </div>
       </Modal>

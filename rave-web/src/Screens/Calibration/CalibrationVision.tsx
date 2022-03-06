@@ -4,7 +4,7 @@ import CalibStream from '../../Components/UI/CalibStream';
 import { BrowserView, MobileView } from 'react-device-detect';
 import CalibSettings from '../../Components/UI/CalibSettings';
 import { useEmit } from '../../Hooks';
-import { GoToVisionCalibrationEvent } from 'rave-protocol/pythonEvents';
+import { GoToVisionCalibrationEvent, QuitCalibrationEvent } from 'rave-protocol/pythonEvents';
 
 function CalibrationScreen() {
   const emit = useEmit();
@@ -12,6 +12,9 @@ function CalibrationScreen() {
 
   useEffect(() => {
     emit(GoToVisionCalibrationEvent());
+    return () => {
+      emit(QuitCalibrationEvent());
+    };
   }, [emit]);
 
   return (

@@ -6,12 +6,11 @@ interface AbstractClientMessage extends AbstractMessage {
 }
 
 export enum CLIENT_EVENTS {
-  NEW_FRAME_AVAILABLE = 'newFrameAvailable',
   CALIBRATION_FRAME = 'calibrationFrame',
   CALIBRATION_ERROR = 'calibrationError',
   CONNECTION_STATUS = 'connectionStatus',
-  EYE_TRACKING_CONFIGURATIONS = 'eyeTrackingConfigurations',
-  NEW_ERROR_MESSAGE = 'newErrorMsg',
+  EYE_TRACKING_CONFIGURATIONS = 'configList',
+  NEW_FRAME_AVAILABLE = 'newFrameAvailable',
 };
 
 export interface BoundingBox {
@@ -22,35 +21,6 @@ export interface BoundingBox {
   height : number;
   color? : string;
 }
-
-
-export interface NewFrameAvailablePayload {
-  /**
- * @param frame The base64 encoded text string
- * @param dimensions A tuple of the [width,height] parameters of the image 
- * @param boundingBoxes An array of boudingBoxes to be drawn on the image and their associated ID
- */
-  base64Frame : string;
-  dimensions : [number,number, number];
-  boundingBoxes : BoundingBox[];
-}
-
-/**
- * @param base64Frame The base64 encoded text string
- * @param dimensions A tuple of the [width,height] parameters of the image 
- * @param boundingBoxes An array of boudingBoxes to be drawn on the image and their associated ID
- */
-export function NewFrameAvailableEvent(base64Frame : string, dimensions : [number, number, number], boundingBoxes : BoundingBox[]) {
-  return {
-    destination : MESSAGE_DESTINATIONS.CLIENT,
-    event: CLIENT_EVENTS.NEW_FRAME_AVAILABLE,
-    payload : {
-      base64Frame,
-      dimensions,
-      boundingBoxes,
-    } as NewFrameAvailablePayload
-  }
-};
 
 export function CalibrationErrorEvent(message : string) {
   return {
@@ -86,16 +56,6 @@ export function EyeTrackingConfigurationsEvent(configuration : any) {
   }
 }
 
-export function NewErrorMessageEvent(newErrorMessage : string) {
-  return {
-    destination : MESSAGE_DESTINATIONS.CLIENT,
-    event : CLIENT_EVENTS.NEW_ERROR_MESSAGE,
-    payload : {
-      newErrorMessage
-    }
-  }
-}
-
 export function CalibrationFrameEvent(frame : string, dimensions : [number, number, number]) {
   return {
     destination : MESSAGE_DESTINATIONS.CLIENT,
@@ -107,3 +67,30 @@ export function CalibrationFrameEvent(frame : string, dimensions : [number, numb
   }
 }
 
+export interface NewFrameAvailablePayload {
+  /**
+ * @param frame The base64 encoded text string
+ * @param dimensions A tuple of the [width,height] parameters of the image 
+ * @param boundingBoxes An array of boudingBoxes to be drawn on the image and their associated ID
+ */
+  base64Frame : string;
+  dimensions : [number,number, number];
+  boundingBoxes : BoundingBox[];
+}
+
+/**
+ * @param base64Frame The base64 encoded text string
+ * @param dimensions A tuple of the [width,height] parameters of the image 
+ * @param boundingBoxes An array of boudingBoxes to be drawn on the image and their associated ID
+ */
+ export function NewFrameAvailableEvent(base64Frame : string, dimensions : [number, number, number], boundingBoxes : BoundingBox[]) {
+  return {
+    destination : MESSAGE_DESTINATIONS.CLIENT,
+    event: CLIENT_EVENTS.NEW_FRAME_AVAILABLE,
+    payload : {
+      base64Frame,
+      dimensions,
+      boundingBoxes,
+    } as NewFrameAvailablePayload
+  }
+};

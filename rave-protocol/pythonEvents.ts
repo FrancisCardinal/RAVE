@@ -6,22 +6,21 @@ interface AbstractPythonMessage extends AbstractMessage {
 }
 
 export enum PYTHON_EVENTS {
-  FORCE_REFRESH = 'forceRefresh',
-  TARGET_SELECT = 'targetSelect',
-  GO_TO_VISION_CALIBRATION = 'goToVisionCalibration',
-  GO_TO_EYE_TRACKER_CALIBRATION = 'goToEyeTrackerCalibration',
-  STOP_VISION_CALIBRATION = 'stopVisonCalibration',
-  NEXT_CALIBRATION_TARGET = 'nextCalibTarget',
-  MUTE_REQUEST = 'muteRequest',
   ACTIVATE_EYE_TRACKING = 'activateEyeTracking',
-  SET_VOLUME = 'setVolume',
-  DELETE_CONFIG = 'deleteConfig',
-  EYE_TRACKING_CONFIG_SELECTED = 'eyeTrackingConfigSelected',
-  QUIT_CALIBRATION = 'quitCalibration',
-  START_EYE_TRACKER_CALIBRATION = 'startEyeTrackerCalib',
-  EYE_TRACKER_NEXT_CALIBRATION_STEP = 'nextCalibStep',
-  EYE_TRACKER_ADD_NEW_CONFIG = 'addNewConfig',
   CHANGE_VISION_CALIBRATION_PARAMS = 'changeCalibParams',
+  DELETE_CONFIG = 'deleteEyeTrackingCalib',
+  EYE_TRACKER_ADD_NEW_CONFIG = 'addEyeTrackingCalib',
+  EYE_TRACKING_CONFIG_SELECTED = 'selectEyeTrackingCalib',
+  EYE_TRACKER_NEXT_CALIBRATION_STEP = 'nextCalibStep',
+  FORCE_REFRESH = 'forceRefresh',
+  GO_TO_VISION_CALIBRATION = 'goToVisionCalibration',
+  GO_TO_EYE_TRACKER_CALIBRATION = 'goToEyeTrackingCalibration',
+  MUTE_REQUEST = 'muteRequest',
+  NEXT_CALIBRATION_TARGET = 'nextCalibTarget',
+  QUIT_CALIBRATION = 'quitVisionCalibration',
+  SET_VOLUME = 'setVolume',
+  START_EYE_TRACKER_CALIBRATION = 'startEyeTrackingCalibration',
+  TARGET_SELECT = 'targetSelect',
 }
 
 export interface TargetSelectPayload {
