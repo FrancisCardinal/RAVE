@@ -61,10 +61,10 @@ class AudioDatasetBuilder:
     snr = 1
     receiver_height = 1.5
     receiver_rel = np.array((                   # Receiver (microphone) positions relative to "user" [x, y, z] (m)
-                                [-0.1, -0.1, 0],
-                                [-0.1, 0.1, 0],
-                                [0.1, -0.1, 0],
-                                [0.1, 0.1, 0]
+                                [-0.05, -0.05, 0],
+                                [-0.05, 0.05, 0],
+                                [0.05, -0.05, 0],
+                                [0.05, 0.05, 0]
                             ))
     rir_max_order = 5
     rir_wall_absorption = 0.85
@@ -76,7 +76,7 @@ class AudioDatasetBuilder:
         self.dir_noise_count_range = [noise_count_range[0], noise_count_range[1] + 1]
         self.speech_noise = speech_noise
         self.sample_per_speech = sample_per_speech
-        self.is_debug = IS_DEBUG
+        self.is_debug = debug
 
         self.receiver_abs = None
         self.dir_noise_count = noise_count_range[0]
@@ -359,6 +359,9 @@ class AudioDatasetBuilder:
 
         plt.savefig(os.path.join(save_path, 'scene2d.jpg'))
 
+        if SHOW_GRAPHS:
+            fig2d.show()
+
         # 3D
         # Room
         if self.is_debug:
@@ -394,8 +397,7 @@ class AudioDatasetBuilder:
                 ax.scatter3D(dif_noise_pos[SIDE_ID], dif_noise_pos[DEPTH_ID], dif_noise_pos[HEIGHT_ID], c='r')
                 ax.text(dif_noise_pos[SIDE_ID], dif_noise_pos[DEPTH_ID], dif_noise_pos[HEIGHT_ID], dif_noise_name)
 
-        if SHOW_GRAPHS:
-            plt.show()
+            fig3d.show()
 
     def generate_random_room(self):
         """
@@ -443,7 +445,8 @@ class AudioDatasetBuilder:
             z_angle = (np.random.rand() - 0.5) * 2 * TILT_RANGE
             x_dir = (SOURCE_USER_DISTANCE+1) * math.cos(self.xy_angle)
             y_dir = (SOURCE_USER_DISTANCE+1) * math.sin(self.xy_angle)
-            print(f'angle:{self.xy_angle}, x:{x_dir}, y:{y_dir}')
+            if self.is_debug:
+                print(f'angle:{self.xy_angle}, x:{x_dir}, y:{y_dir}')
             z_dir = 1e-5
             # z_dir = (np.random.rand() - 0.5) * 2 * TILT_RANGE
 
@@ -461,13 +464,13 @@ class AudioDatasetBuilder:
             receiver_center[1] += float(new_y)
             self.receiver_abs.append(receiver_center)
 
-        # Generate user head walls
-        rel_corners = [[-0.1, -0.1], [-0.1, 0.1], [0.1, 0.1], [0.1, -0.1]]
+        # Generate user head wall corners
+        rel_corners = self.receiver_rel
         abs_top_corners = []
         abs_bot_corners = []
         for rel_corner in rel_corners:
             # Rotated axis
-            new_x, new_y = self.rotate_coords(rel_corner, self.xy_angle, inverse=False)
+            new_x, new_y, new_z = self.rotate_coords(rel_corner, self.xy_angle, inverse=False)
             # Top corners
             corner_top = self.user_pos.copy()
             corner_top[0] += new_x
@@ -481,6 +484,7 @@ class AudioDatasetBuilder:
             corner_bot[2] -= 0.25
             abs_bot_corners.append(corner_bot)
 
+        # Generate user head walls and add to room
         top_plane = np.array(abs_top_corners).T
         bot_plane = np.array(abs_bot_corners).T
         planes = [top_plane, bot_plane]
@@ -488,12 +492,12 @@ class AudioDatasetBuilder:
             side_plane = np.array([abs_top_corners[i], abs_top_corners[(i+1) % 4],
                                    abs_bot_corners[(i+1) % 4], abs_bot_corners[i]]).T
             planes.append(side_plane)
-
         wall_absorption = np.array([0.95])
         scattering = np.array([0])
         for plane in planes:
             self.current_room.walls.append(pra.wall_factory(plane, wall_absorption, scattering, "Head"))
 
+        # Generate microphone array in room
         x_mic_values = [mic[0] for mic in self.receiver_abs]
         y_mic_values = [mic[1] for mic in self.receiver_abs]
         z_mic_values = [mic[2] for mic in self.receiver_abs]
@@ -550,7 +554,8 @@ class AudioDatasetBuilder:
                     front_facing_angle = 0.5 * math.pi
                     new_x, new_y, new_z = self.rotate_coords([new_x, new_y, new_z], front_facing_angle, inverse=False)
                     self.source_direction = [new_x, new_y, new_z]
-                    print(f'Source: {self.source_direction}')
+                    if self.is_debug:
+                        print(f'Source: {self.source_direction}')
 
                 else:
                     # Check if noise is not on user
@@ -772,7 +777,7 @@ class AudioDatasetBuilder:
         config_dict = dict(
             path=subfolder_name,
             n_channels=self.n_channels,
-            mic_rel=self.receiver_rel,
+            mic_rel=self.receiver_rel.tolist(),
             mic_abs=self.receiver_abs,
             room_shape=self.current_room_shape,
             room_size=self.current_room_size,
@@ -952,8 +957,7 @@ class AudioDatasetBuilder:
                     subfolder_path = self.save_files(audio_source_dict)
 
                     self.dataset_list.append(subfolder_path)
-                    if self.is_debug:
-                        print("Created: " + subfolder_path)
+                    print("Created: " + subfolder_path)
                 else:
                     # Generate config dict
                     run_name = audio_source_dict['combined_audio'][0]['name']

@@ -116,7 +116,11 @@ def main(DEBUG, INPUT, OUTPUT, TIME, MASK):
     samples = 0
     while samples / CONST.SAMPLING_RATE < TIME:
         # Record from microphone
-        x = source()
+        try:
+            x = source()
+        except:
+            print('Source error. Closing.')
+            exit()
         if x.all() == None:
             print('End of transmission. Closing.')
             exit()
@@ -148,6 +152,11 @@ def main(DEBUG, INPUT, OUTPUT, TIME, MASK):
         output_sink(y)
 
         samples += CHUNK_SIZE
+
+        if DEBUG:
+            print(f'Samples processed: {samples}')
+
+    print('Finished running main_audio')
 
 
 if __name__ == "__main__":

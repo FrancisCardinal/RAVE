@@ -65,4 +65,4 @@ sample_per_speech: 5
 data_split: [0.7, 0.15, 0.15]
 
 # Wall absorption range
-wall_absorption_limits: [0.75, 0.95]
+wall_absorption_limits: [0.85, 1]
