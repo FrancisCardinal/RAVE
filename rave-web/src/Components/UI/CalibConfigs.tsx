@@ -12,13 +12,8 @@ import { DeleteConfigEvent, EyeTrackingConfigSelectedEvent } from 'rave-protocol
 function CalibConfigs() {
   const [t] = useTranslation("common");
   const emit = useEmit();
-  const dummy_list = [
-    {id: 1, name: 'Amélie Rioux-Joyal'},
-    {id: 2, name: 'Jacob Kealy'},
-    {id: 3, name: 'Jérémy Bélec'},
-    {id: 4, name: 'Francis Cardinal'}
-  ];
-  const [configs, setConfigs] = useState(dummy_list);
+
+  const [configs, setConfigs] = useState<{id : string, name : string}[]>([]);
   
   const handleSelect = (name : string) => {
     var ptag = document.getElementById('selection-text');
@@ -26,12 +21,8 @@ function CalibConfigs() {
     emit(EyeTrackingConfigSelectedEvent(name));
   }
 
-  const deleteConfig = (id : number) => {
-    const new_lists = configs.filter(x => {
-      return x.id !== id;
-    })
-    setConfigs(new_lists);
-    emit(DeleteConfigEvent());
+  const deleteConfig = (id : string) => {
+    emit(DeleteConfigEvent(id));
   }
 
   useEventListener(CLIENT_EVENTS.EYE_TRACKING_CONFIGURATIONS, ({configurations}) => {

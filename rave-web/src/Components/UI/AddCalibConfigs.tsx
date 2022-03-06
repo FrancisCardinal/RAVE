@@ -8,7 +8,7 @@ import { useEmit } from "../../Hooks";
 import { StartEyeTrackerCalibrationEvent } from 'rave-protocol/pythonEvents';
 
 interface AddCalibConfigsProps {
-  name_history: {id : number, name : string}[],
+  name_history: {id : string, name : string}[],
 }
 
 const AddCalibConfigs : FC<AddCalibConfigsProps> = ({name_history}) => {

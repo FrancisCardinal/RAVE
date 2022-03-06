@@ -45,10 +45,13 @@ export function NextCalibTargetEvent() {
   }
 };
 
-export function DeleteConfigEvent() {
+export function DeleteConfigEvent(id : string) {
   return {
     destination : MESSAGE_DESTINATIONS.PYTHON,
     event: PYTHON_EVENTS.DELETE_CONFIG,
+    payload: {
+      id
+    }
   }
 };
 

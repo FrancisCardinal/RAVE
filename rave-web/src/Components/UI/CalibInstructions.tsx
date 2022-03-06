@@ -26,7 +26,7 @@ const gifs = [
 ]
 interface CalibInstructionsProps {
   setInstructionModalOpen: (openState : boolean) => void;
-  name_history: {id : number, name : string}[],
+  name_history: {id : string, name : string}[],
 }
 
 const CalibInstructions : FC<CalibInstructionsProps> = ({setInstructionModalOpen, name_history}) => {
