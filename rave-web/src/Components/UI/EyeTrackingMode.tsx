@@ -4,6 +4,9 @@ import { useTranslation } from 'react-i18next';
 import { useEmit } from '../../Hooks';
 import { ActivateEyeTrackingEvent } from 'rave-protocol/pythonEvents';
 
+/**
+ * This component is a switch to activate and deactivate the eye-tracking mode
+ */
 function EyeTrackingMode() {
   const [t] = useTranslation('common');
   const [eye, setEyeTracking] = useState(false);
@@ -17,9 +20,7 @@ function EyeTrackingMode() {
   return (
     <div className="flex bg-grey rounded-lg m-2 items-center w-min">
       <h1 className="p-2 font-medium w-max">{t('homePage.eyeTrackingLabel')}</h1>
-      <div>
-        <Switch className="align-middle" color="error" checked={eye} onChange={handleChange} />
-      </div>
+      <Switch className="align-middle" color="error" checked={eye} onChange={handleChange} />
     </div>
   );
 }

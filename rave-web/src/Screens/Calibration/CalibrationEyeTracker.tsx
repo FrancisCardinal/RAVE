@@ -15,9 +15,7 @@ function EyeTrackerCalibScreen() {
   return (
     <div>
       <h1 className="text-3xl mx-2 font-bold text-center underline">{t('eyeTrackerCalibrationPage.title')}</h1>
-      <div>
-        <CalibConfigs />
-      </div>
+      <CalibConfigs />
     </div>
   );
 }

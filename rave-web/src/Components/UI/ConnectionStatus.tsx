@@ -4,6 +4,9 @@ import { WifiCheckedIcon, NoWifiConnectionIcon } from '../../Ressources/icons';
 import { useEventListener } from '../../Hooks';
 import { CLIENT_EVENTS, ConnectionStatusPayload } from 'rave-protocol';
 
+/**
+ * This component displays the current connection with the prototype.
+ */
 function ConnectionStatus() {
   const [t] = useTranslation('common');
   const [connectionStatus, setConnectionStatus] = useState(0);
