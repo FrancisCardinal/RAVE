@@ -1,17 +1,16 @@
 import multiprocessing
 import os
-from numpy import block
+
 
 import numpy as np
 import torch
 import argparse
 import matplotlib.pyplot as plt
 
-from ...common.Trainer import Trainer
+from RAVE.audio.Neural_Network.AudioModel import AudioModel
+from RAVE.audio.Neural_Network.AudioTrainer import AudioTrainer
+from RAVE.audio.Dataset.AudioDataset import AudioDataset
 
-from .AudioModel import AudioModel
-from .AudioTrainer import AudioTrainer
-from ..Dataset.AudioDataset import AudioDataset
 
 def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
     """main function of the module

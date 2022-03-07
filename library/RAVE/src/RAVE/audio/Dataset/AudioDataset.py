@@ -118,13 +118,17 @@ class AudioDataset(torch.utils.data.Dataset):
         freq_signal = self.transformation(signal)
         mic0 = list(np.subtract(config['microphones'][0], config['user_pos']))
         mic1 = list(np.subtract(config['microphones'][1], config['user_pos']))
+        mic2 = list(np.subtract(config['microphones'][2], config['user_pos']))
+        mic3 = list(np.subtract(config['microphones'][3], config['user_pos']))
         
         mic_array =  generate_mic_array({
             "mics": {
                 "0": mic0,
-                "1": mic1
+                "1": mic1,
+                "2": mic2,
+                "3": mic3
             },
-            "nb_of_channels": 2
+            "nb_of_channels": 4
         })
 
         X = freq_signal.cpu().detach().numpy()
