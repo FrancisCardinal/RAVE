@@ -33,8 +33,10 @@ if torch.cuda.is_available():
 #     },
 #     'nb_of_channels': 4
 # })
-MIC_ARRAY = load_mic_array_from_ressources('ReSpeaker_USB')
+MIC_DICT = load_mic_array_from_ressources('ReSpeaker_USB')
+MIC_ARRAY = generate_mic_array(load_mic_array_from_ressources('ReSpeaker_USB'))
 CHANNELS = 4
+OUT_CHANNELS = 2
 
 CHUNK_SIZE = 256
 FRAME_SIZE = 2 * CHUNK_SIZE
@@ -56,6 +58,7 @@ def main(DEBUG, INPUT, OUTPUT, TIME, MASK):
         "NONE",
         "not compressed",
     )
+    mic_array = MIC_ARRAY
     channels = FILE_PARAMS[0]
     target = np.array([0, 1, 0.5])
     subfolder_path = None
@@ -71,7 +74,7 @@ def main(DEBUG, INPUT, OUTPUT, TIME, MASK):
         else:
             INPUT = int(INPUT)
         source = io_manager.add_source(source_name='MicSource1', source_type='mic', mic_index=INPUT,
-                                       channels=CHANNELS, mic_arr=MIC_ARRAY, chunk_size=CHUNK_SIZE)
+                                       channels=CHANNELS, mic_arr=MIC_DICT, chunk_size=CHUNK_SIZE)
     else:
         # WavSource
         source = io_manager.add_source(source_name='WavSource1', source_type='sim',
@@ -93,14 +96,11 @@ def main(DEBUG, INPUT, OUTPUT, TIME, MASK):
         target = configs['source_dir']
 
         # Microphone array
-        if configs['mic_rel']:
-            mic_dict = {'mics': dict(), 'nb_of_channels': 0}
-            for mic_idx, mic in enumerate(configs['mic_rel']):
-                mic_dict['mics'][f'{mic_idx}'] = mic
-                mic_dict['nb_of_channels'] += 1
-            mic_array = generate_mic_array(mic_dict)
-        else:
-            mic_dict = MIC_ARRAY
+        mic_dict = {'mics': dict(), 'nb_of_channels': 0}
+        for mic_idx, mic in enumerate(configs['mic_rel']):
+            mic_dict['mics'][f'{mic_idx}'] = mic
+            mic_dict['nb_of_channels'] += 1
+        mic_array = generate_mic_array(mic_dict)
         channels = mic_dict['nb_of_channels']
 
     # Output sink
@@ -111,7 +111,7 @@ def main(DEBUG, INPUT, OUTPUT, TIME, MASK):
         else:
             OUTPUT = int(OUTPUT)
         output_sink = io_manager.add_sink(sink_name='original', sink_type='play', device_index=OUTPUT,
-                                          channels=1, chunk_size=CHUNK_SIZE)
+                                          channels=OUT_CHANNELS, chunk_size=CHUNK_SIZE)
     else:
         # If mic source (no subfolder), output subfolder
         if subfolder_path == None:
@@ -188,11 +188,15 @@ def main(DEBUG, INPUT, OUTPUT, TIME, MASK):
         # MVDR
         Y = beamformer(signal=X, target_scm=target_scm, noise_scm=noise_scm)
         y = istft(Y)
-        output_sink(x)
+        if OUT_CHANNELS == 1:
+            out = y[y.shape[0]//2]
+        elif OUT_CHANNELS == 2:
+            out = np.array([y[0], y[-1]])
+        output_sink(out)
 
         samples += CHUNK_SIZE
 
-        if DEBUG:
+        if DEBUG and samples % (CHUNK_SIZE*10) == 0:
             print(f'Samples processed: {samples}')
 
     print('Finished running main_audio')
