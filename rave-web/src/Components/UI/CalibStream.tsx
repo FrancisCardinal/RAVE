@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { useEventListener } from '../../Hooks';
 import { CLIENT_EVENTS } from 'rave-protocol/clientEvents';
 
+/**
+ * This component displays the video stream of the vision camera for the visual-audio calibration.
+ */
 function CalibStream() {
   const [frame, setFrame] = useState({});
 

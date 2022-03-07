@@ -5,6 +5,9 @@ import Slider from '@mui/material/Slider';
 import { useEmit } from '../../Hooks';
 import { SetVolumeEvent } from 'rave-protocol/pythonEvents';
 
+/**
+ * This component allows the user to modify the headphone's volume via a slider.s
+ */
 function VolumeSlider() {
   const emit = useEmit();
   const [value, setValue] = useState(30);
