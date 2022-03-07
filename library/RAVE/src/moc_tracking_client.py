@@ -10,7 +10,9 @@ from RAVE.face_detection.face_detectors import YoloFaceDetector
 # socket io client
 sio = socketio.Client()
 
-# Called when we want to send updated data to the server
+
+def emit(eventName, destination, payload):
+    sio.emit(eventName, {"destination": destination, "payload": payload})
 
 
 def send_data(frame, detections):
@@ -37,10 +39,11 @@ def send_data(frame, detections):
         frame_string = base64.b64encode(
             cv2.imencode(".jpg", frame)[1]
         ).decode()
-        sio.emit(
+        emit(
             "newFrameAvailable",
+            "client",
             {
-                "frame": frame_string,
+                "base64Frame": frame_string,
                 "dimensions": frame.shape,
                 "boundingBoxes": boundingBoxes,
             },
@@ -100,7 +103,7 @@ def stream_detect(detect_func, freq):
 def connect():
     print("connection established to server")
     # Emit the socket id to the server to "authenticate yourself"
-    sio.emit("pythonSocket", sio.get_sid())
+    emit("pythonSocketAuth", "server", {"socketId": sio.get_sid()})
 
 
 @sio.on("forceRefresh")

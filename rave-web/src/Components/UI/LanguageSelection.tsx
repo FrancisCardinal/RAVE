@@ -1,20 +1,20 @@
 import FormControl from '@mui/material/FormControl';
 import Box from '@mui/material/Box';
-import Select from '@mui/material/Select';
+import Select, { SelectChangeEvent } from '@mui/material/Select';
 import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
-import React, { useState } from 'react';
+import React, { useState, FC } from 'react';
 import { useTranslation } from 'react-i18next';
-import PropTypes from 'prop-types';
 
-LanguageSelection.propTypes = {
-  className: PropTypes.string,
-};
+interface LanguageSelectionProps {
+  className: string,
+}
 
-function LanguageSelection(props) {
+const LanguageSelection : FC<LanguageSelectionProps> = (props) => {
   const [t, i18n] = useTranslation('common');
   const [language, setLanguage] = useState(i18n.language);
-  const handleChange = (event) => {
+  
+  const handleChange = (event : SelectChangeEvent<string>) => {
     setLanguage(event.target.value);
     i18n.changeLanguage(event.target.value);
   };

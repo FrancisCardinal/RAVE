@@ -1,12 +1,15 @@
+import React from 'react';
 import EyeTrackingMode from '../../Components/UI/EyeTrackingMode';
 import MuteButton from '../../Components/UI/MuteButton';
 import VolumeSlider from '../../Components/UI/VolumeSlider';
 import Stream from '../../Components/UI/Stream';
 import { BrowserView, MobileView } from 'react-device-detect';
 import { useTranslation } from 'react-i18next';
-import React from 'react';
+import { useEmit } from "../../Hooks";
+import { ForceRefreshEvent } from 'rave-protocol/pythonEvents';
 
 function HomeScreen() {
+  const emit = useEmit();
   const [t] = useTranslation('common');
   return (
     <div className=" flex flex-col max-h-full items-center">
@@ -21,7 +24,18 @@ function HomeScreen() {
         <Stream />
       </MobileView>
       <div className="flex flex-col relative w-min items-center bottom-0">
+        <div className='flex flex-row'>
+          <button
+          className="flex mt-2 bg-grey h-min text-black rounded-lg shadow-sm"
+          onClick={() => {
+            emit(ForceRefreshEvent());
+          }}
+        >
+          <h1 className='p-2 font-medium w-max'>{t('homePage.forceRefresh')}</h1>
+        </button>
         <EyeTrackingMode />
+        </div>
+        
         <MuteButton />
         <VolumeSlider />
       </div>

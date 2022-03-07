@@ -4,15 +4,15 @@ import HomeScreen from './Screens/Home';
 import SettingsScreen from './Screens/Settings';
 import HelpScreen from './Screens/Help';
 import CalibrationScreen from './Screens/Calibration';
-import { SocketProvider } from './socketContext';
-import io from 'socket.io-client';
+import { SocketProvider, WebSocketType } from './socketContext';
+import { io } from "socket.io-client"
 import DesktopMainBar from './Components/UI/DesktopMainBar';
 import MobileMainBar from './Components/UI/MobileMainBar';
 import { BrowserView, MobileView } from 'react-device-detect';
+import EyeTrackerCalibScreen from './Screens/Calibration/CalibrationEyeTracker';
 
 function App() {
-  const [socket, setSocket] = useState(null);
-
+  const [socket, setSocket] = useState<WebSocketType | null>(null);
   useEffect(() => {
     if (process.env.REACT_APP_ONLINE_MODE === 'true') {
       let URL = window.location.origin;
@@ -35,20 +35,21 @@ function App() {
   return (
     <>
       <SocketProvider value={socket}>
-        <BrowserRouter>
-          <BrowserView>
-            <DesktopMainBar />
-          </BrowserView>
-          <MobileView>
-            <MobileMainBar />
-          </MobileView>
-          <Routes>
-            <Route path="/" element={<HomeScreen />} />
-            <Route path="/settings" element={<SettingsScreen />} />
-            <Route path="/help" element={<HelpScreen />} />
-            <Route path="/calibration" element={<CalibrationScreen />} />
-          </Routes>
-        </BrowserRouter>
+          <BrowserRouter>
+            <BrowserView>
+              <DesktopMainBar />
+            </BrowserView>
+            <MobileView>
+              <MobileMainBar />
+            </MobileView>
+            <Routes>
+              <Route path="/" element={<HomeScreen />} />
+              <Route path="/settings" element={<SettingsScreen />} />
+              <Route path="/help" element={<HelpScreen />} />
+              <Route path="/calibration" element={<CalibrationScreen />} />
+              <Route path="/calibration-eye-tracker" element={<EyeTrackerCalibScreen />} />
+            </Routes>
+          </BrowserRouter>
       </SocketProvider>
     </>
   );
