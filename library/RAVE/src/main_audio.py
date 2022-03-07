@@ -9,9 +9,10 @@ from pyodas.core import (
     Stft,
     IStft,
     KissMask,
-    SpatialCov
+    SpatialCov,
+    DelaySum
 )
-from pyodas.utils import CONST, generate_mic_array
+from pyodas.utils import CONST, generate_mic_array, load_mic_array_from_ressources, get_delays_based_on_mic_array
 
 from RAVE.audio.IO.IO_manager import IOManager
 from RAVE.audio.Neural_Network.AudioModel import AudioModel
@@ -23,76 +24,114 @@ if torch.cuda.is_available():
 
 # Constants
 # TODO: Uniformise microphone array in config file or such
-MIC_ARRAY = generate_mic_array({
-    'mics': {
-        '0': [-0.1, -0.1, 0],
-        '1': [-0.1, 0.1, 0],
-        '2': [0.1, -0.1, 0],
-        '3': [0.1, 0.1, 0]
-    },
-    'nb_of_channels': 4
-})
+# MIC_ARRAY = generate_mic_array({
+#     'mics': {
+#         '0': [-0.1, -0.1, 0],
+#         '1': [-0.1, 0.1, 0],
+#         '2': [0.1, -0.1, 0],
+#         '3': [0.1, 0.1, 0]
+#     },
+#     'nb_of_channels': 4
+# })
+MIC_ARRAY = load_mic_array_from_ressources('ReSpeaker_USB')
+CHANNELS = 4
 
 CHUNK_SIZE = 256
 FRAME_SIZE = 2 * CHUNK_SIZE
-UNPROCESSED_MIX = "../../../audio_files/unprocessed_mix.wav"
-KISS_MVDR_MIX = "../../../audio_files/kiss_mvdr_ref_mix.wav"
-KISS_GEV_MIX = "../../../audio_files/kiss_gev_mix.wav"
-# TARGET = np.array([0, 1, 0.25])
 
-# Params: .wav file channels, int16 byte size, sampling rate, nb of samples,
-#         compression type, compression name
-# FILE_PARAMS = (
-#     4,
-#     2,
-#     CONST.SAMPLING_RATE,
-#     CONST.SAMPLING_RATE * TIME,
-#     "NONE",
-#     "NONE",
-# )
+DEFAULT_OUTPUT_FOLDER = 'C:\GitProjet\pipeline'
 
 
 def main(DEBUG, INPUT, OUTPUT, TIME, MASK):
     # TODO: add multiple source/sink support?
     # TODO: simplify io abstraction kwargs
 
-    # Paths
-    subfolder_path = os.path.split(INPUT)[0]
-    original = os.path.join(subfolder_path, 'original.wav')
-    if OUTPUT == '':
-        OUTPUT = os.path.join(subfolder_path, 'output.wav')
-    config_path = os.path.join(subfolder_path, 'configs.yaml')
-    with open(config_path, "r") as stream:
-        try:
-            configs = yaml.safe_load(stream)
-        except yaml.YAMLError as exc:
-            print(exc)
-            exit()
-
-    # Microphone array
-    if configs['mic_rel']:
-        mic_dict = {'mics': dict(), 'nb_of_channels': 0}
-        for mic_idx, mic in enumerate(configs['mic_rel']):
-            mic_dict['mics'][f'{mic_idx}'] = mic
-            mic_dict['nb_of_channels'] += 1
-        mic_array = generate_mic_array(mic_dict)
-    else:
-        mic_dict = MIC_ARRAY
-    channels = mic_dict['nb_of_channels']
+    # Params: .wav file channels, int16 byte size, sampling rate, nb of samples,
+    #         compression type, compression name
+    FILE_PARAMS = (
+        4,
+        2,
+        CONST.SAMPLING_RATE,
+        CONST.SAMPLING_RATE * TIME,
+        "NONE",
+        "not compressed",
+    )
+    channels = FILE_PARAMS[0]
+    target = np.array([0, 1, 0.5])
+    subfolder_path = None
+    original_sink = None
 
     # IO
     io_manager = IOManager()
-    source = io_manager.add_source(source_name='source1', source_type='sim',
-                                   file=INPUT, chunk_size=CHUNK_SIZE)
-    wav_params = source.wav_params
-    original_sink = io_manager.add_sink(sink_name='original', sink_type='sim',
-                               file=original, wav_params=wav_params, chunk_size=CHUNK_SIZE)
-    output_sink = io_manager.add_sink(sink_name='output', sink_type='sim',
-                               file=OUTPUT, wav_params=wav_params, chunk_size=CHUNK_SIZE)
+    # Input source
+    if INPUT == 'default' or INPUT.isdigit():
+        # MicSource
+        if INPUT == 'default':
+            INPUT = None
+        else:
+            INPUT = int(INPUT)
+        source = io_manager.add_source(source_name='MicSource1', source_type='mic', mic_index=INPUT,
+                                       channels=CHANNELS, mic_arr=MIC_ARRAY, chunk_size=CHUNK_SIZE)
+    else:
+        # WavSource
+        source = io_manager.add_source(source_name='WavSource1', source_type='sim',
+                                       file=INPUT, chunk_size=CHUNK_SIZE)
+        FILE_PARAMS = source.wav_params
+
+        # If .wav source, get more info from files
+        # Paths
+        # TODO: fix output to .wav and playback?
+        # TODO: fix folder path when no .wav input?
+        subfolder_path = os.path.split(INPUT)[0]
+        config_path = os.path.join(subfolder_path, 'configs.yaml')
+        with open(config_path, "r") as stream:
+            try:
+                configs = yaml.safe_load(stream)
+            except yaml.YAMLError as exc:
+                print(exc)
+                exit()
+        target = configs['source_dir']
+
+        # Microphone array
+        if configs['mic_rel']:
+            mic_dict = {'mics': dict(), 'nb_of_channels': 0}
+            for mic_idx, mic in enumerate(configs['mic_rel']):
+                mic_dict['mics'][f'{mic_idx}'] = mic
+                mic_dict['nb_of_channels'] += 1
+            mic_array = generate_mic_array(mic_dict)
+        else:
+            mic_dict = MIC_ARRAY
+        channels = mic_dict['nb_of_channels']
+
+    # Output sink
+    if OUTPUT == 'default' or OUTPUT.isdigit():
+        # PlaybackSink
+        if OUTPUT == 'default':
+            OUTPUT = None
+        else:
+            OUTPUT = int(OUTPUT)
+        output_sink = io_manager.add_sink(sink_name='original', sink_type='play', device_index=OUTPUT,
+                                          channels=1, chunk_size=CHUNK_SIZE)
+    else:
+        # If mic source (no subfolder), output subfolder
+        if subfolder_path == None:
+            index = 0
+            subfolder_path = os.path.join(DEFAULT_OUTPUT_FOLDER, 'run')
+            while os.path.exists(f'{subfolder_path}_{index}'):
+                index += 1
+            os.makedirs(subfolder_path)
+
+        # WavSink
+        original = os.path.join(subfolder_path, 'original.wav')
+        original_sink = io_manager.add_sink(sink_name='original', sink_type='sim',
+                                            file=original, wav_params=FILE_PARAMS, chunk_size=CHUNK_SIZE)
+        if OUTPUT == '':
+            OUTPUT = os.path.join(subfolder_path, 'output.wav')
+        output_sink = io_manager.add_sink(sink_name='output', sink_type='sim',
+                                          file=OUTPUT, wav_params=FILE_PARAMS, chunk_size=CHUNK_SIZE)
 
     # Masks
     # TODO: Add abstraction to model for info not needed in main script
-    target = configs['source_dir']
     if MASK:
         masks = KissMask(mic_array, buffer_size=30)
     else:
@@ -100,6 +139,7 @@ def main(DEBUG, INPUT, OUTPUT, TIME, MASK):
         model.to(DEVICE)
         if DEBUG:
             print(model)
+        delay_and_sum = DelaySum(FRAME_SIZE)
 
     # Beamformer
     # TODO: simplify beamformer abstraction kwargs
@@ -116,24 +156,23 @@ def main(DEBUG, INPUT, OUTPUT, TIME, MASK):
     samples = 0
     while samples / CONST.SAMPLING_RATE < TIME:
         # Record from microphone
-        try:
-            x = source()
-        except:
-            print('Source error. Closing.')
-            exit()
-        if x.all() == None:
+        x = source()
+        if x is None:
             print('End of transmission. Closing.')
             exit()
 
         # Save the unprocessed recording
-        original_sink(x)
+        if original_sink:
+            original_sink(x)
         X = stft(x)
 
         # Compute the masks
         if MASK:
             speech_mask, noise_mask = masks(X, target)
         else:
-            speech_mask = model(X)
+            delay = get_delays_based_on_mic_array(target, MIC_ARRAY, FRAME_SIZE)
+            sum = delay_and_sum(X, delay)
+            speech_mask = model(sum)
             noise_mask = 1 - speech_mask
 
         # Spatial covariance matrices
@@ -149,7 +188,7 @@ def main(DEBUG, INPUT, OUTPUT, TIME, MASK):
         # MVDR
         Y = beamformer(signal=X, target_scm=target_scm, noise_scm=noise_scm)
         y = istft(Y)
-        output_sink(y)
+        output_sink(x)
 
         samples += CHUNK_SIZE
 
