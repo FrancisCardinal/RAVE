@@ -344,18 +344,82 @@ def intersection(bbox1, bbox2):
         Intersection scaled
     """
 
+    x1, y1, w1, h1 = bbox1
+    x2, y2, w2, h2 = bbox2
+
     # determine the (x, y) coordinates of the intersection rectangle
-    xA = max(bbox1[0], bbox2[0])
-    yA = max(bbox1[1], bbox2[1])
-    xB = min(bbox1[0] + bbox1[2], bbox1[0] + bbox2[2])
-    yB = min(bbox1[1] + bbox1[3], bbox2[1] + bbox2[3])
+    x0_inter = max(x1, x2)
+    y0_inter = max(y1, y2)
+    x1_inter = min(x1 + w1, x2 + w2)
+    y1_inter = min(y1 + h1, y2 + h2)
 
     # compute the area of intersection rectangle
-    inter_area = max(0, xB - xA + 1) * max(0, yB - yA + 1)
+    width_inter = max(0, x1_inter - x0_inter + 1)
+    height_inter = max(0, y1_inter - y0_inter + 1)
+    inter_area = width_inter * height_inter
 
     # determine the smallest area
-    smallest_area = min(
-        (bbox1[2] + 1) * (bbox1[3] + 1), (bbox2[2] + 1) * (bbox2[3] + 1)
-    )
+    smallest_area = min((w1 + 1) * (h1 + 1), (w2 + 1) * (h2 + 1))
 
     return inter_area / smallest_area
+
+
+def check_frontal_face(
+    facial_landmarks,
+    thresh_dist_low=0.7,
+    thresh_dist_high=1.3,
+    thresh_high_std=0.5,
+):
+    """
+    Taken from Tan M. Tran, Nguyen H. Tran, Soan T. M. Duong, Huy D. Ta,
+    Chanh D. Tr. Nguyen,Trung Bui, and Steven Q. H. Truong,
+    ReSORT: an ID-recovery multi-face tracking method for surveillance cameras,
+    IEEE, 2021
+
+    Args:
+        facial_landmarks:
+        thresh_dist_low: Width, height ratio threshold lower bound
+        thresh_dist_high: Width, height ratio threshold higher bound
+        thresh_high_std: Diagonal distance threshold
+
+    Returns:
+        (bool): If the faces is frontal or not
+
+    """
+    if (
+        facial_landmarks[4] < facial_landmarks[0]
+        or facial_landmarks[5] < facial_landmarks[1]
+        or facial_landmarks[4] < facial_landmarks[6]
+        or facial_landmarks[5] > facial_landmarks[7]
+        or facial_landmarks[4] > facial_landmarks[2]
+        or facial_landmarks[5] < facial_landmarks[3]
+        or facial_landmarks[4] > facial_landmarks[8]
+        or facial_landmarks[5] > facial_landmarks[9]
+    ):
+        return False
+
+    wide_dist = np.linalg.norm(
+        np.array(facial_landmarks[0:2]) - np.array(facial_landmarks[2:4])
+    )
+    high_dist = np.linalg.norm(
+        np.array(facial_landmarks[0:2]) - np.array(facial_landmarks[6:8])
+    )
+    dist_rate = high_dist / wide_dist
+
+    # cal std
+    vec_A = np.array(facial_landmarks[0:2]) - np.array(facial_landmarks[4:6])
+    vec_C = np.array(facial_landmarks[6:8]) - np.array(facial_landmarks[4:6])
+    dist_A = np.linalg.norm(vec_A)
+    dist_C = np.linalg.norm(vec_C)
+
+    # cal rate
+    high_rate = dist_A / dist_C
+    high_ratio_std = np.fabs(high_rate - 1.1)  # smaller is better
+
+    if (
+        dist_rate < thresh_dist_low
+        or dist_rate > thresh_dist_high
+        or high_ratio_std > thresh_high_std
+    ):
+        return False
+    return True

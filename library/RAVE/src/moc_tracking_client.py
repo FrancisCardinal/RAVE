@@ -2,7 +2,7 @@ import cv2
 import time
 import socketio
 import base64
-from face_detectors import DnnFaceDetector
+from RAVE.face_detection.face_detectors import YoloFaceDetector
 
 # Simulate the output to be expected from the face tracker
 # Send this information to the server
@@ -12,16 +12,10 @@ sio = socketio.Client()
 
 
 def emit(eventName, destination, payload):
-    sio.emit(
-        eventName,
-        {
-            "destination": destination,
-            "payload": payload
-        }
-    )
+    sio.emit(eventName, {"destination": destination, "payload": payload})
 
 
-def send_data(frame, face_bboxes):
+def send_data(frame, detections):
 
     # frame: image where the faces were detected
 
@@ -29,27 +23,31 @@ def send_data(frame, face_bboxes):
     #   [list of tuples]: (x, y, width, height)
     start = time.time()
     boundingBoxes = []
-    for index, bbox in enumerate(face_bboxes):
+    for index, detection in enumerate(detections):
         boundingBoxes.append(
             {
                 "id": index,
-                "dx": int(bbox[0]),
-                "dy": int(bbox[1]),
-                "width": int(bbox[2]),
-                "height": int(bbox[3]),
+                "dx": int(detection.bbox[0]),
+                "dy": int(detection.bbox[1]),
+                "width": int(detection.bbox[2]),
+                "height": int(detection.bbox[3]),
             }
         )
 
-    if len(face_bboxes) > 0:
+    if len(detections) > 0:
         print("Sending data to server...")
         frame_string = base64.b64encode(
             cv2.imencode(".jpg", frame)[1]
         ).decode()
-        emit("newFrameAvailable", 'client', {
-            "base64Frame": frame_string,
-            "dimensions": frame.shape,
-            "boundingBoxes": boundingBoxes,
-        })
+        emit(
+            "newFrameAvailable",
+            "client",
+            {
+                "base64Frame": frame_string,
+                "dimensions": frame.shape,
+                "boundingBoxes": boundingBoxes,
+            },
+        )
 
     end = time.time()
     print("Time elapsed:", end - start)
@@ -87,8 +85,8 @@ def stream_detect(detect_func, freq):
         if now - last_detect >= freq:
             last_detect = now
             original_frame = frame.copy()
-            frame, faces, _ = detect_func(frame, draw_on_frame=True)
-            send_data(original_frame, faces)
+            frame, detections = detect_func(frame, draw_on_frame=True)
+            send_data(original_frame, detections)
 
         # cv2.imshow("Detections", frame)
 
@@ -105,15 +103,15 @@ def stream_detect(detect_func, freq):
 def connect():
     print("connection established to server")
     # Emit the socket id to the server to "authenticate yourself"
-    emit("pythonSocketAuth", 'server', {"socketId": sio.get_sid()})
+    emit("pythonSocketAuth", "server", {"socketId": sio.get_sid()})
 
 
 @sio.on("forceRefresh")
 def onForceRefresh():
-    print("Client called forc e refresh, generating new faces")
+    print("Client called force refresh, generating new faces")
 
 
-@sio.on('targetSelect')
+@sio.on("targetSelect")
 def onSelectTarget(target):
     print(f"User selected id : {target}")
 
@@ -129,15 +127,14 @@ def disconnect():
 
 
 if __name__ == "__main__":
-    SEND_FREQ = 10  # How often to send data (seconds)
-    USE_STREAM = False  # Use webcam or not
+    SEND_FREQ = 0.05  # How often to send data (seconds)
+    USE_STREAM = True  # Use webcam or not
     sio.connect("ws://localhost:9000")
-    model = DnnFaceDetector()
+    model = YoloFaceDetector()
     detect_func = model.predict
 
     if USE_STREAM:
         stream_detect(detect_func, SEND_FREQ)
     else:
         image_path = "test_image_faces.png"  # "test_image_faces2.png"
-        image_detect(detect_func, image_path=image_path,
-                     freq=SEND_FREQ)
+        image_detect(detect_func, image_path=image_path, freq=SEND_FREQ)

@@ -1,7 +1,7 @@
 # To configure the doctring coverage hook
 paths:
   - library/RAVE/src/RAVE
-exclude: .*/(__init__|face_detection/model)
+exclude: .*/(__init__|face_detection/detectors/models)
 verbose: 3
 skip_file_doc: True
 skip_init: True
