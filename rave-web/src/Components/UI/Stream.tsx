@@ -1,9 +1,9 @@
-import React from 'react';
-import { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useContext} from 'react';
 import { BrowserView, MobileView } from 'react-device-detect';
 import { useEventListener, useEmit } from "../../Hooks";
 import { CLIENT_EVENTS, NewFrameAvailablePayload } from 'rave-protocol/clientEvents';
 import { TargetSelectEvent } from 'rave-protocol/pythonEvents';
+import { DebugContext } from '../../DebugContextProvider';
 
 function Stream() {
   const [frame, setFrame] = useState<NewFrameAvailablePayload|null>(null);
@@ -12,7 +12,7 @@ function Stream() {
 
   useEventListener(CLIENT_EVENTS.NEW_FRAME_AVAILABLE,(newFrame : NewFrameAvailablePayload) => {
     newFrame.boundingBoxes.forEach((box) => {
-        box.color = '#' + getRandomColor();
+      box.color = '#' + getRandomColor();
     });
     setFrame(newFrame);
   });
@@ -29,7 +29,7 @@ function Stream() {
       }
     });
   };
-
+  const { debugging } = useContext(DebugContext);
   useEffect(() => {
     if (roomCanvasRef && roomCanvasRef.current && frame) {
       const canvas = roomCanvasRef.current;
@@ -45,10 +45,14 @@ function Stream() {
           ctx.strokeStyle = box.color || 'black';
           ctx.rect(box.dx, box.dy, box.width, box.height);
           ctx.stroke();
+          if(debugging){
+            ctx.font = '40px Arial';
+            ctx.fillText(String(box.id), box.dx, box.dy);
+          }
         });
       }
     }
-  }, [frame]);
+  }, [frame,debugging]);
 
   const getRandomColor = () => Math.floor(Math.random() * 16777215).toString(16);
 

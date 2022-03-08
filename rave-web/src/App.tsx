@@ -10,6 +10,7 @@ import DesktopMainBar from './Components/UI/DesktopMainBar';
 import MobileMainBar from './Components/UI/MobileMainBar';
 import { BrowserView, MobileView } from 'react-device-detect';
 import EyeTrackerCalibScreen from './Screens/Calibration/CalibrationEyeTracker';
+import DebugContextProvider from './DebugContextProvider';
 
 function App() {
   const [socket, setSocket] = useState<WebSocketType | null>(null);
@@ -34,6 +35,7 @@ function App() {
 
   return (
     <>
+    <DebugContextProvider>
       <SocketProvider value={socket}>
           <BrowserRouter>
             <BrowserView>
@@ -51,6 +53,7 @@ function App() {
             </Routes>
           </BrowserRouter>
       </SocketProvider>
+    </DebugContextProvider>
     </>
   );
 }

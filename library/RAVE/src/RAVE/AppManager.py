@@ -20,7 +20,19 @@ def connect():
     """
     print("connection established to server")
     # Emit the socket id to the server to "authenticate yourself"
-    sio.emit("pythonSocket", sio.get_sid())
+    emit("pythonSocketAuth", "server", {"socketId": sio.get_sid()})
+
+
+def emit(event_name, destination, payload):
+    """
+    Emits event to destination.
+    Args:
+        event_name (string): The name of the event to emit.
+        destination (string):
+            The destination to emit the event ("client" or "server").
+        payload (dict): The information needed to be passed to the destination.
+    """
+    sio.emit(event_name, {"destination": destination, "payload": payload})
 
 
 def timed_callback(period, f, *args):
@@ -134,10 +146,11 @@ class AppManager:
             frame_string = base64.b64encode(
                 cv2.imencode(".jpg", self._tracking_manager.last_frame)[1]
             ).decode()
-            sio.emit(
+            emit(
                 "newFrameAvailable",
+                "client",
                 {
-                    "frame": frame_string,
+                    "base64Frame": frame_string,
                     "dimensions": self._tracking_manager.last_frame.shape,
                     "boundingBoxes": boundingBoxes,
                 },
