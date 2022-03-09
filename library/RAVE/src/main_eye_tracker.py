@@ -166,9 +166,11 @@ def film(root):
     )
     frame_height = EyeTrackerDataset.IMAGE_DIMENSIONS[1]
     frame_width = EyeTrackerDataset.IMAGE_DIMENSIONS[2]
-    # TODO FC : Generate / ask for a filename
+
+    file_name = input("Enter file name : ")
+
     output_path = os.path.join(
-        root, EllipseAnnotationTool.WORKING_DIR, 'videos', 'test.avi')
+        root, EllipseAnnotationTool.WORKING_DIR, 'videos', file_name + '.avi')
     out = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(
         'M', 'J', 'P', 'G'), 30, (frame_width, frame_height))
     should_run = True

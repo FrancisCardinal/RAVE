@@ -16,7 +16,8 @@ class EllipseAnnotationTool:
     ANNOTATING_STATE = 0
     ANNOTATION_COMPLETED_STATE = 1
     SKIP_STATE = 2
-    QUITTING_STATE = 3
+    PASS_STATE = 3
+    QUITTING_STATE = 4
 
     WORKING_DIR = "real_dataset"
     ANNOTATION_FILE_EXTENSION = '.json'
@@ -67,11 +68,11 @@ class EllipseAnnotationTool:
     def _annotate_one_video(self, video_name):
         current_frame = 0
 
-        annotation_file = os.path.join(
+        self.annotation_file = os.path.join(
             self._annotations_directory_path, video_name) + self.ANNOTATION_FILE_EXTENSION
         annotations = {}
-        if os.path.isfile(annotation_file):
-            with open(annotation_file, 'r') as file:
+        if os.path.isfile(self.annotation_file):
+            with open(self.annotation_file, 'r') as file:
                 annotations = json.load(file)
             current_frame = len(annotations.keys())
 
@@ -84,8 +85,8 @@ class EllipseAnnotationTool:
                 self._annotate_one_frame(frame, annotations, current_frame)
             current_frame += 1
 
-        with open(annotation_file, 'w') as json_file:
-            json.dump(annotations, json_file)
+        with open(self.annotation_file, 'w') as json_file:
+            json.dump(annotations, json_file, indent=4)
 
     def _annotate_one_frame(self, frame, annotations, current_frame):
         HEIGHT, WIDTH = frame.shape[0], frame.shape[1]
@@ -120,6 +121,9 @@ class EllipseAnnotationTool:
             if key == ord('q'):
                 self._state = self.QUITTING_STATE
 
+            if key == ord('s'):
+                self._state = self.PASS_STATE
+
             if key == ord('c'):
                 if len(self._points) > 0:
                     self._points.pop()
@@ -130,3 +134,9 @@ class EllipseAnnotationTool:
 
         elif self._state == EllipseAnnotationTool.SKIP_STATE:
             annotations[current_frame] = [-1, -1, -1, -1, -1]
+
+        elif self._state == EllipseAnnotationTool.PASS_STATE:
+            annotations[current_frame] = [-2, -2, -2, -2, -2]
+
+        with open(self.annotation_file, 'w') as json_file:
+            json.dump(annotations, json_file, indent=4)
