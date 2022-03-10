@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import AddCalibConfigs from "./AddCalibConfigs";
 import List from "@mui/material/List";
-import { DeleteIcon } from "../../Ressources/icons";
-import IconButton from "@mui/material/IconButton";
-import { ListItem } from "@mui/material";
+import { DeleteIcon, NoIcon, YesIcon } from "../../Ressources/icons";
+import { IconButton, Button } from "@mui/material";
+import { ListItem, Modal } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import { useEventListener, useEmit } from "../../Hooks";
 import { CLIENT_EVENTS } from 'rave-protocol/clientEvents';
@@ -20,11 +20,15 @@ function CalibConfigs() {
     ptag && (ptag.innerHTML = name);
     emit(EyeTrackingConfigSelectedEvent(name));
   }
-
-  const deleteConfig = (name : string) => {
-    emit(DeleteConfigEvent(name));
+  const [open, setOpen] = useState(false);
+  const handleClose = () => setOpen(false);
+  const deleteConfig = () => {
+    setOpen(true);    
   }
-
+  const deleteClick = (name : string) => {
+    emit(DeleteConfigEvent(name));
+    setOpen(false);
+  }
   useEventListener(CLIENT_EVENTS.EYE_TRACKING_CONFIGURATIONS, ({configuration}) => {
     console.log("New configs");
     setConfigs(configuration);
@@ -45,9 +49,28 @@ function CalibConfigs() {
              sx={{hover: {fontWeight: "bold"}}}>
               <p className="hover:font-medium" onClick={() => handleSelect(item.name)}>{item.name}</p>  
               <div className=" absolute right-0 p-5">
-                <IconButton edge="end" aria-label="delete" onClick={() => deleteConfig(item.name)}>
+              <IconButton edge="end" aria-label="delete" onClick={deleteConfig}>
                 <DeleteIcon className={"w-5 h-5"}/>
               </IconButton>
+              <Modal
+                open={open}
+                onClose={handleClose}
+                aria-labelledby="modal-delete-config"
+                aria-describedby="modal-delete-description"
+              >
+                <div className="flex flex-col w-fit place-items-center rounded shadow-lg p-2 bg-white absolute left-1/2 top-1/2 -translate-y-1/2 -translate-x-1/2">
+                  <p className="font-black">{t('eyeTrackerCalibrationPage.deleteMessage')}</p>
+                  {item.name}
+                  <div className="flex flex-row">
+                    <Button sx={{ margin: '2px' }} onClick={() => setOpen(false)} variant="contained" color="error" size="small">
+                      <NoIcon className={"w-5 h-5"} />
+                    </Button>
+                    <Button sx={{ margin: '2px' }} onClick={() => deleteClick(item.name)} variant="contained" color="success" size="small">
+                      <YesIcon className={"w-5 h-5"} />
+                    </Button>
+                  </div>
+                </div>
+              </Modal>
               </div>
           </ListItem>)}
         </List>

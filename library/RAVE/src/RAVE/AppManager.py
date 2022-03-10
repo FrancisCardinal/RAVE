@@ -6,8 +6,8 @@ import threading
 
 # from tqdm import tqdm
 
-from .face_detection.TrackingManager import TrackingManager
-from .face_detection.Pixel2Delay import Pixel2Delay
+from RAVE.face_detection.TrackingManager import TrackingManager
+from RAVE.face_detection.Pixel2Delay import Pixel2Delay
 
 
 sio = socketio.Client()
@@ -95,8 +95,10 @@ class AppManager:
         self._frame_output_frequency = 0.05
         self._delay_update_frequency = 0.25
         self._selected_face = None
+        self._vision_mode = "mute"
 
         sio.on("targetSelect", self._update_selected_face)
+        sio.on("changeVisionMode", self._change_mode)
 
     def start(self):
         """
@@ -162,7 +164,18 @@ class AppManager:
         Args:
             ident (id): Id of the face selected in the web client
         """
-        self._selected_face = ident
+        self._selected_face = ident["targetId"]
+        emit("selectedTarget", "client", {"targetID": self._selected_face})
+
+    def _change_mode(self, payload):
+        """
+        Changes the vision mode when no faces are detected.
+        Args:
+            payload (string):
+                Mode of the vision module when no faces are detected
+                ('mute' or 'hear').
+        """
+        self._vision_mode = payload["mode"]
 
     def _update_target_delays(self):
         """
