@@ -15,6 +15,7 @@ const common = {
     connectionLabel: 'Connection Status:',
     visionCalibration: 'Audio-Visual Calibration',
     eyeTrackerCalibration: 'Eye-Tracker Calibration',
+    debugMode: 'Debug Mode',
   },
   helpPage: {
     title: 'Help',
