@@ -1,4 +1,6 @@
 import torch
+import yaml
+import os
 
 from pyodas.core import (
     Stft,
@@ -19,19 +21,83 @@ class AudioManager:
     Class used as manager for all audio processes, containing the main loop of execution for the application.
     """
 
-    def __init__(self):
+    def __init__(self, debug, mic_type, mask, beamformer, ):
+
+        self.file_params = None
+
+        # Configs
+        config_path = os.path.join(subfolder_path, 'configs.yaml')
+        with open(config_path, "r") as stream:
+            try:
+                configs = yaml.safe_load(stream)
+            except yaml.YAMLError as exc:
+                print(exc)
+                exit()
 
         # Check if device has cuda
         self.device = "cpu"
         if torch.cuda.is_available():
             self.device = "cuda"
 
-        # Init IO
+        # IO
         self.io_manager = IOManager()
-        self.sources = self.init_input()
-        self.sinks = self.init_output()
 
-    def init_input(self):
+        # Masks
+        # TODO: Add abstraction to model for info not needed in main script
+        if mask:
+            masks = KissMask(mic_array, buffer_size=30)
+        else:
+            model = AudioModel(input_size=FRAME_SIZE, hidden_size=128, num_layers=2)
+            model.to(self.device)
+            if debug:
+                print(model)
+            delay_and_sum = DelaySum(FRAME_SIZE)
+
+        # Beamformer
+        # TODO: simplify beamformer abstraction kwargs
+        beamformer = Beamformer(name='mvdr', channels=channels)
+
+        # Utils
+        # TODO: Check if we want to handle stft and istft in IOManager class
+        stft = Stft(channels, FRAME_SIZE, "sqrt_hann")
+        istft = IStft(channels, FRAME_SIZE, CHUNK_SIZE, "sqrt_hann")
+        speech_spatial_cov = SpatialCov(channels, FRAME_SIZE, weight=0.03)
+        noise_spatial_cov = SpatialCov(channels, FRAME_SIZE, weight=0.03)
+
+    def init_app(self):
+
+        # Init sources
+
+        # Init sinks
+
+    def init_sim_input(self, name, file):
+
+        # WavSource
+        source = self.io_manager.add_source(source_name=name, source_type='sim',
+                                       file=file, chunk_size=CHUNK_SIZE)
+        self.file_params = source.wav_params
+
+        # Get input config file info
+        # Paths
+        subfolder_path = os.path.split(INPUT)[0]
+        config_path = os.path.join(subfolder_path, 'configs.yaml')
+        with open(config_path, "r") as stream:
+            try:
+                input_configs = yaml.safe_load(stream)
+            except yaml.YAMLError as exc:
+                print(exc)
+                exit()
+        target = input_configs['source_dir']
+
+        # Microphone array
+        mic_dict = {'mics': dict(), 'nb_of_channels': 0}
+        for mic_idx, mic in enumerate(input_configs['mic_rel']):
+            mic_dict['mics'][f'{mic_idx}'] = mic
+            mic_dict['nb_of_channels'] += 1
+        mic_array = generate_mic_array(mic_dict)
+        channels = mic_dict['nb_of_channels']
+
+    def init_mic_input(self):
         # Input source
         if INPUT == 'default' or INPUT.isdigit():
             # MicSource
@@ -42,34 +108,8 @@ class AudioManager:
             source = io_manager.add_source(source_name='MicSource1', source_type='mic', mic_index=INPUT,
                                            channels=CHANNELS, mic_arr=MIC_DICT, chunk_size=CHUNK_SIZE)
         else:
-            # WavSource
-            source = io_manager.add_source(source_name='WavSource1', source_type='sim',
-                                           file=INPUT, chunk_size=CHUNK_SIZE)
-            FILE_PARAMS = source.wav_params
 
-            # If .wav source, get more info from files
-            # Paths
-            # TODO: fix output to .wav and playback?
-            # TODO: fix folder path when no .wav input?
-            subfolder_path = os.path.split(INPUT)[0]
-            config_path = os.path.join(subfolder_path, 'configs.yaml')
-            with open(config_path, "r") as stream:
-                try:
-                    configs = yaml.safe_load(stream)
-                except yaml.YAMLError as exc:
-                    print(exc)
-                    exit()
-            target = configs['source_dir']
-
-            # Microphone array
-            mic_dict = {'mics': dict(), 'nb_of_channels': 0}
-            for mic_idx, mic in enumerate(configs['mic_rel']):
-                mic_dict['mics'][f'{mic_idx}'] = mic
-                mic_dict['nb_of_channels'] += 1
-            mic_array = generate_mic_array(mic_dict)
-            channels = mic_dict['nb_of_channels']
-
-    def init_output(self):
+    def init_sim_output(self):
         # Output sink
         if OUTPUT == 'default' or OUTPUT.isdigit():
             # PlaybackSink
@@ -97,6 +137,8 @@ class AudioManager:
             output_sink = io_manager.add_sink(sink_name='output', sink_type='sim',
                                               file=OUTPUT, wav_params=FILE_PARAMS, chunk_size=CHUNK_SIZE)
 
+    def init_play_output(self):
+
     def initialise_audio(self):
         """
         Method to initialise audio after start.
@@ -116,32 +158,7 @@ class AudioManager:
         subfolder_path = None
         original_sink = None
 
-        # IO
-        io_manager = IOManager()
 
-
-
-        # Masks
-        # TODO: Add abstraction to model for info not needed in main script
-        if MASK:
-            masks = KissMask(mic_array, buffer_size=30)
-        else:
-            model = AudioModel(input_size=FRAME_SIZE, hidden_size=128, num_layers=2)
-            model.to(DEVICE)
-            if DEBUG:
-                print(model)
-            delay_and_sum = DelaySum(FRAME_SIZE)
-
-        # Beamformer
-        # TODO: simplify beamformer abstraction kwargs
-        beamformer = Beamformer(name='mvdr', channels=channels)
-
-        # Utils
-        # TODO: Check if we want to handle stft and istft in IOManager class
-        stft = Stft(channels, FRAME_SIZE, "sqrt_hann")
-        istft = IStft(channels, FRAME_SIZE, CHUNK_SIZE, "sqrt_hann")
-        speech_spatial_cov = SpatialCov(channels, FRAME_SIZE, weight=0.03)
-        noise_spatial_cov = SpatialCov(channels, FRAME_SIZE, weight=0.03)
 
     def main_loop(self):
         """
