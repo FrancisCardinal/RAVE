@@ -15,10 +15,10 @@ room_shapes:
 room_sizes: [[10, 100], [10, 100], [3, 20]]
 
 # Path to folder containing source files
-source_folder: "/Users/felixducharmeturcotte/Documents/MS-SNSD/clean_train"
+source_folder: "/home/rave/RAVE-Audio/MS-SNSD/clean_train"
 
 # Path to folder containing noise files
-noise_folder: "/Users/felixducharmeturcotte/Documents/MS-SNSD/noise_train"
+noise_folder: "/home/rave/RAVE-Audio/MS-SNSD/noise_train"
 
 # Authorized noises
 banned_noises:
