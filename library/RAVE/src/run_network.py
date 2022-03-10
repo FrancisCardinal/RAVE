@@ -34,8 +34,7 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
     # training_sub_dataset = AudioDataset(dataset_path='/Users/felixducharmeturcotte/Documents/datasetV2/training', device=DEVICE)
     # validation_sub_dataset = AudioDataset(dataset_path='/Users/felixducharmeturcotte/Documents/datasetV2/validation', device=DEVICE)
 
-    dataset = AudioDataset(dataset_path='/home/rave/RAVE-Audio/dataset',
-                                          device=DEVICE)
+    dataset = AudioDataset(dataset_path='/home/rave/RAVE-Audio/dataset3')
 
     BATCH_SIZE = 32
     lenght_dataset = len(dataset)
@@ -47,9 +46,9 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
         training_sub_dataset,
         batch_size=BATCH_SIZE,
         shuffle=True,
-        num_workers=0,
-        #pin_memory=True,
-        #persistent_workers=True
+        num_workers=2,
+        pin_memory=True,
+        persistent_workers=True
     )
 
 
@@ -57,13 +56,13 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
         validation_sub_dataset,
         batch_size=BATCH_SIZE,
         shuffle=False,
-        num_workers=0,
-        #pin_memory=True,
-        #persistent_workers=True
+        num_workers=2,
+        pin_memory=True,
+        persistent_workers=True
     )
 
     # todo: get directory from dataset class
-    directory = 'model'
+    directory = os.path.join(os.getcwd(), 'model')
 
     audioModel = AudioModel(input_size=1026, hidden_size=128, num_layers=2)
     audioModel.to(DEVICE)
@@ -113,6 +112,7 @@ def visualize_predictions(model, data_loader, DEVICE):
             audios, labels = audios.to(DEVICE), labels.to(DEVICE)
             predictions = model(audios)
             for audio, prediction, label in zip(audios, predictions, labels):
+                audio = torch.squeeze(audio)
                 y, x = np.mgrid[slice(0, 513, 1),
                                 slice(0, 1, 1/63)]
 
@@ -127,6 +127,7 @@ def visualize_predictions(model, data_loader, DEVICE):
 
 
 if __name__ == "__main__":
+    multiprocessing.set_start_method('spawn')
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-t", "--train", action="store_true", help="Train the neural network"
