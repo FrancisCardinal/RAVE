@@ -12,7 +12,7 @@ import { DeleteConfigEvent, EyeTrackingConfigSelectedEvent } from 'rave-protocol
 function CalibConfigs() {
   const [t] = useTranslation("common");
   const emit = useEmit();
-
+  const [nameDelete, setNameDelete] = useState<string>("");
   const [configs, setConfigs] = useState<{name : string}[]>([]);
   
   const handleSelect = (name : string) => {
@@ -22,8 +22,9 @@ function CalibConfigs() {
   }
   const [open, setOpen] = useState(false);
   const handleClose = () => setOpen(false);
-  const deleteConfig = () => {
-    setOpen(true);    
+  const deleteConfig = (name:string) => {
+    setOpen(true);
+    setNameDelete(name);    
   }
   const deleteClick = (name : string) => {
     emit(DeleteConfigEvent(name));
@@ -49,7 +50,7 @@ function CalibConfigs() {
              sx={{hover: {fontWeight: "bold"}}}>
               <p className="hover:font-medium" onClick={() => handleSelect(item.name)}>{item.name}</p>  
               <div className=" absolute right-0 p-5">
-              <IconButton edge="end" aria-label="delete" onClick={deleteConfig}>
+              <IconButton edge="end" aria-label="delete" onClick={() => deleteConfig(item.name)}>
                 <DeleteIcon className={"w-5 h-5"}/>
               </IconButton>
               <Modal
@@ -60,12 +61,12 @@ function CalibConfigs() {
               >
                 <div className="flex flex-col w-fit place-items-center rounded shadow-lg p-2 bg-white absolute left-1/2 top-1/2 -translate-y-1/2 -translate-x-1/2">
                   <p className="font-black">{t('eyeTrackerCalibrationPage.deleteMessage')}</p>
-                  {item.name}
+                  {nameDelete}
                   <div className="flex flex-row">
                     <Button sx={{ margin: '2px' }} onClick={() => setOpen(false)} variant="contained" color="error" size="small">
                       <NoIcon className={"w-5 h-5"} />
                     </Button>
-                    <Button sx={{ margin: '2px' }} onClick={() => deleteClick(item.name)} variant="contained" color="success" size="small">
+                    <Button sx={{ margin: '2px' }} onClick={() => deleteClick(nameDelete)} variant="contained" color="success" size="small">
                       <YesIcon className={"w-5 h-5"} />
                     </Button>
                   </div>
