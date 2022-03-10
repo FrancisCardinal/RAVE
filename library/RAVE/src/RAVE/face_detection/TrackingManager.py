@@ -57,6 +57,7 @@ class TrackingManager:
         verifier_type,
         frequency,
         intersection_threshold=0.2,
+        verifier_threshold=0.25,
         visualize=True,
     ):
         self._tracker_type = tracker_type
@@ -81,7 +82,7 @@ class TrackingManager:
             device = "cpu"
 
         self._verifier = VerifierFactory.create(
-            verifier_type, threshold=0.25, device=device
+            verifier_type, threshold=verifier_threshold, device=device
         )
 
     def tracking_count(self):

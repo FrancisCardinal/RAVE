@@ -50,7 +50,8 @@ if __name__ == "__main__":
     tracking_manager = TrackingManager(
         tracker_type="kcf",
         detector_type="yolo",
-        verifier_type="resnet_face_34",
+        verifier_type="arcface",
+        verifier_threshold=0.32,
         frequency=frequency,
     )
     tracking_manager.start(args)
