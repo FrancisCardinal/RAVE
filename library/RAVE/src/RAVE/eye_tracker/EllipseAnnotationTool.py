@@ -74,9 +74,11 @@ class EllipseAnnotationTool:
         if os.path.isfile(self.annotation_file):
             with open(self.annotation_file, 'r') as file:
                 annotations = json.load(file)
-            current_frame = len(annotations.keys())
 
-        annoted_frames = annotations.keys()
+        annoted_frames = list(annotations.keys())
+        for i in range(len(annotations.keys())):
+            annoted_frames[i] = int(annoted_frames[i])
+
         success = True
         while(success and self._state != self.QUITTING_STATE):
             success, frame = self._video_feed.read()
@@ -91,6 +93,7 @@ class EllipseAnnotationTool:
     def _annotate_one_frame(self, frame, annotations, current_frame):
         HEIGHT, WIDTH = frame.shape[0], frame.shape[1]
 
+        self._display_ellipse = True
         self._points = []
         normalized_ellipse = None
         while (self._state == EllipseAnnotationTool.ANNOTATING_STATE):
@@ -111,22 +114,15 @@ class EllipseAnnotationTool:
                 normalized_ellipse = NormalizedEllipse.get_from_opencv_ellipse(
                     center_coordinates[0], x_axis, center_coordinates[1], y_axis, angle, WIDTH, HEIGHT)
 
-                with torch.no_grad():
-                    altered_frame = draw_ellipse_on_image(
-                        altered_frame, torch.tensor(normalized_ellipse.to_list(), dtype=float, requires_grad=False), color=(0, 255, 0))
+                if(self._display_ellipse):
+                    with torch.no_grad():
+                        altered_frame = draw_ellipse_on_image(
+                            altered_frame, torch.tensor(normalized_ellipse.to_list(), dtype=float, requires_grad=False), color=(0, 255, 0))
 
             cv2.imshow(self._window_name, altered_frame)
             key = cv2.waitKey(1)
 
-            if key == ord('q'):
-                self._state = self.QUITTING_STATE
-
-            if key == ord('s'):
-                self._state = self.PASS_STATE
-
-            if key == ord('c'):
-                if len(self._points) > 0:
-                    self._points.pop()
+            self._handle_keyboard_input(key)
 
         if self._state == EllipseAnnotationTool.ANNOTATION_COMPLETED_STATE:
             annotation = normalized_ellipse.to_list()
@@ -140,3 +136,17 @@ class EllipseAnnotationTool:
 
         with open(self.annotation_file, 'w') as json_file:
             json.dump(annotations, json_file, indent=4)
+
+    def _handle_keyboard_input(self, key):
+        if key == ord('q'):
+            self._state = self.QUITTING_STATE
+
+        elif key == ord('s'):
+            self._state = self.PASS_STATE
+
+        elif key == ord('t'):
+            self._display_ellipse = not self._display_ellipse
+
+        elif key == ord('c'):
+            if len(self._points) > 0:
+                self._points.pop()
