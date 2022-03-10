@@ -22,7 +22,7 @@ class EyeTrackerDataset(Dataset):
 
     EYE_TRACKER_DIR_PATH = os.path.join("RAVE", "eye_tracker")
     TRAINING_MEAN, TRAINING_STD = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
-    IMAGE_DIMENSIONS = (3, 450, 600)
+    IMAGE_DIMENSIONS = (3, 800, 600)
 
     def __init__(self, sub_dataset_dir):
         super().__init__(
@@ -168,21 +168,24 @@ class EyeTrackerInferenceDataset(EyeTrackerDataset):
                 "Cannot open specified device ({})".format(opencv_device))
 
         if(not isinstance(opencv_device, str)):
-            WIDTH, HEIGHT = 600, 800
-
-            exp_val = -8
+            WIDTH, HEIGHT = 800, 600
 
             codec = 0x47504A4D  # MJPG
             self._video_feed.set(cv2.CAP_PROP_FPS, 30.0)
             self._video_feed.set(cv2.CAP_PROP_FOURCC, codec)
+
             self._video_feed.set(cv2.CAP_PROP_FRAME_WIDTH, HEIGHT)
             self._video_feed.set(cv2.CAP_PROP_FRAME_HEIGHT, WIDTH)
-            self._video_feed.set(cv2.CAP_PROP_EXPOSURE, exp_val)
-            self._video_feed.set(cv2.CAP_PROP_AUTOFOCUS, 0)
-            self._video_feed.set(cv2.CAP_PROP_FOCUS, 800)
 
-            self.crop_bound_y1 = int(abs(self.IMAGE_DIMENSIONS[1] - HEIGHT)/2)
-            self.crop_bound_y2 = int((self.IMAGE_DIMENSIONS[1] + HEIGHT)/2)
+            #self._exposure = 750
+            self._video_feed.set(cv2.CAP_PROP_AUTO_EXPOSURE, 3)
+            #self._video_feed.set(cv2.CAP_PROP_AUTO_EXPOSURE, 1)
+            #self._video_feed.set(cv2.CAP_PROP_EXPOSURE, self._exposure)
+            #self._video_feed.set(cv2.CAP_PROP_GAIN, 8)
+
+            self._video_feed.set(cv2.CAP_PROP_AUTOFOCUS, 0)
+            self._video_feed.set(cv2.CAP_PROP_FOCUS, 2000)
+            self._video_feed.set(cv2.CAP_PROP_FOCUS, 1000)
 
         self._length = 1
         if(not is_real_time):
@@ -209,11 +212,9 @@ class EyeTrackerInferenceDataset(EyeTrackerDataset):
         Returns:
             tuple: Image, 0
         """
-
         success, frame = self._video_feed.read()
 
         if(success):
-            frame = frame[:, self.crop_bound_y1:self.crop_bound_y2]
             frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
             frame = Image.fromarray(frame, 'RGB')
             image = self.PRE_PROCESS_TRANSFORM(frame)
