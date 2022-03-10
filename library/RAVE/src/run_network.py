@@ -34,7 +34,7 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
     # training_sub_dataset = AudioDataset(dataset_path='/Users/felixducharmeturcotte/Documents/datasetV2/training', device=DEVICE)
     # validation_sub_dataset = AudioDataset(dataset_path='/Users/felixducharmeturcotte/Documents/datasetV2/validation', device=DEVICE)
 
-    dataset = AudioDataset(dataset_path='/Users/felixducharmeturcotte/Documents/datasetV3',
+    dataset = AudioDataset(dataset_path='/home/rave/RAVE-Audio/dataset',
                                           device=DEVICE)
 
     BATCH_SIZE = 32
@@ -47,9 +47,9 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
         training_sub_dataset,
         batch_size=BATCH_SIZE,
         shuffle=True,
-        num_workers=6,
-        pin_memory=True,
-        persistent_workers=True
+        num_workers=0,
+        #pin_memory=True,
+        #persistent_workers=True
     )
 
 
@@ -57,13 +57,13 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
         validation_sub_dataset,
         batch_size=BATCH_SIZE,
         shuffle=False,
-        num_workers=6,
-        pin_memory=True,
-        persistent_workers=True
+        num_workers=0,
+        #pin_memory=True,
+        #persistent_workers=True
     )
 
     # todo: get directory from dataset class
-    directory = os.path.join("RAVE", "audio")
+    directory = 'model'
 
     audioModel = AudioModel(input_size=1026, hidden_size=128, num_layers=2)
     audioModel.to(DEVICE)
@@ -118,9 +118,9 @@ def visualize_predictions(model, data_loader, DEVICE):
 
                 fig, axs = plt.subplots(3)
                 fig.suptitle('Vertically stacked subplots')
-                axs[0].pcolormesh(x,y,audio[:513,:].float(), shading='gouraud')
-                axs[1].pcolormesh(x,y,prediction.float(), shading='gouraud')
-                axs[2].pcolormesh(x,y,label.float(), shading='gouraud')
+                axs[0].pcolormesh(x,y,audio[:513,:].cpu().float(), shading='gouraud')
+                axs[1].pcolormesh(x,y,prediction.cpu().float(), shading='gouraud')
+                axs[2].pcolormesh(x,y,label.cpu().float(), shading='gouraud')
                 axs[2].set_xlabel("Temps(s)")
                 axs[1].set_ylabel("Fréquences (hz)")
                 plt.show()
