@@ -76,6 +76,9 @@ class TrackingManager:
         self._is_alive = False
         self._visualize = visualize
 
+        self._pre_process_frame = None
+        self._detector_frame = None
+
         if torch.cuda.is_available():
             device = "cuda"
         else:
@@ -275,6 +278,31 @@ class TrackingManager:
 
         return frame
 
+    def draw_all_predictions_on_frame(self, tracking_frame):
+        """
+        Draw the prediction for each tracked object on a frame
+
+        Args:
+            frame (ndarray): current frame with shape HxWx3
+        """
+
+        # TODO: Might need to copy values before iterating to avoid getting
+        #  an error if tracked_objects change
+        for tracked_object in self.tracked_objects.values():
+            if tracked_object.bbox is None:
+                continue
+            self.draw_prediction_on_frame(tracking_frame, tracked_object)
+
+            # Draw mouth point
+            mouth = tracked_object.landmark
+            if mouth is not None:
+                x_mouth, y_mouth = mouth
+                cv2.circle(
+                    tracking_frame, (x_mouth, y_mouth), 5, [0, 0, 255], -1
+                )
+
+        return tracking_frame
+
     def match_faces_by_iou(self, objects, detections):
         """
         Performs association between trackable objects and bouding boxes from
@@ -387,14 +415,13 @@ class TrackingManager:
 
         return None
 
-    def preprocess_faces(self, frame, monitor):
+    def preprocess_faces(self, frame):
         """
         Associate predictions to objects currently being pre-tracked to confirm
         that they are faces.
 
         Args:
             frame (ndarray): current frame with shape HxWx3
-            monitor (Monitor): pyodas monitor to display the frame
         """
 
         if len(self._pre_tracked_objects) == 0:
@@ -462,18 +489,17 @@ class TrackingManager:
 
         for id in finished_trackers_id:
             self.remove_pre_tracked_object(id)
-        if monitor is not None:
-            monitor.update("Pre-process", pre_tracker_frame)
+
+        self._pre_process_frame = pre_tracker_frame
         return annotated_frame, detections
 
-    def detector_update(self, frame, monitor, pre_frame, pre_detections):
+    def detector_update(self, frame, pre_frame, pre_detections):
         """
         Obtain the detection predictions, unless the pre-process already
         called the detection then use those
 
         Args:
             frame (ndarray): current frame with shape HxWx3
-            monitor (Monitor): pyodas monitor to display the frame
             pre_frame (ndarray or None): annotated frame from pre-process step
             pre_detections (list(Detection)): Detections from the pre-process
         """
@@ -485,28 +511,11 @@ class TrackingManager:
                 frame.copy(), draw_on_frame=True
             )
         self._last_detect = time.time()
-        if monitor is not None:
-            monitor.update("Detection", face_frame)
+        self._detector_frame = face_frame
 
         self.associate_faces(frame, detections)
 
-    def capture_loop(self, cap):
-        """
-        Loop to be called on separate thread that handles retrieving new image
-        frames from video input
-
-        Args:
-            monitor (Monitor):
-                pyodas monitor to display the frame
-            cap (VideoSource):
-                pyodas video source object to obtain video feed from camera
-        """
-
-        while self._is_alive:
-            self.last_frame = cap()
-            time.sleep(0.01)
-
-    def main_loop(self, monitor, fps):
+    def tracking_loop(self):
         """
         Tracking algorithm with pre and post process for confirming and
         rejecting bboxes.
@@ -531,42 +540,54 @@ class TrackingManager:
             # Do pre-processing of faces
             pre_frame, pre_detections = None, None
             if self._pre_tracked_objects:
-                pre_frame, pre_detections = self.preprocess_faces(
-                    frame, monitor
-                )
-
+                pre_frame, pre_detections = self.preprocess_faces(frame)
             if time.time() - self._last_detect >= self._frequency:
-                self.detector_update(frame, monitor, pre_frame, pre_detections)
+                self.detector_update(frame, pre_frame, pre_detections)
 
-            # Draw detections from tracked objects
-            tracking_frame = frame.copy()
-            for tracked_object in self.tracked_objects.values():
-                if tracked_object.bbox is None:
-                    continue
-                self.draw_prediction_on_frame(tracking_frame, tracked_object)
+    def main_loop(self, monitor, cap, fps):
+        """
+        Loop to be called on separate thread that handles retrieving new image
+        frames from video input and displaying output in windows
 
-                # Draw mouth point
-                mouth = tracked_object.landmark
-                if mouth is not None:
-                    x_mouth, y_mouth = mouth
-                    cv2.circle(
-                        tracking_frame, (x_mouth, y_mouth), 5, [0, 0, 255], -1
-                    )
+        Args:
+            monitor (Monitor):
+                pyodas monitor to display the frame
+            cap (VideoSource):
+                pyodas video source object to obtain video feed from camera
+        """
+
+        while self._is_alive:
+            self.last_frame = cap()
 
             if monitor is not None:
-                # Update display
-                fps.setFps()
-                # TODO: Fix fps? Delta too short?
-                # frame = fps.writeFpsToFrame(frame)
+                # Draw detections from tracked objects
+                tracking_frame = self.last_frame.copy()
+                self.draw_all_predictions_on_frame(tracking_frame)
+
+                # fps.setFps()
+                # fps.writeFpsToFrame(tracking_frame)
+
                 monitor.update("Tracking", tracking_frame)
+
+                # Draw most recent pre-processing frame
+                if self._pre_process_frame is not None:
+                    monitor.update("Pre-process", self._pre_process_frame)
+                    self._pre_process_frame = None
+
+                # Draw most recent detector frame
+                if self._detector_frame is not None:
+                    monitor.update("Detection", self._detector_frame)
+                    self._detector_frame = None
 
                 # Keyboard input controls
                 terminate = self.listen_keyboard_input(
-                    frame, monitor.key_pressed
+                    self.last_frame, monitor.key_pressed
                 )
                 if terminate or not monitor.window_is_alive():
                     self._is_alive = False
                     break
+
+            # time.sleep(0.001)
 
     def start(self, args):
         """
@@ -599,11 +620,11 @@ class TrackingManager:
         fps = FPS()
 
         # Image capture loop
-        capture_thread = threading.Thread(
-            target=self.capture_loop, args=(cap,), daemon=True
+        tracking_loop = threading.Thread(
+            target=self.tracking_loop, daemon=True
         )
-        capture_thread.start()
+        tracking_loop.start()
 
         # Main display loop
-        self.main_loop(monitor, fps)
+        self.main_loop(monitor, cap, fps)
         self.stop_tracking()
