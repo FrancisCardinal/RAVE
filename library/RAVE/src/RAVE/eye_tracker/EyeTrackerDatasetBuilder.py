@@ -153,9 +153,9 @@ class EyeTrackerDatasetBuilder(DatasetBuilder):
             bool: True if the parsing was a success, false if it wasn't.
         """
         annotation = annotations[str(self.annotation_line_index)]
-        if annotation[0] == -1:
-            # The annotation files use '-1' when the pupil is not visible
-            # on a frame.
+        if (annotation[0] == -1) or (annotation[0] == -2):
+            # The annotation files use '-1' and '-2' when the pupil is not
+            # visible on a frame.
             return False
 
         self.current_ellipse = NormalizedEllipse.get_from_list(annotation)
