@@ -10,9 +10,20 @@ function Stream() {
   const roomCanvasRef = useRef<HTMLCanvasElement|null>(null);
   const emit = useEmit();
 
+  const [selectedTarget, setSelectedTarget] = useState<number>();
+  useEventListener(CLIENT_EVENTS.SELECTED_TARGET, ({targetID} : {targetID:number}) => {
+    setSelectedTarget(targetID);
+  });
+
   useEventListener(CLIENT_EVENTS.NEW_FRAME_AVAILABLE,(newFrame : NewFrameAvailablePayload) => {
     newFrame.boundingBoxes.forEach((box) => {
-      box.color = '#' + getRandomColor();
+      
+      if(box.id === selectedTarget){
+        box.color = "#0BB862"
+      }
+      else {
+        box.color = "#D32F2F"
+      }
     });
     setFrame(newFrame);
   });
@@ -53,8 +64,6 @@ function Stream() {
       }
     }
   }, [frame,debugging]);
-
-  const getRandomColor = () => Math.floor(Math.random() * 16777215).toString(16);
 
   return (
     <div className="container px-2">

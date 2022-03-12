@@ -12,6 +12,11 @@ const common = {
       french: 'French',
       english: 'English',
     },
+    visionMode: {
+      label: 'Vision Mode',
+      muteMode: "Mute All",
+      hearMode: 'Hear All',
+    },
     connectionLabel: 'Connection Status:',
     visionCalibration: 'Audio-Visual Calibration',
     eyeTrackerCalibration: 'Eye-Tracker Calibration',
@@ -48,6 +53,7 @@ const common = {
     configName: 'Name',
     configPlaceholder: 'Enter your full name',
     errorMessage: 'The name you have chosen alreay exists, choose another one.',
+    deleteMessage: 'Are you sure you want to delete this calibration?',
   }
 };
 export default common;

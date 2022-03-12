@@ -8,6 +8,7 @@ interface AbstractPythonMessage extends AbstractMessage {
 export enum PYTHON_EVENTS {
   ACTIVATE_EYE_TRACKING = 'activateEyeTracking',
   CHANGE_VISION_CALIBRATION_PARAMS = 'changeCalibParams',
+  CHANGE_VISION_MODE = 'changeVisionMode',
   DELETE_CONFIG = 'deleteEyeTrackingCalib',
   EYE_TRACKER_ADD_NEW_CONFIG = 'addEyeTrackingCalib',
   EYE_TRACKING_CONFIG_SELECTED = 'selectEyeTrackingCalib',
@@ -88,6 +89,16 @@ export function ChangeVisionCalibrationParamsEvent(numberOfPoints : number, orde
       number : numberOfPoints,
       order : orderPolynomial,
     } as ChangeCalibrationParamsEvent
+  }
+};
+
+export function ChangeVisionModeEvent(visionMode: string) {
+  return {
+    destination : MESSAGE_DESTINATIONS.PYTHON,
+    event: PYTHON_EVENTS.CHANGE_VISION_MODE,
+    payload : {
+      mode : visionMode,
+    }
   }
 };
 
