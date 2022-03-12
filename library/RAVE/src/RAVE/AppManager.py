@@ -158,22 +158,23 @@ class AppManager:
                 },
             )
 
-    def _update_selected_face(self, ident):
+    def _update_selected_face(self, payload):
         """
         Update the current selected face from the web client
         Args:
-            ident (id): Id of the face selected in the web client
+            payload (dict): Dictionary containing the id of the
+            face selected in the web client.
         """
-        self._selected_face = ident["targetId"]
+        self._selected_face = payload["targetId"]
         emit("selectedTarget", "client", {"targetID": self._selected_face})
 
     def _change_mode(self, payload):
         """
         Changes the vision mode when no faces are detected.
         Args:
-            payload (string):
-                Mode of the vision module when no faces are detected
-                ('mute' or 'hear').
+            payload (dict):
+                Dictionary containing Mode of the vision module
+                when no faces are detected('mute' or 'hear').
         """
         self._vision_mode = payload["mode"]
 
