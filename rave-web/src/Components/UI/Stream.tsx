@@ -10,14 +10,13 @@ function Stream() {
   const roomCanvasRef = useRef<HTMLCanvasElement|null>(null);
   const emit = useEmit();
 
-  const [selectedTarget, setSelectedTarget] = useState<number>();
-  useEventListener(CLIENT_EVENTS.SELECTED_TARGET, ({targetID} : {targetID:number}) => {
-    setSelectedTarget(targetID);
+  const [selectedTarget, setSelectedTarget] = useState<number>(-1);
+  useEventListener(CLIENT_EVENTS.SELECTED_TARGET, ({targetId} : {targetId:number}) => {
+    setSelectedTarget(targetId);
   });
 
   useEventListener(CLIENT_EVENTS.NEW_FRAME_AVAILABLE,(newFrame : NewFrameAvailablePayload) => {
     newFrame.boundingBoxes.forEach((box) => {
-      
       if(box.id === selectedTarget){
         box.color = "#0BB862"
       }
@@ -26,7 +25,7 @@ function Stream() {
       }
     });
     setFrame(newFrame);
-  });
+  },[selectedTarget]);
 
   const { debugging } = useContext(DebugContext);
   useEffect(() => {

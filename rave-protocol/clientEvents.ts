@@ -96,12 +96,12 @@ export interface NewFrameAvailablePayload {
   }
 };
 
-export function selectedTargetEvent(targetID: number) {
+export function selectedTargetEvent(targetId: number) {
   return {
     destination : MESSAGE_DESTINATIONS.CLIENT,
     event : CLIENT_EVENTS.SELECTED_TARGET,
     payload : {
-      targetID,
+      targetId,
     }
   }
 };
