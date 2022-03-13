@@ -37,6 +37,8 @@ class EllipseAnnotationTool:
         self._annotation_file = None
         self._state = EllipseAnnotationTool.ANNOTATING_STATE
 
+        self._gamma = 1
+
         self._window_name = "Annotation tool"
         cv2.namedWindow(self._window_name)
         cv2.setMouseCallback(self._window_name, self._capture_mouse_event)
@@ -98,6 +100,8 @@ class EllipseAnnotationTool:
         normalized_ellipse = None
         while (self._state == EllipseAnnotationTool.ANNOTATING_STATE):
             altered_frame = frame.copy()
+            altered_frame = self.adjust_gamma(altered_frame)
+
             for point in self._points:
                 cv2.drawMarker(altered_frame, point, color=(0, 0, 255))
 
@@ -137,6 +141,17 @@ class EllipseAnnotationTool:
         with open(self.annotation_file, 'w') as json_file:
             json.dump(annotations, json_file, indent=4)
 
+    def adjust_gamma(self, image):
+        # Taken from https://pyimagesearch.com/2015/10/05/opencv-gamma-correction/
+
+        # build a lookup table mapping the pixel values [0, 255] to
+        # their adjusted gamma values
+        invGamma = 1.0 / self._gamma
+        table = np.array([((i / 255.0) ** invGamma) * 255
+                          for i in np.arange(0, 256)]).astype("uint8")
+        # apply gamma correction using the lookup table
+        return cv2.LUT(image, table)
+
     def _handle_keyboard_input(self, key):
         if key == ord('q'):
             self._state = self.QUITTING_STATE
@@ -150,3 +165,9 @@ class EllipseAnnotationTool:
         elif key == ord('c'):
             if len(self._points) > 0:
                 self._points.pop()
+
+        elif key == ord('g'):
+            self._gamma += 0.1
+
+        elif key == ord('h'):
+            self._gamma -= 0.1
