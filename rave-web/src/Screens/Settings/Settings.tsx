@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import React, { useContext } from "react";
 import Switch from '@mui/material/Switch';
 import { DebugContext } from "../../DebugContextProvider";
+import VisionModeSelection from "../../Components/UI/VisionModeSelection";
 
 function SettingsScreen() {
   const [t] = useTranslation('common');
@@ -14,6 +15,7 @@ function SettingsScreen() {
     <div className="flex flex-col items-center">
       <h1 className="text-3xl font-bold underline text-center">{t('settingsPage.title')}</h1>
       <LanguageSelection className={"py-4 mx-4 w-3/4"}/>
+      <VisionModeSelection />
       <ConnectionStatus/>
       <Link 
         to={`/calibration`}
