@@ -34,7 +34,7 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
     # training_sub_dataset = AudioDataset(dataset_path='/Users/felixducharmeturcotte/Documents/datasetV2/training', device=DEVICE)
     # validation_sub_dataset = AudioDataset(dataset_path='/Users/felixducharmeturcotte/Documents/datasetV2/validation', device=DEVICE)
 
-    dataset = AudioDataset(dataset_path='/home/rave/RAVE-Audio/dataset3')
+    dataset = AudioDataset(dataset_path='/home/rave/audiodataset/dataset')
 
     BATCH_SIZE = 32
     lenght_dataset = len(dataset)
@@ -46,7 +46,7 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
         training_sub_dataset,
         batch_size=BATCH_SIZE,
         shuffle=True,
-        num_workers=2,
+        num_workers=60,
         pin_memory=True,
         persistent_workers=True
     )
@@ -56,7 +56,7 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
         validation_sub_dataset,
         batch_size=BATCH_SIZE,
         shuffle=False,
-        num_workers=2,
+        num_workers=60,
         pin_memory=True,
         persistent_workers=True
     )
@@ -91,13 +91,13 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
         audioModel, directory
     )
     if DISPLAY_VALIDATION:
-        visualize_predictions(audioModel, validation_loader, DEVICE)
+        visualize_predictions(audioModel, validation_loader, DEVICE, dataset)
 
     if TEST:
         print('testing')
 
 
-def visualize_predictions(model, data_loader, DEVICE):
+def visualize_predictions(model, data_loader, DEVICE, dataset):
     """Used to visualize the target and the predictions of the model on some
        input images
 
@@ -114,7 +114,7 @@ def visualize_predictions(model, data_loader, DEVICE):
             for audio, prediction, label in zip(audios, predictions, labels):
                 audio = torch.squeeze(audio)
                 y, x = np.mgrid[slice(0, 513, 1),
-                                slice(0, 1, 1/63)]
+                                slice(0, dataset.duration, dataset.duration/dataset.nb_chunks)]
 
                 fig, axs = plt.subplots(3)
                 fig.suptitle('Vertically stacked subplots')

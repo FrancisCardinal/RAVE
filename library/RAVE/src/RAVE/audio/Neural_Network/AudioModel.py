@@ -1,11 +1,13 @@
 import torch
 from torch import nn
 import torchaudio
+import os
 
 class AudioModel(nn.Module):
     """
     Model of the neural network that generate a mask to combine with a beamformer method to cancel noise for the audio module
     """
+
     def __init__(self, input_size, hidden_size, num_layers):
         super(AudioModel, self).__init__()
         self.hidden_size = hidden_size
@@ -53,6 +55,19 @@ class AudioModel(nn.Module):
         # N x T x F > N x T x F
         x = self.sig(x)
         return x
+
+
+    def load_best_model(self, MODEL_DIR_PATH):
+        """
+        Used to get the best version of a model from disk
+
+        Args:
+            model (Module): Model on which to update the weights
+        """
+        checkpoint = torch.load(MODEL_DIR_PATH)
+        self.load_state_dict(checkpoint["model_state_dict"])
+
+        self.eval()
 
 
 class AudioModel_old(nn.Module):

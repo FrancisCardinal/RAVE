@@ -11,6 +11,7 @@ import random
 import yaml
 import soundfile as sf
 import numpy as np
+import math
 
 from .AudioDatasetBuilder import AudioDatasetBuilder
 from RAVE.audio.Beamformer.Beamformer import Beamformer
@@ -30,12 +31,14 @@ class AudioDataset(torch.utils.data.Dataset):
         generate_dataset_runtime=False,
         is_debug=False,
         sample_rate = 16000,
-        num_samples = 16000
+        num_samples = 32000
     ):
+        self.duration = num_samples / sample_rate
         self.is_debug = IS_DEBUG
         self.sample_rate = sample_rate
         self.num_samples = num_samples
-
+        self.hop_len = 256
+        self.nb_chunks = math.floor((num_samples / self.hop_len) + 1)
         # Load params/configs
         config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'dataset_config.yaml')
         with open(config_path, "r") as stream:
@@ -71,7 +74,7 @@ class AudioDataset(torch.utils.data.Dataset):
 
         self.transformation = torchaudio.transforms.Spectrogram(
             n_fft=1024,
-            hop_length= 256,
+            hop_length= self.hop_len,
             power=None,
             return_complex=True,
             normalized=True
@@ -172,7 +175,8 @@ class AudioDataset(torch.utils.data.Dataset):
         return signal
 
     def _cut(self, signal):
-        begin = random.randint(0,signal.shape[1]- self.num_samples -1)
+        #begin = random.randint(0,signal.shape[1]- self.num_samples -1)
+        begin = 0
         if signal.shape[1] > self.num_samples:
             signal = signal[:, begin: begin+self.num_samples]
         return signal
