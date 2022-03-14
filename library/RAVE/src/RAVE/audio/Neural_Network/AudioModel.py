@@ -57,14 +57,15 @@ class AudioModel(nn.Module):
         return x
 
 
-    def load_best_model(self, MODEL_DIR_PATH):
+    def load_best_model(self, MODEL_DIR_PATH, device):
         """
         Used to get the best version of a model from disk
 
         Args:
             model (Module): Model on which to update the weights
         """
-        checkpoint = torch.load(MODEL_DIR_PATH)
+
+        checkpoint = torch.load(MODEL_DIR_PATH, map_location=device)
         self.load_state_dict(checkpoint["model_state_dict"])
 
         self.eval()

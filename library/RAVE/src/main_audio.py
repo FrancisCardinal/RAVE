@@ -37,7 +37,7 @@ if torch.cuda.is_available():
 MIC_DICT = load_mic_array_from_ressources('ReSpeaker_USB')
 MIC_ARRAY = generate_mic_array(load_mic_array_from_ressources('ReSpeaker_USB'))
 CHANNELS = 4
-OUT_CHANNELS = 2
+OUT_CHANNELS = 4
 
 CHUNK_SIZE = 256
 FRAME_SIZE = 4 * CHUNK_SIZE
@@ -138,11 +138,11 @@ def main(DEBUG, INPUT, OUTPUT, TIME, MASK):
     if MASK:
         masks = KissMask(mic_array, buffer_size=30)
     else:
-        model = AudioModel(input_size=FRAME_SIZE, hidden_size=128, num_layers=2)
+        model = AudioModel(input_size=1026, hidden_size=128, num_layers=2)
         model.to(DEVICE)
         if DEBUG:
             print(model)
-        model.load_best_model()
+        model.load_best_model(BEST_MODEL_PATH, DEVICE)
         delay_and_sum = DelaySum(FRAME_SIZE)
 
     # Beamformer
@@ -160,6 +160,9 @@ def main(DEBUG, INPUT, OUTPUT, TIME, MASK):
     samples = 0
     loop_idx = 0
     total_time = 0
+    total_beamformer_time = 0
+    total_network_time = 0
+    total_data_time = 0
     max_time = 0
     while samples / CONST.SAMPLING_RATE < TIME:
         # Start time
@@ -181,6 +184,7 @@ def main(DEBUG, INPUT, OUTPUT, TIME, MASK):
         if MASK:
             speech_mask, noise_mask = masks(X, target)
         else:
+            start_data_time = time.perf_counter_ns()
             # Delay and sum
             target_np = np.array([target])
             delay = get_delays_based_on_mic_array(target_np, MIC_ARRAY, FRAME_SIZE)
@@ -195,8 +199,14 @@ def main(DEBUG, INPUT, OUTPUT, TIME, MASK):
 
             concat_spec = torch.cat([mono_db, sum_db], dim=1)
             concat_spec = torch.reshape(concat_spec, (1, 1, concat_spec.shape[1], 1))
-            speech_mask = model(concat_spec)
+            start_network_time = time.perf_counter_ns()
+            with torch.no_grad():
+                speech_mask = model(concat_spec)
+            end_network_time = time.perf_counter_ns()
+            speech_mask = torch.squeeze(speech_mask).numpy()
             noise_mask = 1 - speech_mask
+            total_network_time += (end_network_time - start_network_time) / 1000000
+            total_data_time += (end_network_time - start_data_time) / 1000000
 
         # Spatial covariance matrices
         target_scm = speech_spatial_cov(X, speech_mask)
@@ -205,8 +215,10 @@ def main(DEBUG, INPUT, OUTPUT, TIME, MASK):
         # MVDR
         Y = beamformer(signal=X, target_scm=target_scm, noise_scm=noise_scm)
         y = istft(Y)
+        out = y
         if OUT_CHANNELS == 1:
-            out = y[y.shape[0]//2]
+            channel_to_use = y.shape[0]//2
+            out = y[channel_to_use]
         elif OUT_CHANNELS == 2:
             out = np.array([y[0], y[-1]])
         output_sink(out)
@@ -224,7 +236,10 @@ def main(DEBUG, INPUT, OUTPUT, TIME, MASK):
     print('Finished running main_audio')
     print(f'Mean time per loop: {total_time / loop_idx} ms.')
     print(f'Longest time per loop: {max_time} ms.')
-
+    print(f'Mean beamformer time per loop: {total_beamformer_time / loop_idx} ms.')
+    if not MASK:
+        print(f'Mean data time per loop: {total_data_time / loop_idx} ms.')
+        print(f'Mean network per loop: {total_network_time / loop_idx} ms.')
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
