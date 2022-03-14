@@ -13,9 +13,9 @@ from pyodas.core import (
 from pyodas.utils import CONST, generate_mic_array, load_mic_array_from_ressources, get_delays_based_on_mic_array
 
  # TODO: CHECK IF SIMPLER TO IN AND OUT INIT TO IO MANAGER
-from RAVE.audio.IO.IO_manager import IOManager
-from RAVE.audio.Neural_Network.AudioModel import AudioModel
-from RAVE.audio.Beamformer.Beamformer import Beamformer
+from .IO.IO_manager import IOManager
+from .Neural_Network.AudioModel import AudioModel
+from .Beamformer.Beamformer import Beamformer
 
 TIME = float('inf')
 FILE_PARAMS = (
@@ -80,6 +80,7 @@ class AudioManager:
                 exit()
         # Get general configs
         self.default_output_dir = self.individual_configs.default_output_dir
+        self.mic_array_index = self.individual_configs.mic_array_index
 
         # Check if device has cuda
         self.device = "cpu"
@@ -114,6 +115,7 @@ class AudioManager:
     def init_app(self, save_input, output_path=None):
 
         # Init sources
+        self.source = self.init_mic_input('mic_array', )
 
         # Init sinks
         if save_input:

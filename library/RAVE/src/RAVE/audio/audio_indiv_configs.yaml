@@ -2,3 +2,6 @@
 
 # Chunk size for fourier transform
 default_output_dir: 'C:\GitProjet\pipeline'
+
+# Device index for microphone array
+mic_array_index:

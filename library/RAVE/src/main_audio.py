@@ -4,6 +4,7 @@ from tkinter import filedialog
 import torch
 import os
 import yaml
+import time
 
 from pyodas.core import (
     Stft,
@@ -39,10 +40,12 @@ CHANNELS = 4
 OUT_CHANNELS = 2
 
 CHUNK_SIZE = 256
-FRAME_SIZE = 2 * CHUNK_SIZE
+FRAME_SIZE = 4 * CHUNK_SIZE
 
 DEFAULT_OUTPUT_FOLDER = 'C:\GitProjet\pipeline'
+BEST_MODEL_PATH = 'C:\\GitProjet\\RAVE\\library\\RAVE\\src\\RAVE\\audio\\Neural_Network\\model\\saved_model.pth'
 
+EPSILON = 1e-9
 
 def main(DEBUG, INPUT, OUTPUT, TIME, MASK):
     # TODO: add multiple source/sink support?
@@ -115,10 +118,10 @@ def main(DEBUG, INPUT, OUTPUT, TIME, MASK):
     else:
         # If mic source (no subfolder), output subfolder
         if subfolder_path == None:
-            index = 0
+            loop_idx = 0
             subfolder_path = os.path.join(DEFAULT_OUTPUT_FOLDER, 'run')
-            while os.path.exists(f'{subfolder_path}_{index}'):
-                index += 1
+            while os.path.exists(f'{subfolder_path}_{loop_idx}'):
+                loop_idx += 1
             os.makedirs(subfolder_path)
 
         # WavSink
@@ -139,6 +142,7 @@ def main(DEBUG, INPUT, OUTPUT, TIME, MASK):
         model.to(DEVICE)
         if DEBUG:
             print(model)
+        model.load_best_model()
         delay_and_sum = DelaySum(FRAME_SIZE)
 
     # Beamformer
@@ -147,19 +151,26 @@ def main(DEBUG, INPUT, OUTPUT, TIME, MASK):
 
     # Utils
     # TODO: Check if we want to handle stft and istft in IOManager class
-    stft = Stft(channels, FRAME_SIZE, "sqrt_hann")
-    istft = IStft(channels, FRAME_SIZE, CHUNK_SIZE, "sqrt_hann")
+    stft = Stft(channels, FRAME_SIZE, "hann")
+    istft = IStft(channels, FRAME_SIZE, CHUNK_SIZE, "hann")
     speech_spatial_cov = SpatialCov(channels, FRAME_SIZE, weight=0.03)
     noise_spatial_cov = SpatialCov(channels, FRAME_SIZE, weight=0.03)
 
     # Record for 6 seconds
     samples = 0
+    loop_idx = 0
+    total_time = 0
+    max_time = 0
     while samples / CONST.SAMPLING_RATE < TIME:
+        # Start time
+        loop_idx += 1
+        start_time = time.perf_counter_ns()
+
         # Record from microphone
         x = source()
         if x is None:
             print('End of transmission. Closing.')
-            exit()
+            break
 
         # Save the unprocessed recording
         if original_sink:
@@ -170,20 +181,26 @@ def main(DEBUG, INPUT, OUTPUT, TIME, MASK):
         if MASK:
             speech_mask, noise_mask = masks(X, target)
         else:
-            delay = get_delays_based_on_mic_array(target, MIC_ARRAY, FRAME_SIZE)
-            sum = delay_and_sum(X, delay)
-            speech_mask = model(sum)
+            # Delay and sum
+            target_np = np.array([target])
+            delay = get_delays_based_on_mic_array(target_np, MIC_ARRAY, FRAME_SIZE)
+            sum = delay_and_sum(X, delay[0])
+            sum_tensor = torch.from_numpy(sum)
+            sum_db = 20*torch.log10(torch.abs(sum_tensor) + EPSILON)
+
+            # Mono
+            energy = torch.from_numpy(X**2)
+            mono_X = torch.mean(energy, dim=0, keepdim=True)
+            mono_db = 20*torch.log10(torch.abs(mono_X) + EPSILON)
+
+            concat_spec = torch.cat([mono_db, sum_db], dim=1)
+            concat_spec = torch.reshape(concat_spec, (1, 1, concat_spec.shape[1], 1))
+            speech_mask = model(concat_spec)
             noise_mask = 1 - speech_mask
 
         # Spatial covariance matrices
         target_scm = speech_spatial_cov(X, speech_mask)
         noise_scm = noise_spatial_cov(X, noise_mask)
-
-        # ---- GEV ----
-        # gev_Y = gev(X, target_scm, noise_scm)
-        # gev_Y *= CHANNELS ** 2
-        # gev_y = gev_istft(gev_Y)
-        # kiss_gev_wav_sink(gev_y)
 
         # MVDR
         Y = beamformer(signal=X, target_scm=target_scm, noise_scm=noise_scm)
@@ -195,11 +212,18 @@ def main(DEBUG, INPUT, OUTPUT, TIME, MASK):
         output_sink(out)
 
         samples += CHUNK_SIZE
+        end_time = time.perf_counter_ns()
+        loop_time = (end_time - start_time) / 1000000
+        total_time += loop_time
+        max_time = loop_time if loop_time > max_time else max_time
 
-        if DEBUG and samples % (CHUNK_SIZE*10) == 0:
+        if DEBUG and samples % (CHUNK_SIZE*25) == 0:
             print(f'Samples processed: {samples}')
+            print(f'Time for loop: {loop_time} ms.')
 
     print('Finished running main_audio')
+    print(f'Mean time per loop: {total_time / loop_idx} ms.')
+    print(f'Longest time per loop: {max_time} ms.')
 
 
 if __name__ == "__main__":
