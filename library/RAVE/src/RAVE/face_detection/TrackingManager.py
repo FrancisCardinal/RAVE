@@ -8,7 +8,7 @@ from collections import defaultdict
 # from tqdm import tqdm
 
 from .face_detectors import DetectorFactory
-from .face_verifiers import VerifierFactory
+from .face_verifiers import VerifierFactory, Encoding
 from ..common.image_utils import intersection
 from .fpsHelper import FPS
 from pyodas.visualize import VideoSource, Monitor
@@ -84,6 +84,7 @@ class TrackingManager:
         else:
             device = "cpu"
 
+        self._verifier_threshold = verifier_threshold
         self._verifier = VerifierFactory.create(
             verifier_type, threshold=verifier_threshold, device=device
         )
@@ -286,9 +287,12 @@ class TrackingManager:
             frame (ndarray): current frame with shape HxWx3
         """
 
-        # TODO: Might need to copy values before iterating to avoid getting
-        #  an error if tracked_objects change
-        for tracked_object in self.tracked_objects.values():
+        all_tracked_objects = self.tracked_objects.values()
+        for i in range(len(all_tracked_objects)):
+            if len(all_tracked_objects) <= i:
+                break
+
+            tracked_object = all_tracked_objects[i]  ## TODODO error here
             if tracked_object.bbox is None:
                 continue
             self.draw_prediction_on_frame(tracking_frame, tracked_object)
@@ -438,8 +442,53 @@ class TrackingManager:
 
         # Handle successful re-detections
         for pair in matched_pairs:
-            obj, detection = pair
-            obj.confirm()
+            pre_tracked_object, detection = pair
+
+            # TODO: Maybe throttle/control when to call verifier
+            # TODO: Build average encoding for objects (?)
+            # Compute encoding for detection
+            feature = self._verifier.get_features(
+                frame, [pre_tracked_object.bbox]
+            )[0]
+
+            # Verify detection with past detections
+            if not pre_tracked_object.encoding.is_empty:
+                similarity_score = self._verifier.get_scores(
+                    [pre_tracked_object.encoding],
+                    Encoding(
+                        feature
+                    ),  # TODO: Does 2nd param need to be an encoding?
+                )[0]
+
+                if similarity_score >= self._verifier_threshold:
+                    # Appearance matched last detection
+                    print("Encoding matched last encoding")
+                    pre_tracked_object.update_encoding(feature)
+                    pre_tracked_object.confirm()
+                else:
+                    pre_tracked_object.increment_evaluation_frames()
+                    print("Encoding did not match last")
+            else:
+                # Skip verifier compare on first detection
+                pre_tracked_object.update_encoding(feature)
+                pre_tracked_object.confirm()
+
+            # # TODO: Validate with verifier as well
+            # # Check if this object matches an old face
+            # rejected_objects = list(self._rejected_objects.values())
+            # if any(rejected_objects):
+            #     matched_object = self.compare_encoding_to_objects(
+            #         rejected_objects, tracked_object.encoding
+            #     )
+            #     if matched_object:
+            #         # Matched with old face: start tracking again
+            #         self.restore_rejected_object(
+            #             matched_object.id, tracked_object
+            #         )
+            #         # TODO: Do we want to by-pass the rest of pre-processing
+            #         #  if the face has been identified as an old face?
+            #         # End this object's pre-processing
+            #         finished_trackers_id.add(tracker_id)
 
         # Handle unmatched objects
         for obj_id, obj in unmatched_objects.items():
@@ -458,30 +507,6 @@ class TrackingManager:
 
             if tracked_object.bbox is None:
                 continue
-
-            # TODO: Maybe throttle/control when to call verifier
-            # TODO: Build average encoding for objects
-            if tracked_object.encoding is None or not tracked_object.pending:
-                encoding = self._verifier.get_encodings(
-                    frame, [tracked_object.bbox]
-                )[0]
-                tracked_object.update_encoding(encoding)
-
-            # Check if this object matches an old face
-            rejected_objects = list(self._rejected_objects.values())
-            if any(rejected_objects):
-                matched_object = self.compare_encoding_to_objects(
-                    rejected_objects, tracked_object.encoding
-                )
-                if matched_object:
-                    # Matched with old face: start tracking again
-                    self.restore_rejected_object(
-                        matched_object.id, tracked_object
-                    )
-                    # TODO: Do we want to by-pass the rest of pre-processing
-                    #  if the face has been identified as an old face?
-                    # End this object's pre-processing
-                    finished_trackers_id.add(tracker_id)
 
             pre_tracker_frame = self.draw_prediction_on_frame(
                 pre_tracker_frame, tracked_object

@@ -1,4 +1,5 @@
 from .trackers import TrackerFactory
+from .face_verifiers import Encoding
 
 NB_FRAMES_TO_CONFIRMED = 10
 CONFIRMATION_THRESHOLD = 8
@@ -57,7 +58,7 @@ class TrackedObject:
         self._tracker_type = tracker_type
         self._id = identifier
         self.bbox = bbox
-        self._encoding = None
+        self._encoding = Encoding()
 
         # Validation
         self._evaluation_frames = 0
@@ -151,12 +152,12 @@ class TrackedObject:
         """
         self.bbox = bbox
 
-    def update_encoding(self, encoding):
+    def update_encoding(self, feature):
         """
         Args:
-            encoding (list): New feature vector representing the object
+            feature (list): New feature vector representing the object
         """
-        self._encoding = encoding
+        self._encoding.update(feature)
 
     def confirm(self):
         """Used to confirm a bbox in pre-processing"""

@@ -21,14 +21,29 @@ class Encoding:
         feature (list of floats): the main feature vector of the encoding
     """
 
-    def __init__(self, feature):
+    def __init__(self, feature=None):
         self.feature = feature
+        self.all_features = []
+
+        if feature is not None:
+            self.all_features.append(feature)
+
+    @property
+    def is_empty(self):
+        return len(self.all_features) == 0
 
     def update(self, feature):
         """
         Update feature vector WIP
         """
         self.feature = feature
+        self.all_features.append(feature)
+
+    def get_last_feature(self):
+        if not self.all_features:
+            return None
+
+        return self.all_features[-1]
 
     @staticmethod
     def create_encodings(feature_vectors):
@@ -49,9 +64,9 @@ class Verifier(ABC):
     """
 
     @abstractmethod
-    def get_encodings(self, frame, face_locations):
+    def get_features(self, frame, face_locations):
         """
-        Get the encodings (feature vectors) for all request objects
+        Get the feature vectors for all requested objects
 
         Args:
             frame (np.ndarray): The image containing the objects
@@ -463,9 +478,9 @@ class ArcFace(Verifier):
 
         return img_pixels
 
-    def get_encodings(self, frame, face_locations):
+    def get_features(self, frame, face_locations):
         """
-        Get the encodings (feature vectors) for all request objects
+        Get the feature vectors for all requested objects
 
         Args:
             frame (np.ndarray): The image containing the objects
@@ -487,9 +502,7 @@ class ArcFace(Verifier):
             feature = self.model.predict(image)[0].tolist()
             features.append(feature)
 
-        face_encodings = Encoding.create_encodings(features)
-
-        return face_encodings
+        return features
 
     def get_scores(self, reference_encodings, face_encoding):
         """
