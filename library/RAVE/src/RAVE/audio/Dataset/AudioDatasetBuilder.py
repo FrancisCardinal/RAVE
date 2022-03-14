@@ -6,7 +6,7 @@ from tqdm import tqdm
 import random
 from shapely.geometry import Polygon, Point
 
-import audiolib
+from RAVE.audio.Dataset import audiolib
 
 import numpy as np
 import math
@@ -438,6 +438,8 @@ class AudioDatasetBuilder:
 
         # Get random position and assign x and y wth sound margins (user not stuck on wall)
         self.user_pos = self.get_random_position(user=True)
+        if self.user_pos == -1:
+            return
         while True:
             self.xy_angle = (np.random.rand() * 2 * math.pi) - math.pi
             z_angle = (np.random.rand() - 0.5) * 2 * TILT_RANGE
@@ -890,18 +892,20 @@ class AudioDatasetBuilder:
             source_audio_base = self.read_audio_file(source_path)
 
             # Run SAMPLES_PER_SPEECH samples per speech clip
-            for _ in range(self.sample_per_speech):
-                file_count += 1
+            samples_created = 0
+            while samples_created < self.sample_per_speech:
                 audio_source_dict = dict()
                 # Get random room and generate user at a position in room
                 self.generate_random_room()
                 self.generate_user()
+                if self.user_pos == -1:
+                    print(f"User position could not be made with {MAX_POS_TRIES}. Restarting new room.")
+                    continue
 
                 # Generate source position and copy source_audio
                 source_pos = self.get_random_position()
                 if source_pos == -1:
                     print(f"Source position could not be made with {MAX_POS_TRIES}. Restarting new room.")
-                    file_count -= 1
                     continue
                 source_audio = source_audio_base.copy()
                 audio_source_dict['speech'] = [{'name': source_name, 'signal': source_audio, 'position': source_pos}]
@@ -966,5 +970,9 @@ class AudioDatasetBuilder:
                     run_dict['noise'] = audio_source_dict['combined_noise'][0]['signal_w_rir']
                     run_dict['configs'] = config_dict
                     self.dataset_list.append(run_dict)
+
+                # Increase counters
+                file_count += 1
+                samples_created += 1
 
         return file_count, self.dataset_list
