@@ -1,0 +1,4 @@
+# File with individual configs used for running AudioManager (DO NOT VERSION)
+
+# Chunk size for fourier transform
+default_output_dir: 'C:\GitProjet\pipeline'
