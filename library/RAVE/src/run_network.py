@@ -29,7 +29,7 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
     """
     DEVICE = "cpu"
     if torch.cuda.is_available():
-        DEVICE = "cuda"
+        DEVICE = "cuda:1"
 
     # training_sub_dataset = AudioDataset(dataset_path='/Users/felixducharmeturcotte/Documents/datasetV2/training', device=DEVICE)
     # validation_sub_dataset = AudioDataset(dataset_path='/Users/felixducharmeturcotte/Documents/datasetV2/validation', device=DEVICE)
@@ -38,7 +38,7 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
 
     BATCH_SIZE = 32
     lenght_dataset = len(dataset)
-    validation_size = round(lenght_dataset*0.3)
+    validation_size = round(lenght_dataset*0.2)
 
     training_sub_dataset, validation_sub_dataset = torch.utils.data.random_split(dataset, [ lenght_dataset - validation_size, validation_size])
 
@@ -71,7 +71,7 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
     if TRAIN:
         optimizer = torch.optim.Adam(
             audioModel.parameters(),
-            lr=4e-03
+            lr=2e-03
         )
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,verbose=True)
         trainer = AudioTrainer(

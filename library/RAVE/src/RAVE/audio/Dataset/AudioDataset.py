@@ -95,10 +95,14 @@ class AudioDataset(torch.utils.data.Dataset):
         item_path = self.data[idx]
         audio_signal, audio_sr, noise_target, noise_sr, speech_target, speech_sr, config_dict = self.load_item_from_disk(item_path)
 
-        signal1 = self._formatAndConvertToSpectogram(audio_signal, audio_sr)
-        signal2 = self._delaySum(audio_signal, audio_sr, config_dict)
-        noise_target = self._formatAndConvertToSpectogram(noise_target, noise_sr)
-        speech_target = self._formatAndConvertToSpectogram(speech_target, speech_sr)
+        min_val = min(audio_signal.shape[1], noise_target.shape[1], speech_target.shape[1])
+
+        begin = random.randint(0, (min_val - self.num_samples)) if min_val > self.num_samples + 1 else 0
+
+        signal1 = self._formatAndConvertToSpectogram(audio_signal, audio_sr, begin)
+        signal2 = self._delaySum(audio_signal, audio_sr, config_dict, begin)
+        noise_target = self._formatAndConvertToSpectogram(noise_target, noise_sr, begin)
+        speech_target = self._formatAndConvertToSpectogram(speech_target, speech_sr, begin)
 
         signal = torch.cat([signal1, signal2], dim=1)
 
@@ -110,9 +114,9 @@ class AudioDataset(torch.utils.data.Dataset):
 
         return signal, torch.squeeze(target), total_energy
     
-    def _delaySum(self, raw_signal, sr, config):
+    def _delaySum(self, raw_signal, sr, config, begin):
         signal = self._resample(raw_signal, sr)
-        signal = self._cut(signal)
+        signal = self._cut(signal, begin)
         signal = self._right_pad(signal)
         freq_signal = self.transformation(signal)
         mic0 = list(np.subtract(config['microphones'][0], config['user_pos']))
@@ -142,9 +146,9 @@ class AudioDataset(torch.utils.data.Dataset):
         signal = 20*torch.log10(torch.abs(signal) + 1e-09)
         return signal
 
-    def _formatAndConvertToSpectogram(self, raw_signal, sr):
+    def _formatAndConvertToSpectogram(self, raw_signal, sr, begin):
         signal = self._resample(raw_signal, sr)
-        signal = self._cut(signal)
+        signal = self._cut(signal, begin)
         signal = self._right_pad(signal)
         freq_signal = self.transformation(signal)
         freq_signal = freq_signal**2
@@ -174,9 +178,8 @@ class AudioDataset(torch.utils.data.Dataset):
             signal = torch.mean(signal, dim=0, keepdim=True)
         return signal
 
-    def _cut(self, signal):
-        #begin = random.randint(0,signal.shape[1]- self.num_samples -1)
-        begin = 0
+    def _cut(self, signal, begin):
+        #begin = 0
         if signal.shape[1] > self.num_samples:
             signal = signal[:, begin: begin+self.num_samples]
         return signal
