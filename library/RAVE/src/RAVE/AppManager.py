@@ -166,7 +166,7 @@ class AppManager:
             face selected in the web client.
         """
         self._selected_face = payload["targetId"]
-        emit("selectedTarget", "client", {"targetID": self._selected_face})
+        emit("selectedTarget", "client", {"targetId": self._selected_face})
 
     def _change_mode(self, payload):
         """

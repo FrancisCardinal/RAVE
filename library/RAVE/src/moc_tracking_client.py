@@ -11,8 +11,16 @@ from RAVE.face_detection.face_detectors import YoloFaceDetector
 sio = socketio.Client()
 
 
-def emit(eventName, destination, payload):
-    sio.emit(eventName, {"destination": destination, "payload": payload})
+def emit(event_name, destination, payload):
+    """
+    Emits event to destination.
+    Args:
+        event_name (string): The name of the event to emit.
+        destination (string):
+            The destination to emit the event ("client" or "server").
+        payload (dict): The information needed to be passed to the destination.
+    """
+    sio.emit(event_name, {"destination": destination, "payload": payload})
 
 
 def send_data(frame, detections):
@@ -112,8 +120,10 @@ def onForceRefresh():
 
 
 @sio.on("targetSelect")
-def onSelectTarget(target):
-    print(f"User selected id : {target}")
+def onSelectTarget(payload):
+    targetId = payload["targetId"]
+    print(f"User selected id : {targetId}")
+    emit("selectedTarget", "client", {"targetId": targetId})
 
 
 @sio.on("setEyeTrackerMode")
