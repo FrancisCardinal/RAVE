@@ -1,6 +1,9 @@
 import { useTranslation } from "react-i18next";
 import React from "react";
 
+/**
+ * This screen displays the steps to follows to use the prototype.
+ */
 function HelpScreen() {
   const [t] = useTranslation('common');
   const instructions = [

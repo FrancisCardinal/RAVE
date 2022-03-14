@@ -6,7 +6,7 @@ import { useEmit } from '../../Hooks';
 import { SetVolumeEvent } from 'rave-protocol/pythonEvents';
 
 /**
- * This component allows the user to modify the headphone's volume via a slider.s
+ * This component allows the user to modify the headphone's volume via a slider.
  */
 function VolumeSlider() {
   const emit = useEmit();

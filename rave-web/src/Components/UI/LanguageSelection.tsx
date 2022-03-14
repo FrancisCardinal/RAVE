@@ -11,7 +11,7 @@ interface LanguageSelectionProps {
 }
 /**
  * This component allows the user to change the site's language.
- * The current languages available are english and french.
+ * The current languages available are english and french (default is english).
  */
 const LanguageSelection : FC<LanguageSelectionProps> = (props) => {
   const [t, i18n] = useTranslation('common');

@@ -5,6 +5,9 @@ import { useTranslation } from 'react-i18next';
 import { useEmit } from '../../Hooks/useEmit';
 import { ChangeVisionModeEvent } from 'rave-protocol';
 
+/**
+ * This component allows the user to change the vision mode.
+ */
 const VisionModeSelection : FC = () => {
   const [t] = useTranslation('common');
   const emit = useEmit();
