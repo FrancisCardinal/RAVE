@@ -3,5 +3,7 @@
 pyodas-JacobKealey
 
 soundfile
+scipy
+pyroomacoustics
 
 -r ../requirements.txt

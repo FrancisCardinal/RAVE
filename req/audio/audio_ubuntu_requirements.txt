@@ -2,6 +2,7 @@
 
 pyodas-JacobKealey
 
+pyaudio
 soundfile
 
 -r ../requirements.txt
