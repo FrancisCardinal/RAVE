@@ -1,8 +1,8 @@
 from .trackers import TrackerFactory
 from .face_verifiers import Encoding
 
-NB_FRAMES_TO_CONFIRMED = 10
-CONFIRMATION_THRESHOLD = 8
+NB_FRAMES_TO_CONFIRMED = 8
+CONFIRMATION_THRESHOLD = 5
 NB_FRAMES_TO_REJECT = 10
 REJECTION_THRESHOLD = 2
 
@@ -152,12 +152,18 @@ class TrackedObject:
         """
         self.bbox = bbox
 
-    def update_encoding(self, feature):
+    def update_encoding(self, feature, frame=None, bbox=None):
         """
         Args:
             feature (list): New feature vector representing the object
         """
-        self._encoding.update(feature)
+        face_image = None
+        if frame is not None and bbox is not None:
+            x0, y0 = bbox[0], bbox[1]
+            x1, y1 = x0 + bbox[2], y0 + bbox[3]
+            face_image = frame[y0:y1, x0:x1]
+
+        self._encoding.update(feature, face_image)
 
     def confirm(self):
         """Used to confirm a bbox in pre-processing"""
@@ -203,6 +209,7 @@ class TrackedObject:
         self._rejected_frames = 0
         self._rejected = False
         self.bbox = pre_tracked_object.bbox
+        self.encoding.restore(pre_tracked_object)
         self._relative_landmark = pre_tracked_object._relative_landmark
 
     def increment_evaluation_frames(self):

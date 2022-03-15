@@ -2,6 +2,7 @@ import time
 import cv2
 import threading
 import torch
+import numpy as np
 
 from collections import defaultdict
 
@@ -253,6 +254,31 @@ class TrackingManager:
             # Remove last tracked object
             if len(self.tracked_objects) > 0:
                 self.tracked_objects.popitem()
+        elif key == ord("f"):
+            # Show memory of faces for each tracked object
+            tracked_objects = list(self.tracked_objects.values())
+            if len(tracked_objects) == 0:
+                return
+            slot_count = max(
+                [len(obj.encoding.all_faces) for obj in tracked_objects]
+            )
+            output = []
+            for obj in tracked_objects:
+                face_images = []
+                for i in range(slot_count):
+                    if len(obj.encoding.all_faces) >= i:
+                        face_image = obj.encoding.all_faces[i]
+                        face_image = cv2.resize(face_image, (150, 150))
+                        face_images.append(face_image)
+                    else:
+                        face_images.append(np.zeros((150, 150)))
+                output.append(np.concatenate(face_images, axis=1))
+
+            if output:
+                output = np.concatenate(output, axis=0)
+                cv2.imshow("Detected faces", output)
+                cv2.waitKey(10)
+
         elif key == ord("q") or key == 27:
             return True
 
@@ -287,12 +313,12 @@ class TrackingManager:
             frame (ndarray): current frame with shape HxWx3
         """
 
-        all_tracked_objects = self.tracked_objects.values()
+        all_tracked_objects = list(self.tracked_objects.values())
         for i in range(len(all_tracked_objects)):
             if len(all_tracked_objects) <= i:
                 break
 
-            tracked_object = all_tracked_objects[i]  ## TODODO error here
+            tracked_object = all_tracked_objects[i]
             if tracked_object.bbox is None:
                 continue
             self.draw_prediction_on_frame(tracking_frame, tracked_object)
@@ -366,6 +392,7 @@ class TrackingManager:
                 the x,y format
         """
 
+        # TODO: could include feature vector in face matching... (?)
         all_tracked_objects = self.get_all_objects()
         (
             matched_pairs,
@@ -379,10 +406,16 @@ class TrackingManager:
             obj, detection = pair
             if obj.id in self.tracked_objects.keys():
                 # Do not reset pre-tracked objects
-                self.tracked_objects[obj.id].reset(
-                    frame, detection.bbox, detection.mouth
-                )
-                self.tracked_objects[obj.id].increment_evaluation_frames()
+                matched_object = self.tracked_objects[obj.id]
+                matched_object.reset(frame, detection.bbox, detection.mouth)
+                matched_object.increment_evaluation_frames()
+
+                # Also extract new feature vector
+                feature = self._verifier.get_features(frame, [detection.bbox])[
+                    0
+                ]
+
+                matched_object.update_encoding(feature, frame, detection.bbox)
 
         # Handle unmatched detections
         for new_detection in unmatched_detections:
@@ -445,50 +478,32 @@ class TrackingManager:
             pre_tracked_object, detection = pair
 
             # TODO: Maybe throttle/control when to call verifier
-            # TODO: Build average encoding for objects (?)
             # Compute encoding for detection
-            feature = self._verifier.get_features(
-                frame, [pre_tracked_object.bbox]
-            )[0]
+            feature = self._verifier.get_features(frame, [detection.bbox])[0]
 
             # Verify detection with past detections
             if not pre_tracked_object.encoding.is_empty:
                 similarity_score = self._verifier.get_scores(
                     [pre_tracked_object.encoding],
-                    Encoding(
-                        feature
-                    ),  # TODO: Does 2nd param need to be an encoding?
+                    Encoding(feature),  # TODO: param has to be encoding?
                 )[0]
 
                 if similarity_score >= self._verifier_threshold:
                     # Appearance matched last detection
                     print("Encoding matched last encoding")
-                    pre_tracked_object.update_encoding(feature)
+                    pre_tracked_object.update_encoding(
+                        feature, frame, detection.bbox
+                    )
                     pre_tracked_object.confirm()
                 else:
                     pre_tracked_object.increment_evaluation_frames()
                     print("Encoding did not match last")
             else:
                 # Skip verifier compare on first detection
-                pre_tracked_object.update_encoding(feature)
+                pre_tracked_object.update_encoding(
+                    feature, frame, detection.bbox
+                )
                 pre_tracked_object.confirm()
-
-            # # TODO: Validate with verifier as well
-            # # Check if this object matches an old face
-            # rejected_objects = list(self._rejected_objects.values())
-            # if any(rejected_objects):
-            #     matched_object = self.compare_encoding_to_objects(
-            #         rejected_objects, tracked_object.encoding
-            #     )
-            #     if matched_object:
-            #         # Matched with old face: start tracking again
-            #         self.restore_rejected_object(
-            #             matched_object.id, tracked_object
-            #         )
-            #         # TODO: Do we want to by-pass the rest of pre-processing
-            #         #  if the face has been identified as an old face?
-            #         # End this object's pre-processing
-            #         finished_trackers_id.add(tracker_id)
 
         # Handle unmatched objects
         for obj_id, obj in unmatched_objects.items():
@@ -499,7 +514,22 @@ class TrackingManager:
         pre_tracker_frame = frame.copy()
         for tracker_id, tracked_object in self._pre_tracked_objects.items():
             if tracked_object.confirmed:
-                self.tracked_objects[tracker_id] = tracked_object
+                # Check if this object matches an old face
+                restored_object = False
+                rejected_objects = list(self._rejected_objects.values())
+                if any(rejected_objects):
+                    matched_object = self.compare_encoding_to_objects(
+                        rejected_objects, tracked_object.encoding
+                    )
+                    if matched_object:
+                        # Matched with old face: start tracking again
+                        self.restore_rejected_object(
+                            matched_object.id, tracked_object
+                        )
+                        restored_object = True
+
+                if not restored_object:
+                    self.tracked_objects[tracker_id] = tracked_object
 
             if not tracked_object.pending:
                 finished_trackers_id.add(tracker_id)
@@ -612,7 +642,7 @@ class TrackingManager:
                     self._is_alive = False
                     break
 
-            # time.sleep(0.001)
+            # time.sleep(0.002)
 
     def start(self, args):
         """
