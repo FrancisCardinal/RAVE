@@ -1,0 +1,3 @@
+amixer : https://linux.die.net/man/1/amixer
+i2s codec documentation : https://docs.nvidia.com/jetson/archives/l4t-archived/l4t-3261/index.html#page/Tegra%20Linux%20Driver%20Package%20Development%20Guide/asoc_driver.19.2.html#wwpID0E0ZEB0HA
+TDM documentation : https://docs.nvidia.com/jetson/archives/l4t-archived/l4t-3261/index.html#page/Tegra%20Linux%20Driver%20Package%20Development%20Guide/asoc_driver.19.2.html#wwpID0E0PK0HA

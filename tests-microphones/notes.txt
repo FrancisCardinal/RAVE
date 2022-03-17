@@ -1,0 +1,9 @@
+sudo /opt/nvidia/jetson-io/jetson-io.py
+
+red : 3.3v
+brown : ground
+blue : SD : 38
+orange : SCK : 12
+green : WS : 35
+
+card name : tegrasndt186ref
