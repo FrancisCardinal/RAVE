@@ -129,7 +129,7 @@ def main(DEBUG, INPUT, OUTPUT, TIME, MASK):
         original_sink = io_manager.add_sink(sink_name='original', sink_type='sim',
                                             file=original, wav_params=FILE_PARAMS, chunk_size=CHUNK_SIZE)
         if OUTPUT == '':
-            OUTPUT = os.path.join(subfolder_path, 'output.wav')
+            OUTPUT = os.path.join(subfolder_path, 'output_noise.wav')
         output_sink = io_manager.add_sink(sink_name='output', sink_type='sim',
                                           file=OUTPUT, wav_params=FILE_PARAMS, chunk_size=CHUNK_SIZE)
 
@@ -138,7 +138,7 @@ def main(DEBUG, INPUT, OUTPUT, TIME, MASK):
     if MASK:
         masks = KissMask(mic_array, buffer_size=30)
     else:
-        model = AudioModel(input_size=1026, hidden_size=128, num_layers=2)
+        model = AudioModel(input_size=1026, hidden_size=256, num_layers=2)
         model.to(DEVICE)
         if DEBUG:
             print(model)
@@ -153,14 +153,15 @@ def main(DEBUG, INPUT, OUTPUT, TIME, MASK):
     # TODO: Check if we want to handle stft and istft in IOManager class
     stft = Stft(channels, FRAME_SIZE, "hann")
     istft = IStft(channels, FRAME_SIZE, CHUNK_SIZE, "hann")
-    speech_spatial_cov = SpatialCov(channels, FRAME_SIZE, weight=0.03)
-    noise_spatial_cov = SpatialCov(channels, FRAME_SIZE, weight=0.03)
+    speech_spatial_cov = SpatialCov(channels, FRAME_SIZE, weight=0.5)
+    noise_spatial_cov = SpatialCov(channels, FRAME_SIZE, weight=0.5)
 
     # Record for 6 seconds
     samples = 0
     loop_idx = 0
     total_time = 0
     total_beamformer_time = 0
+    total_mask_time = 0
     total_network_time = 0
     total_data_time = 0
     max_time = 0
@@ -182,7 +183,10 @@ def main(DEBUG, INPUT, OUTPUT, TIME, MASK):
 
         # Compute the masks
         if MASK:
+            start_mask_time = time.perf_counter_ns()
             speech_mask, noise_mask = masks(X, target)
+            end_mask_time = time.perf_counter_ns()
+            total_mask_time += (end_mask_time - start_mask_time) / 1000000
         else:
             start_data_time = time.perf_counter_ns()
             # Delay and sum
@@ -201,19 +205,22 @@ def main(DEBUG, INPUT, OUTPUT, TIME, MASK):
             concat_spec = torch.reshape(concat_spec, (1, 1, concat_spec.shape[1], 1))
             start_network_time = time.perf_counter_ns()
             with torch.no_grad():
-                speech_mask = model(concat_spec)
+                noise_mask = model(concat_spec)
             end_network_time = time.perf_counter_ns()
-            speech_mask = torch.squeeze(speech_mask).numpy()
-            noise_mask = 1 - speech_mask
+            noise_mask = torch.squeeze(noise_mask).numpy()
+            speech_mask = 1 - noise_mask
             total_network_time += (end_network_time - start_network_time) / 1000000
-            total_data_time += (end_network_time - start_data_time) / 1000000
+            total_data_time += ((end_network_time - start_data_time) - (end_network_time - start_network_time)) / 1000000
 
         # Spatial covariance matrices
         target_scm = speech_spatial_cov(X, speech_mask)
         noise_scm = noise_spatial_cov(X, noise_mask)
 
         # MVDR
+        start_bf_time = time.perf_counter_ns()
         Y = beamformer(signal=X, target_scm=target_scm, noise_scm=noise_scm)
+        end_bf_time = time.perf_counter_ns()
+        total_beamformer_time += (end_bf_time - start_bf_time) / 1000000
         y = istft(Y)
         out = y
         if OUT_CHANNELS == 1:
@@ -229,7 +236,7 @@ def main(DEBUG, INPUT, OUTPUT, TIME, MASK):
         total_time += loop_time
         max_time = loop_time if loop_time > max_time else max_time
 
-        if DEBUG and samples % (CHUNK_SIZE*25) == 0:
+        if DEBUG and samples % (CHUNK_SIZE*50) == 0:
             print(f'Samples processed: {samples}')
             print(f'Time for loop: {loop_time} ms.')
 
@@ -237,7 +244,9 @@ def main(DEBUG, INPUT, OUTPUT, TIME, MASK):
     print(f'Mean time per loop: {total_time / loop_idx} ms.')
     print(f'Longest time per loop: {max_time} ms.')
     print(f'Mean beamformer time per loop: {total_beamformer_time / loop_idx} ms.')
-    if not MASK:
+    if MASK:
+        print(f'Mean mask time per loop: {total_mask_time / loop_idx} ms.')
+    else:
         print(f'Mean data time per loop: {total_data_time / loop_idx} ms.')
         print(f'Mean network per loop: {total_network_time / loop_idx} ms.')
 
