@@ -7,10 +7,11 @@ CHANNELS = 4
 MIC_ARRAY = load_mic_array_from_ressources("ReSpeaker_USB")
 CHUNK_SIZE = 256
 
-OUTPUT_FILE = '/home/rave/RAVE/audio/test'
+# OUTPUT_FILE = '/home/rave/RAVE/audio/test/test_output.wav'
+OUTPUT_FILE = 'C:\\GitProjet\\RAVE\\library\\RAVE\\src\\RAVE\\audio\\test_output.wav'
 # Params: .wav file channels, int16 byte size, sampling rate, nb of samples,
 #         compression type, compression name
-TIME_MAX = 0
+TIME_MAX = 5
 FILE_PARAMS = (
     4,
     2,
@@ -19,9 +20,12 @@ FILE_PARAMS = (
     "NONE",
     "not compressed",
 )
-TIME = float('inf') if TIME == 0 else TIME = TIME_MAX
+if TIME_MAX == 0:
+    TIME = float('inf')
+else:
+    TIME = TIME_MAX
 
-source = MicSource(channels=4, mic_arr=MIC_ARRAY, chunk_size=CHUNK_SIZE)
+source = MicSource(channels=CHANNELS, mic_arr=MIC_ARRAY, chunk_size=CHUNK_SIZE, mic_index=0)
 sink = WavSink(file=OUTPUT_FILE, wav_params=FILE_PARAMS, chunk_size=CHUNK_SIZE)
 
 samples = 0
@@ -31,22 +35,20 @@ total_sink_time = 0
 while samples / CONST.SAMPLING_RATE < TIME:
     loop_idx += 1
 
-    start_source_time = time.perf_counter_ns()
     x = source()
     if x is None:
         print('End of transmission. Closing.')
         break
-    end_source_time = time.perf_counter_ns()
 
-    start_sink_time = time.perf_counter_ns()
     sink(x)
-    end_sink_time = time.perf_counter_ns()
 
     samples += CHUNK_SIZE
+    if samples % (CHUNK_SIZE * 25) == 0:
+        print(f'Samples processed: {samples}')
 
-    total_source_time += (end_source_time - start_source_time) / 1000000
-    total_sink_time += (end_sink_time - start_sink_time) / 1000000
+    # total_source_time += (end_source_time - start_source_time) / 1000000
+    # total_sink_time += (end_sink_time - start_sink_time) / 1000000
 
 
-print(f'Mean read time: {total_source_time/loop_idx} ms.')
-print(f'Mean send time: {total_sink_time/loop_idx} ms.')
+# print(f'Mean read time: {total_source_time/loop_idx} ms.')
+# print(f'Mean send time: {total_sink_time/loop_idx} ms.')
