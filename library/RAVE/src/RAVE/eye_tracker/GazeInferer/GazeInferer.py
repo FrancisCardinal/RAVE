@@ -14,7 +14,7 @@ uses pytorch instead of TF for predictions. As such, this is mostly copy and pas
 
 
 class GazeInferer:
-    def __init__(self, ellipse_dnn, dataloader, device, eyeball_model_path="model_01.json", image_scaling_factor=1,  pupil_radius=4, initial_eye_z=49.497, x_angle=22.5, flen=3.37, sensor_size=(2.7216, 3.6288)):
+    def __init__(self, ellipse_dnn, dataloader, device, eyeball_model_path="model_01.json", image_scaling_factor=1,  pupil_radius=4, initial_eye_z=52.271, x_angle=22.5, flen=3.37, sensor_size=(2.7216, 3.6288)):
         self._ellipse_dnn = ellipse_dnn
         self._dataloader = dataloader
         self._device = device
