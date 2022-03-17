@@ -51,7 +51,7 @@ class EyeTrackerDatasetBuilder(DatasetBuilder):
         """
         BUILDERS = EyeTrackerDatasetBuilder.get_builders()
         if BUILDERS == -1:
-            return
+            return False
 
         print("dataset has NOT been found on disk, creating dataset")
         threads = []
@@ -62,6 +62,8 @@ class EyeTrackerDatasetBuilder(DatasetBuilder):
 
         for thread in threads:
             thread.join()
+        
+        return True
 
     @staticmethod
     def get_builders():

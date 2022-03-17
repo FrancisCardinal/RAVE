@@ -42,14 +42,15 @@ class EyeTrackerSyntheticDatasetBuilder(EyeTrackerDatasetBuilder):
     """
 
     @staticmethod
-    def create_images_datasets_with_synthetic_images():
+    def create_images_datasets_with_synthetic_images(force_generate):
         """
         Main method of the EyeTrackerSyntheticDatasetBuilder class.
         This method checks if the dataset as already been built, and builds it
         otherwise.
         """
-        BUILDERS = EyeTrackerSyntheticDatasetBuilder.get_builders()
-        if BUILDERS == -1:
+        BUILDERS, dataset_found = EyeTrackerSyntheticDatasetBuilder.get_builders()
+        if dataset_found and not force_generate:
+            print("dataset found on disk and did not force generate : skipping generation")
             return
 
         print("dataset has NOT been found on disk, creating dataset")
@@ -95,10 +96,7 @@ class EyeTrackerSyntheticDatasetBuilder(EyeTrackerDatasetBuilder):
             DATASET_DIR,
             TEST_DIR,
         )
-
-        if os.path.isdir(TEST_PATH):
-            print("dataset found on disk")
-            return -1
+        dataset_found = os.path.isdir(TEST_PATH)
 
         images_files = os.listdir(os.path.join(
             EyeTrackerDatasetBuilder.ROOT_PATH, SOURCE_DIR, IMAGES_DIR))
@@ -135,7 +133,7 @@ class EyeTrackerSyntheticDatasetBuilder(EyeTrackerDatasetBuilder):
                 SOURCE_DIR,
             ),
         ]
-        return BUILDERS
+        return BUILDERS, dataset_found
 
     def __init__(self, files, OUTPUT_DIR_PATH, log_name, IMAGE_DIMENSIONS, SOURCE_DIR):
         super().__init__([], OUTPUT_DIR_PATH, log_name, IMAGE_DIMENSIONS, SOURCE_DIR)
@@ -148,14 +146,14 @@ class EyeTrackerSyntheticDatasetBuilder(EyeTrackerDatasetBuilder):
         for file in tqdm(
             self.files, leave=False, desc=self.log_name
         ):
-            filename = Path(file).stem
+            filename = Path(file).stem 
             frame = cv2.imread(os.path.join(
                 self.INPUT_IMAGES_PATH, file))
             processed_frame = self.process_frame(frame)
 
             video_output_file_path = os.path.join(
                 self.OUTPUT_IMAGES_PATH,
-                filename + "." + IMAGES_FILE_EXTENSION,
+                filename + '_synthetic' + "." + IMAGES_FILE_EXTENSION,
             )
             output_frame = tensor_to_opencv_image(processed_frame)
 
@@ -164,7 +162,7 @@ class EyeTrackerSyntheticDatasetBuilder(EyeTrackerDatasetBuilder):
             copyfile(os.path.join(
                 self.INPUT_LABELS_PATH, filename + ".bin"),
                 os.path.join(
-                self.OUTPUT_LABELS_PATH, filename + ".bin")
+                self.OUTPUT_LABELS_PATH, filename + '_synthetic' + ".bin")
             )
 
 

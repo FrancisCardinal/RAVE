@@ -50,7 +50,9 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST, INFERENC
     if ANNOTATE:
         annotate(EyeTrackerDataset.EYE_TRACKER_DIR_PATH)
 
-    EyeTrackerDatasetBuilder.create_images_datasets_with_videos()
+    created_real_dataset = EyeTrackerDatasetBuilder.create_images_datasets_with_videos()
+    if created_real_dataset : 
+        EyeTrackerSyntheticDatasetBuilder.create_images_datasets_with_synthetic_images(True)
 
     BATCH_SIZE = 128
     training_sub_dataset = EyeTrackerDataset.get_training_sub_dataset()
