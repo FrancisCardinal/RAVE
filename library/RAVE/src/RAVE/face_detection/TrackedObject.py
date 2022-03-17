@@ -243,11 +243,8 @@ class TrackedObject:
             landmark (tuple (int, int)): x & y coordinates for the landmark
         """
         self.tracker_started = False  # Tracker is not ready to use
-        if self._tracker_type == "sort":
-            self.tracker.update_tracker(bbox)
-        else:
-            self.tracker = TrackerFactory.create(self._tracker_type)
-            self.tracker.start(frame, bbox)
+        self.tracker = TrackerFactory.create(self._tracker_type)
+        self.tracker.start(frame, bbox)
         self.bbox = bbox
         self.update_landmark(landmark)
         self.tracker_started = True  # Tracker is ready to use

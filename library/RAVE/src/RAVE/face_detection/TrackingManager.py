@@ -228,6 +228,8 @@ class TrackingManager:
                 xywh_rect = [int(v) for v in box]
                 tracked_object.update_bbox(xywh_rect)
 
+            time.sleep(0.05)
+
         print(f"Stopped tracking object {tracked_object.id}")
 
     def listen_keyboard_input(self, frame, key_pressed):
@@ -415,6 +417,7 @@ class TrackingManager:
                     0
                 ]
 
+                # TODO: Verify that the new face actually matches (verifier)
                 matched_object.update_encoding(feature, frame, detection.bbox)
 
         # Handle unmatched detections
@@ -490,14 +493,14 @@ class TrackingManager:
 
                 if similarity_score >= self._verifier_threshold:
                     # Appearance matched last detection
-                    print("Encoding matched last encoding")
+                    # print("Encoding matched last encoding")
                     pre_tracked_object.update_encoding(
                         feature, frame, detection.bbox
                     )
                     pre_tracked_object.confirm()
                 else:
                     pre_tracked_object.increment_evaluation_frames()
-                    print("Encoding did not match last")
+                    # print("Encoding did not match last")
             else:
                 # Skip verifier compare on first detection
                 pre_tracked_object.update_encoding(
@@ -599,6 +602,8 @@ class TrackingManager:
             if time.time() - self._last_detect >= self._frequency:
                 self.detector_update(frame, pre_frame, pre_detections)
 
+            time.sleep(0.05)
+
     def main_loop(self, monitor, cap, fps):
         """
         Loop to be called on separate thread that handles retrieving new image
@@ -642,7 +647,7 @@ class TrackingManager:
                     self._is_alive = False
                     break
 
-            # time.sleep(0.002)
+            time.sleep(0.002)
 
     def start(self, args):
         """
