@@ -2,6 +2,7 @@ import torch
 import yaml
 import os
 import numpy as np
+import time
 
 from pyodas.core import (
     Stft,
@@ -28,13 +29,14 @@ FILE_PARAMS = (
         )
 TARGET = np.array([0, 1, 0.5])
 
+EPSILON = 1e-9
 
 class AudioManager:
     """
     Class used as manager for all audio processes, containing the main loop of execution for the application.
     """
 
-    def __init__(self, debug, mask):
+    def __init__(self, debug, mask, timers):
 
         # Class variables init
         self.file_params = None
@@ -43,10 +45,13 @@ class AudioManager:
         self.source = None
         self.original_sink = None
         self.target = None
+        self.sink_dict = {}
+        self.timers = {}
 
         # Argument variables
         self.debug = debug
         self.mask = mask
+        self.get_timers = timers
 
         # General configs
         self.path = os.path.dirname(os.path.abspath(__file__))
@@ -112,15 +117,6 @@ class AudioManager:
         self.speech_spatial_cov = SpatialCov(self.channels, self.frame_size, weight=0.03)
         self.noise_spatial_cov = SpatialCov(self.channels, self.frame_size, weight=0.03)
 
-    def init_app(self, save_input, output_path=None):
-
-        # Init sources
-        self.source = self.init_mic_input('mic_array', )
-
-        # Init sinks
-        if save_input:
-            self.original_sink = self.init_sim_output(name='original', path=output_path)
-
     def init_sim_input(self, name, file):
         """
         Initialise simulated input (from .wav file).
@@ -159,18 +155,19 @@ class AudioManager:
             sink: WavSink object created.
         """
         # Get output subfolder
-        if path:
-            self.out_subfolder_path = path
-        else:
-            if self.in_subfolder_path:
-                self.out_subfolder_path = self.in_subfolder_path
+        if not self.out_subfolder_path:
+            if path:
+                self.out_subfolder_path = path
             else:
-                index = 0
-                subfolder_path = os.path.join(self.default_output_dir, 'run')
-                while os.path.exists(f'{subfolder_path}_{index}'):
-                    index += 1
-                self.out_subfolder_path = f'{subfolder_path}_{index}'
-        os.makedirs(self.out_subfolder_path)
+                if self.in_subfolder_path:
+                    self.out_subfolder_path = self.in_subfolder_path
+                else:
+                    index = 0
+                    subfolder_path = os.path.join(self.default_output_dir, 'run')
+                    while os.path.exists(f'{subfolder_path}_{index}'):
+                        index += 1
+                    self.out_subfolder_path = f'{subfolder_path}_{index}'
+            os.makedirs(self.out_subfolder_path)
 
         # WavSink
         sink_path = os.path.join(self.out_subfolder_path, f'{name}.wav')
@@ -217,55 +214,182 @@ class AudioManager:
                                         channels=self.out_channels, chunk_size=self.chunk_size)
         return sink
 
-    def initialise_audio(self):
+    def output_sink(self, data, sink_name):
+        """
+        Checks if sink exists, if yes, output to it
+
+        Args:
+            data: Data to be written to sink
+            sink_name: name of sink to which output data
+
+        Returns:
+            True if success (sink exists), else False
+        """
+        if sink_name in self.sink_dict:
+            chosen_sink = self.sink_dict[sink_name]
+            chosen_sink(data)
+            return True
+        else:
+            return False
+
+    def check_time(self, name, is_start, unit='ms'):
+
+        if not self.get_timers:
+            return
+
+        if unit == 'ms':
+            unit_factor = 1 / 10000000
+
+        if name not in self.timers:
+            self.timer[name]['unit'] = unit
+            self.timers[name]['total'] = 0
+            self.timers[name]['call_cnt'] = 0
+
+        current_time = time.perf_counter_ns() * unit_factor
+        if is_start:
+            self.timers[name]['start'] = current_time
+            return current_time
+        else:
+            self.timers[name]['end'] = current_time
+            elapsed_time = self.timers[name]['start'] - current_time
+            self.timers[name]['total'] += elapsed_time
+            self.timers[name]['call_cnt'] += 1
+            return elapsed_time
+
+    def print_time(self, name, is_mean):
+
+        time = self.timers[name]['total']
+        unit = self.timers[name]['unit']
+
+        mean_str = 'Total time'
+        if is_mean:
+            time /= self.timers[name]['call_cnt']
+            mean_str = 'Mean time per loop'
+
+        time_string = f'Timer: {mean_str} "{name}" = {time} {unit}'
+        return time_string
+
+    def initialise_audio(self, source, sinks, save_path=None):
         """
         Method to initialise audio after start.
         """
-        pass
+        # Params
+        if save_path:
+            self.out_subfolder_path = save_path
+
+        # Inputs
+        if source['type'] == 'sim':
+            self.source = self.init_sim_input(name=source['name'], file=source['file'])
+        else:
+            self.source = self.init_mic_input(name=source['name'], src_index=source['idx'])
+
+        # Outputs
+        for sink in sinks:
+            if sink['type'] == 'sim':
+                self.sink_dict[sink['name']] = self.init_sim_output(name='original', path=self.default_output_dir)
+            else:
+                self.sink_dict[sink['name']] = self.init_play_output(name='original', sink_index=sink['idx'])
+
+    def init_app(self, save_input, output_path=None):
+
+        # Init sources
+        self.source = self.init_mic_input('mic_array', )
+
+        # Init sinks
+        if save_input:
+            self.original_sink = self.init_sim_output(name='original', path=output_path)
 
     def main_loop(self):
         """
         Main audio loop.
         """
-        # Record for 6 seconds
         samples = 0
+        loop_idx = 0
+        max_time = 0
         while samples / CONST.SAMPLING_RATE < TIME:
+            loop_idx += 1
+            self.check_time(name='loop', is_start=True)
+
             # Record from microphone
             x = self.source()
             if x is None:
                 print('End of transmission. Closing.')
-                exit()
+                break
+            self.output_sink(data=x, sink_name='original')
 
-            # Save the unprocessed recording
-            if self.original_sink:
-                self.original_sink(x)
+            # Temporal to Frequential
+            self.check_time(name='stft', is_start=True)
             X = self.stft(x)
+            self.check_time(name='stft', is_start=False)
 
             # Compute the masks
             if self.mask:
-                speech_mask, noise_mask = self.masks(X, target)
+                self.check_time(name='mask', is_start=True)
+                speech_mask, noise_mask = self.masks(X, self.target)
+                self.check_time(name='mask', is_start=False)
             else:
-                delay = get_delays_based_on_mic_array(self.target, self.mic_array, self.frame_size)
-                sum = self.delay_and_sum(X, delay)
-                speech_mask = self.model(sum)
-                noise_mask = 1 - speech_mask
+                self.check_time(name='data', is_start=True)
+                # Delay and sum
+                target_np = np.array([self.target])
+                delay = get_delays_based_on_mic_array(target_np, self.mic_array, self.frame_size)
+                sum = self.delay_and_sum(X, delay[0])
+                sum_tensor = torch.from_numpy(sum)
+                sum_db = 20 * torch.log10(torch.abs(sum_tensor) + EPSILON)
+
+                # Mono
+                energy = torch.from_numpy(X ** 2)
+                mono_X = torch.mean(energy, dim=0, keepdim=True)
+                mono_db = 20 * torch.log10(torch.abs(mono_X) + EPSILON)
+
+                concat_spec = torch.cat([mono_db, sum_db], dim=1)
+                concat_spec = torch.reshape(concat_spec, (1, 1, concat_spec.shape[1], 1))
+                self.check_time(name='network', is_start=True)
+                with torch.no_grad():
+                    noise_mask = self.model(concat_spec)
+                self.check_time(name='network', is_start=False)
+                noise_mask = torch.squeeze(noise_mask).numpy()
+                speech_mask = 1 - noise_mask
+                self.check_time(name='data', is_start=False)
 
             # Spatial covariance matrices
+            self.check_time(name='masks', is_start=True)
             target_scm = self.speech_spatial_cov(X, speech_mask)
             noise_scm = self.noise_spatial_cov(X, noise_mask)
+            self.check_time(name='masks', is_start=False)
 
-            # MVDR
+            # MVDR and ISTFT
+            self.check_time(name='beamformer', is_start=True)
             Y = self.beamformer(signal=X, target_scm=target_scm, noise_scm=noise_scm)
+            self.check_time(name='beamformer', is_start=False)
+            self.check_time(name='istft', is_start=True)
             y = self.istft(Y)
+            self.check_time(name='istft', is_start=False)
+
+            # Output fully processed data
+            out = y
             if self.out_channels == 1:
-                out = y[y.shape[0] // 2]
+                channel_to_use = y.shape[0] // 2
+                out = y[channel_to_use]
             elif self.out_channels == 2:
                 out = np.array([y[0], y[-1]])
-            output_sink(out)
+            self.output_sink(data=out, sink_name='output')
 
             samples += self.chunk_size
 
-            if self.debug and samples % (self.chunk_size * 10) == 0:
+            loop_time = self.check_time(name='loop', is_start=False)
+            max_time = loop_time if loop_time > max_time else max_time
+
+            if self.debug and samples % (self.chunk_size * 50) == 0:
                 print(f'Samples processed: {samples}')
+                print(f'Time for loop: {loop_time} ms.')
 
         print('Finished running main_audio')
+        print(self.print_time(name='total', is_mean=False))
+        print(self.print_time(name='total', is_mean=True))
+        print(f'Timer: Longest time per loop: {max_time} ms.')
+        print(self.print_time(name='beamformer', is_mean=False))
+        if self.mask:
+            print(self.print_time(name='masks', is_mean=False))
+        else:
+            print(self.print_time(name='data', is_mean=False))
+            print(self.print_time(name='network', is_mean=False))
