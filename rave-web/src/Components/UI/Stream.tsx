@@ -5,6 +5,10 @@ import { CLIENT_EVENTS, NewFrameAvailablePayload } from 'rave-protocol/clientEve
 import { TargetSelectEvent } from 'rave-protocol/pythonEvents';
 import { DebugContext } from '../../DebugContextProvider';
 
+/**
+ * This component displays face detection video stream with
+ * boxes for each detected face which the user can press on to listen to them.
+ */
 function Stream() {
   const [frame, setFrame] = useState<NewFrameAvailablePayload|null>(null);
   const roomCanvasRef = useRef<HTMLCanvasElement|null>(null);

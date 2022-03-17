@@ -6,6 +6,9 @@ import CalibSettings from '../../Components/UI/CalibSettings';
 import { useEmit } from '../../Hooks';
 import { GoToVisionCalibrationEvent, QuitCalibrationEvent } from 'rave-protocol/pythonEvents';
 
+/**
+ * This screen is to calibration the vision camera.
+ */
 function CalibrationScreen() {
   const emit = useEmit();
   const [t] = useTranslation('common');

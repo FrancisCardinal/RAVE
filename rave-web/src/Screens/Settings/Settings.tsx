@@ -7,6 +7,9 @@ import Switch from '@mui/material/Switch';
 import { DebugContext } from "../../DebugContextProvider";
 import VisionModeSelection from "../../Components/UI/VisionModeSelection";
 
+/**
+ * This screen displays the available settings.
+ */
 function SettingsScreen() {
   const [t] = useTranslation('common');
   const { debugging, toggleDebugging} = useContext(DebugContext);

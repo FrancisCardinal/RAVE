@@ -9,6 +9,10 @@ import { useEventListener, useEmit } from "../../Hooks";
 import { CLIENT_EVENTS } from 'rave-protocol/clientEvents';
 import { DeleteConfigEvent, EyeTrackingConfigSelectedEvent } from 'rave-protocol/pythonEvents';
 
+/**
+ * This component lists the eye-tracking calibration configurations available to select.
+ * It has a button to add and create a new calibration and each configuration has a delete button.
+ */
 function CalibConfigs() {
   const [t] = useTranslation("common");
   const emit = useEmit();
