@@ -2,11 +2,13 @@
 #include <stdlib.h>
 #include <string>
 #include <algorithm>
+
 int ADMAIFInterface = 1;
 int I2SInterface = 1;
 int channelNumber = 8;
 int frequency = 48000;
-int duration = 4; // secs
+int duration = 4;             // secs
+std::string fileType = "raw"; // raw or wav
 
 void initEnvironment()
 {
@@ -50,6 +52,7 @@ void initEnvironment()
   // printf("\n");
 }
 
+// Flips a byte array byte by byte
 void flip(char *buffer, int sizeOfBuffer)
 {
   for (int i = 0; i < sizeOfBuffer; i++)
@@ -63,17 +66,21 @@ void flip(char *buffer, int sizeOfBuffer)
 int main(int argc, char **argv)
 {
   initEnvironment();
-  std::string recordCommand = "arecord -D hw:tegrasndt186ref," + std::to_string(ADMAIFInterface - 1) + " -r " + std::to_string(frequency) + " -c " + std::to_string(channelNumber) + " -f S32_LE -d " + std::to_string(duration) + " -t wav -q -";
+  std::string recordCommand = "arecord -D hw:tegrasndt186ref," + std::to_string(ADMAIFInterface - 1) + " -r " + std::to_string(frequency) + " -c " + std::to_string(channelNumber) + " -f S32_LE -d " + std::to_string(duration) + " -t " + fileType + " -q -";
   char buf[256];
   FILE *fp = popen(recordCommand.c_str(), "r");
-  FILE *out = fopen("out.wav", "wb");
+  std::string fileOutput = "./output/out." + fileType;
+  FILE *out = fopen(fileOutput.c_str(), "wb");
   int result;
   printf("Recording...\n");
   // Do not flip the WAV file header, which is 44 bytes long
-  for (int i = 0; i < 44; i++)
+  if (fileType == "wav")
   {
-    result = fread(buf, 1, 1, fp);
-    fwrite(buf, 1, 1, out);
+    for (int i = 0; i < 44; i++)
+    {
+      result = fread(buf, 1, 1, fp);
+      fwrite(buf, 1, 1, out);
+    }
   }
 
   // While data is available

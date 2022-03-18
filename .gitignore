@@ -135,5 +135,4 @@ dmypy.json
 /rave-server/node_modules/
 /rave-web/node_modules/
 tests-microphones/main
-tests-microphones/out.wav
-tests-microphones/out.wav
+tests-microphones/output/*
