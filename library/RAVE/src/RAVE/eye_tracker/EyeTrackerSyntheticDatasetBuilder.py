@@ -1,4 +1,5 @@
 import os
+import pickle
 from pathlib import Path
 from shutil import copyfile
 import random
@@ -8,6 +9,8 @@ from tqdm import tqdm
 
 import cv2
 from torchvision import transforms
+
+from .NormalizedEllipse import NormalizedEllipse
 
 from .EyeTrackerDatasetBuilder import EyeTrackerDatasetBuilder
 
@@ -90,25 +93,17 @@ class EyeTrackerSyntheticDatasetBuilder(EyeTrackerDatasetBuilder):
             DATASET_DIR,
             VALIDATION_DIR,
         )
-        TEST_PATH = os.path.join(
-            EyeTrackerSyntheticDatasetBuilder.ROOT_PATH,
-            EyeTrackerDataset.EYE_TRACKER_DIR_PATH,
-            DATASET_DIR,
-            TEST_DIR,
-        )
-        dataset_found = os.path.isdir(TEST_PATH)
+        dataset_found = os.path.isdir(TRAINING_PATH)
 
         images_files = os.listdir(os.path.join(
             EyeTrackerDatasetBuilder.ROOT_PATH, SOURCE_DIR, IMAGES_DIR))
         random.Random(42).shuffle(images_files)
 
-        train_size, val_size = 0.75, 0.15
+        train_size = 0.85
         train_index_end = int(len(images_files)*train_size)
-        val_index_end = train_index_end + int(len(images_files)*val_size)
 
         train_files = images_files[:train_index_end]
-        val_files = images_files[train_index_end:val_index_end]
-        test_files = images_files[val_index_end:]
+        val_files = images_files[train_index_end:]
 
         BUILDERS = [
             EyeTrackerSyntheticDatasetBuilderOfflineDataAugmentation(
@@ -117,6 +112,7 @@ class EyeTrackerSyntheticDatasetBuilder(EyeTrackerDatasetBuilder):
                 "training   dataset",
                 EyeTrackerDataset.IMAGE_DIMENSIONS[1:3],
                 SOURCE_DIR,
+                EyeTrackerDatasetBuilder.CROP_SIZE,
             ),
             EyeTrackerSyntheticDatasetBuilder(
                 val_files,
@@ -124,46 +120,35 @@ class EyeTrackerSyntheticDatasetBuilder(EyeTrackerDatasetBuilder):
                 "validation dataset",
                 EyeTrackerDataset.IMAGE_DIMENSIONS[1:3],
                 SOURCE_DIR,
-            ),
-            EyeTrackerSyntheticDatasetBuilder(
-                test_files,
-                TEST_PATH,
-                "test       dataset",
-                EyeTrackerDataset.IMAGE_DIMENSIONS[1:3],
-                SOURCE_DIR,
+                EyeTrackerDatasetBuilder.CROP_SIZE,
             ),
         ]
         return BUILDERS, dataset_found
 
-    def __init__(self, files, OUTPUT_DIR_PATH, log_name, IMAGE_DIMENSIONS, SOURCE_DIR):
-        super().__init__([], OUTPUT_DIR_PATH, log_name, IMAGE_DIMENSIONS, SOURCE_DIR)
+    def __init__(self, files, OUTPUT_DIR_PATH, log_name, IMAGE_DIMENSIONS, SOURCE_DIR, CROP_SIZE):
+        super().__init__([], OUTPUT_DIR_PATH, log_name, IMAGE_DIMENSIONS, SOURCE_DIR, CROP_SIZE)
         self.INPUT_IMAGES_PATH = os.path.join(SOURCE_DIR, IMAGES_DIR)
         self.INPUT_LABELS_PATH = os.path.join(SOURCE_DIR, LABELS_DIR)
 
         self.files = files
 
     def generate_dataset(self):
-        for file in tqdm(
-            self.files, leave=False, desc=self.log_name
-        ):
+        self.video_frame_id = 0 
+
+        for file in tqdm(self.files, leave=False, desc=self.log_name):
             filename = Path(file).stem 
-            frame = cv2.imread(os.path.join(
-                self.INPUT_IMAGES_PATH, file))
+
+            annotation = pickle.load(open( os.path.join(self.INPUT_LABELS_PATH, filename + ".bin"), "rb"))
+            self.current_ellipse = NormalizedEllipse.get_from_list(annotation)
+
+            frame = cv2.imread(os.path.join(self.INPUT_IMAGES_PATH, file))
+            ORIGINAL_HEIGHT, ORIGINAL_WIDTH = frame.shape[0], frame.shape[1]
+            self.current_ellipse.crop(ORIGINAL_HEIGHT, ORIGINAL_WIDTH, EyeTrackerDatasetBuilder.CROP_SIZE)
+
             processed_frame = self.process_frame(frame)
 
-            video_output_file_path = os.path.join(
-                self.OUTPUT_IMAGES_PATH,
-                filename + '_synthetic' + "." + IMAGES_FILE_EXTENSION,
-            )
-            output_frame = tensor_to_opencv_image(processed_frame)
-
-            cv2.imwrite(video_output_file_path, output_frame)
-
-            copyfile(os.path.join(
-                self.INPUT_LABELS_PATH, filename + ".bin"),
-                os.path.join(
-                self.OUTPUT_LABELS_PATH, filename + '_synthetic' + ".bin")
-            )
+            self.save_image_label_pair(filename +  '_synthetic', processed_frame, self.current_ellipse.to_list())
+            self.video_frame_id += 1
 
 
 class EyeTrackerSyntheticDatasetBuilderOfflineDataAugmentation(
@@ -174,7 +159,7 @@ class EyeTrackerSyntheticDatasetBuilderOfflineDataAugmentation(
     It overwrites certain methods in order to do offline data augmentation.
     """
 
-    def __init__(self, files, OUTPUT_DIR_PATH, log_name, IMAGE_DIMENSIONS, SOURCE_DIR):
+    def __init__(self, files, OUTPUT_DIR_PATH, log_name, IMAGE_DIMENSIONS, SOURCE_DIR, CROP_SIZE):
         """
         Constructor of the EyeTrackerSyntheticDatasetBuilderOfflineDataAugmentation.
         Calls the parent constructor and defines the offline training transforms
@@ -188,7 +173,7 @@ class EyeTrackerSyntheticDatasetBuilderOfflineDataAugmentation(
             log_name (String):
                 Name to be displayed alongside the progress bar in the terminal
         """
-        super().__init__(files, OUTPUT_DIR_PATH, log_name, IMAGE_DIMENSIONS, SOURCE_DIR)
+        super().__init__(files, OUTPUT_DIR_PATH, log_name, IMAGE_DIMENSIONS, SOURCE_DIR, CROP_SIZE)
 
         self.TRAINING_TRANSFORM = transforms.Compose(
             [

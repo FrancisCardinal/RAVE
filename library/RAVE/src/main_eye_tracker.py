@@ -62,7 +62,7 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST, INFERENC
         training_sub_dataset,
         batch_size=BATCH_SIZE,
         shuffle=True,
-        num_workers=8,
+        num_workers=16,
         pin_memory=True,
         persistent_workers=True,
     )
@@ -71,7 +71,7 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST, INFERENC
         validation_sub_dataset,
         batch_size=BATCH_SIZE,
         shuffle=True,
-        num_workers=8,
+        num_workers=16,
         pin_memory=True,
         persistent_workers=True,
     )
@@ -119,7 +119,20 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST, INFERENC
             pin_memory=True,
             persistent_workers=True,
         )
-        visualize_predictions(eye_tracker_model, test_loader, DEVICE)
+        with torch.no_grad():
+            test_loss, number_of_images = 0, 0
+            for images, labels in test_loader:
+                images, labels = images.to(DEVICE), labels.to(DEVICE)
+
+                # Forward Pass
+                predictions = eye_tracker_model(images)
+                # Find the Loss
+                loss = ellipse_loss_function(predictions, labels)
+                # Calculate Loss
+                test_loss += loss.item()
+                number_of_images += len(images)
+
+        print('test loss = {}'.format(test_loss / number_of_images) ) 
 
     if INFERENCE:
         inference(eye_tracker_model, DEVICE)
@@ -148,6 +161,7 @@ def visualize_predictions(model, data_loader, DEVICE):
                     EyeTrackerDataset.TRAINING_STD,
                 )
                 image = tensor_to_opencv_image(image)
+                image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
                 image = draw_ellipse_on_image(image, label, color=(0, 255, 0))
                 image = draw_ellipse_on_image(

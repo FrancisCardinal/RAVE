@@ -22,7 +22,7 @@ class EyeTrackerDataset(Dataset):
 
     EYE_TRACKER_DIR_PATH = os.path.join("RAVE", "eye_tracker")
     TRAINING_MEAN, TRAINING_STD = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
-    IMAGE_DIMENSIONS = (3, 800, 600)
+    IMAGE_DIMENSIONS = (3, 240, 320)
 
     def __init__(self, sub_dataset_dir):
         super().__init__(
