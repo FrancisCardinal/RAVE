@@ -10,6 +10,12 @@ int frequency = 48000;
 int duration = 4;             // secs
 std::string fileType = "raw"; // raw or wav
 
+void system_no_output(const char *cmd)
+{
+  std::string s = std::string(cmd) + " > nul 2> nul";
+  system(s.c_str());
+}
+
 void initEnvironment()
 {
   std::string c1 = "amixer -c tegrasndt186ref cset name=\"ADMAIF" + std::to_string(ADMAIFInterface) + " Mux\" \"I2S" + std::to_string(I2SInterface) + "\"";
@@ -22,16 +28,15 @@ void initEnvironment()
   std::string c8 = "amixer -c tegrasndt186ref cset name=\"I2S" + std::to_string(I2SInterface) + " codec frame mode\" \"dsp-a\"";
   std::string c9 = "amixer -c tegrasndt186ref cset name=\"I2S" + std::to_string(I2SInterface) + " fsync width\" 0";
 
-  system(c1.c_str());
-  system(c2.c_str());
-  system(c3.c_str());
-  system(c4.c_str());
-  system(c5.c_str());
-  system(c6.c_str());
-  system(c7.c_str());
-  system(c8.c_str());
-  system(c9.c_str());
-  system("clear");
+  system_no_output(c1.c_str());
+  system_no_output(c2.c_str());
+  system_no_output(c3.c_str());
+  system_no_output(c4.c_str());
+  system_no_output(c5.c_str());
+  system_no_output(c6.c_str());
+  system_no_output(c7.c_str());
+  system_no_output(c8.c_str());
+  system_no_output(c9.c_str());
   // printf(c1.c_str());
   // printf("\n");
   // printf(c2.c_str());
@@ -72,8 +77,8 @@ int main(int argc, char **argv)
   std::string fileOutput = "./output/out." + fileType;
   FILE *out = fopen(fileOutput.c_str(), "wb");
   int result;
-  printf("Recording...\n");
-  // Do not flip the WAV file header, which is 44 bytes long
+  // printf("Recording...\n");
+  //  Do not flip the WAV file header, which is 44 bytes long
   if (fileType == "wav")
   {
     for (int i = 0; i < 44; i++)
@@ -88,11 +93,11 @@ int main(int argc, char **argv)
   {
     // Flip bytes and write
     flip(buf, sizeof(buf));
-    fwrite(buf, 1, sizeof(buf), out);
+    fwrite(buf, 1, sizeof(buf), stdout);
   }
 
-  printf("Done\n");
+  // printf("Done\n");
   pclose(fp);
-  fclose(out);
+  fclose(stdout);
   return 0;
 }
