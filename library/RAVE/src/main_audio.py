@@ -253,13 +253,14 @@ def main(DEBUG, INPUT, OUTPUT, TIME, MASK):
         print(f'Mean network per loop: {total_network_time / loop_idx} ms.')
 
 
-def main2(LOOP_DIR):
+def main2(LOOP_DIR=None):
 
     # Get all files in a subdirectory
     if LOOP_DIR:
-        audio_manager = AudioManager(debug=True, mask=True, timers=False)
+        audio_manager = AudioManager(debug=False, mask=True, use_timers=False)
         input_files = glob.glob(os.path.join(LOOP_DIR, '**/audio.wav'))
         for audio_file in input_files:
+            print(f'Starting speech enhancement on {audio_file}')
             audio_dict = {
                 'name': 'loop_sim_source',
                 'type': 'sim',
@@ -268,13 +269,14 @@ def main2(LOOP_DIR):
             audio_manager.initialise_audio(source=audio_dict)
             audio_manager.main_loop()
     else:
-        audio_manager = AudioManager(debug=True, mask=True, timers=True)
+        audio_manager = AudioManager(debug=True, mask=False, use_timers=False)
         audio_manager.initialise_audio()
         audio_manager.main_loop()
 
 
 if __name__ == "__main__":
-    main2(LOOP_DIR='C:\\GitProjet\\MS-SNSD\\output\\2')
+    main2()
+    # main2(LOOP_DIR='C:\\GitProjet\\MS-SNSD\\output\\2')
 
     # parser = argparse.ArgumentParser()
     #

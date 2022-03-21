@@ -56,7 +56,7 @@ noise_count_range: [1, 1]
 speech_as_noise: False
 
 # SNR limit values
-snr_limits: [0.5, 1]
+snr_limits: [0.75, 1]
 
 # Number of samples to get per speech source
 sample_per_speech: 5

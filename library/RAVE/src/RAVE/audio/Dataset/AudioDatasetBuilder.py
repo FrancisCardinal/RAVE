@@ -6,7 +6,7 @@ from tqdm import tqdm
 import random
 from shapely.geometry import Polygon, Point
 
-from RAVE.audio.Dataset import audiolib
+import audiolib
 
 import numpy as np
 import math
@@ -951,7 +951,7 @@ class AudioDatasetBuilder:
                 # Combine source with noises at a random SNR between limits
                 # audio = [audio_source_dict['speech'][0]['signal_w_rir'].copy(),
                 #          audio_source_dict['combined_noise'][0]['signal_w_rir'].copy()]
-                snr = np.random.rand()*self.snr_limits[0] + (self.snr_limits[1] - self.snr_limits[0])
+                snr = np.random.rand()*(self.snr_limits[1] - self.snr_limits[0]) + self.snr_limits[0]
                 self.snr = 20 * np.log10(snr)
                 self.combine_sources(audio_source_dict, ['speech', 'combined_noise'], 'combined_audio', snr=self.snr)
                 self.snr = float(10**(snr/20))
