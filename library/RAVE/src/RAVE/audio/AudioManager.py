@@ -31,9 +31,15 @@ TARGET = np.array([0, 1, 0.5])
 
 EPSILON = 1e-9
 
+
 class AudioManager:
     """
     Class used as manager for all audio processes, containing the main loop of execution for the application.
+
+    Args:
+            debug (bool): Run in debug mode or not.
+            mask (bool): Run with KISS mask (True) or model (False)
+            timers (bool): Get and print timers.
     """
 
     def __init__(self, debug, mask, timers):
@@ -55,7 +61,7 @@ class AudioManager:
 
         # General configs
         self.path = os.path.dirname(os.path.abspath(__file__))
-        config_path = os.path.join(self.path, 'audio/audio_general_configs.yaml')
+        config_path = os.path.join(self.path, 'audio_general_configs.yaml')
         with open(config_path, "r") as stream:
             try:
                 self.general_configs = yaml.safe_load(stream)
@@ -65,16 +71,18 @@ class AudioManager:
                 print(exc)
                 exit()
         # Get general configs
-        self.mic_dict = self.general_configs.mic_dict
+        self.mic_dict = self.general_configs['mic_dict']
         self.mic_array = generate_mic_array(self.mic_dict)
         self.channels = self.mic_dict['nb_of_channels']
-        self.out_channels = self.general_configs.out_channels
-        self.chunk_size = self.general_configs.chunk_size
+        self.out_channels = self.general_configs['out_channels']
+        self.chunk_size = self.general_configs['chunk_size']
         self.frame_size = self.chunk_size * 2
-        self.beamformer_name = self.general_configs.beamformer
+        self.beamformer_name = self.general_configs['beamformer']
+        self.jetson_source = self.general_configs['jetson_source']
+        self.jetson_sink = self.general_configs['jetson_sink']
 
         # Individual configs
-        config_path = os.path.join(self.path, 'audio/audio_indiv_configs.yaml')
+        config_path = os.path.join(self.path, 'audio_indiv_configs.yaml')
         with open(config_path, "r") as stream:
             try:
                 self.individual_configs = yaml.safe_load(stream)
@@ -84,8 +92,10 @@ class AudioManager:
                 print(exc)
                 exit()
         # Get general configs
-        self.default_output_dir = self.individual_configs.default_output_dir
-        self.mic_array_index = self.individual_configs.mic_array_index
+        self.default_output_dir = self.individual_configs['default_output_dir']
+        self.mic_array_index = self.individual_configs['mic_array_index']
+        self.source_dict = self.individual_configs['source']
+        self.sink_list = self.individual_configs['sinks']
 
         # Check if device has cuda
         self.device = "cpu"
@@ -142,6 +152,7 @@ class AudioManager:
                 print(exc)
                 exit()
         self.target = input_configs['source_dir']
+        return source
 
     def init_sim_output(self, name, path=None):
         """
@@ -167,6 +178,7 @@ class AudioManager:
                     while os.path.exists(f'{subfolder_path}_{index}'):
                         index += 1
                     self.out_subfolder_path = f'{subfolder_path}_{index}'
+        if not os.path.exists(self.out_subfolder_path):
             os.makedirs(self.out_subfolder_path)
 
         # WavSink
@@ -233,7 +245,17 @@ class AudioManager:
             return False
 
     def check_time(self, name, is_start, unit='ms'):
+        """
+        Run timers and save in dict.
 
+        Args:
+            name (str): Name of timer on which to do some action.
+            is_start (bool): Consider time as start time (True) or end time (False).
+            unit (str): String containing units to use for time management. Currently only accepts ms, the default.
+
+        Returns:
+            If start, returns current time, if end, returns elapsed time.
+        """
         if not self.get_timers:
             return
 
@@ -257,57 +279,94 @@ class AudioManager:
             return elapsed_time
 
     def print_time(self, name, is_mean):
+        """
+        Prints the time associated to the timer name.
 
-        time = self.timers[name]['total']
-        unit = self.timers[name]['unit']
+        Args:
+            name (str): Name of the timer of which to print time.
+            is_mean (bool): Bool determining if the time wanted is mean (divided by call_count) or total.
 
-        mean_str = 'Total time'
-        if is_mean:
-            time /= self.timers[name]['call_cnt']
-            mean_str = 'Mean time per loop'
+        Returns:
+            Returns a string containing the name, time and units. Returns 'Timer not found.' if name not found in dict.
+        """
+        if name in self.timers:
+            time = self.timers[name]['total']
+            unit = self.timers[name]['unit']
 
-        time_string = f'Timer: {mean_str} "{name}" = {time} {unit}'
+            mean_str = 'Total time'
+            if is_mean:
+                time /= self.timers[name]['call_cnt']
+                mean_str = 'Mean time per loop'
+
+            time_string = f'Timer: {mean_str} "{name}" = {time} {unit}'
+        else:
+            time_string = 'Timer not found.'
+
         return time_string
 
-    def initialise_audio(self, source, sinks, save_path=None):
+    def initialise_audio(self, source=None, sinks=None, overwrite_sinks=False, save_path=None):
         """
-        Method to initialise audio after start.
+        Method to initialise audio after start. Uses configs written in 'audio_general_configs.yaml' and
+        'audio_indiv_configs.yaml)
+
+        Args:
+            source (dict): Overwrite configs source.
+            sinks (list[dict]): Overwrite or add more sinks to the config sinks.
+            overwrite_sinks (bool): Whether to overwrite or append sinks.
+            save_path (str): Path at which to save the simulated sinks (.wav files).
         """
         # Params
         if save_path:
             self.out_subfolder_path = save_path
 
         # Inputs
-        if source['type'] == 'sim':
-            self.source = self.init_sim_input(name=source['name'], file=source['file'])
+        if source:
+            self.source_dict = source
+        if self.source_dict['type'] == 'sim':
+            self.source = self.init_sim_input(name=self.source_dict['name'], file=self.source_dict['file'])
         else:
-            self.source = self.init_mic_input(name=source['name'], src_index=source['idx'])
+            self.source = self.init_mic_input(name=self.source_dict['name'], src_index=self.source_dict['idx'])
 
         # Outputs
-        for sink in sinks:
+        if sinks:
+            if overwrite_sinks:
+                self.sink_list = sinks
+            else:
+                self.sink_list.extend(sinks)
+        for sink in self.sink_list:
             if sink['type'] == 'sim':
-                self.sink_dict[sink['name']] = self.init_sim_output(name='original', path=self.default_output_dir)
+                self.sink_dict[sink['name']] = self.init_sim_output(name='original')
             else:
                 self.sink_dict[sink['name']] = self.init_play_output(name='original', sink_index=sink['idx'])
 
-    def init_app(self, save_input, output_path=None):
+    def init_app(self, save_input, save_output, output_path=None):
+        """
+        Function used to init jetson application.
 
+        Args:
+            save_input (bool): Whether to save the input (original) or not.
+            save_output (bool): Whether to save the output or not.
+            output_path (str): Path at which to save the simulated sinks (.wav files).
+        """
         # Init sources
-        self.source = self.init_mic_input('mic_array', )
+
+        self.source = self.init_mic_input(name=self.jetson_source['name'], src_index=self.jetson_source['idx'])
 
         # Init sinks
+        self.sink_dict[self.jetson_sink['name']] = self.init_play_output(name=self.jetson_sink['name'],
+                                                                         sink_index=self.jetson_sink['idx'])
         if save_input:
-            self.original_sink = self.init_sim_output(name='original', path=output_path)
+            self.sink_dict['original'] = self.init_sim_output(name='original', path=output_path)
+        if save_output:
+            self.sink_dict['output'] = self.init_sim_output(name='output', path=output_path)
 
     def main_loop(self):
         """
         Main audio loop.
         """
         samples = 0
-        loop_idx = 0
         max_time = 0
         while samples / CONST.SAMPLING_RATE < TIME:
-            loop_idx += 1
             self.check_time(name='loop', is_start=True)
 
             # Record from microphone
@@ -315,7 +374,8 @@ class AudioManager:
             if x is None:
                 print('End of transmission. Closing.')
                 break
-            self.output_sink(data=x, sink_name='original')
+            if 'original' in self.sink_dict:
+                self.output_sink(data=x, sink_name='original')
 
             # Temporal to Frequential
             self.check_time(name='stft', is_start=True)
@@ -372,7 +432,8 @@ class AudioManager:
                 out = y[channel_to_use]
             elif self.out_channels == 2:
                 out = np.array([y[0], y[-1]])
-            self.output_sink(data=out, sink_name='output')
+            if 'output' in self.sink_dict:
+                self.output_sink(data=out, sink_name='output')
 
             samples += self.chunk_size
 
@@ -384,12 +445,13 @@ class AudioManager:
                 print(f'Time for loop: {loop_time} ms.')
 
         print('Finished running main_audio')
-        print(self.print_time(name='total', is_mean=False))
-        print(self.print_time(name='total', is_mean=True))
-        print(f'Timer: Longest time per loop: {max_time} ms.')
-        print(self.print_time(name='beamformer', is_mean=False))
-        if self.mask:
-            print(self.print_time(name='masks', is_mean=False))
-        else:
-            print(self.print_time(name='data', is_mean=False))
-            print(self.print_time(name='network', is_mean=False))
+        if self.get_timers:
+            print(self.print_time(name='total', is_mean=False))
+            print(self.print_time(name='total', is_mean=True))
+            print(f'Timer: Longest time per loop: {max_time} ms.')
+            print(self.print_time(name='beamformer', is_mean=True))
+            if self.mask:
+                print(self.print_time(name='masks', is_mean=True))
+            else:
+                print(self.print_time(name='data', is_mean=True))
+                print(self.print_time(name='network', is_mean=True))

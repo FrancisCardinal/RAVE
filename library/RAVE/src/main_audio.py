@@ -5,6 +5,7 @@ import torch
 import os
 import yaml
 import time
+import glob
 
 from pyodas.core import (
     Stft,
@@ -18,6 +19,7 @@ from pyodas.utils import CONST, generate_mic_array, load_mic_array_from_ressourc
 from RAVE.audio.IO.IO_manager import IOManager
 from RAVE.audio.Neural_Network.AudioModel import AudioModel
 from RAVE.audio.Beamformer.Beamformer import Beamformer
+from RAVE.audio.AudioManager import AudioManager
 
 DEVICE = "cpu"
 if torch.cuda.is_available():
@@ -250,57 +252,80 @@ def main(DEBUG, INPUT, OUTPUT, TIME, MASK):
         print(f'Mean data time per loop: {total_data_time / loop_idx} ms.')
         print(f'Mean network per loop: {total_network_time / loop_idx} ms.')
 
+
+def main2(LOOP_DIR):
+
+    # Get all files in a subdirectory
+    if LOOP_DIR:
+        audio_manager = AudioManager(debug=True, mask=True, timers=False)
+        input_files = glob.glob(os.path.join(LOOP_DIR, '**/audio.wav'))
+        for audio_file in input_files:
+            audio_dict = {
+                'name': 'loop_sim_source',
+                'type': 'sim',
+                'file': audio_file
+            }
+            audio_manager.initialise_audio(source=audio_dict)
+            audio_manager.main_loop()
+    else:
+        audio_manager = AudioManager(debug=True, mask=True, timers=True)
+        audio_manager.initialise_audio()
+        audio_manager.main_loop()
+
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    main2(LOOP_DIR='C:\\GitProjet\\MS-SNSD\\output\\2')
 
-    parser.add_argument(
-        "-d", "--debug", action="store_true", help="Run the script in debug mode. Is more verbose."
-    )
-    parser.add_argument(
-        "-m", "--mask", action="store_true", help="Use predefined masks instead of network."
-    )
-
-    parser.add_argument(
-        "-i",
-        "--input",
-        action="store",
-        type=str,
-        default='tkinter',
-        help="Source to use as input signals (can be microphone matrix or simulated .wav file)."
-    )
-    parser.add_argument(
-        "-o",
-        "--output",
-        action="store",
-        type=str,
-        default='',
-        help="Sink to use to output signals (can be speakers or simulated .wav file)."
-    )
-
-    parser.add_argument(
-        "-t",
-        "--time",
-        action="store",
-        type=int,
-        default=float('inf'),
-        help="Time to run audio for."
-    )
-    args = parser.parse_args()
-
-    # parse sources
-    input = args.input
-    if input == 'tkinter':
-        input = filedialog.askopenfilename(title="Input .wave file.")
-
-    # parse noises
-    output = args.output
-    if output == 'tkinter':
-        output = filedialog.askopenfilename(title="Output .wav file.")
-
-    main(
-        args.debug,
-        input,
-        output,
-        args.time,
-        args.mask
-    )
+    # parser = argparse.ArgumentParser()
+    #
+    # parser.add_argument(
+    #     "-d", "--debug", action="store_true", help="Run the script in debug mode. Is more verbose."
+    # )
+    # parser.add_argument(
+    #     "-m", "--mask", action="store_true", help="Use predefined masks instead of network."
+    # )
+    #
+    # parser.add_argument(
+    #     "-i",
+    #     "--input",
+    #     action="store",
+    #     type=str,
+    #     default='tkinter',
+    #     help="Source to use as input signals (can be microphone matrix or simulated .wav file)."
+    # )
+    # parser.add_argument(
+    #     "-o",
+    #     "--output",
+    #     action="store",
+    #     type=str,
+    #     default='',
+    #     help="Sink to use to output signals (can be speakers or simulated .wav file)."
+    # )
+    #
+    # parser.add_argument(
+    #     "-t",
+    #     "--time",
+    #     action="store",
+    #     type=int,
+    #     default=float('inf'),
+    #     help="Time to run audio for."
+    # )
+    # args = parser.parse_args()
+    #
+    # # parse sources
+    # input = args.input
+    # if input == 'tkinter':
+    #     input = filedialog.askopenfilename(title="Input .wave file.")
+    #
+    # # parse noises
+    # output = args.output
+    # if output == 'tkinter':
+    #     output = filedialog.askopenfilename(title="Output .wav file.")
+    #
+    # main(
+    #     args.debug,
+    #     input,
+    #     output,
+    #     args.time,
+    #     args.mask
+    # )
