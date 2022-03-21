@@ -9,7 +9,8 @@ from collections import defaultdict
 # from tqdm import tqdm
 
 from .face_detectors import DetectorFactory
-from .face_verifiers import VerifierFactory, Encoding
+from .face_verifiers import VerifierFactory
+from .verifiers.Encoding import Encoding
 from ..common.image_utils import intersection
 from .fpsHelper import FPS
 from pyodas.visualize import VideoSource, Monitor

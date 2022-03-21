@@ -1,5 +1,5 @@
 from .trackers import TrackerFactory
-from .face_verifiers import Encoding
+from .verifiers.Encoding import Encoding
 
 NB_FRAMES_TO_CONFIRMED = 8
 CONFIRMATION_THRESHOLD = 5

@@ -2,6 +2,24 @@ import cv2
 import dlib
 from abc import ABC, abstractmethod
 
+# List of all the trackers offered by openCV
+OPENCV_TRACKERS = {
+    # Best accuracy, slower fps
+    "csrt": cv2.TrackerCSRT_create,
+    # Better fps than csrt, but bit less accuracy
+    "kcf": cv2.TrackerKCF_create,
+    # Super quick tracker, but has been moved to legacy in OpenCV 4.5.1
+    "mosse": cv2.legacy_TrackerMOSSE.create,
+    # Older tracker, low accuracy
+    "mil": cv2.TrackerMIL_create,
+    # NOTE: Could not find a working version
+    "boosting": cv2.legacy.TrackerBoosting_create,
+    # NOTE: Could not find a working version
+    "tld": cv2.legacy.TrackerTLD_create,
+    # NOTE: Could not find a working version
+    "medianflow": cv2.legacy.TrackerMedianFlow_create,
+}
+
 
 class Tracker(ABC):
     """
@@ -29,25 +47,6 @@ class Tracker(ABC):
             frame (np.ndarray): new frame used to update the tracker
         """
         raise NotImplementedError()
-
-
-# List of all the trackers offered by openCV
-OPENCV_TRACKERS = {
-    # Best accuracy, slower fps
-    "csrt": cv2.TrackerCSRT_create,
-    # Better fps than csrt, but bit less accuracy
-    "kcf": cv2.TrackerKCF_create,
-    # Super quick tracker, but has been moved to legacy in OpenCV 4.5.1
-    "mosse": cv2.legacy_TrackerMOSSE.create,
-    # Older tracker, low accuracy
-    "mil": cv2.TrackerMIL_create,
-    # NOTE: Could not find a working version
-    "boosting": cv2.legacy.TrackerBoosting_create,
-    # NOTE: Could not find a working version
-    "tld": cv2.legacy.TrackerTLD_create,
-    # NOTE: Could not find a working version
-    "medianflow": cv2.legacy.TrackerMedianFlow_create,
-}
 
 
 class TrackerFactory:
