@@ -1,3 +1,5 @@
+import cv2
+
 from .trackers import TrackerFactory
 from .verifiers.Encoding import Encoding
 
@@ -248,3 +250,26 @@ class TrackedObject:
         self.bbox = bbox
         self.update_landmark(landmark)
         self.tracker_started = True  # Tracker is ready to use
+
+    def draw_prediction_on_frame(self, frame):
+        """
+        Draw the tracker prediction on the frame
+
+        Args:
+            frame (ndarray): current frame with shape HxWx3
+        """
+
+        x, y, w, h = self.bbox
+        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+        cv2.putText(
+            frame,
+            self.id,
+            (x, y - 2),
+            0,
+            1,
+            [0, 0, 255],
+            thickness=2,
+            lineType=cv2.LINE_AA,
+        )
+
+        return frame
