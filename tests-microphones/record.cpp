@@ -3,6 +3,7 @@
 #include <string>
 #include <algorithm>
 
+const int BUFFER_SIZE = 256;
 int ADMAIFInterface = 1;
 int I2SInterface = 1;
 int channelNumber = 8;
@@ -72,10 +73,10 @@ int main(int argc, char **argv)
 {
   initEnvironment();
   std::string recordCommand = "arecord -D hw:tegrasndt186ref," + std::to_string(ADMAIFInterface - 1) + " -r " + std::to_string(frequency) + " -c " + std::to_string(channelNumber) + " -f S32_LE -d " + std::to_string(duration) + " -t " + fileType + " -q -";
-  char buf[256];
+  char buf[BUFFER_SIZE];
   FILE *fp = popen(recordCommand.c_str(), "r");
   std::string fileOutput = "./output/out." + fileType;
-  FILE *out = fopen(fileOutput.c_str(), "wb");
+  // FILE *out = fopen(fileOutput.c_str(), "wb");
   int result;
   // printf("Recording...\n");
   //  Do not flip the WAV file header, which is 44 bytes long
@@ -84,16 +85,16 @@ int main(int argc, char **argv)
     for (int i = 0; i < 44; i++)
     {
       result = fread(buf, 1, 1, fp);
-      fwrite(buf, 1, 1, out);
+      // fwrite(buf, 1, 1, out);
     }
   }
 
   // While data is available
-  while (result = fread(buf, 1, sizeof(buf), fp))
+  while (result = fread(buf, 1, BUFFER_SIZE, fp))
   {
     // Flip bytes and write
-    flip(buf, sizeof(buf));
-    fwrite(buf, 1, sizeof(buf), stdout);
+    flip(buf, BUFFER_SIZE);
+    fwrite(buf, 1, BUFFER_SIZE, stdout);
   }
 
   // printf("Done\n");
