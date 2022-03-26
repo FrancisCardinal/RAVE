@@ -14,27 +14,46 @@ uses pytorch instead of TF for predictions. As such, this is mostly copy and pas
 
 
 class GazeInferer:
-    def __init__(self, ellipse_dnn, dataloader, device, eyeball_model_path="model_01.json", image_scaling_factor=1,  pupil_radius=4, initial_eye_z=52.271, x_angle=22.5, flen=3.37, sensor_size=(2.7216, 3.6288)):
+    def __init__(
+        self,
+        ellipse_dnn,
+        dataloader,
+        device,
+        eyeball_model_path="model_01.json",
+        image_scaling_factor=1,
+        pupil_radius=4,
+        initial_eye_z=52.271,
+        x_angle=22.5,
+        flen=3.37,
+        sensor_size=(2.7216, 3.6288),
+    ):
         self._ellipse_dnn = ellipse_dnn
         self._dataloader = dataloader
         self._device = device
         self._eyeball_model_path = os.path.join(
-            EyeTrackerDataset.EYE_TRACKER_DIR_PATH, "GazeInferer", eyeball_model_path)
+            EyeTrackerDataset.EYE_TRACKER_DIR_PATH,
+            "GazeInferer",
+            eyeball_model_path,
+        )
 
         image, _ = next(iter(self._dataloader))
         self.shape = image.shape[2], image.shape[3]
 
         # TODO FC : deal with image_scaling_factor when we'll have real images
-        self._eyefitter = SingleEyeFitter(focal_length=flen * image_scaling_factor,
-                                          pupil_radius=pupil_radius * image_scaling_factor,
-                                          initial_eye_z=initial_eye_z * image_scaling_factor,
-                                          x_angle=x_angle,
-                                          image_shape=self.shape,
-                                          sensor_size=sensor_size)
+        self._eyefitter = SingleEyeFitter(
+            focal_length=flen * image_scaling_factor,
+            pupil_radius=pupil_radius * image_scaling_factor,
+            initial_eye_z=initial_eye_z * image_scaling_factor,
+            x_angle=x_angle,
+            image_shape=self.shape,
+            sensor_size=sensor_size,
+        )
 
     def fit(self):
         with torch.no_grad():
-            for images, _ in tqdm(self._dataloader, "Adding to fitting", leave=False):
+            for images, _ in tqdm(
+                self._dataloader, "Adding to fitting", leave=False
+            ):
                 images = images.to(self._device)
 
                 # Forward Pass
@@ -42,16 +61,22 @@ class GazeInferer:
 
                 for prediction in predictions:
                     self._eyefitter.unproject_single_observation(
-                        self.torch_prediction_to_deepvog_format(prediction))
+                        self.torch_prediction_to_deepvog_format(prediction)
+                    )
                     self._eyefitter.add_to_fitting()
 
         # Fit eyeball models. Parameters are stored as internal attributes of Eyefitter instance.
         self._eyefitter.fit_projected_eye_centre(
-            ransac=True, max_iters=2000, min_distance=10 * len(self._dataloader.dataset))
+            ransac=True,
+            max_iters=2000,
+            min_distance=10 * len(self._dataloader.dataset),
+        )
         self._eyefitter.estimate_eye_sphere()
 
         # Issue error if eyeball model still does not exist after fitting.
-        if (self._eyefitter.eye_centre is None) or (self._eyefitter.aver_eye_radius is None):
+        if (self._eyefitter.eye_centre is None) or (
+            self._eyefitter.aver_eye_radius is None
+        ):
             raise TypeError("Eyeball model was not fitted.")
 
         self.save_eyeball_model()
@@ -59,14 +84,27 @@ class GazeInferer:
     def torch_prediction_to_deepvog_format(self, prediction):
         HEIGHT, WIDTH = self.shape[0], self.shape[1]
         prediction = prediction.cpu().numpy()
-        cx, cy, w, h, radian = prediction[0], prediction[1], prediction[2], prediction[3], prediction[4]
-        cx, cy, w, h, radian = WIDTH*cx, HEIGHT * \
-            cy, WIDTH*w, HEIGHT*h, 2*torch.pi*radian
+        cx, cy, w, h, radian = (
+            prediction[0],
+            prediction[1],
+            prediction[2],
+            prediction[3],
+            prediction[4],
+        )
+        cx, cy, w, h, radian = (
+            WIDTH * cx,
+            HEIGHT * cy,
+            WIDTH * w,
+            HEIGHT * h,
+            2 * torch.pi * radian,
+        )
         return [cx, cy], w, h, radian
 
     def save_eyeball_model(self):
-        save_dict = {"eye_centre": self._eyefitter.eye_centre.tolist(
-        ), "aver_eye_radius": self._eyefitter.aver_eye_radius}
+        save_dict = {
+            "eye_centre": self._eyefitter.eye_centre.tolist(),
+            "aver_eye_radius": self._eyefitter.aver_eye_radius,
+        }
         json_str = json.dumps(save_dict, indent=4)
         with open(self._eyeball_model_path, "w") as fh:
             fh.write(json_str)
@@ -83,11 +121,12 @@ class GazeInferer:
 
                 for prediction in predictions:
                     self._eyefitter.unproject_single_observation(
-                        self.torch_prediction_to_deepvog_format(prediction))
+                        self.torch_prediction_to_deepvog_format(prediction)
+                    )
                     _, n_list, _, _ = self._eyefitter.gen_consistent_pupil()
                     x, y = self._eyefitter.convert_vec2angle31(n_list[0])
 
-                    if(x_offset is None):
+                    if x_offset is None:
                         x_offset = x
                         y_offset = y
 

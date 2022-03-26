@@ -46,15 +46,23 @@ class DANNTrainer(Trainer):
         number_of_images = 0
         len_dataloader = len(self.training_loader)
         i = 0
-        for images, labels, domains in tqdm(self.training_loader, "training", leave=False):
+        for images, labels, domains in tqdm(
+            self.training_loader, "training", leave=False
+        ):
 
-            p = float(i + self.epoch * len_dataloader) / self.NB_EPOCHS / \
-                len_dataloader  # https://github.com/fungtion/DANN
+            p = (
+                float(i + self.epoch * len_dataloader)
+                / self.NB_EPOCHS
+                / len_dataloader
+            )  # https://github.com/fungtion/DANN
             # https://github.com/fungtion/DANN
-            alpha = 2. / (1. + np.exp(-10 * p)) - 1
+            alpha = 2.0 / (1.0 + np.exp(-10 * p)) - 1
 
-            images, labels, domains = images.to(self.device), labels.to(
-                self.device), domains.to(self.device)
+            images, labels, domains = (
+                images.to(self.device),
+                labels.to(self.device),
+                domains.to(self.device),
+            )
 
             # Clear the gradients
             self.optimizer.zero_grad()
@@ -63,7 +71,8 @@ class DANNTrainer(Trainer):
             # Find the Loss
             loss = self.loss_function(predictions, labels)
             domain_classification_loss = self.domain_classification_loss_function(
-                classifications, domains.unsqueeze(1))
+                classifications, domains.unsqueeze(1)
+            )
             loss += domain_classification_loss
             # Calculate gradients
             loss.backward()
@@ -90,21 +99,30 @@ class DANNTrainer(Trainer):
             number_of_images = 0
             len_dataloader = len(self.validation_loader)
             i = 0
-            for images, labels, domains in tqdm(self.validation_loader, "validation", leave=False):
+            for images, labels, domains in tqdm(
+                self.validation_loader, "validation", leave=False
+            ):
                 # https://github.com/fungtion/DANN
-                p = float(i + self.epoch * len_dataloader) / \
-                    self.NB_EPOCHS / len_dataloader
+                p = (
+                    float(i + self.epoch * len_dataloader)
+                    / self.NB_EPOCHS
+                    / len_dataloader
+                )
                 # https://github.com/fungtion/DANN
-                alpha = 2. / (1. + np.exp(-10 * p)) - 1
-                images, labels, domains = images.to(self.device), labels.to(
-                    self.device), domains.to(self.device)
+                alpha = 2.0 / (1.0 + np.exp(-10 * p)) - 1
+                images, labels, domains = (
+                    images.to(self.device),
+                    labels.to(self.device),
+                    domains.to(self.device),
+                )
 
                 # Forward Pass
                 predictions, classifications = self.model(images, alpha)
                 # Find the Loss
                 loss = self.loss_function(predictions, labels)
                 domain_classification_loss = self.domain_classification_loss_function(
-                    classifications, domains.unsqueeze(1))
+                    classifications, domains.unsqueeze(1)
+                )
                 loss += domain_classification_loss
                 # Calculate Loss
                 validation_loss += loss.item()

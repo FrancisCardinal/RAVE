@@ -268,7 +268,7 @@ class Trainer:
         """
         checkpoint = torch.load(
             os.path.join(MODEL_DIR_PATH, Trainer.MODEL_INFO_FILE_NAME),
-            map_location=device
+            map_location=device,
         )
         model.load_state_dict(checkpoint["model_state_dict"])
 

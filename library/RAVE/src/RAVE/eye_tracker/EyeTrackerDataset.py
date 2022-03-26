@@ -38,7 +38,7 @@ class EyeTrackerDataset(Dataset):
 
         self.real_images_paths, self.synthetic_images_paths = [], []
         for image_path in self.images_paths:
-            if('synthetic' in image_path):
+            if "synthetic" in image_path:
                 self.synthetic_images_paths.append(image_path)
             else:
                 self.real_images_paths.append(image_path)
@@ -47,9 +47,11 @@ class EyeTrackerDataset(Dataset):
         self.nb_real_images = len(self.real_images_paths)
 
         self.real_images_paths = np.array(
-            [str(i) for i in self.real_images_paths], dtype=np.str)
+            [str(i) for i in self.real_images_paths], dtype=np.str
+        )
         self.synthetic_images_paths = np.array(
-            [str(i) for i in self.synthetic_images_paths], dtype=np.str)
+            [str(i) for i in self.synthetic_images_paths], dtype=np.str
+        )
 
         self.random = random.Random(42)
 
@@ -88,7 +90,7 @@ class EyeTrackerDataset(Dataset):
 
     def torch_index_to_image_path_and_domain(self, idx):
         image_path, domain = None, None
-        if(idx < self.nb_synthetic_images):
+        if idx < self.nb_synthetic_images:
             # idx is one of our self.nb_synthetic_images real imag
             image_path = self.synthetic_images_paths[idx]
             domain = EyeTrackerDataset.SYNTHETIC_DOMAIN
@@ -108,7 +110,9 @@ class EyeTrackerDataset(Dataset):
         Returns:
             Dataset: The training sub dataset
         """
-        return EyeTrackerDatasetOnlineDataAugmentation(EyeTrackerDataset.TRAINING_DIR)
+        return EyeTrackerDatasetOnlineDataAugmentation(
+            EyeTrackerDataset.TRAINING_DIR
+        )
 
     @staticmethod
     def get_validation_sub_dataset():
@@ -205,17 +209,21 @@ class EyeTrackerInferenceDataset(EyeTrackerDataset):
     def __init__(self, opencv_device, is_real_time=True):
         super().__init__("test")  # TODO FC : Find a more elegant solution
 
-        if(isinstance(opencv_device, str)):
+        if isinstance(opencv_device, str):
             opencv_device = os.path.join(
-                EyeTrackerDataset.EYE_TRACKER_DIR_PATH, "GazeInferer", opencv_device)
+                EyeTrackerDataset.EYE_TRACKER_DIR_PATH,
+                "GazeInferer",
+                opencv_device,
+            )
 
         self._video_feed = cv2.VideoCapture(opencv_device)
 
         if not self._video_feed.isOpened():
             raise IOError(
-                "Cannot open specified device ({})".format(opencv_device))
+                "Cannot open specified device ({})".format(opencv_device)
+            )
 
-        if(not isinstance(opencv_device, str)):
+        if not isinstance(opencv_device, str):
             WIDTH, HEIGHT = 800, 600
 
             codec = 0x47504A4D  # MJPG
@@ -225,18 +233,18 @@ class EyeTrackerInferenceDataset(EyeTrackerDataset):
             self._video_feed.set(cv2.CAP_PROP_FRAME_WIDTH, HEIGHT)
             self._video_feed.set(cv2.CAP_PROP_FRAME_HEIGHT, WIDTH)
 
-            #self._exposure = 750
+            # self._exposure = 750
             self._video_feed.set(cv2.CAP_PROP_AUTO_EXPOSURE, 3)
-            #self._video_feed.set(cv2.CAP_PROP_AUTO_EXPOSURE, 1)
-            #self._video_feed.set(cv2.CAP_PROP_EXPOSURE, self._exposure)
-            #self._video_feed.set(cv2.CAP_PROP_GAIN, 8)
+            # self._video_feed.set(cv2.CAP_PROP_AUTO_EXPOSURE, 1)
+            # self._video_feed.set(cv2.CAP_PROP_EXPOSURE, self._exposure)
+            # self._video_feed.set(cv2.CAP_PROP_GAIN, 8)
 
             self._video_feed.set(cv2.CAP_PROP_AUTOFOCUS, 0)
             self._video_feed.set(cv2.CAP_PROP_FOCUS, 2000)
             self._video_feed.set(cv2.CAP_PROP_FOCUS, 1000)
 
         self._length = 1
-        if(not is_real_time):
+        if not is_real_time:
             self._length = int(self._video_feed.get(cv2.CAP_PROP_FRAME_COUNT))
 
     def __len__(self):
@@ -262,9 +270,9 @@ class EyeTrackerInferenceDataset(EyeTrackerDataset):
         """
         success, frame = self._video_feed.read()
 
-        if(success):
+        if success:
             frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
-            frame = Image.fromarray(frame, 'RGB')
+            frame = Image.fromarray(frame, "RGB")
             image = self.PRE_PROCESS_TRANSFORM(frame)
             image = self.NORMALIZE_TRANSFORM(image)
 

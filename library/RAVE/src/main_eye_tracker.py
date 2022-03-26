@@ -9,11 +9,16 @@ import random
 from RAVE.common.DANNTrainer import DANNTrainer
 from RAVE.common.image_utils import tensor_to_opencv_image, inverse_normalize
 
-from RAVE.eye_tracker.EyeTrackerDataset import EyeTrackerDataset, EyeTrackerInferenceDataset
+from RAVE.eye_tracker.EyeTrackerDataset import (
+    EyeTrackerDataset,
+    EyeTrackerInferenceDataset,
+)
 
 from RAVE.eye_tracker.EllipseAnnotationTool import EllipseAnnotationTool
 from RAVE.eye_tracker.EyeTrackerDatasetBuilder import EyeTrackerDatasetBuilder
-from RAVE.eye_tracker.EyeTrackerSyntheticDatasetBuilder import EyeTrackerSyntheticDatasetBuilder
+from RAVE.eye_tracker.EyeTrackerSyntheticDatasetBuilder import (
+    EyeTrackerSyntheticDatasetBuilder,
+)
 
 from RAVE.eye_tracker.EyeTrackerModel import EyeTrackerModel
 from RAVE.eye_tracker.ellipse_util import (
@@ -24,7 +29,18 @@ from RAVE.eye_tracker.ellipse_util import (
 from RAVE.eye_tracker.GazeInferer.GazeInferer import GazeInferer
 
 
-def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST, INFERENCE, ANNOTATE, FILM, GPU_INDEX, lr=5e-4):
+def main(
+    TRAIN,
+    NB_EPOCHS,
+    CONTINUE_TRAINING,
+    DISPLAY_VALIDATION,
+    TEST,
+    INFERENCE,
+    ANNOTATE,
+    FILM,
+    GPU_INDEX,
+    lr=5e-4,
+):
     """main function of the module
 
     Args:
@@ -50,10 +66,13 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST, INFERENC
     if ANNOTATE:
         annotate(EyeTrackerDataset.EYE_TRACKER_DIR_PATH)
 
-    created_real_dataset = EyeTrackerDatasetBuilder.create_images_datasets_with_videos()
+    created_real_dataset = (
+        EyeTrackerDatasetBuilder.create_images_datasets_with_videos()
+    )
     if created_real_dataset:
         EyeTrackerSyntheticDatasetBuilder.create_images_datasets_with_synthetic_images(
-            True)
+            True
+        )
 
     BATCH_SIZE = 128
     training_sub_dataset = EyeTrackerDataset.get_training_sub_dataset()
@@ -81,12 +100,9 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST, INFERENC
     eye_tracker_model.to(DEVICE)
     print(eye_tracker_model)
 
-    min_validation_loss = float('inf')
+    min_validation_loss = float("inf")
     if TRAIN:
-        optimizer = torch.optim.AdamW(
-            eye_tracker_model.parameters(),
-            lr=lr,
-        )
+        optimizer = torch.optim.AdamW(eye_tracker_model.parameters(), lr=lr,)
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer)
 
         trainer = DANNTrainer(
@@ -133,7 +149,7 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST, INFERENC
                 test_loss += loss.item()
                 number_of_images += len(images)
 
-        print('test loss = {}'.format(test_loss / number_of_images))
+        print("test loss = {}".format(test_loss / number_of_images))
 
     if INFERENCE:
         inference(eye_tracker_model, DEVICE)
@@ -176,10 +192,7 @@ def visualize_predictions(model, data_loader, DEVICE):
 def film(root):
     camera_dataset = EyeTrackerInferenceDataset(2, True)
     camera_loader = torch.utils.data.DataLoader(
-        camera_dataset,
-        batch_size=1,
-        shuffle=False,
-        num_workers=0,
+        camera_dataset, batch_size=1, shuffle=False, num_workers=0,
     )
     frame_height = EyeTrackerDataset.IMAGE_DIMENSIONS[1]
     frame_width = EyeTrackerDataset.IMAGE_DIMENSIONS[2]
@@ -187,9 +200,14 @@ def film(root):
     file_name = input("Enter file name : ")
 
     output_path = os.path.join(
-        root, EllipseAnnotationTool.WORKING_DIR, 'videos', file_name + '.avi')
-    out = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(
-        'M', 'J', 'P', 'G'), 30, (frame_width, frame_height))
+        root, EllipseAnnotationTool.WORKING_DIR, "videos", file_name + ".avi"
+    )
+    out = cv2.VideoWriter(
+        output_path,
+        cv2.VideoWriter_fourcc("M", "J", "P", "G"),
+        30,
+        (frame_width, frame_height),
+    )
     should_run = True
     while should_run:
         with torch.no_grad():
@@ -206,7 +224,7 @@ def film(root):
                 cv2.imshow("video", image)
                 key = cv2.waitKey(1)
 
-                if key == ord('q'):
+                if key == ord("q"):
                     should_run = False
 
     out.release()
@@ -293,18 +311,14 @@ if __name__ == "__main__":
         "-a",
         "--annotate",
         action="store_true",
-        help=(
-            "Runs the annotation tool."
-        ),
+        help=("Runs the annotation tool."),
     )
 
     parser.add_argument(
         "-f",
         "--film",
         action="store_true",
-        help=(
-            "Uses the camera to film a video for the dataset."
-        ),
+        help=("Uses the camera to film a video for the dataset."),
     )
 
     parser.add_argument(

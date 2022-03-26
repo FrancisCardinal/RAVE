@@ -47,10 +47,7 @@ class Dataset(torch.utils.data.Dataset):
         self.TRAINING_MEAN, self.TRAINING_STD = TRAINING_MEAN, TRAINING_STD
         self.IMAGE_DIMENSIONS = IMAGE_DIMENSIONS
         self.PRE_PROCESS_TRANSFORM = transforms.Compose(
-            [
-                transforms.Resize(IMAGE_DIMENSIONS[1:3]),
-                transforms.ToTensor(),
-            ]
+            [transforms.Resize(IMAGE_DIMENSIONS[1:3]), transforms.ToTensor(),]
         )
         self.NORMALIZE_TRANSFORM = transforms.Normalize(
             mean=TRAINING_MEAN, std=TRAINING_STD
@@ -108,7 +105,7 @@ class Dataset(torch.utils.data.Dataset):
         """
         image_path = self.images_paths[idx]
         return self.get_image_and_label_from_image_path(image_path)
-    
+
     def get_image_and_label_from_image_path(self, image_path):
         """
         Gets an image and label pair on disk

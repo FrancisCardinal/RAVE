@@ -48,10 +48,14 @@ class EyeTrackerSyntheticDatasetBuilder(EyeTrackerDatasetBuilder):
         This method checks if the dataset as already been built, and builds it
         otherwise.
         """
-        BUILDERS, dataset_found = EyeTrackerSyntheticDatasetBuilder.get_builders()
+        (
+            BUILDERS,
+            dataset_found,
+        ) = EyeTrackerSyntheticDatasetBuilder.get_builders()
         if dataset_found and not force_generate:
             print(
-                "dataset found on disk and did not force generate : skipping generation")
+                "dataset found on disk and did not force generate : skipping generation"
+            )
             return
 
         print("dataset has NOT been found on disk, creating dataset")
@@ -93,12 +97,15 @@ class EyeTrackerSyntheticDatasetBuilder(EyeTrackerDatasetBuilder):
         )
         dataset_found = os.path.isdir(TRAINING_PATH)
 
-        images_files = os.listdir(os.path.join(
-            EyeTrackerDatasetBuilder.ROOT_PATH, SOURCE_DIR, IMAGES_DIR))
+        images_files = os.listdir(
+            os.path.join(
+                EyeTrackerDatasetBuilder.ROOT_PATH, SOURCE_DIR, IMAGES_DIR
+            )
+        )
         random.Random(42).shuffle(images_files)
 
         train_size = 0.85
-        train_index_end = int(len(images_files)*train_size)
+        train_index_end = int(len(images_files) * train_size)
 
         train_files = images_files[:train_index_end]
         val_files = images_files[train_index_end:]
@@ -123,9 +130,23 @@ class EyeTrackerSyntheticDatasetBuilder(EyeTrackerDatasetBuilder):
         ]
         return BUILDERS, dataset_found
 
-    def __init__(self, files, OUTPUT_DIR_PATH, log_name, IMAGE_DIMENSIONS, SOURCE_DIR, CROP_SIZE):
-        super().__init__([], OUTPUT_DIR_PATH, log_name,
-                         IMAGE_DIMENSIONS, SOURCE_DIR, CROP_SIZE)
+    def __init__(
+        self,
+        files,
+        OUTPUT_DIR_PATH,
+        log_name,
+        IMAGE_DIMENSIONS,
+        SOURCE_DIR,
+        CROP_SIZE,
+    ):
+        super().__init__(
+            [],
+            OUTPUT_DIR_PATH,
+            log_name,
+            IMAGE_DIMENSIONS,
+            SOURCE_DIR,
+            CROP_SIZE,
+        )
         self.INPUT_IMAGES_PATH = os.path.join(SOURCE_DIR, IMAGES_DIR)
         self.INPUT_LABELS_PATH = os.path.join(SOURCE_DIR, LABELS_DIR)
 
@@ -138,18 +159,28 @@ class EyeTrackerSyntheticDatasetBuilder(EyeTrackerDatasetBuilder):
             filename = Path(file).stem
 
             annotation = pickle.load(
-                open(os.path.join(self.INPUT_LABELS_PATH, filename + ".bin"), "rb"))
+                open(
+                    os.path.join(self.INPUT_LABELS_PATH, filename + ".bin"),
+                    "rb",
+                )
+            )
             self.current_ellipse = NormalizedEllipse.get_from_list(annotation)
 
             frame = cv2.imread(os.path.join(self.INPUT_IMAGES_PATH, file))
             ORIGINAL_HEIGHT, ORIGINAL_WIDTH = frame.shape[0], frame.shape[1]
             self.current_ellipse.crop(
-                ORIGINAL_HEIGHT, ORIGINAL_WIDTH, EyeTrackerDatasetBuilder.CROP_SIZE)
+                ORIGINAL_HEIGHT,
+                ORIGINAL_WIDTH,
+                EyeTrackerDatasetBuilder.CROP_SIZE,
+            )
 
             processed_frame = self.process_frame(frame)
 
             self.save_image_label_pair(
-                filename + '_synthetic', processed_frame, self.current_ellipse.to_list())
+                filename + "_synthetic",
+                processed_frame,
+                self.current_ellipse.to_list(),
+            )
             self.video_frame_id += 1
 
 
@@ -161,7 +192,15 @@ class EyeTrackerSyntheticDatasetBuilderOfflineDataAugmentation(
     It overwrites certain methods in order to do offline data augmentation.
     """
 
-    def __init__(self, files, OUTPUT_DIR_PATH, log_name, IMAGE_DIMENSIONS, SOURCE_DIR, CROP_SIZE):
+    def __init__(
+        self,
+        files,
+        OUTPUT_DIR_PATH,
+        log_name,
+        IMAGE_DIMENSIONS,
+        SOURCE_DIR,
+        CROP_SIZE,
+    ):
         """
         Constructor of the EyeTrackerSyntheticDatasetBuilderOfflineDataAugmentation.
         Calls the parent constructor and defines the offline training transforms
@@ -175,8 +214,14 @@ class EyeTrackerSyntheticDatasetBuilderOfflineDataAugmentation(
             log_name (String):
                 Name to be displayed alongside the progress bar in the terminal
         """
-        super().__init__(files, OUTPUT_DIR_PATH, log_name,
-                         IMAGE_DIMENSIONS, SOURCE_DIR, CROP_SIZE)
+        super().__init__(
+            files,
+            OUTPUT_DIR_PATH,
+            log_name,
+            IMAGE_DIMENSIONS,
+            SOURCE_DIR,
+            CROP_SIZE,
+        )
 
         self.TRAINING_TRANSFORM = transforms.Compose(
             [

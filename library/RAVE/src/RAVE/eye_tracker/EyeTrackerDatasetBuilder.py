@@ -42,6 +42,7 @@ class EyeTrackerDatasetBuilder(DatasetBuilder):
     and saves them on the disk, with the corresponding labels. It also
     applies data augmentation transforms to the training sub-dataset.
     """
+
     CROP_SIZE = 150, 0, 450, 600
 
     @staticmethod
@@ -110,13 +111,16 @@ class EyeTrackerDatasetBuilder(DatasetBuilder):
 
         SOURCE_DIR = VideosUnpacker.TMP_PATH
 
-        images_files = os.listdir(os.path.join(
-            EyeTrackerDatasetBuilder.ROOT_PATH, SOURCE_DIR, IMAGES_DIR))
+        images_files = os.listdir(
+            os.path.join(
+                EyeTrackerDatasetBuilder.ROOT_PATH, SOURCE_DIR, IMAGES_DIR
+            )
+        )
         random.Random(42).shuffle(images_files)
 
         train_size, val_size = 0.75, 0.15
-        train_index_end = int(len(images_files)*train_size)
-        val_index_end = train_index_end + int(len(images_files)*val_size)
+        train_index_end = int(len(images_files) * train_size)
+        val_index_end = train_index_end + int(len(images_files) * val_size)
 
         train_files = images_files[:train_index_end]
         val_files = images_files[train_index_end:val_index_end]
@@ -147,9 +151,23 @@ class EyeTrackerDatasetBuilder(DatasetBuilder):
         ]
         return BUILDERS
 
-    def __init__(self, files, OUTPUT_DIR_PATH, log_name, IMAGE_DIMENSIONS, SOURCE_DIR, CROP_SIZE=None):
-        super().__init__([], OUTPUT_DIR_PATH, log_name,
-                         IMAGE_DIMENSIONS, SOURCE_DIR, CROP_SIZE)
+    def __init__(
+        self,
+        files,
+        OUTPUT_DIR_PATH,
+        log_name,
+        IMAGE_DIMENSIONS,
+        SOURCE_DIR,
+        CROP_SIZE=None,
+    ):
+        super().__init__(
+            [],
+            OUTPUT_DIR_PATH,
+            log_name,
+            IMAGE_DIMENSIONS,
+            SOURCE_DIR,
+            CROP_SIZE,
+        )
         self.INPUT_IMAGES_PATH = os.path.join(SOURCE_DIR, IMAGES_DIR)
         self.INPUT_LABELS_PATH = os.path.join(SOURCE_DIR, LABELS_DIR)
 
@@ -161,14 +179,19 @@ class EyeTrackerDatasetBuilder(DatasetBuilder):
             filename = Path(file).stem
 
             annotation = pickle.load(
-                open(os.path.join(self.INPUT_LABELS_PATH, filename + ".bin"), "rb"))
+                open(
+                    os.path.join(self.INPUT_LABELS_PATH, filename + ".bin"),
+                    "rb",
+                )
+            )
             self.current_ellipse = NormalizedEllipse.get_from_list(annotation)
 
             frame = cv2.imread(os.path.join(self.INPUT_IMAGES_PATH, file))
             processed_frame = self.process_frame(frame)
 
             self.save_image_label_pair(
-                filename, processed_frame, self.current_ellipse.to_list())
+                filename, processed_frame, self.current_ellipse.to_list()
+            )
             self.video_frame_id += 1
 
 
@@ -177,7 +200,7 @@ class VideosUnpacker(DatasetBuilder):
         EyeTrackerDatasetBuilder.ROOT_PATH,
         EyeTrackerDataset.EYE_TRACKER_DIR_PATH,
         DATASET_DIR,
-        'tmp',
+        "tmp",
     )
 
     @staticmethod
@@ -199,25 +222,23 @@ class VideosUnpacker(DatasetBuilder):
             VideosUnpacker.TMP_PATH,
             "Unpacking videos",
             EyeTrackerDataset.IMAGE_DIMENSIONS[1:3],
-            os.path.join(EyeTrackerDataset.EYE_TRACKER_DIR_PATH,
-                         "real_dataset"),
+            os.path.join(
+                EyeTrackerDataset.EYE_TRACKER_DIR_PATH, "real_dataset"
+            ),
             EyeTrackerDatasetBuilder.CROP_SIZE,
         )
 
         return BUILDER
 
     def process_image_label_pair(
-        self,
-        processed_frame,
-        file_name,
-        ORIGINAL_HEIGHT,
-        ORIGINAL_WIDTH
+        self, processed_frame, file_name, ORIGINAL_HEIGHT, ORIGINAL_WIDTH
     ):
         """
         To process the image and label from LPW
         """
         self.current_ellipse.crop(
-            ORIGINAL_HEIGHT, ORIGINAL_WIDTH, EyeTrackerDatasetBuilder.CROP_SIZE)
+            ORIGINAL_HEIGHT, ORIGINAL_WIDTH, EyeTrackerDatasetBuilder.CROP_SIZE
+        )
         self.save_image_label_pair(
             file_name, processed_frame, self.current_ellipse.to_list()
         )
@@ -254,7 +275,13 @@ class EyeTrackerDatasetBuilderOfflineDataAugmentation(
     """
 
     def __init__(
-        self, VIDEOS, OUTPUT_DIR_PATH, log_name, IMAGE_DIMENSIONS, SOURCE_DIR, CROP_SIZE=None
+        self,
+        VIDEOS,
+        OUTPUT_DIR_PATH,
+        log_name,
+        IMAGE_DIMENSIONS,
+        SOURCE_DIR,
+        CROP_SIZE=None,
     ):
         """
         Constructor of the TrainingDatasetBuilder.Calls the parent
@@ -270,7 +297,12 @@ class EyeTrackerDatasetBuilderOfflineDataAugmentation(
                 Name to be displayed alongside the progress bar in the terminal
         """
         super().__init__(
-            VIDEOS, OUTPUT_DIR_PATH, log_name, IMAGE_DIMENSIONS, SOURCE_DIR, CROP_SIZE
+            VIDEOS,
+            OUTPUT_DIR_PATH,
+            log_name,
+            IMAGE_DIMENSIONS,
+            SOURCE_DIR,
+            CROP_SIZE,
         )
 
         self.TRAINING_TRANSFORM = transforms.Compose(
@@ -295,7 +327,8 @@ class EyeTrackerDatasetBuilderOfflineDataAugmentation(
 
         output_image_tensor = self.TRAINING_TRANSFORM(output_image_tensor)
         output_image_tensor = self.apply_translation_and_rotation(
-            output_image_tensor)
+            output_image_tensor
+        )
 
         return output_image_tensor
 

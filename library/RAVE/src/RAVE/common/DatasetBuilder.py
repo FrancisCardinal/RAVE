@@ -55,7 +55,13 @@ class DatasetBuilder(ABC):
     ROOT_PATH = os.getcwd()
 
     def __init__(
-        self, VIDEOS, OUTPUT_DIR_PATH, log_name, IMAGE_DIMENSIONS, SOURCE_DIR, CROP_SIZE=None
+        self,
+        VIDEOS,
+        OUTPUT_DIR_PATH,
+        log_name,
+        IMAGE_DIMENSIONS,
+        SOURCE_DIR,
+        CROP_SIZE=None,
     ):
         self.VIDEOS = VIDEOS
         self.log_name = log_name
@@ -122,9 +128,10 @@ class DatasetBuilder(ABC):
 
             file_name = os.path.splitext(os.path.basename(video_file_name))[0]
             annotations_file = os.path.join(
-                self.ANNOTATIONS_PATH, file_name + ".json")
+                self.ANNOTATIONS_PATH, file_name + ".json"
+            )
 
-            with open(annotations_file, 'r') as file:
+            with open(annotations_file, "r") as file:
                 annotations = json.load(file)
 
             self.create_images_dataset_with_one_video(
@@ -164,15 +171,14 @@ class DatasetBuilder(ABC):
             ORIGINAL_HEIGHT, ORIGINAL_WIDTH = frame.shape[0], frame.shape[1]
             processed_frame = self.process_frame(frame)
             self.process_image_label_pair(
-                processed_frame,
-                file_name,
-                ORIGINAL_HEIGHT,
-                ORIGINAL_WIDTH,
+                processed_frame, file_name, ORIGINAL_HEIGHT, ORIGINAL_WIDTH,
             )
 
         cap.release()
 
-    def parse_current_annotation(self, annotations, INPUT_IMAGE_WIDTH, INPUT_IMAGE_HEIGHT):
+    def parse_current_annotation(
+        self, annotations, INPUT_IMAGE_WIDTH, INPUT_IMAGE_HEIGHT
+    ):
         """
         Parses the current annotation to extract the parameters of
         the ellipse as defined by opencv
@@ -187,11 +193,7 @@ class DatasetBuilder(ABC):
         """
         raise NotImplementedError
 
-    def process_image_label_pair(
-        self,
-        frame,
-        file_name
-    ):
+    def process_image_label_pair(self, frame, file_name):
         """
         To process the image and label from the specific dataset
         """
@@ -211,10 +213,15 @@ class DatasetBuilder(ABC):
         im_pil = Image.fromarray(frame)
 
         if self._CROP_SIZE is not None:
-            top, left, height, width = self._CROP_SIZE[0], self._CROP_SIZE[
-                1], self._CROP_SIZE[2], self._CROP_SIZE[3]
+            top, left, height, width = (
+                self._CROP_SIZE[0],
+                self._CROP_SIZE[1],
+                self._CROP_SIZE[2],
+                self._CROP_SIZE[3],
+            )
             im_pil = transforms.functional.crop(
-                im_pil, top, left, height, width)
+                im_pil, top, left, height, width
+            )
 
         output_image_tensor = self.RESIZE_TRANSFORM(im_pil)
 
