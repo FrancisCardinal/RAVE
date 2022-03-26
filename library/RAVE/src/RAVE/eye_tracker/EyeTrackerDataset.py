@@ -233,14 +233,9 @@ class EyeTrackerInferenceDataset(EyeTrackerDataset):
             self._video_feed.set(cv2.CAP_PROP_FRAME_WIDTH, HEIGHT)
             self._video_feed.set(cv2.CAP_PROP_FRAME_HEIGHT, WIDTH)
 
-            # self._exposure = 750
             self._video_feed.set(cv2.CAP_PROP_AUTO_EXPOSURE, 3)
-            # self._video_feed.set(cv2.CAP_PROP_AUTO_EXPOSURE, 1)
-            # self._video_feed.set(cv2.CAP_PROP_EXPOSURE, self._exposure)
-            # self._video_feed.set(cv2.CAP_PROP_GAIN, 8)
 
             self._video_feed.set(cv2.CAP_PROP_AUTOFOCUS, 0)
-            self._video_feed.set(cv2.CAP_PROP_FOCUS, 2000)
             self._video_feed.set(cv2.CAP_PROP_FOCUS, 1000)
 
         self._length = 1
