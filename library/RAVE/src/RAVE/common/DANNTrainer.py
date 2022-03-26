@@ -66,7 +66,7 @@ class DANNTrainer(Trainer):
             # Clear the gradients
             self.optimizer.zero_grad()
             # Forward Pass
-            predictions, classifications = self.model(images, alpha)
+            predictions, classifications = self.model(images, 2 * alpha)
             # Find the Loss
             loss = self.loss_function(predictions, labels)
             domain_loss = self.domain_classification_loss_function(
@@ -116,7 +116,7 @@ class DANNTrainer(Trainer):
                 )
 
                 # Forward Pass
-                predictions, classifications = self.model(images, alpha)
+                predictions, classifications = self.model(images, 2 * alpha)
                 # Find the Loss
                 loss = self.loss_function(predictions, labels)
                 domain_loss = self.domain_classification_loss_function(
