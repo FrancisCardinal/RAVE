@@ -8,8 +8,10 @@ from RAVE.eye_tracker.EyeTrackerDataset import EyeTrackerDataset
 from RAVE.eye_tracker.GazeInferer.deepvog.eyefitter import SingleEyeFitter
 
 """
-This file is a combination of multiple files of deepvog. It regroups the elements that are specific to our use case only, and 
-uses pytorch instead of TF for predictions. As such, this is mostly copy and pasted (and adapted) code from deepvog.   
+This file is a combination of multiple files of deepvog. It regroups the
+elements that are specific to our use case only, and uses pytorch instead of TF
+for predictions. As such, this is mostly copy and pasted (and adapted) code
+from deepvog.   
 """
 
 
@@ -65,7 +67,8 @@ class GazeInferer:
                     )
                     self._eyefitter.add_to_fitting()
 
-        # Fit eyeball models. Parameters are stored as internal attributes of Eyefitter instance.
+        # Fit eyeball models. Parameters are stored as internal attributes of
+        # Eyefitter instance.
         self._eyefitter.fit_projected_eye_centre(
             ransac=True,
             max_iters=2000,

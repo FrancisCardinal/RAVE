@@ -42,7 +42,7 @@ class EyeTrackerSyntheticDatasetBuilder(EyeTrackerDatasetBuilder):
     """
 
     @staticmethod
-    def create_images_datasets_with_synthetic_images(force_generate):
+    def create_datasets(force_generate):
         """
         Main method of the EyeTrackerSyntheticDatasetBuilder class.
         This method checks if the dataset as already been built, and builds it
@@ -54,7 +54,8 @@ class EyeTrackerSyntheticDatasetBuilder(EyeTrackerDatasetBuilder):
         ) = EyeTrackerSyntheticDatasetBuilder.get_builders()
         if dataset_found and not force_generate:
             print(
-                "dataset found on disk and did not force generate : skipping generation"
+                "dataset found on disk and did not force generate : \
+                    skipping generation"
             )
             return
 
@@ -202,8 +203,10 @@ class EyeTrackerSyntheticDatasetBuilderOfflineDataAugmentation(
         CROP_SIZE,
     ):
         """
-        Constructor of the EyeTrackerSyntheticDatasetBuilderOfflineDataAugmentation.
-        Calls the parent constructor and defines the offline training transforms
+        Constructor of the 
+        EyeTrackerSyntheticDatasetBuilderOfflineDataAugmentation class.
+        Calls the parent constructor and defines
+        the offline training transforms
 
         Args:
             VIDEOS (List of strings):

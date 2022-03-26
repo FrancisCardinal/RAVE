@@ -166,7 +166,7 @@ class EllipseAnnotationTool:
             json.dump(annotations, json_file, indent=4)
 
     def adjust_gamma(self, image):
-        # Taken from https://pyimagesearch.com/2015/10/05/opencv-gamma-correction/
+        # From https://pyimagesearch.com/2015/10/05/opencv-gamma-correction/
 
         # build a lookup table mapping the pixel values [0, 255] to
         # their adjusted gamma values

@@ -66,13 +66,9 @@ def main(
     if ANNOTATE:
         annotate(EyeTrackerDataset.EYE_TRACKER_DIR_PATH)
 
-    created_real_dataset = (
-        EyeTrackerDatasetBuilder.create_images_datasets_with_videos()
-    )
+    created_real_dataset = EyeTrackerDatasetBuilder.create_datasets()
     if created_real_dataset:
-        EyeTrackerSyntheticDatasetBuilder.create_images_datasets_with_synthetic_images(
-            True
-        )
+        EyeTrackerSyntheticDatasetBuilder.create_datasets(True)
 
     BATCH_SIZE = 128
     training_sub_dataset = EyeTrackerDataset.get_training_sub_dataset()

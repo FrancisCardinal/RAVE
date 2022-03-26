@@ -260,7 +260,7 @@ class EyeTrackerInferenceDataset(EyeTrackerDataset):
     def __getitem__(self, idx):
         """
         Method of the Dataset class that must be overwritten by this class.
-        Used to get an image 
+        Used to get an image
 
         Args:
             idx (int): Index of the pair to get, ignored

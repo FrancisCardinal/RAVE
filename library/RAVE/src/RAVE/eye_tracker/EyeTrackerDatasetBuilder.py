@@ -3,7 +3,6 @@ import shutil
 from threading import Thread
 import random
 from pathlib import Path
-from shutil import copyfile
 from tqdm import tqdm
 
 import cv2
@@ -46,7 +45,7 @@ class EyeTrackerDatasetBuilder(DatasetBuilder):
     CROP_SIZE = 150, 0, 450, 600
 
     @staticmethod
-    def create_images_datasets_with_videos():
+    def create_datasets():
         """
         Main method of the EyeTrackerDatasetBuilder class.
         This method checks if the dataset as already been built, and builds it

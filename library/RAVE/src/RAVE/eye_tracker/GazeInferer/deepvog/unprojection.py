@@ -1,7 +1,8 @@
 import numpy as np
 
 
-# The whole unprojection algorithm is invented by Safaee-Rad et al. 1992, see https://ieeexplore.ieee.org/document/163786
+# The whole unprojection algorithm is invented by Safaee-Rad et al. 1992,
+# see https://ieeexplore.ieee.org/document/163786
 # This python script is a re-implementation of Safaee-Rad et al.'s works
 
 
@@ -138,13 +139,17 @@ def convert_ell_to_general(xc, yc, w, h, radian):
 
 def unprojectGazePositions(vertex, ell_co, radius=None):
     """
-    This function generates (1)directions of unprojected pupil disk (gaze vector) 
-    and (2) position of the pupil disk, with an assumed radius of the pupil disk
+    This function generates (1)directions of unprojected pupil disk
+    (gaze vector) and (2) position of the pupil disk, with an assumed radius
+    of the pupil disk
 
     Args:
-        vectex (list or tuple): list with 3 elements of x, y, z coordinates of the camera with respect to the image frame
-        ell_co (list or tuple): list of 6 coefficients of a generalised/expanded ellipse equations at the image frame
-            A*(x**2) + B*x*y + C*(y**2) + D*x + E*y + F = 0 (from https://en.wikipedia.org/wiki/Ellipse#General_ellipse)
+        vectex (list or tuple): list with 3 elements of x, y, z coordinates of
+        the camera with respect to the image frame
+        ell_co (list or tuple): list of 6 coefficients of a
+        generalised/expanded ellipse equations at the image frame
+            A*(x**2) + B*x*y + C*(y**2) + D*x + E*y + F = 0
+            (from https://en.wikipedia.org/wiki/Ellipse#General_ellipse)
         
     Returns:
         Positive Norm of pupil disk from camera frame
@@ -158,7 +163,8 @@ def unprojectGazePositions(vertex, ell_co, radius=None):
     # Vertex (Point of the camera)
     alpha, beta, gamma = [x for x in vertex]
 
-    # Ellipse parameter at image frame (z_c = +20) with respect to the camera frame
+    # Ellipse parameter at image frame (z_c = +20) with respect
+    # to the camera frame
     a_prime = A
     h_prime = B / 2
     b_prime = C
@@ -263,7 +269,8 @@ def unprojectGazePositions(vertex, ell_co, radius=None):
 
 
 def reproject(vec_3d, focal_length, batch_mode=False):
-    # vec_3d = (3,1) numpy array: Coordinates of the 3D unprojected object in CAMERA frame
+    # vec_3d = (3,1) numpy array: Coordinates of the 3D unprojected object in
+    # CAMERA frame
     # vec_3d can also be (3,), but not (1,3)
     if batch_mode == False:
         vec_2d = (focal_length * vec_3d[0:2]) / vec_3d[2]
@@ -279,9 +286,3 @@ def reverse_reproject(vec_2d, z, focal_length):
     # when you unproject the reprojected coordinate.
     vec_2d_scaled = (vec_2d * z) / focal_length
     return vec_2d_scaled
-
-
-# Illustration of the example from Safaee-Rad's paper
-if __name__ == "__main__":
-    pass
-

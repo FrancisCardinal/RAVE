@@ -1,4 +1,3 @@
-import enum
 import torch
 import numpy as np
 from tqdm import tqdm
@@ -70,10 +69,10 @@ class DANNTrainer(Trainer):
             predictions, classifications = self.model(images, alpha)
             # Find the Loss
             loss = self.loss_function(predictions, labels)
-            domain_classification_loss = self.domain_classification_loss_function(
+            domain_loss = self.domain_classification_loss_function(
                 classifications, domains.unsqueeze(1)
             )
-            loss += domain_classification_loss
+            loss += domain_loss
             # Calculate gradients
             loss.backward()
             # Update Weights
@@ -120,10 +119,10 @@ class DANNTrainer(Trainer):
                 predictions, classifications = self.model(images, alpha)
                 # Find the Loss
                 loss = self.loss_function(predictions, labels)
-                domain_classification_loss = self.domain_classification_loss_function(
+                domain_loss = self.domain_classification_loss_function(
                     classifications, domains.unsqueeze(1)
                 )
-                loss += domain_classification_loss
+                loss += domain_loss
                 # Calculate Loss
                 validation_loss += loss.item()
                 number_of_images += len(images)

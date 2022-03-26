@@ -52,7 +52,8 @@ class SingleEyeFitter(object):
         self.vertex = [0, 0, -focal_length]
         self.initial_eye_z = initial_eye_z
 
-        # (p,n) of unprojected gaze vector and pupil 3D position in SINGLE OBSERVATION
+        # (p,n) of unprojected gaze vector and pupil 3D position in
+        # SINGLE OBSERVATION
         # reserved for (3,1) np.array in camera frame
         self.current_gaze_pos = 0
         # reserved for (3,1) np.array in camera frame
@@ -67,18 +68,21 @@ class SingleEyeFitter(object):
         # List of parameters across a number (m) of observations
         # A list: ["gaze_positive"~np(m,3), "gaze_negative"~np(m,3)]
         self.unprojected_gaze_vectors = []
-        # [ "pupil_3Dcentre_positive"~np(m,3), "pupil_3Dcentre_negative"~np(m,3) ]
+        # ["pupil_3Dcentre_positive"~np(m,3),"pupil_3Dcentre_negative"~np(m,3)]
         self.unprojected_3D_pupil_positions = []
         # reserved for numpy array (m,2) in numpy indexing frame,
         self.ellipse_centres = None
-        # m = number of fitted ellipse centres corresponding to the projected gaze lines
+        # m = number of fitted ellipse centres corresponding to the projected
+        # gaze lines
         # reserved for (m,3) np.array in camera frame
         self.selected_gazes = None
         # reserved for (m,3) np.array in camera frame
         self.selected_pupil_positions = None
 
-        # Parameters of the eye model for consistent pupil estimate after initialisation
-        # reserved for numpy array (2,1). Centre coordinate in numpy indexing frame.
+        # Parameters of the eye model for consistent pupil estimate after
+        # initialisation
+        # reserved for numpy array (2,1). Centre coordinate in
+        # numpy indexing frame.
         self.projected_eye_centre = None
         # reserved for (3,1) numpy array. 3D centre coordinate in camera frame
         self.eye_centre = None
@@ -105,13 +109,15 @@ class SingleEyeFitter(object):
         centre_cam[0] = centre_cam[0] - self.image_shape[1] / 2
         centre_cam[1] = centre_cam[1] - self.image_shape[0] / 2
 
-        # Convert ellipse parameters to the coefficients of the general form of ellipse equation
+        # Convert ellipse parameters to the coefficients of the general form
+        # of ellipse equation
         A, B, C, D, E, F = convert_ell_to_general(
             centre_cam[0], centre_cam[1], w, h, radian
         )
         ell_co = (A, B, C, D, E, F)
 
-        # Unproject the ellipse to obtain 2 ambiguous gaze vectors with numpy shape (3,1),
+        # Unproject the ellipse to obtain 2 ambiguous gaze vectors
+        # with numpy shape (3,1),
         # and pupil_centre with numpy shape (3,1)
         (
             unprojected_gaze_pos,
@@ -162,7 +168,9 @@ class SingleEyeFitter(object):
             or (self.current_ellipse_centre is None)
         ):
             raise TypeError(
-                'No ellipse was caught in this observation, thus "None" is being added for fitting set, which is not allowed. Please manually skip this condition.'
+                'No ellipse was caught in this observation, thus "None" is\
+                    being added for fitting set, which is not allowed.\
+                        Please manually skip this condition.'
             )
 
         # Store the gaze vectors and pupil 3D centres
@@ -223,7 +231,11 @@ class SingleEyeFitter(object):
         if (self.unprojected_gaze_vectors is None) or (
             self.ellipse_centres is None
         ):
-            msg = "No unprojected gaze lines or ellipse centres were found (not yet initalized). It is likely that the network fails to segment the pupil from the video. Please ensure your input video contains only a single eye but not other facial/body features."
+            msg = "No unprojected gaze lines or ellipse centres were found\
+                (not yet initalized). It is likely that the network fails\
+                to segment the pupil from the video.Please ensure your input\
+                video contains only a single eye but not other facial/body\
+                features."
             raise TypeError(msg)
 
         # Combining positive and negative gaze vectors
@@ -235,7 +247,8 @@ class SingleEyeFitter(object):
             )
         )  # [:, 0:2] takes only 2D projection
 
-        # Normalisation of the 2D projection of gaze vectors is done inside intersect()
+        # Normalisation of the 2D projection of gaze vectors is
+        # done inside intersect()
         if ransac == True:
             # Assuming 0.5% of outliners
             samples_to_fit = max(np.ceil(a.shape[0] / 20).astype(np.int), 2)
@@ -249,21 +262,21 @@ class SingleEyeFitter(object):
         else:
             self.projected_eye_centre = intersect(a, n)
         if self.projected_eye_centre is None:
-            raise TypeError(
-                "Projected_eye_centre was not fitted. You may need -v and -m argument to check whether the pupil segmentation works properly."
-            )
+            raise TypeError("Projected_eye_centre was not fitted.")
         return self.projected_eye_centre
 
     def estimate_eye_sphere(self):
         # This function is called once after fit_projected_eye_centre()
         # self.initial_eye_z is required (in pixel unit)
-        # self.initial_eye_z shall be the z-distance between the point and camera vertex (in camera frame)
+        # self.initial_eye_z shall be the z-distance between the point and
+        # camera vertex (in camera frame)
         if self.projected_eye_centre is None:
             # pdb.set_trace()
             raise TypeError("Projected_eye_centre must be initialized first")
 
         # Unprojecting the 2D projected eye centre to 3D.
-        # Converting the projected_eye_centre from numpy indexing frame to camera frame
+        # Converting the projected_eye_centre from numpy indexing frame to
+        # camera frame
         projected_eye_centre_camera_frame = self.projected_eye_centre.copy()
         projected_eye_centre_camera_frame[0] = (
             projected_eye_centre_camera_frame[0] - self.image_shape[1] / 2
@@ -283,7 +296,8 @@ class SingleEyeFitter(object):
             projected_eye_centre_camera_frame_scaled, self.initial_eye_z
         ).reshape(3, 1)
 
-        # Reconstructed selected gaze vectors and pupil positions by rejecting those pointing away from projected eyecentre
+        # Reconstructed selected gaze vectors and pupil positions by rejecting
+        # those pointing away from projected eyecentre
         m = self.unprojected_gaze_vectors[0].shape[0]
         for i in range(m):
             gazes = [
@@ -335,10 +349,12 @@ class SingleEyeFitter(object):
         return aver_radius, radius_counter
 
     def gen_consistent_pupil(self):
-        # This function must be called after using unproject_single_observation() to update surrent observation
+        # This function must be called after using
+        # unproject_single_observation() to update surrent observation
         if (self.eye_centre is None) or (self.aver_eye_radius is None):
             raise TypeError(
-                "Call estimate_eye_sphere() to initialize eye_centre and eye_radius first."
+                "Call estimate_eye_sphere() to initialize eye_centre\
+                    and eye_radius first."
             )
         else:
             (
@@ -394,7 +410,8 @@ class SingleEyeFitter(object):
                 consistence = True
 
             except (NoIntersectionError):
-                # print("Cannot find line-sphere interception. Old pupil parameters are used.")
+                # print("Cannot find line-sphere interception. Old pupil
+                # parameters are used.")
                 new_position_min, new_position_max = (
                     selected_position,
                     selected_position,
@@ -438,8 +455,8 @@ class SingleEyeFitter(object):
     def select_pupil_from_single_observation(
         self, gazes, positions, eye_centre_camera_frame
     ):
-        # gazes is a list ~ [gaze_vector_pos~(3,1), gaze_vector_neg~(3,1)]
-        # positions is a list ~ [pupil_position_pos~(3,1), pupil_position_neg~(3,1)]
+        # gazes : list ~ [gaze_vector_pos~(3,1), gaze_vector_neg~(3,1)]
+        # positions : list~[pupil_position_pos~(3,1),pupil_position_neg~(3,1)]
         # eye_centre_camera_frame ~ numpy array~(3,1)
 
         selected_gaze = gazes[0]
@@ -483,7 +500,8 @@ class SingleEyeFitter(object):
         elif np.any(list_as_array == None):
             print("Error list =\n", stacked_arrays_list)
             raise TypeError(
-                "Some lists are initialized, some are not ('None'). Error has happened!"
+                "Some lists are initialized, some are not ('None').\
+                    Error has happened!"
             )
         else:
             print("Error list =\n", stacked_arrays_list)
