@@ -11,7 +11,7 @@ from RAVE.eye_tracker.GazeInferer.deepvog.eyefitter import SingleEyeFitter
 This file is a combination of multiple files of deepvog. It regroups the
 elements that are specific to our use case only, and uses pytorch instead of TF
 for predictions. As such, this is mostly copy and pasted (and adapted) code
-from deepvog.   
+from deepvog.
 """
 
 

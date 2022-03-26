@@ -13,7 +13,7 @@ from .intersection import (
 )
 
 """
-Unless specified, all units are in pixels. 
+Unless specified, all units are in pixels.
 All calculations are in camera frame (conversion would be commented)
 
 """
@@ -249,7 +249,7 @@ class SingleEyeFitter(object):
 
         # Normalisation of the 2D projection of gaze vectors is
         # done inside intersect()
-        if ransac == True:
+        if ransac:
             # Assuming 0.5% of outliners
             samples_to_fit = max(np.ceil(a.shape[0] / 20).astype(np.int), 2)
             self.projected_eye_centre = fit_ransac(
@@ -483,13 +483,13 @@ class SingleEyeFitter(object):
     ):
         list_as_array = np.array([stacked_arrays_list])
         new_stacked_arrays_list = []
-        if np.all(list_as_array == None):
+        if np.all(list_as_array is None):
             for stacked_array, stacked_vector, n in zip(
                 stacked_arrays_list, stacked_vectors_list, dims_list
             ):
                 stacked_array = stacked_vector.reshape(1, n)
                 new_stacked_arrays_list.append(stacked_array)
-        elif np.all(list_as_array != None):
+        elif np.all(list_as_array is not None):
             for stacked_array, stacked_vector, n in zip(
                 stacked_arrays_list, stacked_vectors_list, dims_list
             ):
@@ -497,7 +497,7 @@ class SingleEyeFitter(object):
                     (stacked_array, stacked_vector.reshape(1, n))
                 )
                 new_stacked_arrays_list.append(stacked_array)
-        elif np.any(list_as_array == None):
+        elif np.any(list_as_array is None):
             print("Error list =\n", stacked_arrays_list)
             raise TypeError(
                 "Some lists are initialized, some are not ('None').\

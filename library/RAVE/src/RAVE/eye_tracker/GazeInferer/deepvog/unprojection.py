@@ -41,9 +41,9 @@ def gen_rotmat_co(lamb, a, b, g, f, h):
     t2 = (a - lamb) * f - g * h
     t3 = -(a - lamb) * (t1 / t2) / g - (h / g)
     m = 1 / (np.sqrt(1 + np.power((t1 / t2), 2) + np.power(t3, 2)))
-    l = (t1 / t2) * m
+    line = (t1 / t2) * m
     n = t3 * m
-    return l, m, n
+    return line, m, n
 
 
 """
@@ -54,11 +54,11 @@ Safaee-Rad, 1992 (12), (27)-(33)
 
 def gen_lmn(lamb1, lamb2, lamb3):
     if lamb1 < lamb2:
-        l = 0
+        line = 0
         m_pos = np.sqrt((lamb2 - lamb1) / (lamb2 - lamb3))
         m_neg = -m_pos
         n = np.sqrt((lamb1 - lamb3) / (lamb2 - lamb3))
-        return [l, l], [m_pos, m_neg], [n, n]
+        return [line, line], [m_pos, m_neg], [n, n]
     elif lamb1 > lamb2:
         l_pos = np.sqrt((lamb1 - lamb2) / (lamb1 - lamb3))
         l_neg = -l_pos
@@ -68,23 +68,22 @@ def gen_lmn(lamb1, lamb2, lamb3):
     elif lamb1 == lamb2:
         n = 1
         m = 0
-        l = 0
-        return [l, l], [m, m], [n, n]
+        line = 0
+        return [line, line], [m, m], [n, n]
     else:
-
-        logging.warning("Failure to generate l,m,n. None's are returned")
+        print("Failure to generate line,m,n. None's are returned")
         return None, None, None
 
 
-def calT3(l, m, n):
-    lm_sqrt = np.sqrt((l ** 2) + (m ** 2))
+def calT3(line, m, n):
+    lm_sqrt = np.sqrt((line ** 2) + (m ** 2))
     T3 = np.array(
         [
             -m / lm_sqrt,
-            -(l * n) / lm_sqrt,
-            l,
+            -(line * n) / lm_sqrt,
+            line,
             0,
-            l / lm_sqrt,
+            line / lm_sqrt,
             -(m * n) / lm_sqrt,
             m,
             0,
@@ -150,7 +149,7 @@ def unprojectGazePositions(vertex, ell_co, radius=None):
         generalised/expanded ellipse equations at the image frame
             A*(x**2) + B*x*y + C*(y**2) + D*x + E*y + F = 0
             (from https://en.wikipedia.org/wiki/Ellipse#General_ellipse)
-        
+
     Returns:
         Positive Norm of pupil disk from camera frame
         Negative Norm of pupil disk from camera frame
@@ -204,9 +203,9 @@ def unprojectGazePositions(vertex, ell_co, radius=None):
     lamb1, lamb2, lamb3 = np.roots([lamb_co1, lamb_co2, lamb_co3, lamb_co4])
     # generate Normal vector at the canonical frame
 
-    l, m, n = gen_lmn(lamb1, lamb2, lamb3)
-    norm_cano_pos = np.array([l[0], m[0], n[0], 1]).reshape(4, 1)
-    norm_cano_neg = np.array([l[1], m[1], n[1], 1]).reshape(4, 1)
+    line, m, n = gen_lmn(lamb1, lamb2, lamb3)
+    norm_cano_pos = np.array([line[0], m[0], n[0], 1]).reshape(4, 1)
+    norm_cano_neg = np.array([line[1], m[1], n[1], 1]).reshape(4, 1)
 
     # T1 Rotational Transformation to the camera fream
     l1, m1, n1 = gen_rotmat_co(lamb1, a, b, g, f, h)
@@ -228,8 +227,8 @@ def unprojectGazePositions(vertex, ell_co, radius=None):
     T2 = np.eye(4)
     T2[0:3, 3] = -(u * li + v * mi + w * ni) / np.array([lamb1, lamb2, lamb3])
     # Calculating T3
-    T3_pos = calT3(l[0], m[0], n[0])
-    T3_neg = calT3(l[1], m[1], n[1])
+    T3_pos = calT3(line[0], m[0], n[0])
+    T3_neg = calT3(line[1], m[1], n[1])
     # calculate ABCD
     A_pos, B_pos, C_pos, D_pos = calABCD(T3_pos, lamb1, lamb2, lamb3)
     A_neg, B_neg, C_neg, D_neg = calABCD(T3_neg, lamb1, lamb2, lamb3)
@@ -272,7 +271,7 @@ def reproject(vec_3d, focal_length, batch_mode=False):
     # vec_3d = (3,1) numpy array: Coordinates of the 3D unprojected object in
     # CAMERA frame
     # vec_3d can also be (3,), but not (1,3)
-    if batch_mode == False:
+    if not batch_mode:
         vec_2d = (focal_length * vec_3d[0:2]) / vec_3d[2]
 
     else:

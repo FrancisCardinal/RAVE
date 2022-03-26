@@ -203,7 +203,7 @@ class EyeTrackerSyntheticDatasetBuilderOfflineDataAugmentation(
         CROP_SIZE,
     ):
         """
-        Constructor of the 
+        Constructor of the
         EyeTrackerSyntheticDatasetBuilderOfflineDataAugmentation class.
         Calls the parent constructor and defines
         the offline training transforms
