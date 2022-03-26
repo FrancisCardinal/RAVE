@@ -1,4 +1,3 @@
-from telnetlib import GA
 import torch
 from threading import Thread
 
