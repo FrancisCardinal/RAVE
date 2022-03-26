@@ -22,12 +22,13 @@ class GazeInferer:
         dataloader,
         device,
         eyeball_model_path="model_01.json",
-        image_scaling_factor=1,
         pupil_radius=4,
         initial_eye_z=52.271,
         x_angle=22.5,
         flen=3.37,
         sensor_size=(2.7216, 3.6288),
+        original_image_size_pre_crop=(600, 800),
+        original_image_size_post_crop=(600, 450),
     ):
         self._ellipse_dnn = ellipse_dnn
         self._dataloader = dataloader
@@ -41,37 +42,46 @@ class GazeInferer:
         image, _ = next(iter(self._dataloader))
         self.shape = image.shape[2], image.shape[3]
 
-        # TODO FC : deal with image_scaling_factor when we'll have real images
         self._eyefitter = SingleEyeFitter(
-            focal_length=flen * image_scaling_factor,
-            pupil_radius=pupil_radius * image_scaling_factor,
-            initial_eye_z=initial_eye_z * image_scaling_factor,
+            focal_length=flen,
+            pupil_radius=pupil_radius,
+            initial_eye_z=initial_eye_z,
             x_angle=x_angle,
             image_shape=self.shape,
+            original_image_size_pre_crop=original_image_size_pre_crop,
+            original_image_size_post_crop=original_image_size_post_crop,
             sensor_size=sensor_size,
         )
+        self.x, self.y = None, None
+
+    def add_to_fit(self):
+        self.should_add_to_fit = True
+        print("Adding to fitting")
+        with torch.no_grad():
+            while self.should_add_to_fit:
+                for images, success in self._dataloader:
+                    if not success:
+                        continue
+                    images = images.to(self._device)
+
+                    # Forward Pass
+                    predictions, _ = self._ellipse_dnn(images)
+
+                    for prediction in predictions:
+                        self._eyefitter.unproject_single_observation(
+                            self.torch_prediction_to_deepvog_format(prediction)
+                        )
+                        self._eyefitter.add_to_fitting()
+
+    def stop_adding_to_fit(self):
+        self.should_add_to_fit = False
 
     def fit(self):
-        with torch.no_grad():
-            for images, _ in tqdm(
-                self._dataloader, "Adding to fitting", leave=False
-            ):
-                images = images.to(self._device)
-
-                # Forward Pass
-                predictions = self._ellipse_dnn(images)
-
-                for prediction in predictions:
-                    self._eyefitter.unproject_single_observation(
-                        self.torch_prediction_to_deepvog_format(prediction)
-                    )
-                    self._eyefitter.add_to_fitting()
-
         # Fit eyeball models. Parameters are stored as internal attributes of
         # Eyefitter instance.
         self._eyefitter.fit_projected_eye_centre(
             ransac=True,
-            max_iters=2000,
+            max_iters=5000,
             min_distance=10 * len(self._dataloader.dataset),
         )
         self._eyefitter.estimate_eye_sphere()
@@ -99,7 +109,7 @@ class GazeInferer:
             HEIGHT * cy,
             WIDTH * w,
             HEIGHT * h,
-            2 * torch.pi * radian,
+            2 * np.pi * radian,
         )
         return [cx, cy], w, h, radian
 
@@ -116,27 +126,43 @@ class GazeInferer:
         self.load_eyeball_model()
         x_offset, y_offset = None, None
 
+        self.should_infer = True
         with torch.no_grad():
-            for images, _ in self._dataloader:
-                images = images.to(self._device)
+            while self.should_infer:
+                for images, success in self._dataloader:
+                    if not success:
+                        continue
+                    images = images.to(self._device)
 
-                predictions = self._ellipse_dnn(images)
+                    predictions, _ = self._ellipse_dnn(images)
 
-                for prediction in predictions:
-                    self._eyefitter.unproject_single_observation(
-                        self.torch_prediction_to_deepvog_format(prediction)
-                    )
-                    _, n_list, _, _ = self._eyefitter.gen_consistent_pupil()
-                    x, y = self._eyefitter.convert_vec2angle31(n_list[0])
+                    for prediction in predictions:
+                        self._eyefitter.unproject_single_observation(
+                            self.torch_prediction_to_deepvog_format(prediction)
+                        )
+                        (
+                            _,
+                            n_list,
+                            _,
+                            _,
+                        ) = self._eyefitter.gen_consistent_pupil()
+                        self.x, self.y = self._eyefitter.convert_vec2angle31(
+                            n_list[0]
+                        )
 
-                    if x_offset is None:
-                        x_offset = x
-                        y_offset = y
+                        if x_offset is None:
+                            # TODO FC : The code assumes that the user will
+                            #        be looking straight forward on the first
+                            #        frame. Might need to had a calibration
+                            #        step for this.
+                            x_offset = self.x
+                            y_offset = self.y
 
-                    x -= x_offset
-                    y -= y_offset
+                        self.x -= x_offset
+                        self.y -= y_offset
 
-                    print("x = {} y = {}".format(x, y))
+    def stop_inference(self):
+        self.should_infer = False
 
     def load_eyeball_model(self):
         """
@@ -152,3 +178,6 @@ class GazeInferer:
 
         self._eyefitter.eye_centre = np.array(loaded_dict["eye_centre"])
         self._eyefitter.aver_eye_radius = loaded_dict["aver_eye_radius"]
+
+    def get_current_gaze(self):
+        return self.x, self.y

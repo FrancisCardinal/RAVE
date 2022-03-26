@@ -1,5 +1,6 @@
 import numpy as np
 from tqdm import tqdm
+from multiprocessing import Queue, Process
 
 
 class NoIntersectionError(Exception):
@@ -42,7 +43,44 @@ def calc_distance(a, n, p):
     return D_sum
 
 
-def fit_ransac(a, n, max_iters=2000, samples_to_fit=20, min_distance=2000):
+def fit_ransac(
+    a, n, max_iters=2000, samples_to_fit=20, min_distance=2000, nb_workers=5
+):
+    # https://stackoverflow.com/a/45829852
+    q = Queue()
+    processes = []
+    rets = []
+    for id in range(nb_workers):
+        p = Process(
+            target=_fit_ransac,
+            args=(
+                q,
+                a,
+                n,
+                max_iters // nb_workers,
+                samples_to_fit,
+                min_distance,
+                id,
+            ),
+        )
+        processes.append(p)
+        p.start()
+    for p in processes:
+        ret = q.get()  # will block
+        rets.append(ret)
+    for p in processes:
+        p.join()
+    best_distance, best_model = np.inf, None
+    for ret in rets:
+        distance, model = ret
+        if distance < best_distance:
+            best_distance = distance
+            best_model = model
+    return best_model
+
+
+def _fit_ransac(queue, a, n, max_iters, samples_to_fit, min_distance, id):
+    np.random.seed(id)
     num_lines = a.shape[0]
 
     best_model = None
@@ -65,7 +103,7 @@ def fit_ransac(a, n, max_iters=2000, samples_to_fit=20, min_distance=2000):
                 best_distance = sampled_distance
     # if best_model is None:
     #     best_model = model_sampled
-    return best_model
+    queue.put((best_distance, best_model))
 
 
 def line_sphere_intersect(c, r, o, line):

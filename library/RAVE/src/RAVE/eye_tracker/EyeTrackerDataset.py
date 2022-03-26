@@ -240,7 +240,9 @@ class EyeTrackerInferenceDataset(EyeTrackerDataset):
 
         self._length = 1
         if not is_real_time:
-            self._length = int(self._video_feed.get(cv2.CAP_PROP_FRAME_COUNT))
+            self._length = (
+                int(self._video_feed.get(cv2.CAP_PROP_FRAME_COUNT)) - 1
+            )
 
     def __len__(self):
         """
@@ -265,6 +267,7 @@ class EyeTrackerInferenceDataset(EyeTrackerDataset):
         """
         success, frame = self._video_feed.read()
 
+        image = None
         if success:
             frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
             frame = Image.fromarray(frame, "RGB")

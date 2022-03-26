@@ -27,6 +27,8 @@ class SingleEyeFitter(object):
         initial_eye_z,
         x_angle,
         image_shape,
+        original_image_size_pre_crop,
+        original_image_size_post_crop,
         sensor_size,
     ):
         self.camera_rotation_matrix = np.eye(3)
@@ -37,13 +39,21 @@ class SingleEyeFitter(object):
         self.camera_rotation_matrix[1, 2] = -np.sin(theta)
         self.camera_rotation_matrix = self.camera_rotation_matrix[0:2, 0:2]
 
-        mm2px_scaling = np.linalg.norm(
-            self.camera_rotation_matrix @ image_shape
-        ) / np.linalg.norm(sensor_size)
+        image_scaling_factor = np.linalg.norm(
+            original_image_size_post_crop
+        ) / np.linalg.norm(image_shape)
 
-        focal_length = focal_length * mm2px_scaling
-        pupil_radius = pupil_radius * mm2px_scaling
-        initial_eye_z = initial_eye_z * mm2px_scaling
+        mm2px_scaling = (
+            image_scaling_factor
+            * np.linalg.norm(
+                self.camera_rotation_matrix @ original_image_size_pre_crop
+            )
+            / np.linalg.norm(sensor_size)
+        )
+
+        focal_length *= mm2px_scaling
+        pupil_radius *= mm2px_scaling
+        initial_eye_z *= mm2px_scaling
 
         self.focal_length = focal_length
         self.image_shape = image_shape
@@ -483,13 +493,13 @@ class SingleEyeFitter(object):
     ):
         list_as_array = np.array([stacked_arrays_list])
         new_stacked_arrays_list = []
-        if np.all(list_as_array is None):
+        if np.all(list_as_array == None):
             for stacked_array, stacked_vector, n in zip(
                 stacked_arrays_list, stacked_vectors_list, dims_list
             ):
                 stacked_array = stacked_vector.reshape(1, n)
                 new_stacked_arrays_list.append(stacked_array)
-        elif np.all(list_as_array is not None):
+        elif np.all(list_as_array != None):
             for stacked_array, stacked_vector, n in zip(
                 stacked_arrays_list, stacked_vectors_list, dims_list
             ):
@@ -497,7 +507,7 @@ class SingleEyeFitter(object):
                     (stacked_array, stacked_vector.reshape(1, n))
                 )
                 new_stacked_arrays_list.append(stacked_array)
-        elif np.any(list_as_array is None):
+        elif np.any(list_as_array == None):
             print("Error list =\n", stacked_arrays_list)
             raise TypeError(
                 "Some lists are initialized, some are not ('None').\
