@@ -5,6 +5,7 @@ from tqdm import tqdm
 
 from RAVE.common.Trainer import Trainer
 
+
 class DANNTrainer(Trainer):
     def __init__(
         self,
@@ -19,15 +20,15 @@ class DANNTrainer(Trainer):
         CONTINUE_TRAINING,
     ):
         super().__init__(
-        training_loader,
-        validation_loader,
-        loss_function,
-        device,
-        model,
-        optimizer,
-        scheduler,
-        ROOT_DIR_PATH,
-        CONTINUE_TRAINING,   
+            training_loader,
+            validation_loader,
+            loss_function,
+            device,
+            model,
+            optimizer,
+            scheduler,
+            ROOT_DIR_PATH,
+            CONTINUE_TRAINING,
         )
 
         self.domain_classification_loss_function = torch.nn.BCEWithLogitsLoss()
@@ -44,13 +45,16 @@ class DANNTrainer(Trainer):
         training_loss = 0.0
         number_of_images = 0
         len_dataloader = len(self.training_loader)
-        i = 0 
+        i = 0
         for images, labels, domains in tqdm(self.training_loader, "training", leave=False):
 
-            p = float(i + self.epoch * len_dataloader) / self.NB_EPOCHS / len_dataloader # https://github.com/fungtion/DANN 
-            alpha = 2. / (1. + np.exp(-10 * p)) - 1 #  https://github.com/fungtion/DANN 
+            p = float(i + self.epoch * len_dataloader) / self.NB_EPOCHS / \
+                len_dataloader  # https://github.com/fungtion/DANN
+            # https://github.com/fungtion/DANN
+            alpha = 2. / (1. + np.exp(-10 * p)) - 1
 
-            images, labels, domains = images.to(self.device), labels.to(self.device), domains.to(self.device)
+            images, labels, domains = images.to(self.device), labels.to(
+                self.device), domains.to(self.device)
 
             # Clear the gradients
             self.optimizer.zero_grad()
@@ -58,7 +62,8 @@ class DANNTrainer(Trainer):
             predictions, classifications = self.model(images, alpha)
             # Find the Loss
             loss = self.loss_function(predictions, labels)
-            domain_classification_loss = self.domain_classification_loss_function(classifications, domains.unsqueeze(1))
+            domain_classification_loss = self.domain_classification_loss_function(
+                classifications, domains.unsqueeze(1))
             loss += domain_classification_loss
             # Calculate gradients
             loss.backward()
@@ -86,15 +91,20 @@ class DANNTrainer(Trainer):
             len_dataloader = len(self.validation_loader)
             i = 0
             for images, labels, domains in tqdm(self.validation_loader, "validation", leave=False):
-                p = float(i + self.epoch * len_dataloader) / self.NB_EPOCHS / len_dataloader # https://github.com/fungtion/DANN 
-                alpha = 2. / (1. + np.exp(-10 * p)) - 1 #  https://github.com/fungtion/DANN 
-                images, labels, domains = images.to(self.device), labels.to(self.device), domains.to(self.device)
+                # https://github.com/fungtion/DANN
+                p = float(i + self.epoch * len_dataloader) / \
+                    self.NB_EPOCHS / len_dataloader
+                # https://github.com/fungtion/DANN
+                alpha = 2. / (1. + np.exp(-10 * p)) - 1
+                images, labels, domains = images.to(self.device), labels.to(
+                    self.device), domains.to(self.device)
 
                 # Forward Pass
                 predictions, classifications = self.model(images, alpha)
                 # Find the Loss
                 loss = self.loss_function(predictions, labels)
-                domain_classification_loss = self.domain_classification_loss_function(classifications, domains.unsqueeze(1))
+                domain_classification_loss = self.domain_classification_loss_function(
+                    classifications, domains.unsqueeze(1))
                 loss += domain_classification_loss
                 # Calculate Loss
                 validation_loss += loss.item()

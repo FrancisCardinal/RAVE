@@ -24,7 +24,7 @@ class EyeTrackerDataset(Dataset):
     EYE_TRACKER_DIR_PATH = os.path.join("RAVE", "eye_tracker")
     TRAINING_MEAN, TRAINING_STD = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
     IMAGE_DIMENSIONS = (3, 240, 320)
-    SYNTHETIC_DOMAIN = 0 
+    SYNTHETIC_DOMAIN = 0
     REAL_DOMAIN = 1
 
     def __init__(self, sub_dataset_dir):
@@ -37,17 +37,19 @@ class EyeTrackerDataset(Dataset):
         )
 
         self.real_images_paths, self.synthetic_images_paths = [], []
-        for image_path in self.images_paths : 
+        for image_path in self.images_paths:
             if('synthetic' in image_path):
                 self.synthetic_images_paths.append(image_path)
             else:
-                self.real_images_paths.append(image_path) 
+                self.real_images_paths.append(image_path)
 
         self.nb_synthetic_images = len(self.synthetic_images_paths)
         self.nb_real_images = len(self.real_images_paths)
 
-        self.real_images_paths = np.array([str(i) for i in self.real_images_paths], dtype=np.str)
-        self.synthetic_images_paths = np.array([str(i) for i in self.synthetic_images_paths], dtype=np.str)
+        self.real_images_paths = np.array(
+            [str(i) for i in self.real_images_paths], dtype=np.str)
+        self.synthetic_images_paths = np.array(
+            [str(i) for i in self.synthetic_images_paths], dtype=np.str)
 
         self.random = random.Random(42)
 
@@ -59,7 +61,7 @@ class EyeTrackerDataset(Dataset):
         Returns:
             int: The number of elements in the dataset
         """
-        return self.nb_synthetic_images + self.nb_real_images 
+        return self.nb_synthetic_images + self.nb_real_images
 
     def __getitem__(self, idx):
         """
@@ -83,19 +85,19 @@ class EyeTrackerDataset(Dataset):
         domain = torch.tensor(domain).float()
 
         return image, label, domain
-    
+
     def torch_index_to_image_path_and_domain(self, idx):
         image_path, domain = None, None
         if(idx < self.nb_synthetic_images):
             # idx is one of our self.nb_synthetic_images real imag
-            image_path = self.synthetic_images_paths[idx] 
+            image_path = self.synthetic_images_paths[idx]
             domain = EyeTrackerDataset.SYNTHETIC_DOMAIN
 
         else:
             # idx is one of our self.nb_real_images real image
-            image_path = self.real_images_paths[idx - self.nb_synthetic_images] 
+            image_path = self.real_images_paths[idx - self.nb_synthetic_images]
             domain = EyeTrackerDataset.REAL_DOMAIN
-        
+
         return image_path, domain
 
     @staticmethod

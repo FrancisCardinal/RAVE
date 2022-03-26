@@ -1,7 +1,6 @@
 import os
 import pickle
 from pathlib import Path
-from shutil import copyfile
 import random
 from threading import Thread
 
@@ -15,8 +14,6 @@ from .NormalizedEllipse import NormalizedEllipse
 from .EyeTrackerDatasetBuilder import EyeTrackerDatasetBuilder
 
 from .EyeTrackerDataset import EyeTrackerDataset
-
-from ..common.image_utils import tensor_to_opencv_image
 
 (
     DATASET_DIR,
@@ -53,7 +50,8 @@ class EyeTrackerSyntheticDatasetBuilder(EyeTrackerDatasetBuilder):
         """
         BUILDERS, dataset_found = EyeTrackerSyntheticDatasetBuilder.get_builders()
         if dataset_found and not force_generate:
-            print("dataset found on disk and did not force generate : skipping generation")
+            print(
+                "dataset found on disk and did not force generate : skipping generation")
             return
 
         print("dataset has NOT been found on disk, creating dataset")
@@ -126,28 +124,32 @@ class EyeTrackerSyntheticDatasetBuilder(EyeTrackerDatasetBuilder):
         return BUILDERS, dataset_found
 
     def __init__(self, files, OUTPUT_DIR_PATH, log_name, IMAGE_DIMENSIONS, SOURCE_DIR, CROP_SIZE):
-        super().__init__([], OUTPUT_DIR_PATH, log_name, IMAGE_DIMENSIONS, SOURCE_DIR, CROP_SIZE)
+        super().__init__([], OUTPUT_DIR_PATH, log_name,
+                         IMAGE_DIMENSIONS, SOURCE_DIR, CROP_SIZE)
         self.INPUT_IMAGES_PATH = os.path.join(SOURCE_DIR, IMAGES_DIR)
         self.INPUT_LABELS_PATH = os.path.join(SOURCE_DIR, LABELS_DIR)
 
         self.files = files
 
     def generate_dataset(self):
-        self.video_frame_id = 0 
+        self.video_frame_id = 0
 
         for file in tqdm(self.files, leave=False, desc=self.log_name):
-            filename = Path(file).stem 
+            filename = Path(file).stem
 
-            annotation = pickle.load(open( os.path.join(self.INPUT_LABELS_PATH, filename + ".bin"), "rb"))
+            annotation = pickle.load(
+                open(os.path.join(self.INPUT_LABELS_PATH, filename + ".bin"), "rb"))
             self.current_ellipse = NormalizedEllipse.get_from_list(annotation)
 
             frame = cv2.imread(os.path.join(self.INPUT_IMAGES_PATH, file))
             ORIGINAL_HEIGHT, ORIGINAL_WIDTH = frame.shape[0], frame.shape[1]
-            self.current_ellipse.crop(ORIGINAL_HEIGHT, ORIGINAL_WIDTH, EyeTrackerDatasetBuilder.CROP_SIZE)
+            self.current_ellipse.crop(
+                ORIGINAL_HEIGHT, ORIGINAL_WIDTH, EyeTrackerDatasetBuilder.CROP_SIZE)
 
             processed_frame = self.process_frame(frame)
 
-            self.save_image_label_pair(filename +  '_synthetic', processed_frame, self.current_ellipse.to_list())
+            self.save_image_label_pair(
+                filename + '_synthetic', processed_frame, self.current_ellipse.to_list())
             self.video_frame_id += 1
 
 
@@ -173,7 +175,8 @@ class EyeTrackerSyntheticDatasetBuilderOfflineDataAugmentation(
             log_name (String):
                 Name to be displayed alongside the progress bar in the terminal
         """
-        super().__init__(files, OUTPUT_DIR_PATH, log_name, IMAGE_DIMENSIONS, SOURCE_DIR, CROP_SIZE)
+        super().__init__(files, OUTPUT_DIR_PATH, log_name,
+                         IMAGE_DIMENSIONS, SOURCE_DIR, CROP_SIZE)
 
         self.TRAINING_TRANSFORM = transforms.Compose(
             [
@@ -181,7 +184,7 @@ class EyeTrackerSyntheticDatasetBuilderOfflineDataAugmentation(
                     brightness=0.15, contrast=0.15, saturation=0.15, hue=0.15
                 ),  # random
                 transforms.GaussianBlur(3),  # random
-                #transforms.RandomInvert(0.25),  # random
+                # transforms.RandomInvert(0.25),  # random
             ]
         )
 

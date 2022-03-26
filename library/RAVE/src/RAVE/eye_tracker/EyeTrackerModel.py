@@ -101,12 +101,15 @@ class EyeTrackerModel(nn.Module):
         classification = None
         if alpha is not None:
             reverse_bottleneck = ReverseLayerF.apply(bottleneck, alpha)
-            classification = self.domain_classification_head(reverse_bottleneck)
+            classification = self.domain_classification_head(
+                reverse_bottleneck)
             classification = torch.sigmoid(classification)
 
         return ellipse, classification
 
-# The following was taken from https://github.com/fungtion/DANN 
+# The following was taken from https://github.com/fungtion/DANN
+
+
 class ReverseLayerF(torch.autograd.Function):
 
     @staticmethod

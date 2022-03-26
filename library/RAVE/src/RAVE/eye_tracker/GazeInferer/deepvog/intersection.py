@@ -3,7 +3,7 @@ from tqdm import tqdm
 
 class NoIntersectionError(Exception):
     pass
-
+ 
 # vector (m,n) , m = number of examples, n = dimensionality
 # a = coordinates of the vector
 # n = orientation of the vector

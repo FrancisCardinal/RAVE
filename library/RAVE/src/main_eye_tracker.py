@@ -51,8 +51,9 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST, INFERENC
         annotate(EyeTrackerDataset.EYE_TRACKER_DIR_PATH)
 
     created_real_dataset = EyeTrackerDatasetBuilder.create_images_datasets_with_videos()
-    if created_real_dataset : 
-        EyeTrackerSyntheticDatasetBuilder.create_images_datasets_with_synthetic_images(True)
+    if created_real_dataset:
+        EyeTrackerSyntheticDatasetBuilder.create_images_datasets_with_synthetic_images(
+            True)
 
     BATCH_SIZE = 128
     training_sub_dataset = EyeTrackerDataset.get_training_sub_dataset()
@@ -132,7 +133,7 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST, INFERENC
                 test_loss += loss.item()
                 number_of_images += len(images)
 
-        print('test loss = {}'.format(test_loss / number_of_images) ) 
+        print('test loss = {}'.format(test_loss / number_of_images))
 
     if INFERENCE:
         inference(eye_tracker_model, DEVICE)
@@ -238,28 +239,6 @@ def inference(model, device):
     gaze_inferer.infer()
 
 
-def grid_search():
-    lrs = [1e-2, 1e-3, 1e-4, 1e-5]  
-    best_val = float('inf')
-    best_lr = None 
-    for lr in lrs : 
-        current_val = main(
-        True,
-        150,
-        False,
-        False,
-        False,
-        False,
-        1,
-        lr
-        )
-        if(current_val < best_val):
-            best_val = current_val 
-            best_lr = lr 
-            print('new best validation loss of {} was reached with {} lr'.format(best_val, best_lr))
-    print('Overall best validation loss of {} was reached with {} lr'.format(best_val, best_lr))
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -342,8 +321,6 @@ if __name__ == "__main__":
     np.random.seed(0)
     random.seed(42)
 
-    #grid_search()
-     
     main(
         args.train,
         args.nb_epochs,

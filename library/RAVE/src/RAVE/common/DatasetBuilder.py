@@ -78,12 +78,11 @@ class DatasetBuilder(ABC):
         DatasetBuilder.create_directory_if_does_not_exist(
             self.OUTPUT_LABELS_PATH
         )
-        self._CROP_SIZE = CROP_SIZE 
+        self._CROP_SIZE = CROP_SIZE
 
         self.RESIZE_TRANSFORM = transforms.Compose(
             [transforms.Resize(IMAGE_DIMENSIONS), transforms.ToTensor()]
         )
-            
 
     @staticmethod
     @abstractmethod
@@ -161,13 +160,13 @@ class DatasetBuilder(ABC):
             success = self.parse_current_annotation(annotations)
             if not success:
                 continue
-            
+
             ORIGINAL_HEIGHT, ORIGINAL_WIDTH = frame.shape[0], frame.shape[1]
             processed_frame = self.process_frame(frame)
             self.process_image_label_pair(
                 processed_frame,
                 file_name,
-                ORIGINAL_HEIGHT, 
+                ORIGINAL_HEIGHT,
                 ORIGINAL_WIDTH,
             )
 
@@ -211,9 +210,11 @@ class DatasetBuilder(ABC):
         """
         im_pil = Image.fromarray(frame)
 
-        if self._CROP_SIZE is not None : 
-            top, left, height, width = self._CROP_SIZE[0], self._CROP_SIZE[1], self._CROP_SIZE[2], self._CROP_SIZE[3]
-            im_pil = transforms.functional.crop(im_pil, top, left, height, width)
+        if self._CROP_SIZE is not None:
+            top, left, height, width = self._CROP_SIZE[0], self._CROP_SIZE[
+                1], self._CROP_SIZE[2], self._CROP_SIZE[3]
+            im_pil = transforms.functional.crop(
+                im_pil, top, left, height, width)
 
         output_image_tensor = self.RESIZE_TRANSFORM(im_pil)
 

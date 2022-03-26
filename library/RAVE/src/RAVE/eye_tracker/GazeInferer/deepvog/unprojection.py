@@ -4,7 +4,7 @@ import numpy as np
 # The whole unprojection algorithm is invented by Safaee-Rad et al. 1992, see https://ieeexplore.ieee.org/document/163786
 # This python script is a re-implementation of Safaee-Rad et al.'s works
 
-
+ 
 def gen_cone_co(alpha, beta, gamma, a_prime, h_prime, b_prime, g_prime, f_prime, d_prime):
     gamma_square = np.power(gamma,2)
     a = gamma_square * a_prime

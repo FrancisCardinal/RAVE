@@ -59,17 +59,17 @@ class NormalizedEllipse:
         )
 
         self.theta += phi / (2 * np.pi)
-    
+
     def crop(self, ORIGINAL_HEIGHT, ORIGINAL_WIDTH, crop_bbox):
-        top, left, height, width = crop_bbox 
+        top, left, height, width = crop_bbox
         top, left = top/ORIGINAL_HEIGHT, left/ORIGINAL_WIDTH
 
         self.h -= left
-        self.k -= top 
+        self.k -= top
 
         self.h, self.a = self.h * ORIGINAL_WIDTH/width, self.a * ORIGINAL_WIDTH/width
-        self.k, self.b = self.k * ORIGINAL_HEIGHT/height, self.b * ORIGINAL_HEIGHT/height
-
+        self.k, self.b = self.k * ORIGINAL_HEIGHT / \
+            height, self.b * ORIGINAL_HEIGHT/height
 
     def to_list(self):
         """
