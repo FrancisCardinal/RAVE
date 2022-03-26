@@ -1,0 +1,19 @@
+repos:
+- repo: https://github.com/HunterMcGushion/docstr_coverage
+  rev: v2.1.1
+  hooks:
+    - id: docstr-coverage
+-   repo: https://github.com/ambv/black
+    rev: 21.9b0
+    hooks:
+    - id: black
+      args: [--config=./library/RAVE/pyproject.toml]
+-   repo: https://github.com/pycqa/flake8
+    rev: 4.0.1
+    hooks:
+    - id: flake8
+      # https://github.com/psf/black/issues/315
+      args: [
+          '--exclude=__init__.py, library/RAVE/src/RAVE/face_detection/model',
+          '--ignore=E203,W503'
+      ]

@@ -1,0 +1,28 @@
+[tool.black]
+line-length = 79
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.venv
+  | \.egg-info
+  | \.md
+  | \.toml
+  | \.txt
+  | dist
+)/
+'''
+
+[build-system]
+requires = [
+    "setuptools>=42",
+    "wheel",
+    "matplotlib",
+    "numpy",
+    "opencv-python",
+    "tqdm",
+    "torch",
+    "torchaudio",
+    "torchvision",
+]
+build-backend = "setuptools.build_meta"

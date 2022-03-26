@@ -1,0 +1,207 @@
+name: Build, tests and Release on GitHub
+
+on:
+  push:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  linting_pycount:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.6     
+      - uses: ricardochaves/python-lint@v1.4.0
+        with:
+          python-root-list: "library/RAVE"
+          use-pylint: false
+          use-pycodestyle: false
+          use-flake8: true
+          use-black: false
+          use-mypy: false
+          use-isort: false
+          extra-pylint-options: ""
+          extra-pycodestyle-options: ""
+          extra-flake8-options: "--exclude=__init__.py"
+          extra-black-options: ""
+          extra-mypy-options: ""
+          extra-isort-options: ""
+    
+  test_RAVE:
+    needs: linting_pycount
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.6, 3.7, 3.8, 3.9]
+    steps:
+      - name: Obtention du code
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Installation de Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+          
+      - name: Exécution des tests
+        working-directory: library/RAVE
+        run: python3 -m unittest
+
+  update-doc:
+    needs: test_RAVE
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          persist-credentials: false # otherwise, the token used is the GITHUB_TOKEN, instead of your personal access token.
+          fetch-depth: 0 # otherwise, there would be errors pushing refs to the destination repository.
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          sudo apt-get update
+          sudo apt install portaudio19-dev python3-pyaudio
+          pip install -r requirements.txt
+          pip install -i https://test.pypi.org/simple/ --no-deps pyodas-JacobKealey
+
+      - name: Make doc in local main branch
+        working-directory: ./docs
+        run: |
+          make html
+
+      - name: Commit local files
+        run: |
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add -f ./docs/_build/html
+          git commit -m "Local update doc"
+
+      - name: Commit to gh-pages
+        run: |
+          git checkout gh-pages
+          git rm -r docs/_build/html
+          git checkout master -- docs/_build/html
+          git add ./docs/_build/html
+          git commit -m "Update doc $(git rev-parse --short "$GITHUB_SHA")" --allow-empty
+
+      - name: Push changes to gh-pages branch only
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: "gh-pages"
+        
+  create_release:
+    needs: [test_RAVE]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Calcul du numéro de version à partir des tags/commits
+        uses: paulhatch/semantic-version@v4.0.2
+        id: semantic_version
+        with:
+          tag_prefix: "v"
+          major_pattern: "(MAJOR)"
+          minor_pattern: "(MINOR)"
+          format: "${major}.${minor}.${patch}"
+          short_tags: false
+          bump_each_commit: true
+    
+      - name: Génération du numéro de version
+        id: generate_version_output
+        run: echo "::set-output name=version::${{ steps.semantic_version.outputs.major }}.${{ steps.semantic_version.outputs.minor }}.${{ steps.semantic_version.outputs.patch }}"
+        shell: bash
+      
+      - name: Affichage de la version
+        run: echo "Version ${{ steps.generate_version_output.outputs.version }}"
+        shell: bash
+        
+      - name: Création du release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
+        with:
+          tag_name: v${{ steps.generate_version_output.outputs.version }}
+          release_name: RAVE-v${{ steps.generate_version_output.outputs.version }}
+          body: |
+              Dernière compilation de RAVE.
+          draft: false
+          prerelease: true
+
+      - name: Écriture du fichier pour la destination du release.
+        run: echo "${{ steps.create_release.outputs.upload_url }}" > release_url.txt
+      - name: Téléversement de release_url
+        uses: actions/upload-artifact@v2
+        with:
+          name: release_url
+          path: release_url.txt
+          
+      - name: Écriture du fichier pour la version du release.
+        run: echo "${{ steps.generate_version_output.outputs.version }}" > release_version.txt
+      - name: Téléversement de release_version
+        uses: actions/upload-artifact@v2
+        with:
+          name: release_version
+          path: release_version.txt     
+  
+  upload_RAVE:
+    needs: create_release
+    runs-on: ubuntu-latest
+    steps:
+    - name: Obtention du code
+      uses: actions/checkout@v2
+      with:
+        submodules: recursive
+        
+    - uses: actions/download-artifact@v2
+      with:
+        name: release_url
+    - name: Obtention de release_url
+      id: get_release_info
+      run: |
+        echo "::set-output name=upload_url::$(cat release_url.txt)"
+       
+    - uses: actions/download-artifact@v2
+      with:
+        name: release_version   
+    - name: Obtention de release_version
+      id: get_release_version
+      run: |
+        echo "::set-output name=version::$(cat release_version.txt)"
+  
+    - name: Changement du numéro de version dans setup.py
+      working-directory: library/RAVE
+      run: |
+        sed -i 's/version="dev"/version="${{steps.get_release_version.outputs.version}}"/g' setup.py
+   
+    - name: Compilation
+      working-directory: library/RAVE
+      run: |
+        python3 -m pip install --upgrade pip
+        python3 -m pip install --upgrade build
+        python3 -m build
+        
+    - name: Obtention du nom du fichier
+      id: get_wheel_filename
+      working-directory: library/RAVE/dist
+      run: |
+        echo "::set-output name=filename::$(ls *.whl)"
+      
+    - name: Téléversement du fichier
+      id: upload-release-asset 
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.get_release_info.outputs.upload_url }}
+        asset_path: library/RAVE/dist/${{steps.get_wheel_filename.outputs.filename}}
+        asset_name: ${{steps.get_wheel_filename.outputs.filename}}
+        asset_content_type: application/octet-stream

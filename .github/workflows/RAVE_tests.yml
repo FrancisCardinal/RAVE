@@ -1,0 +1,61 @@
+name: Tests of the RAVE library
+
+on:
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  linting:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.6     
+      - uses: ricardochaves/python-lint@v1.4.0
+        with:
+          python-root-list: "library/RAVE"
+          use-pylint: false
+          use-pycodestyle: false
+          use-flake8: true
+          use-black: false
+          use-mypy: false
+          use-isort: false
+          extra-pylint-options: ""
+          extra-pycodestyle-options: ""
+          extra-flake8-options: "--exclude=__init__.py"
+          extra-black-options: ""
+          extra-mypy-options: ""
+          extra-isort-options: ""
+    
+  build:
+    needs: linting
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.6, 3.7, 3.8, 3.9]
+    steps:
+      - name: Obtention du code
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Installation de Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          sudo apt-get update
+          sudo apt install portaudio19-dev python3-pyaudio
+          pip install -r requirements.txt
+          pip install -i https://test.pypi.org/simple/ --no-deps pyodas-JacobKealey
+          
+      - name: Exécution des tests
+        working-directory: library/RAVE
+        run: python3 -m unittest
