@@ -1,4 +1,5 @@
 import os
+import random
 
 import torch
 from torchvision import transforms
@@ -23,6 +24,8 @@ class EyeTrackerDataset(Dataset):
     EYE_TRACKER_DIR_PATH = os.path.join("RAVE", "eye_tracker")
     TRAINING_MEAN, TRAINING_STD = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
     IMAGE_DIMENSIONS = (3, 240, 320)
+    SYNTHETIC_DOMAIN = 0 
+    REAL_DOMAIN = 1
 
     def __init__(self, sub_dataset_dir):
         super().__init__(
@@ -32,6 +35,31 @@ class EyeTrackerDataset(Dataset):
             sub_dataset_dir,
             EyeTrackerDataset.IMAGE_DIMENSIONS,
         )
+
+        self.real_images_paths, self.synthetic_images_paths = [], []
+        for image_path in self.images_paths : 
+            if('synthetic' in image_path):
+                self.synthetic_images_paths.append(image_path)
+            else:
+                self.real_images_paths.append(image_path) 
+
+        self.nb_synthetic_images = len(self.synthetic_images_paths)
+        self.nb_real_images = len(self.real_images_paths)
+
+        self.real_images_paths = np.array([str(i) for i in self.real_images_paths], dtype=np.str)
+        self.synthetic_images_paths = np.array([str(i) for i in self.synthetic_images_paths], dtype=np.str)
+
+        self.random = random.Random(42)
+
+    def __len__(self):
+        """
+        Method of the Dataset class that must be overwritten by this class.
+        Used to get the number of elements in the dataset
+
+        Returns:
+            int: The number of elements in the dataset
+        """
+        return self.nb_synthetic_images + self.nb_real_images 
 
     def __getitem__(self, idx):
         """
@@ -44,14 +72,31 @@ class EyeTrackerDataset(Dataset):
         Returns:
             tuple: Image and label pair
         """
-        image, label = self.get_image_and_label_on_disk(idx)
+        image_path, domain = self.torch_index_to_image_path_and_domain(idx)
+
+        image, label = self.get_image_and_label_from_image_path(image_path)
 
         image = self.PRE_PROCESS_TRANSFORM(image)
 
         image = self.NORMALIZE_TRANSFORM(image)
         label = torch.tensor(label)
+        domain = torch.tensor(domain).float()
 
-        return image, label
+        return image, label, domain
+    
+    def torch_index_to_image_path_and_domain(self, idx):
+        image_path, domain = None, None
+        if(idx < self.nb_synthetic_images):
+            # idx is one of our self.nb_synthetic_images real imag
+            image_path = self.synthetic_images_paths[idx] 
+            domain = EyeTrackerDataset.SYNTHETIC_DOMAIN
+
+        else:
+            # idx is one of our self.nb_real_images real image
+            image_path = self.real_images_paths[idx - self.nb_synthetic_images] 
+            domain = EyeTrackerDataset.REAL_DOMAIN
+        
+        return image_path, domain
 
     @staticmethod
     def get_training_sub_dataset():
@@ -61,7 +106,7 @@ class EyeTrackerDataset(Dataset):
         Returns:
             Dataset: The training sub dataset
         """
-        return EyeTrackerDataset(EyeTrackerDataset.TRAINING_DIR)
+        return EyeTrackerDatasetOnlineDataAugmentation(EyeTrackerDataset.TRAINING_DIR)
 
     @staticmethod
     def get_validation_sub_dataset():
@@ -84,7 +129,7 @@ class EyeTrackerDataset(Dataset):
         return EyeTrackerDataset(EyeTrackerDataset.TEST_DIR)
 
 
-class EyeTrackerDatasetOnlineDataAugmentation(Dataset):
+class EyeTrackerDatasetOnlineDataAugmentation(EyeTrackerDataset):
     """
     This class inherits from Dataset. It overwrites certain methods in
     order to do online data augmentation.
@@ -118,13 +163,13 @@ class EyeTrackerDatasetOnlineDataAugmentation(Dataset):
         Returns:
             tuple: Image and label pair
         """
-        image, label = self.get_image_and_label_on_disk(idx)
+        image_path, domain = self.torch_index_to_image_path_and_domain(idx)
+
+        image, label = self.get_image_and_label_from_image_path(image_path)
 
         image = self.PRE_PROCESS_TRANSFORM(image)
 
-        output_image_tensor = self.TRAINING_TRANSFORM(image)
-
-        output_image_tensor, phi = apply_image_rotation(output_image_tensor)
+        output_image_tensor, phi = apply_image_rotation(image)
 
         output_image_tensor, x_offset, y_offset = apply_image_translation(
             output_image_tensor
@@ -136,10 +181,11 @@ class EyeTrackerDatasetOnlineDataAugmentation(Dataset):
         current_ellipse.k += y_offset
         label = current_ellipse.to_list()
 
-        image = Dataset.NORMALIZE_TRANSFORM(output_image_tensor)
+        image = self.NORMALIZE_TRANSFORM(output_image_tensor)
         label = torch.tensor(label)
+        domain = torch.tensor(domain).float()
 
-        return image, label
+        return image, label, domain
 
 
 class EyeTrackerInferenceDataset(EyeTrackerDataset):

@@ -35,7 +35,8 @@ class EyeTrackerModel(nn.Module):
             nn.BatchNorm1d(num_features=2048),
             nn.ReLU(),
             nn.Dropout(DROPOUT),
-
+        )
+        self.regression_head = nn.Sequential(
             nn.Linear(2048, 1024),
             nn.BatchNorm1d(num_features=1024),
             nn.ReLU(),
@@ -59,7 +60,21 @@ class EyeTrackerModel(nn.Module):
             nn.Linear(128, 5),
         )
 
-    def forward(self, x):
+        self.domain_classification_head = nn.Sequential(
+            nn.Linear(2048, 1024),
+            nn.BatchNorm1d(num_features=1024),
+            nn.ReLU(),
+            nn.Dropout(DROPOUT),
+
+            nn.Linear(1024, 128),
+            nn.BatchNorm1d(num_features=128),
+            nn.ReLU(),
+            nn.Dropout(DROPOUT),
+
+            nn.Linear(128, 1),
+        )
+
+    def forward(self, x, alpha=None):
         """
         Method of the Dataset class that must be overwritten by this class.
         Specifies how the forward pass should be executed
@@ -78,6 +93,30 @@ class EyeTrackerModel(nn.Module):
             pytorch tensor:
                 The predictions of the network (ellipses parameters)
         """
-        x = self.model(x)
-        x = torch.sigmoid(x)
-        return x
+        bottleneck = self.model(x)
+
+        ellipse = self.regression_head(bottleneck)
+        ellipse = torch.sigmoid(ellipse)
+
+        classification = None
+        if alpha is not None:
+            reverse_bottleneck = ReverseLayerF.apply(bottleneck, alpha)
+            classification = self.domain_classification_head(reverse_bottleneck)
+            classification = torch.sigmoid(classification)
+
+        return ellipse, classification
+
+# The following was taken from https://github.com/fungtion/DANN 
+class ReverseLayerF(torch.autograd.Function):
+
+    @staticmethod
+    def forward(ctx, x, alpha):
+        ctx.alpha = alpha
+
+        return x.view_as(x)
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        output = grad_output.neg() * ctx.alpha
+
+        return output, None

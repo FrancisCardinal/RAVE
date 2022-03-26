@@ -6,7 +6,7 @@ import numpy as np
 import cv2
 import random
 
-from RAVE.common import Trainer
+from RAVE.common.DANNTrainer import DANNTrainer
 from RAVE.common.image_utils import tensor_to_opencv_image, inverse_normalize
 
 from RAVE.eye_tracker.EyeTrackerDataset import EyeTrackerDataset, EyeTrackerInferenceDataset
@@ -24,7 +24,7 @@ from RAVE.eye_tracker.ellipse_util import (
 from RAVE.eye_tracker.GazeInferer.GazeInferer import GazeInferer
 
 
-def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST, INFERENCE, ANNOTATE, FILM, GPU_INDEX, lr=1e-3):
+def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST, INFERENCE, ANNOTATE, FILM, GPU_INDEX, lr=5e-4):
     """main function of the module
 
     Args:
@@ -88,7 +88,7 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST, INFERENC
         )
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer)
 
-        trainer = Trainer(
+        trainer = DANNTrainer(
             training_loader,
             validation_loader,
             ellipse_loss_function,
@@ -102,7 +102,7 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST, INFERENC
 
         min_validation_loss = trainer.train_with_validation(NB_EPOCHS)
 
-    Trainer.load_best_model(
+    DANNTrainer.load_best_model(
         eye_tracker_model, EyeTrackerDataset.EYE_TRACKER_DIR_PATH, DEVICE
     )
 
@@ -121,11 +121,11 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST, INFERENC
         )
         with torch.no_grad():
             test_loss, number_of_images = 0, 0
-            for images, labels in test_loader:
+            for images, labels, _ in test_loader:
                 images, labels = images.to(DEVICE), labels.to(DEVICE)
 
                 # Forward Pass
-                predictions = eye_tracker_model(images)
+                predictions, _ = eye_tracker_model(images)
                 # Find the Loss
                 loss = ellipse_loss_function(predictions, labels)
                 # Calculate Loss
@@ -151,9 +151,9 @@ def visualize_predictions(model, data_loader, DEVICE):
         DEVICE (String): Device on which to perform the computations
     """
     with torch.no_grad():
-        for images, labels in data_loader:
+        for images, labels, _ in data_loader:
             images, labels = images.to(DEVICE), labels.to(DEVICE)
-            predictions = model(images)
+            predictions, _ = model(images)
             for image, prediction, label in zip(images, predictions, labels):
                 image = inverse_normalize(
                     image,

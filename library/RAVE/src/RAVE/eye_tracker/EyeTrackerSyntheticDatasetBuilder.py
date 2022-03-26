@@ -106,7 +106,7 @@ class EyeTrackerSyntheticDatasetBuilder(EyeTrackerDatasetBuilder):
         val_files = images_files[train_index_end:]
 
         BUILDERS = [
-            EyeTrackerSyntheticDatasetBuilderOfflineDataAugmentation(
+            EyeTrackerSyntheticDatasetBuilder(
                 train_files,
                 TRAINING_PATH,
                 "training   dataset",

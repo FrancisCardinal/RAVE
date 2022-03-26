@@ -121,7 +121,7 @@ class EyeTrackerDatasetBuilder(DatasetBuilder):
         test_files = images_files[val_index_end:]
 
         BUILDERS = [
-            EyeTrackerDatasetBuilderOfflineDataAugmentation(
+            EyeTrackerDatasetBuilder(
                 train_files,
                 TRAINING_PATH,
                 "training   dataset",
