@@ -17,7 +17,7 @@ class EllipseAnnotationTool:
         For each frame of each video, the user must input a valid
         ellipse. A valid ellipse contains at least 5 points. Points are
         placed using the left mouse button. They can be removed using the
-        'c' key. When enough (5) points are provided, the correspoding 
+        'c' key. When enough (5) points are provided, the corresponding
         ellipse (computed using the least squared method) is displayed.
         More points can then be added if the result isn't acceptable.
         Otherwise, the annotation can be accepted using the middle mouse
@@ -163,7 +163,7 @@ class EllipseAnnotationTool:
         """Annotate a single frame of the video. The user must input a valid
             ellipse. A valid ellipse contains at least 5 points. Points are
             placed using the left mouse button. They can be removed using the
-            'c' key. When enough (5) points are provided, the correspoding 
+            'c' key. When enough (5) points are provided, the corresponding
             ellipse (computed using the least squared method) is displayed.
             More points can then be added if the result isn't acceptable.
             Otherwise, the annotation can be accepted using the middle mouse

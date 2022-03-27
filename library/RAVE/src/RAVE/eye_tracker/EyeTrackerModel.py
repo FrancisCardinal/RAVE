@@ -84,7 +84,7 @@ class EyeTrackerModel(nn.Module):
                 The input of the network (images)
             alpha (float):
                 Relative importance of the domain gradient with respect to the
-                regression gradient (how much is it important that the 
+                regression gradient (how much is it important that the
                 network generalizes well ?).
 
         Returns:
