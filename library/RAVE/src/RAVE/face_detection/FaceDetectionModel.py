@@ -1,7 +1,12 @@
 import torch
 import os
+import platform
 import sys
 from torch import nn
+
+if platform.release().split("-")[-1] == "tegra":
+    from .detectors.models.yolov5.models.trt_model import TrtModel
+    from .detectors.models.yolov5.utils.general import non_max_suppression_face
 
 
 class FaceDetectionModel(nn.Module):
@@ -26,26 +31,36 @@ class FaceDetectionModel(nn.Module):
         # project
         PROJECT_PATH = os.getcwd()
         MODEL_PATH = os.path.join(
-            PROJECT_PATH, "RAVE", "face_detection", "model", "yolov5"
+            PROJECT_PATH,
+            "RAVE",
+            "face_detection",
+            "detectors",
+            "models",
+            "yolov5",
         )
         sys.path.append(MODEL_PATH)
+        self.device = DEVICE
 
-        # TODO-JKealey: load to cpu to avoid ram/gpu surge as suggested in doc
-        self.model = (
-            torch.load(
-                os.path.join(MODEL_PATH, "yolov5n-face.pt"),
-                map_location=DEVICE,
-            )["model"]
-            .float()
-            .fuse()
-            .eval()
-            .nms(
-                conf=self.CONFIDENCE_THRESHOLD,
-                iou=self.INTERSECTION_OVER_UNION_THRESHOLD,
+        if platform.release().split("-")[-1] == "tegra":
+            self.model = TrtModel(os.path.join(MODEL_PATH, "yolov5n-face.trt"))
+        else:
+            # TODO-JKealey: load to cpu to avoid ram/gpu surge as
+            #  suggested in doc
+            self.model = (
+                torch.load(
+                    os.path.join(MODEL_PATH, "yolov5n-face.pt"),
+                    map_location=DEVICE,
+                )["model"]
+                .float()
+                .fuse()
+                .eval()
+                .nms(
+                    conf=self.CONFIDENCE_THRESHOLD,
+                    iou=self.INTERSECTION_OVER_UNION_THRESHOLD,
+                )
             )
-        )
-        for param in self.model.parameters():
-            param.requires_grad = False
+            for param in self.model.parameters():
+                param.requires_grad = False
 
     def forward(self, x):
         """
@@ -59,5 +74,14 @@ class FaceDetectionModel(nn.Module):
             pytorch tensor:
                 The predictions of the network
         """
-        x = self.model(x)
+        if platform.release().split("-")[-1] == "tegra":
+            # TODO JKealey: don't pass to GPU before inference
+            x = self.model(x.cpu().numpy()).reshape(1, 18900, 16)
+            x = non_max_suppression_face(
+                torch.from_numpy(x).to(self.device),
+                conf_thres=self.CONFIDENCE_THRESHOLD,
+                iou_thres=self.INTERSECTION_OVER_UNION_THRESHOLD,
+            )
+        else:
+            x = self.model(x)
         return x

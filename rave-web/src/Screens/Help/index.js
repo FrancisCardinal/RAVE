@@ -1,2 +1,2 @@
-import HelpScreen from "./Help";
+import HelpScreen from './Help';
 export default HelpScreen;
