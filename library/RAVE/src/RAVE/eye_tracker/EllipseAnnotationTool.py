@@ -13,6 +13,30 @@ from RAVE.eye_tracker.ellipse_util import draw_ellipse_on_image
 
 
 class EllipseAnnotationTool:
+    """Helper class to annotate ellipses on individual frames of a dataset
+        For each frame of each video, the user must input a valid
+        ellipse. A valid ellipse contains at least 5 points. Points are
+        placed using the left mouse button. They can be removed using the
+        'c' key. When enough (5) points are provided, the correspoding 
+        ellipse (computed using the least squared method) is displayed.
+        More points can then be added if the result isn't acceptable.
+        Otherwise, the annotation can be accepted using the middle mouse
+        button. The next frame is then displayed. If two frames are too
+        similar, the current frame can be skipped using the 's' key. If
+        no ellipse is present in the frame, the frame can be skipped
+        using the middle mouse button when less then 5 points have been
+        provided (this is has a different annotation code than the
+        skip function, it implies that no ellipse is present, which
+        is different than just two frames that are too similar, but
+        contain ellipses.) The gamma can be increased using the 'g' key,
+        and lowered using the 'h' key. At any point the user can quit the
+        annotation tool using the 'q' key. All progress is saved after each
+        new annotation. The ellipse's drawing can be toggled using the 't' key.
+
+    Raises:
+        IOError: If one of the video file can't be opened
+    """
+
     ANNOTATING_STATE = 0
     ANNOTATION_COMPLETED_STATE = 1
     SKIP_STATE = 2
@@ -25,15 +49,24 @@ class EllipseAnnotationTool:
     def __init__(
         self,
         root,
-        videos_directory_path="videos",
-        annotations_directory_path="annotations",
+        videos_directory="videos",
+        annotations_directory="annotations",
     ):
+        """Constructor of the EllipseAnnotationTool class
+
+        Args:
+            root (string): Root folder of the eye tracker module
+            videos_directory (string, optional): The name of the video folder.
+                Defaults to "videos".
+            annotations_directory (string, optional): The name of the
+                annotation folder. Defaults to "annotations".
+        """
 
         self._videos_paths = glob.glob(
-            os.path.join(root, self.WORKING_DIR, videos_directory_path, "*")
+            os.path.join(root, self.WORKING_DIR, videos_directory, "*")
         )
         self._annotations_directory_path = os.path.join(
-            root, self.WORKING_DIR, annotations_directory_path
+            root, self.WORKING_DIR, annotations_directory
         )
 
         self._points = []
@@ -49,6 +82,15 @@ class EllipseAnnotationTool:
         cv2.setMouseCallback(self._window_name, self._capture_mouse_event)
 
     def _capture_mouse_event(self, event, x, y, flags, params):
+        """Used to specify which action should be taken on which mouse event
+
+        Args:
+            event (opencv event): The mouse event (ex : middle mouse click)
+            x (int): X coordinate of the mouse click
+            y (int): Y coordinate of the mouse click
+            flags (int): opencv parameter, not used here
+            params (int): opencv parameter, not used here
+        """
         if event == cv2.EVENT_LBUTTONUP:
             self._points.append((x, y))
 
@@ -59,6 +101,13 @@ class EllipseAnnotationTool:
                 self._state = EllipseAnnotationTool.SKIP_STATE
 
     def annotate(self):
+        """Annote all videos of the dataset. This method calls
+            _annotate_one_video for each videos that are included in the
+            videos folder.
+
+        Raises:
+            IOError: If one of the video file can't be opened
+        """
         current_video_index = 0
         nb_videos = len(self._videos_paths)
         while (current_video_index < nb_videos) and (
@@ -76,6 +125,14 @@ class EllipseAnnotationTool:
             current_video_index += 1
 
     def _annotate_one_video(self, video_name):
+        """Annotates one video. For each frame of the video, the user must
+            input the annotation. Once an annotation has been given by the
+            user, the method presents the next frame of the video. If a frame
+            already has an annotation, it is skipped.
+
+        Args:
+            video_name (string): The video file's name
+        """
         current_frame = 0
 
         self.annotation_file = (
@@ -103,6 +160,32 @@ class EllipseAnnotationTool:
             json.dump(annotations, json_file, indent=4)
 
     def _annotate_one_frame(self, frame, annotations, current_frame):
+        """Annotate a single frame of the video. The user must input a valid
+            ellipse. A valid ellipse contains at least 5 points. Points are
+            placed using the left mouse button. They can be removed using the
+            'c' key. When enough (5) points are provided, the correspoding 
+            ellipse (computed using the least squared method) is displayed.
+            More points can then be added if the result isn't acceptable.
+            Otherwise, the annotation can be accepted using the middle mouse
+            button. The next frame is then displayed. If two frames are too
+            similar, the current frame can be skipped using the 's' key. If
+            no ellipse is present in the frame, the frame can be skipped
+            using the middle mouse button when less then 5 points have been
+            provided (this is has a different annotation code than the
+            skip function, it implies that no ellipse is present, which
+            is different than just two frames that are too similar, but
+            contain ellipses.) The gamma can be increased using the 'g' key,
+            and lowered using the 'h' key. At any point the user can quit the
+            annotation tool using the 'q' key. All progress is saved after each
+            new annotation. The ellipse's drawing can be toggled using the 't'
+            key.
+
+        Args:
+            frame (numpy array): The frame to annotate
+            annotations (dict): Dictionnary that contains all the annotations
+                of a video
+            current_frame (int): Index of the current frame
+        """
         HEIGHT, WIDTH = frame.shape[0], frame.shape[1]
 
         self._display_ellipse = True
@@ -166,8 +249,15 @@ class EllipseAnnotationTool:
             json.dump(annotations, json_file, indent=4)
 
     def adjust_gamma(self, image):
-        # From https://pyimagesearch.com/2015/10/05/opencv-gamma-correction/
+        """Adjusts the gamma of a given image.
+            From https://pyimagesearch.com/2015/10/05/opencv-gamma-correction/
 
+        Args:
+            image (numpy array): The image of interest
+
+        Returns:
+            numpy array: The adjusted image
+        """
         # build a lookup table mapping the pixel values [0, 255] to
         # their adjusted gamma values
         invGamma = 1.0 / self._gamma
@@ -178,6 +268,11 @@ class EllipseAnnotationTool:
         return cv2.LUT(image, table)
 
     def _handle_keyboard_input(self, key):
+        """Specify which action should be taken when a key is pressed.
+
+        Args:
+            key (int): The key that was pressed.
+        """
         if key == ord("q"):
             self._state = self.QUITTING_STATE
 

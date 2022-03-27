@@ -82,6 +82,10 @@ class EyeTrackerModel(nn.Module):
         Args:
             x (pytorch tensor):
                 The input of the network (images)
+            alpha (float):
+                Relative importance of the domain gradient with respect to the
+                regression gradient (how much is it important that the 
+                network generalizes well ?).
 
         Returns:
             pytorch tensor:
@@ -104,8 +108,6 @@ class EyeTrackerModel(nn.Module):
 
 
 # The following was taken from https://github.com/fungtion/DANN
-
-
 class ReverseLayerF(torch.autograd.Function):
     @staticmethod
     def forward(ctx, x, alpha):
