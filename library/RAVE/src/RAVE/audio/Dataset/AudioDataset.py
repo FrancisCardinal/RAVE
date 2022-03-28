@@ -89,10 +89,12 @@ class AudioDataset(torch.utils.data.Dataset):
         return len(self.data)
 
     def __getitem__(self, idx):
+        idx = 0
         """if self.generate_dataset_runtime:
             audio_signal, audio_mask, speech_mask, noise_mask, config_dict = self.run_dataset_builder() # todo: audio_signal needs to be a tensor 
         else:"""
         item_path = self.data[idx]
+        print(item_path)
         audio_signal, audio_sr, noise_target, noise_sr, speech_target, speech_sr, config_dict = self.load_item_from_disk(item_path)
 
         min_val = min(audio_signal.shape[1], noise_target.shape[1], speech_target.shape[1])

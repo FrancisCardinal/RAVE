@@ -33,6 +33,9 @@ class AudioTrainer(Trainer):
             loss = self.loss_function(predictions*total_energy, labels*total_energy)
             # Calculate gradients
             loss.backward()
+
+            # torch.nn.utils.clip_grad_norm_(self.model.parameters(), 0.25)
+
             # Update Weights
             self.optimizer.step()
             # Calculate Loss

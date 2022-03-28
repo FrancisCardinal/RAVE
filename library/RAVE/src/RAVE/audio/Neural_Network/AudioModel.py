@@ -13,7 +13,7 @@ class AudioModel(nn.Module):
         self.hidden_size = hidden_size
         self.num_layers = num_layers
         self.BN = nn.BatchNorm2d(num_features=1)
-        self.blstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, bidirectional=False, dropout=0.5)
+        self.blstm = nn.GRU(input_size, hidden_size, num_layers, batch_first=True, bidirectional=False, dropout=0)
         self.fc = nn.Linear(hidden_size,32319)
         self.fc2 = nn.Conv2d(in_channels=hidden_size, out_channels=int(input_size/2), kernel_size=1)
         self.sig = nn.Sigmoid()
