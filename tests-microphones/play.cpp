@@ -6,7 +6,7 @@
 #include <iostream>
 
 const int BUFFER_SIZE = 256;
-int ADMAIFInterface = 2;
+int ADMAIFInterface = 1;
 int I2SInterface = 2;
 int channelNumber = 8;
 int frequency = 48000;

@@ -7,3 +7,12 @@ orange : SCK : 12
 green : WS : 35
 
 card name : tegrasndt186ref
+
+speaker-test -c 2 -D hw:tegrasndt186ref,0 -f 48000 -l 4
+
+fuser -fv /dev/snd/* /dev/dsp*
+
+
+https://forums.developer.nvidia.com/t/i2s-sound-output-sclk-issue/161345/5
+https://forums.adafruit.com/viewtopic.php?f=19&p=842422
+https://forums.developer.nvidia.com/t/only-right-output-works-in-adafruit-i2s-uda1334a-breakout-board/157872/5

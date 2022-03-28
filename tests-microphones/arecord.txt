@@ -1,5 +1,7 @@
 I2S1
 
+amixer -c tegrasndt186ref cset name="I2S1 Mux" ADMAIF1
+
 amixer -c tegrasndt186ref cset name="ADMAIF1 Mux" "I2S1"
 amixer -c tegrasndt186ref cset name="ADMAIF1 Channels" 2
 amixer -c tegrasndt186ref cset name="I2S1 Channels" 2
@@ -13,6 +15,7 @@ amixer -c tegrasndt186ref cset name="I2S1 fsync width" 0
 
 arecord -D hw:tegrasndt186ref,0 -r 48000 -c 1 -f S32_LE -d 6 out.wav
 aplay -D hw:tegrasndt186ref,1 -r 48000 -c 8 -f S32_LE -t raw -q -
+aplay -D hw:tegrasndt186ref,0 out16.wav
 
 
 I2S2

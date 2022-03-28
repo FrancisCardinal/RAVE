@@ -9,7 +9,7 @@ int I2SInterface = 1;
 int channelNumber = 8;
 int frequency = 48000;
 int duration = 4;             // secs
-std::string fileType = "raw"; // raw or wav
+std::string fileType = "wav"; // raw or wav
 
 void system_no_output(const char *cmd)
 {
@@ -75,8 +75,8 @@ int main(int argc, char **argv)
   std::string recordCommand = "arecord -D hw:tegrasndt186ref," + std::to_string(ADMAIFInterface - 1) + " -r " + std::to_string(frequency) + " -c " + std::to_string(channelNumber) + " -f S32_LE -d " + std::to_string(duration) + " -t " + fileType + " -q -";
   char buf[BUFFER_SIZE];
   FILE *fp = popen(recordCommand.c_str(), "r");
-  std::string fileOutput = "./output/out." + fileType;
-  // FILE *out = fopen(fileOutput.c_str(), "wb");
+  std::string fileOutput = "./out." + fileType;
+  FILE *out = fopen(fileOutput.c_str(), "wb");
   int result;
   // printf("Recording...\n");
   //  Do not flip the WAV file header, which is 44 bytes long
@@ -85,7 +85,7 @@ int main(int argc, char **argv)
     for (int i = 0; i < 44; i++)
     {
       result = fread(buf, 1, 1, fp);
-      // fwrite(buf, 1, 1, out);
+      fwrite(buf, 1, 1, out);
     }
   }
 
@@ -94,11 +94,11 @@ int main(int argc, char **argv)
   {
     // Flip bytes and write
     flip(buf, BUFFER_SIZE);
-    fwrite(buf, 1, BUFFER_SIZE, stdout);
+    fwrite(buf, 1, BUFFER_SIZE, out);
   }
 
   // printf("Done\n");
   pclose(fp);
-  fclose(stdout);
+  fclose(out);
   return 0;
 }
