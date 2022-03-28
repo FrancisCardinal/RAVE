@@ -112,17 +112,13 @@ class AudioManager:
         # IO
         self.io_manager = IOManager()
 
-        # Masks
-        # TODO: Add abstraction to model for info not needed in main script
+        # # Masks
+        # # TODO: Add abstraction to model for info not needed in main script
         if self.mask:
-            self.masks = KissMask(self.mic_array, buffer_size=30)
+            self.masks = None
         else:
-            self.model = AudioModel(input_size=1026, hidden_size=256, num_layers=2)
-            self.model.to(self.device)
-            if self.debug:
-                print(self.model)
-            self.model.load_best_model(self.model_path, self.device)
-            self.delay_and_sum = DelaySum(self.frame_size)
+            self.model = None
+            self.delay_and_sum = None
 
         # Beamformer
         # TODO: simplify beamformer abstraction kwargs
@@ -130,21 +126,9 @@ class AudioManager:
 
         # Utils
         # TODO: Check if we want to handle stft and istft in IOManager class
-        self.stft = Stft(self.channels, self.frame_size, "hann")
-        self.s_stft = Stft(self.channels, self.frame_size, "hann")
-        self.n_stft = Stft(self.channels, self.frame_size, "hann")
-
-        self.istft = IStft(self.channels, self.frame_size, self.chunk_size, "hann")
-        self.gt_istft = IStft(self.channels, self.frame_size, self.chunk_size, "hann")
-        self.n_istft = IStft(self.channels, self.frame_size, self.chunk_size, "hann")
-        self.s_istft = IStft(self.channels, self.frame_size, self.chunk_size, "hann")
-        self.n_gt_istft = IStft(self.channels, self.frame_size, self.chunk_size, "hann")
-        self.s_gt_istft = IStft(self.channels, self.frame_size, self.chunk_size, "hann")
-
-        self.speech_spatial_cov = SpatialCov(self.channels, self.frame_size, weight=0.03)
-        self.noise_spatial_cov = SpatialCov(self.channels, self.frame_size, weight=0.03)
-        self.speech_spatial_cov_gt = SpatialCov(self.channels, self.frame_size, weight=0.03)
-        self.noise_spatial_cov_gt = SpatialCov(self.channels, self.frame_size, weight=0.03)
+        self.stft_dict = {}
+        self.istft_dict = {}
+        self.scm_dict = {}
 
     def init_sim_input(self, name, file):
         """
@@ -246,6 +230,9 @@ class AudioManager:
                                         channels=self.out_channels, chunk_size=self.chunk_size)
         return sink
 
+    def reset_manager(self):
+        self.out_subfolder_path = None
+
     def compute_masks(self, signal):
         """
         Computes masks (through KISS or neural network) for speech and noise on noisy speech signal.
@@ -260,6 +247,8 @@ class AudioManager:
             self.check_time(name='mask', is_start=True)
             speech_mask, noise_mask = self.masks(signal, self.target)
             self.check_time(name='mask', is_start=False)
+
+            return speech_mask, noise_mask
         else:
             self.check_time(name='data', is_start=True)
             # Delay and sum
@@ -275,20 +264,17 @@ class AudioManager:
             mono_db = 20 * torch.log10(torch.abs(mono_X) + EPSILON)
 
             concat_spec = torch.cat([mono_db, sum_db], dim=1)
-            concat_spec = torch.reshape(concat_spec, (1, 1, concat_spec.shape[1]))
-
-            self.chunk_buffer = torch.roll(self.chunk_buffer, shifts=-1, dims=3)
-            self.chunk_buffer[..., -1] = concat_spec
+            concat_spec = torch.reshape(concat_spec, (1, 1, concat_spec.shape[1], 1))
 
             self.check_time(name='network', is_start=True)
             with torch.no_grad():
-                speech_mask = self.model(self.chunk_buffer)
+                speech_mask = self.model(concat_spec)
             self.check_time(name='network', is_start=False)
             speech_mask = torch.squeeze(speech_mask).numpy()
             noise_mask = 1 - speech_mask
             self.check_time(name='data', is_start=False)
 
-        return speech_mask[:, -1], noise_mask[:, -1]
+            return speech_mask, noise_mask
 
     def output_sink(self, data, sink_name):
         """
@@ -301,6 +287,9 @@ class AudioManager:
         Returns:
             True if success (sink exists), else False
         """
+
+        # TODO: ADD POSSIBILITY TO CONTROL OUTPUT CHANNELS
+
         if sink_name in self.sink_dict:
             chosen_sink = self.sink_dict[sink_name]
             chosen_sink(data)
@@ -428,6 +417,34 @@ class AudioManager:
             else:
                 self.sink_dict[sink['name']] = self.init_play_output(name='original', sink_index=sink['idx'])
 
+        # PyODAS objects
+        self.stft_dict['audio'] = Stft(self.channels, self.frame_size, "hann")
+        self.stft_dict['speech'] = Stft(self.channels, self.frame_size, "hann")
+        self.stft_dict['noise'] = Stft(self.channels, self.frame_size, "hann")
+
+        self.istft_dict['audio'] = IStft(self.channels, self.frame_size, self.chunk_size, "hann")
+        self.istft_dict['gt'] = IStft(self.channels, self.frame_size, self.chunk_size, "hann")
+        self.istft_dict['speech'] = IStft(self.channels, self.frame_size, self.chunk_size, "hann")
+        self.istft_dict['noise'] = IStft(self.channels, self.frame_size, self.chunk_size, "hann")
+        # self.istft_dict['speech_gt'] = IStft(self.channels, self.frame_size, self.chunk_size, "hann")
+        # self.istft_dict['noise_gt'] = IStft(self.channels, self.frame_size, self.chunk_size, "hann")
+
+        self.scm_dict['speech'] = SpatialCov(self.channels, self.frame_size, weight=0.03)
+        self.scm_dict['noise'] = SpatialCov(self.channels, self.frame_size, weight=0.03)
+        self.scm_dict['speech_gt'] = SpatialCov(self.channels, self.frame_size, weight=0.03)
+        self.scm_dict['noise_gt'] = SpatialCov(self.channels, self.frame_size, weight=0.03)
+
+        # Model
+        if self.mask:
+            self.masks = KissMask(self.mic_array, buffer_size=30)
+        else:
+            self.model = AudioModel(input_size=1026, hidden_size=256, num_layers=2)
+            self.model.to(self.device)
+            if self.debug:
+                print(self.model)
+            self.model.load_best_model(self.model_path, self.device)
+            self.delay_and_sum = DelaySum(self.frame_size)
+
     def init_app(self, save_input, save_output, output_path=None):
         """
         Function used to init jetson application.
@@ -454,10 +471,15 @@ class AudioManager:
         Main audio loop.
         """
         
-        noise_mask_np = np.zeros((513, 176384//256))
-        speech_mask_np = np.zeros((513, 176384//256))
-        speech_mask_np_gt = np.zeros((513, 176384//256))
-        self.chunk_buffer = torch.zeros((1, 1, 1026, 126))
+        # noise_mask_np = np.zeros((513, 176384//256))
+        # speech_mask_np = np.zeros((513, 176384//256))
+        # speech_mask_np_gt = np.zeros((513, 176384//256))
+        # speech_np_gt = np.zeros((513, 176384//256))
+
+        noise_mask_np = None
+        speech_mask_np = None
+        speech_mask_np_gt = None
+        speech_np_gt = None
 
         samples = 0
         max_time = 0
@@ -479,23 +501,35 @@ class AudioManager:
 
             # Temporal to Frequential
             self.check_time(name='stft', is_start=True)
-            X = self.stft(x)
+            X = self.stft_dict['audio'](x)
             if self.speech_and_noise:
-                S = self.s_stft(s)
-                N = self.n_stft(n)
+                S = self.stft_dict['speech'](s)
+                s_mean = np.mean(S, axis=0)
+                s_mean = np.expand_dims(np.real(s_mean), axis=1)
+                if speech_np_gt is not None:
+                    speech_np_gt = np.append(speech_np_gt, s_mean, axis=1)
+                else:
+                    speech_np_gt = s_mean
+                N = self.stft_dict['noise'](n)
             self.check_time(name='stft', is_start=False)
 
             # Compute the masks
             speech_mask, noise_mask = self.compute_masks(signal=X)
             if self.speech_and_noise:
-                noise_mask_np[:, loop_i] = noise_mask
-                speech_mask_np[:, loop_i] = speech_mask
+                speech_mask_exp = np.expand_dims(np.real(speech_mask), axis=1)
+                noise_mask_exp = np.expand_dims(np.real(noise_mask), axis=1)
+                if noise_mask_np is not None and speech_mask_np is not None:
+                    speech_mask_np = np.append(speech_mask_np, speech_mask_exp, axis=1)
+                    noise_mask_np = np.append(noise_mask_np, noise_mask_exp, axis=1)
+                else:
+                    speech_mask_np = speech_mask_exp
+                    noise_mask_np = noise_mask_exp
 
             ## SIGNAL BEAMFORMING
             # Spatial covariance matrices
             self.check_time(name='masks', is_start=True)
-            target_scm = self.speech_spatial_cov(X, speech_mask)
-            noise_scm = self.noise_spatial_cov(X, noise_mask)
+            target_scm = self.scm_dict['speech'](X, speech_mask)
+            noise_scm = self.scm_dict['noise'](X, noise_mask)
             self.check_time(name='masks', is_start=False)
 
             # MVDR
@@ -505,19 +539,16 @@ class AudioManager:
 
             # ISTFT
             self.check_time(name='istft', is_start=True)
-            y = self.istft(Y)
+            y = self.istft_dict['audio'](Y)
             self.check_time(name='istft', is_start=False)
 
-            # SCM, beamform and to temporal
-            beamformed_signal = self.beamform_and_temporal(X, speech_mask, noise_mask)
-
             # Output fully processed data
-            out = beamformed_signal
+            out = y
             if self.out_channels == 1:
-                channel_to_use = beamformed_signal.shape[0] // 2
-                out = beamformed_signal[channel_to_use]
+                channel_to_use = out.shape[0] // 2
+                out = out[channel_to_use]
             elif self.out_channels == 2:
-                out = np.array([beamformed_signal[0], beamformed_signal[-1]])
+                out = np.array([out[0], out[-1]])
             if 'output' in self.sink_dict:
                 self.output_sink(data=out, sink_name='output')
 
@@ -525,23 +556,28 @@ class AudioManager:
             if self.speech_and_noise:
                 np_S = np.real(S)
                 np_N = np.real(N)
-                speech_mask_gt = (np_N ** 2) / ((np_N ** 2) + (np_S ** 2) + EPSILON)
-                noise_mask_gt = 1 - speech_mask_gt
-                speech_mask_np_gt[:, loop_i] = speech_mask_gt[0]
+                speech_mask_gt = (np_N[0] ** 2) / ((np_N[0] ** 2) + (np_S[0] ** 2) + EPSILON)
+                speech_mask_gt_exp = np.expand_dims(speech_mask_gt, axis=1)
+                if speech_mask_np_gt is not None:
+                    speech_mask_np_gt = np.append(speech_mask_np_gt, speech_mask_gt_exp, axis=1)
+                else:
+                    speech_mask_np_gt = speech_mask_gt_exp
 
                 # Spatial covirance matrices
-                target_scm_gt = self.speech_spatial_cov_gt(X, speech_mask_gt)
-                noise_scm_gt = self.noise_spatial_cov_gt(X, noise_mask_gt)
+                # target_scm_gt = self.speech_spatial_cov_gt(X, speech_mask_gt)
+                # noise_scm_gt = self.noise_spatial_cov_gt(X, noise_mask_gt)
+                target_scm_gt = self.scm_dict['speech_gt'](X, S)
+                noise_scm_gt = self.scm_dict['noise_gt'](X, N)
 
                 # MVDR
                 Y_gt = self.beamformer(signal=X, target_scm=target_scm_gt, noise_scm=noise_scm_gt)
 
                 # ISTFT
-                y_gt = self.gt_istft(Y_gt)
-                n_out = self.n_istft(N)
-                s_out = self.s_istft(S)
-                n_gt_out = self.n_gt_istft(noise_mask)
-                s_gt_out = self.s_gt_istft(speech_mask)
+                y_gt = self.istft_dict['gt'](Y_gt)
+                n_out = self.istft_dict['noise'](N)
+                s_out = self.istft_dict['speech'](S)
+                # n_gt_out = self.n_gt_istft(noise_mask)
+                # s_gt_out = self.s_gt_istft(speech_mask)
 
                 # Output fully processed data
                 if 'output_gt' in self.sink_dict:
@@ -553,11 +589,11 @@ class AudioManager:
                 if 'noise_out' in self.sink_dict:
                     self.output_sink(data=n_out, sink_name='noise_out')
 
-                if 'noise_gt_out' in self.sink_dict:
-                    self.output_sink(data=n_gt_out, sink_name='noise_gt_out')
-
-                if 'speech_gt_out' in self.sink_dict:
-                    self.output_sink(data=s_gt_out, sink_name='speech_gt_out')
+                # if 'noise_gt_out' in self.sink_dict:
+                #     self.output_sink(data=n_gt_out, sink_name='noise_gt_out')
+                #
+                # if 'speech_gt_out' in self.sink_dict:
+                #     self.output_sink(data=s_gt_out, sink_name='speech_gt_out')
 
             loop_time = self.check_time(name='loop', is_start=False)
             if self.get_timers:
@@ -571,18 +607,21 @@ class AudioManager:
             samples += self.chunk_size
             loop_i += 1
 
+        # Plot spectrograms
+        fig, axs = plt.subplots(4)
+        fig.suptitle('Spectrogrammes (Speech, Energy, Speech mask, Noise mask)')
+        axs[0].pcolormesh(speech_np_gt, shading='gouraud', vmin=0, vmax=1)
+        axs[1].pcolormesh(speech_mask_np_gt, shading='gouraud', vmin=0, vmax=1)
+        axs[2].pcolormesh(speech_mask_np, shading='gouraud', vmin=0, vmax=1)
+        axs[3].pcolormesh(noise_mask_np, shading='gouraud', vmin=0, vmax=1)
+        axs[2].set_xlabel("Temps(s)")
+        axs[1].set_ylabel("Fréquences (hz)")
+        save_name = os.path.join(self.out_subfolder_path, 'out_spec_plots.jpg')
+        plt.savefig(fname=save_name)
         if self.debug:
-            fig, axs = plt.subplots(3)
-            fig.suptitle('Vertically stacked subplots')
-            axs[1].pcolormesh(speech_mask_np, shading='gouraud', vmin=0, vmax=1)
-            axs[2].pcolormesh(noise_mask_np, shading='gouraud', vmin=0, vmax=1)
-            axs[0].pcolormesh(speech_mask_np_gt, shading='gouraud', vmin=0, vmax=1)
-            axs[2].set_xlabel("Temps(s)")
-            axs[1].set_ylabel("Fréquences (hz)")
             plt.show(block=True)
 
-        print(f'{samples}')
-        print('Finished running main_audio')
+        print(f'Audio_Manager: Finished running main_audio : {samples} samples')
         # input()
         if self.get_timers:
             self.print_times(max_time=max_time)
