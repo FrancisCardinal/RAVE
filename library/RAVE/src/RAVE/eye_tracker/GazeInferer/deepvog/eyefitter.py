@@ -39,17 +39,9 @@ class SingleEyeFitter(object):
         self.camera_rotation_matrix[1, 2] = -np.sin(theta)
         self.camera_rotation_matrix = self.camera_rotation_matrix[0:2, 0:2]
 
-        image_scaling_factor = np.linalg.norm(
-            original_image_size_post_crop
-        ) / np.linalg.norm(image_shape)
-
-        mm2px_scaling = (
-            image_scaling_factor
-            * np.linalg.norm(
-                self.camera_rotation_matrix @ original_image_size_pre_crop
-            )
-            / np.linalg.norm(sensor_size)
-        )
+        image_scaling_factor = np.linalg.norm(image_shape)/np.linalg.norm(original_image_size_pre_crop)
+        x_angle_correction_factor =  np.linalg.norm(original_image_size_pre_crop)/np.linalg.norm(self.camera_rotation_matrix @ original_image_size_pre_crop)
+        mm2px_scaling = image_scaling_factor * x_angle_correction_factor * np.linalg.norm(original_image_size_pre_crop)/ np.linalg.norm(sensor_size)
 
         focal_length *= mm2px_scaling
         pupil_radius *= mm2px_scaling
@@ -109,10 +101,10 @@ class SingleEyeFitter(object):
     def unproject_single_observation(self, observation):
         centre, w, h, radian = observation
 
-        centre = self.camera_rotation_matrix @ centre
+        #centre = self.camera_rotation_matrix @ centre
 
         wh = [w, h]
-        wh = self.camera_rotation_matrix @ wh
+        #wh = self.camera_rotation_matrix @ wh
         w, h = wh[0], wh[1]
 
         centre_cam = centre.copy()

@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 
 from RAVE.eye_tracker.EyeTrackerDataset import EyeTrackerDataset
 from RAVE.eye_tracker.GazeInferer.deepvog.eyefitter import SingleEyeFitter
+from RAVE.eye_tracker.GazeInferer.deepvog.LSqEllipse import LSqEllipse
+from RAVE.eye_tracker.ellipse_util import get_points_of_ellipses
 
 """
 This file is a combination of multiple files of deepvog. It regroups the
@@ -90,22 +92,18 @@ class GazeInferer:
     
     def torch_prediction_to_deepvog_format(self, prediction):
         HEIGHT, WIDTH = self.shape[0], self.shape[1]
-        prediction = prediction.cpu().numpy()
-        cx, cy, w, h, radian = (
-            prediction[0],
-            prediction[1],
-            prediction[2],
-            prediction[3],
-            prediction[4],
-        )
-        cx, cy, w, h, radian = (
-            WIDTH * cx,
-            HEIGHT * cy,
-            WIDTH * w,
-            HEIGHT * h,
-            2 * np.pi * radian,
-        )
-        return [cx, cy], w, h, radian
+
+        h, k, a, b, theta = prediction
+        h, k, a, b = h * WIDTH, k * HEIGHT, a * WIDTH, b * HEIGHT
+        x, y = get_points_of_ellipses(torch.tensor([h, k, a, b, theta]).unsqueeze(0), 360)
+        x, y = x.squeeze().cpu().numpy(), y.squeeze().cpu().numpy()
+
+        lsq_ellipse = LSqEllipse()
+        lsq_ellipse.fit(x, y)
+        center, width, height, radians = lsq_ellipse.parameters()
+
+        return center, width, height, radians
+
 
     def save_eyeball_model(self):
         save_dict = {"eye_centre": self._eyefitter.eye_centre.tolist(), "aver_eye_radius": self._eyefitter.aver_eye_radius}
