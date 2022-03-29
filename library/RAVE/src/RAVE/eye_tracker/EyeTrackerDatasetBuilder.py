@@ -42,8 +42,6 @@ class EyeTrackerDatasetBuilder(DatasetBuilder):
     applies data augmentation transforms to the training sub-dataset.
     """
 
-    CROP_SIZE = 150, 0, 450, 600
-
     @staticmethod
     def create_datasets():
         """
@@ -224,7 +222,7 @@ class VideosUnpacker(DatasetBuilder):
             os.path.join(
                 EyeTrackerDataset.EYE_TRACKER_DIR_PATH, "real_dataset"
             ),
-            EyeTrackerDatasetBuilder.CROP_SIZE,
+            EyeTrackerDataset.CROP_SIZE,
         )
 
         return BUILDER
@@ -236,7 +234,7 @@ class VideosUnpacker(DatasetBuilder):
         To process the image and label from LPW
         """
         self.current_ellipse.crop(
-            ORIGINAL_HEIGHT, ORIGINAL_WIDTH, EyeTrackerDatasetBuilder.CROP_SIZE
+            ORIGINAL_HEIGHT, ORIGINAL_WIDTH, EyeTrackerDataset.CROP_SIZE
         )
         self.save_image_label_pair(
             file_name, processed_frame, self.current_ellipse.to_list()

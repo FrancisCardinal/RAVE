@@ -101,10 +101,10 @@ class SingleEyeFitter(object):
     def unproject_single_observation(self, observation):
         centre, w, h, radian = observation
 
-        #centre = self.camera_rotation_matrix @ centre
+        centre = self.camera_rotation_matrix @ centre
 
         wh = [w, h]
-        #wh = self.camera_rotation_matrix @ wh
+        wh = self.camera_rotation_matrix @ wh
         w, h = wh[0], wh[1]
 
         centre_cam = centre.copy()
