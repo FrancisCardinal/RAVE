@@ -3,8 +3,13 @@ import torch
 import numpy as np
 import json
 
-from RAVE.eye_tracker.EyeTrackerDataset import EyeTrackerDataset
+from RAVE.eye_tracker.EyeTrackerDataset import (
+    EyeTrackerDataset,
+    EyeTrackerInferenceDataset,
+)
 from RAVE.eye_tracker.GazeInferer.deepvog.eyefitter import SingleEyeFitter
+from RAVE.eye_tracker.GazeInferer.deepvog.LSqEllipse import LSqEllipse
+from RAVE.eye_tracker.ellipse_util import get_points_of_ellipses
 
 """
 This file is a combination of multiple files of deepvog. It regroups the
@@ -26,8 +31,10 @@ class GazeInferer:
         x_angle=22.5,
         flen=3.37,
         sensor_size=(2.7216, 3.6288),
-        original_image_size_pre_crop=(600, 800),
-        original_image_size_post_crop=(600, 450),
+        original_image_size_pre_crop=(
+            EyeTrackerInferenceDataset.ACQUISITION_HEIGHT,
+            EyeTrackerInferenceDataset.ACQUISITION_WIDTH,
+        ),
     ):
         self._ellipse_dnn = ellipse_dnn
         self._dataloader = dataloader
@@ -48,7 +55,6 @@ class GazeInferer:
             x_angle=x_angle,
             image_shape=self.shape,
             original_image_size_pre_crop=original_image_size_pre_crop,
-            original_image_size_post_crop=original_image_size_post_crop,
             sensor_size=sensor_size,
         )
         self.x, self.y = None, None
@@ -79,7 +85,7 @@ class GazeInferer:
         # Fit eyeball models. Parameters are stored as internal attributes of
         # Eyefitter instance.
         self._eyefitter.fit_projected_eye_centre(
-            ransac=True,
+            ransac=False,
             max_iters=5000,
             min_distance=10 * len(self._dataloader.dataset),
         )
@@ -95,22 +101,19 @@ class GazeInferer:
 
     def torch_prediction_to_deepvog_format(self, prediction):
         HEIGHT, WIDTH = self.shape[0], self.shape[1]
-        prediction = prediction.cpu().numpy()
-        cx, cy, w, h, radian = (
-            prediction[0],
-            prediction[1],
-            prediction[2],
-            prediction[3],
-            prediction[4],
+
+        h, k, a, b, theta = prediction
+        h, k, a, b = h * WIDTH, k * HEIGHT, a * WIDTH, b * HEIGHT
+        x, y = get_points_of_ellipses(
+            torch.tensor([h, k, a, b, theta]).unsqueeze(0), 360
         )
-        cx, cy, w, h, radian = (
-            WIDTH * cx,
-            HEIGHT * cy,
-            WIDTH * w,
-            HEIGHT * h,
-            2 * np.pi * radian,
-        )
-        return [cx, cy], w, h, radian
+        x, y = x.squeeze().cpu().numpy(), y.squeeze().cpu().numpy()
+
+        lsq_ellipse = LSqEllipse()
+        lsq_ellipse.fit(x, y)
+        center, width, height, radians = lsq_ellipse.parameters()
+
+        return center, width, height, radians
 
     def save_eyeball_model(self):
         save_dict = {

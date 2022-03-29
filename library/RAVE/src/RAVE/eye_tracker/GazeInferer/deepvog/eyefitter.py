@@ -28,7 +28,6 @@ class SingleEyeFitter(object):
         x_angle,
         image_shape,
         original_image_size_pre_crop,
-        original_image_size_post_crop,
         sensor_size,
     ):
         self.camera_rotation_matrix = np.eye(3)
@@ -39,15 +38,18 @@ class SingleEyeFitter(object):
         self.camera_rotation_matrix[1, 2] = -np.sin(theta)
         self.camera_rotation_matrix = self.camera_rotation_matrix[0:2, 0:2]
 
-        image_scaling_factor = np.linalg.norm(
-            original_image_size_post_crop
-        ) / np.linalg.norm(image_shape)
-
+        image_scaling_factor = np.linalg.norm(image_shape) / np.linalg.norm(
+            original_image_size_pre_crop
+        )
+        x_angle_correction_factor = np.linalg.norm(
+            original_image_size_pre_crop
+        ) / np.linalg.norm(
+            self.camera_rotation_matrix @ original_image_size_pre_crop
+        )
         mm2px_scaling = (
             image_scaling_factor
-            * np.linalg.norm(
-                self.camera_rotation_matrix @ original_image_size_pre_crop
-            )
+            * x_angle_correction_factor
+            * np.linalg.norm(original_image_size_pre_crop)
             / np.linalg.norm(sensor_size)
         )
 

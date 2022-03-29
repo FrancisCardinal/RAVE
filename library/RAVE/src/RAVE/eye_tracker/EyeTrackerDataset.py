@@ -24,6 +24,7 @@ class EyeTrackerDataset(Dataset):
     EYE_TRACKER_DIR_PATH = os.path.join("RAVE", "eye_tracker")
     TRAINING_MEAN, TRAINING_STD = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
     IMAGE_DIMENSIONS = (3, 240, 320)
+    CROP_SIZE = 150, 0, 450, 600
     SYNTHETIC_DOMAIN = 0
     REAL_DOMAIN = 1
 
@@ -206,6 +207,8 @@ class EyeTrackerInferenceDataset(EyeTrackerDataset):
                          index
     """
 
+    ACQUISITION_WIDTH, ACQUISITION_HEIGHT = 640, 480
+
     def __init__(self, opencv_device, is_real_time=True):
         super().__init__("test")  # TODO FC : Find a more elegant solution
 
@@ -224,14 +227,17 @@ class EyeTrackerInferenceDataset(EyeTrackerDataset):
             )
 
         if not isinstance(opencv_device, str):
-            WIDTH, HEIGHT = 800, 600
 
             codec = 0x47504A4D  # MJPG
             self._video_feed.set(cv2.CAP_PROP_FPS, 30.0)
             self._video_feed.set(cv2.CAP_PROP_FOURCC, codec)
 
-            self._video_feed.set(cv2.CAP_PROP_FRAME_WIDTH, HEIGHT)
-            self._video_feed.set(cv2.CAP_PROP_FRAME_HEIGHT, WIDTH)
+            self._video_feed.set(
+                cv2.CAP_PROP_FRAME_WIDTH, self.ACQUISITION_WIDTH
+            )
+            self._video_feed.set(
+                cv2.CAP_PROP_FRAME_HEIGHT, self.ACQUISITION_HEIGHT
+            )
 
             self._video_feed.set(cv2.CAP_PROP_AUTO_EXPOSURE, 3)
 
@@ -270,6 +276,19 @@ class EyeTrackerInferenceDataset(EyeTrackerDataset):
         image = None
         if success:
             frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
+            # This resize is temporary. A mistake was made during the
+            # acquisition. I thought that the camera had a resolution of
+            # (800, 600) when it was in (640, 480). As such, cv2 upscaled
+            # the video from (640, 480) to (800, 600) before saving it.
+            # Because the network was trained on videos like this, I do
+            # the same here, but this operation would have no value otherwise.
+            # This will be fixed when we will build the second dataset with
+            # the new camera.
+            frame = cv2.resize(frame, (600, 800))
+
+            top, left, height, width = EyeTrackerDataset.CROP_SIZE
+            frame = frame[top : top + height, left : left + width]
+
             frame = Image.fromarray(frame, "RGB")
             image = self.PRE_PROCESS_TRANSFORM(frame)
             image = self.NORMALIZE_TRANSFORM(image)
