@@ -13,12 +13,12 @@ class AudioModel(nn.Module):
         self.hidden_size = hidden_size
         self.num_layers = num_layers
         self.BN = nn.BatchNorm2d(num_features=1)
-        self.blstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, bidirectional=False, dropout=0.5)
+        self.RNN = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, bidirectional=False, dropout=0)
         self.fc = nn.Linear(hidden_size,32319)
         self.fc2 = nn.Conv2d(in_channels=hidden_size, out_channels=int(input_size/2), kernel_size=1)
         self.sig = nn.Sigmoid()
 
-    def forward(self, x):
+    def forward(self, x, hidden=None):
         # N x 1 x F x T > N x 1 x T x F
         x = x.permute(0, 1, 3, 2)
 
@@ -34,8 +34,12 @@ class AudioModel(nn.Module):
         # N x T x F x 1 > N x T x F
         x = torch.reshape(x, (x.shape[0], x.shape[1], x.shape[2]*x.shape[3]))
 
-        # N x T x F > N x T x H
-        x, _ = self.blstm(x)
+        if hidden:
+            # N x T x F > N x T x H
+            x, h = self.RNN(x, hidden)
+        else:
+            # N x T x F > N x T x H
+            x, h = self.RNN(x)
 
         # N x T x H > N x H x T
         x = x.permute(0, 2, 1)
@@ -54,7 +58,7 @@ class AudioModel(nn.Module):
 
         # N x T x F > N x T x F
         x = self.sig(x)
-        return x
+        return x, h
 
 
     def load_best_model(self, MODEL_DIR_PATH):

@@ -29,7 +29,7 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
     """
     DEVICE = "cpu"
     if torch.cuda.is_available():
-        DEVICE = "cuda"
+        DEVICE = "cuda:0"
 
     # training_sub_dataset = AudioDataset(dataset_path='/Users/felixducharmeturcotte/Documents/datasetV2/training', device=DEVICE)
     # validation_sub_dataset = AudioDataset(dataset_path='/Users/felixducharmeturcotte/Documents/datasetV2/validation', device=DEVICE)
@@ -38,7 +38,7 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
 
     BATCH_SIZE = 32
     lenght_dataset = len(dataset)
-    validation_size = round(lenght_dataset*0.3)
+    validation_size = round(lenght_dataset*0.2)
 
     training_sub_dataset, validation_sub_dataset = torch.utils.data.random_split(dataset, [ lenght_dataset - validation_size, validation_size])
 
@@ -46,7 +46,7 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
         training_sub_dataset,
         batch_size=BATCH_SIZE,
         shuffle=True,
-        num_workers=60,
+        num_workers=18,
         pin_memory=True,
         persistent_workers=True
     )
@@ -56,24 +56,25 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
         validation_sub_dataset,
         batch_size=BATCH_SIZE,
         shuffle=False,
-        num_workers=60,
+        num_workers=18,
         pin_memory=True,
         persistent_workers=True
     )
 
     # todo: get directory from dataset class
-    directory = os.path.join(os.getcwd(), 'model')
+    directory = os.path.join(os.getcwd(), 'RAVE/audio/Neural_Network/model')
+    #directory = os.path.join(os.getcwd(), 'model')
 
-    audioModel = AudioModel(input_size=1026, hidden_size=128, num_layers=2)
+    audioModel = AudioModel(input_size=1026, hidden_size=256, num_layers=2)
     audioModel.to(DEVICE)
     print(audioModel)
 
     if TRAIN:
         optimizer = torch.optim.Adam(
             audioModel.parameters(),
-            lr=4e-03
+            lr=2e-03
         )
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,verbose=True)
+        scheduler = None#torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,verbose=True)
         trainer = AudioTrainer(
             trainer_loader,
             validation_loader,
@@ -116,13 +117,25 @@ def visualize_predictions(model, data_loader, DEVICE, dataset):
                 y, x = np.mgrid[slice(0, 513, 1),
                                 slice(0, dataset.duration, dataset.duration/dataset.nb_chunks)]
 
-                fig, axs = plt.subplots(3)
+                fig, axs = plt.subplots(5)
                 fig.suptitle('Vertically stacked subplots')
-                axs[0].pcolormesh(x,y,audio[:513,:].cpu().float(), shading='gouraud')
-                axs[1].pcolormesh(x,y,prediction.cpu().float(), shading='gouraud')
-                axs[2].pcolormesh(x,y,label.cpu().float(), shading='gouraud')
+                pc0 = axs[0].pcolormesh(x,y,audio[:513,:].cpu().float(), shading='gouraud')
+                pc1 = axs[1].pcolormesh(x,y,prediction.cpu().float(), shading='gouraud', vmin=0, vmax=1)
+                pc2 = axs[2].pcolormesh(x,y,label.cpu().float(), shading='gouraud', vmin=0, vmax=1)
+                pc3 = axs[3].pcolormesh(x, y, 1- prediction.cpu().float(), shading='gouraud', vmin=0, vmax=1)
+                pc4 = axs[4].pcolormesh(x, y, 1 - label.cpu().float(), shading='gouraud', vmin=0, vmax=1)
                 axs[2].set_xlabel("Temps(s)")
-                axs[1].set_ylabel("Fréquences (hz)")
+                axs[0].set_ylabel("S-N Signal")
+                axs[1].set_ylabel("N Pred")
+                axs[2].set_ylabel("N Target")
+                axs[3].set_ylabel("S Pred")
+                axs[4].set_ylabel("S Target")
+
+                fig.colorbar(pc0, ax=axs[0])
+                fig.colorbar(pc1, ax=axs[1])
+                fig.colorbar(pc2, ax=axs[2])
+                fig.colorbar(pc3, ax=axs[3])
+                fig.colorbar(pc4, ax=axs[4])
                 plt.show()
 
 
