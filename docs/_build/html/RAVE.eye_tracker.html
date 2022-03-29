@@ -93,13 +93,28 @@
 </dd>
 </dl>
 <dl class="py attribute">
+<dt class="sig sig-object py" id="RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerDataset.CROP_SIZE">
+<span class="sig-name descname"><span class="pre">CROP_SIZE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">(150,</span> <span class="pre">0,</span> <span class="pre">450,</span> <span class="pre">600)</span></em><a class="headerlink" href="#RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerDataset.CROP_SIZE" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
 <dt class="sig sig-object py" id="RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerDataset.EYE_TRACKER_DIR_PATH">
 <span class="sig-name descname"><span class="pre">EYE_TRACKER_DIR_PATH</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'RAVE/eye_tracker'</span></em><a class="headerlink" href="#RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerDataset.EYE_TRACKER_DIR_PATH" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerDataset.IMAGE_DIMENSIONS">
-<span class="sig-name descname"><span class="pre">IMAGE_DIMENSIONS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">(1,</span> <span class="pre">224,</span> <span class="pre">299)</span></em><a class="headerlink" href="#RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerDataset.IMAGE_DIMENSIONS" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">IMAGE_DIMENSIONS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">(3,</span> <span class="pre">240,</span> <span class="pre">320)</span></em><a class="headerlink" href="#RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerDataset.IMAGE_DIMENSIONS" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerDataset.REAL_DOMAIN">
+<span class="sig-name descname"><span class="pre">REAL_DOMAIN</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerDataset.REAL_DOMAIN" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerDataset.SYNTHETIC_DOMAIN">
+<span class="sig-name descname"><span class="pre">SYNTHETIC_DOMAIN</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerDataset.SYNTHETIC_DOMAIN" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
@@ -154,12 +169,17 @@
 </dl>
 </dd></dl>
 
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerDataset.torch_index_to_image_path_and_domain">
+<span class="sig-name descname"><span class="pre">torch_index_to_image_path_and_domain</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">idx</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerDataset.torch_index_to_image_path_and_domain" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerDatasetOnlineDataAugmentation">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">EyeTrackerDatasetOnlineDataAugmentation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sub_dataset_dir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerDatasetOnlineDataAugmentation" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="RAVE.common.html#RAVE.common.Dataset.Dataset" title="RAVE.common.Dataset.Dataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">RAVE.common.Dataset.Dataset</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerDataset" title="RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerDataset</span></code></a></p>
 <p>This class inherits from Dataset. It overwrites certain methods in
 order to do online data augmentation.</p>
 <dl class="field-list simple">
@@ -169,23 +189,54 @@ order to do online data augmentation.</p>
 </dl>
 </dd></dl>
 
+<dl class="py class">
+<dt class="sig sig-object py" id="RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerInferenceDataset">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">EyeTrackerInferenceDataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">opencv_device</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_real_time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerInferenceDataset" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerDataset" title="RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerDataset</span></code></a></p>
+<p>Class that handles the management of the frames
+of a video on disk or of a real time video feed
+for inference.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>opencv_device</strong> (<em>String</em>) – OpenCV device, that is, a path
+to a video or a opencv device
+index</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerInferenceDataset.ACQUISITION_HEIGHT">
+<span class="sig-name descname"><span class="pre">ACQUISITION_HEIGHT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">480</span></em><a class="headerlink" href="#RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerInferenceDataset.ACQUISITION_HEIGHT" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerInferenceDataset.ACQUISITION_WIDTH">
+<span class="sig-name descname"><span class="pre">ACQUISITION_WIDTH</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">640</span></em><a class="headerlink" href="#RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerInferenceDataset.ACQUISITION_WIDTH" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 </section>
 <section id="module-RAVE.eye_tracker.EyeTrackerDatasetBuilder">
 <span id="eyetrackerdatasetbuilder"></span><h2>EyeTrackerDatasetBuilder<a class="headerlink" href="#module-RAVE.eye_tracker.EyeTrackerDatasetBuilder" title="Permalink to this headline"></a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="RAVE.eye_tracker.EyeTrackerDatasetBuilder.EyeTrackerDatasetBuilder">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">EyeTrackerDatasetBuilder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">VIDEOS</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">OUTPUT_DIR_PATH</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">IMAGE_DIMENSIONS</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">SOURCE_DIR</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.eye_tracker.EyeTrackerDatasetBuilder.EyeTrackerDatasetBuilder" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">EyeTrackerDatasetBuilder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">OUTPUT_DIR_PATH</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">IMAGE_DIMENSIONS</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">SOURCE_DIR</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CROP_SIZE</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.eye_tracker.EyeTrackerDatasetBuilder.EyeTrackerDatasetBuilder" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <a class="reference internal" href="RAVE.common.html#RAVE.common.DatasetBuilder.DatasetBuilder" title="RAVE.common.DatasetBuilder.DatasetBuilder"><code class="xref py py-class docutils literal notranslate"><span class="pre">RAVE.common.DatasetBuilder.DatasetBuilder</span></code></a></p>
 <p>This class builds the sub-datasets. It takes videos, extracts the frames
 and saves them on the disk, with the corresponding labels. It also
 applies data augmentation transforms to the training sub-dataset.</p>
 <dl class="py method">
-<dt class="sig sig-object py" id="RAVE.eye_tracker.EyeTrackerDatasetBuilder.EyeTrackerDatasetBuilder.create_images_datasets_with_LPW_videos">
-<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create_images_datasets_with_LPW_videos</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.eye_tracker.EyeTrackerDatasetBuilder.EyeTrackerDatasetBuilder.create_images_datasets_with_LPW_videos" title="Permalink to this definition"></a></dt>
+<dt class="sig sig-object py" id="RAVE.eye_tracker.EyeTrackerDatasetBuilder.EyeTrackerDatasetBuilder.create_datasets">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create_datasets</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.eye_tracker.EyeTrackerDatasetBuilder.EyeTrackerDatasetBuilder.create_datasets" title="Permalink to this definition"></a></dt>
 <dd><p>Main method of the EyeTrackerDatasetBuilder class.
 This method checks if the dataset as already been built, and builds it
 otherwise.</p>
 </dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.eye_tracker.EyeTrackerDatasetBuilder.EyeTrackerDatasetBuilder.generate_dataset">
+<span class="sig-name descname"><span class="pre">generate_dataset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.eye_tracker.EyeTrackerDatasetBuilder.EyeTrackerDatasetBuilder.generate_dataset" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="RAVE.eye_tracker.EyeTrackerDatasetBuilder.EyeTrackerDatasetBuilder.get_builders">
@@ -203,35 +254,11 @@ otherwise.</p>
 </dl>
 </dd></dl>
 
-<dl class="py method">
-<dt class="sig sig-object py" id="RAVE.eye_tracker.EyeTrackerDatasetBuilder.EyeTrackerDatasetBuilder.parse_current_annotation">
-<span class="sig-name descname"><span class="pre">parse_current_annotation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotations</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.eye_tracker.EyeTrackerDatasetBuilder.EyeTrackerDatasetBuilder.parse_current_annotation" title="Permalink to this definition"></a></dt>
-<dd><p>Parses the current annotation to extract the parameters of
-the ellipse as defined by opencv</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>annotations</strong> (<em>List of strings</em>) – All the annotations</p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>The parameters of the ellipse as defined by opencv</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>quintuplet</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="RAVE.eye_tracker.EyeTrackerDatasetBuilder.EyeTrackerDatasetBuilder.process_image_label_pair">
-<span class="sig-name descname"><span class="pre">process_image_label_pair</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">processed_frame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">INPUT_IMAGE_WIDTH</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">INPUT_IMAGE_HEIGHT</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.eye_tracker.EyeTrackerDatasetBuilder.EyeTrackerDatasetBuilder.process_image_label_pair" title="Permalink to this definition"></a></dt>
-<dd><p>To process the image and label from LPW</p>
-</dd></dl>
-
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="RAVE.eye_tracker.EyeTrackerDatasetBuilder.EyeTrackerDatasetBuilderOfflineDataAugmentation">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">EyeTrackerDatasetBuilderOfflineDataAugmentation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">VIDEOS</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">OUTPUT_DIR_PATH</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">IMAGE_DIMENSIONS</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">SOURCE_DIR</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.eye_tracker.EyeTrackerDatasetBuilder.EyeTrackerDatasetBuilderOfflineDataAugmentation" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">EyeTrackerDatasetBuilderOfflineDataAugmentation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">VIDEOS</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">OUTPUT_DIR_PATH</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">IMAGE_DIMENSIONS</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">SOURCE_DIR</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CROP_SIZE</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.eye_tracker.EyeTrackerDatasetBuilder.EyeTrackerDatasetBuilderOfflineDataAugmentation" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <a class="reference internal" href="#RAVE.eye_tracker.EyeTrackerDatasetBuilder.EyeTrackerDatasetBuilder" title="RAVE.eye_tracker.EyeTrackerDatasetBuilder.EyeTrackerDatasetBuilder"><code class="xref py py-class docutils literal notranslate"><span class="pre">RAVE.eye_tracker.EyeTrackerDatasetBuilder.EyeTrackerDatasetBuilder</span></code></a></p>
 <p>This class inherits from EyeTrackerDatasetBuilder.
 It overwrites certain methods in order to do offline data augmentation.</p>
@@ -275,6 +302,60 @@ randomly and reflects that change on the corresponding ellipse</p>
 
 </dd></dl>
 
+<dl class="py class">
+<dt class="sig sig-object py" id="RAVE.eye_tracker.EyeTrackerDatasetBuilder.VideosUnpacker">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">VideosUnpacker</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">VIDEOS</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">OUTPUT_DIR_PATH</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">IMAGE_DIMENSIONS</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">SOURCE_DIR</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CROP_SIZE</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.eye_tracker.EyeTrackerDatasetBuilder.VideosUnpacker" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="RAVE.common.html#RAVE.common.DatasetBuilder.DatasetBuilder" title="RAVE.common.DatasetBuilder.DatasetBuilder"><code class="xref py py-class docutils literal notranslate"><span class="pre">RAVE.common.DatasetBuilder.DatasetBuilder</span></code></a></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="RAVE.eye_tracker.EyeTrackerDatasetBuilder.VideosUnpacker.TMP_PATH">
+<span class="sig-name descname"><span class="pre">TMP_PATH</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'/home/runner/work/RAVE/RAVE/docs/RAVE/eye_tracker/dataset/tmp'</span></em><a class="headerlink" href="#RAVE.eye_tracker.EyeTrackerDatasetBuilder.VideosUnpacker.TMP_PATH" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.eye_tracker.EyeTrackerDatasetBuilder.VideosUnpacker.get_builders">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_builders</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.eye_tracker.EyeTrackerDatasetBuilder.VideosUnpacker.get_builders" title="Permalink to this definition"></a></dt>
+<dd><p>Used to get the 3 DatasetBuilder objects (one for each sub-dataset)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The 3 DatasetBuilder objects (one for
+each sub-dataset)</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>List of DatasetBuilder</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.eye_tracker.EyeTrackerDatasetBuilder.VideosUnpacker.parse_current_annotation">
+<span class="sig-name descname"><span class="pre">parse_current_annotation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotations</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.eye_tracker.EyeTrackerDatasetBuilder.VideosUnpacker.parse_current_annotation" title="Permalink to this definition"></a></dt>
+<dd><p>Parses the current annotation to extract the parameters of
+the ellipse as defined by opencv</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>annotations</strong> (<em>List of strings</em>) – All the annotations</p></li>
+<li><p><strong>INPUT_IMAGE_WIDTH</strong> (<em>int</em>) – </p></li>
+<li><p><strong>INPUT_IMAGE_HEIGHT</strong> (<em>int</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>True if the parsing was a success, false if it wasn’t.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.eye_tracker.EyeTrackerDatasetBuilder.VideosUnpacker.process_image_label_pair">
+<span class="sig-name descname"><span class="pre">process_image_label_pair</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">processed_frame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ORIGINAL_HEIGHT</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ORIGINAL_WIDTH</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.eye_tracker.EyeTrackerDatasetBuilder.VideosUnpacker.process_image_label_pair" title="Permalink to this definition"></a></dt>
+<dd><p>To process the image and label from LPW</p>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 <section id="module-RAVE.eye_tracker.EyeTrackerModel">
 <span id="eyetrackermodel"></span><h2>EyeTrackerModel<a class="headerlink" href="#module-RAVE.eye_tracker.EyeTrackerModel" title="Permalink to this headline"></a></h2>
@@ -285,7 +366,7 @@ randomly and reflects that change on the corresponding ellipse</p>
 <p>Model of the neural network that detects pupils for the eye tracker module</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="RAVE.eye_tracker.EyeTrackerModel.EyeTrackerModel.forward">
-<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.eye_tracker.EyeTrackerModel.EyeTrackerModel.forward" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.eye_tracker.EyeTrackerModel.EyeTrackerModel.forward" title="Permalink to this definition"></a></dt>
 <dd><p>Method of the Dataset class that must be overwritten by this class.
 Specifies how the forward pass should be executed
 The sigmoid is used to limit the ouput domain, as to converge more
@@ -296,7 +377,12 @@ parameter is 0.5 and the image width is 480, then the h value in
 pixels is 240</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>x</strong> (<em>pytorch tensor</em>) – The input of the network (images)</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>pytorch tensor</em>) – The input of the network (images)</p></li>
+<li><p><strong>alpha</strong> (<em>float</em>) – Relative importance of the domain gradient with respect to the
+regression gradient (how much is it important that the
+network generalizes well ?).</p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>The predictions of the network (ellipses parameters)</p>
@@ -311,6 +397,50 @@ pixels is 240</p>
 <dt class="sig sig-object py" id="RAVE.eye_tracker.EyeTrackerModel.EyeTrackerModel.training">
 <span class="sig-name descname"><span class="pre">training</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><a class="headerlink" href="#RAVE.eye_tracker.EyeTrackerModel.EyeTrackerModel.training" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="RAVE.eye_tracker.EyeTrackerModel.ReverseLayerF">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ReverseLayerF</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.eye_tracker.EyeTrackerModel.ReverseLayerF" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.autograd.function.Function</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.eye_tracker.EyeTrackerModel.ReverseLayerF.backward">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">backward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ctx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grad_output</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.eye_tracker.EyeTrackerModel.ReverseLayerF.backward" title="Permalink to this definition"></a></dt>
+<dd><p>Defines a formula for differentiating the operation with backward mode
+automatic differentiation (alias to the vjp function).</p>
+<p>This function is to be overridden by all subclasses.</p>
+<p>It must accept a context <code class="xref py py-attr docutils literal notranslate"><span class="pre">ctx</span></code> as the first argument, followed by
+as many outputs as the <a class="reference internal" href="#RAVE.eye_tracker.EyeTrackerModel.ReverseLayerF.forward" title="RAVE.eye_tracker.EyeTrackerModel.ReverseLayerF.forward"><code class="xref py py-func docutils literal notranslate"><span class="pre">forward()</span></code></a> returned (None will be passed in
+for non tensor outputs of the forward function),
+and it should return as many tensors, as there were inputs to
+<a class="reference internal" href="#RAVE.eye_tracker.EyeTrackerModel.ReverseLayerF.forward" title="RAVE.eye_tracker.EyeTrackerModel.ReverseLayerF.forward"><code class="xref py py-func docutils literal notranslate"><span class="pre">forward()</span></code></a>. Each argument is the gradient w.r.t the given output,
+and each returned value should be the gradient w.r.t. the
+corresponding input. If an input is not a Tensor or is a Tensor not
+requiring grads, you can just pass None as a gradient for that input.</p>
+<p>The context can be used to retrieve tensors saved during the forward
+pass. It also has an attribute <code class="xref py py-attr docutils literal notranslate"><span class="pre">ctx.needs_input_grad</span></code> as a tuple
+of booleans representing whether each input needs gradient. E.g.,
+<a class="reference internal" href="#RAVE.eye_tracker.EyeTrackerModel.ReverseLayerF.backward" title="RAVE.eye_tracker.EyeTrackerModel.ReverseLayerF.backward"><code class="xref py py-func docutils literal notranslate"><span class="pre">backward()</span></code></a> will have <code class="docutils literal notranslate"><span class="pre">ctx.needs_input_grad[0]</span> <span class="pre">=</span> <span class="pre">True</span></code> if the
+first input to <a class="reference internal" href="#RAVE.eye_tracker.EyeTrackerModel.ReverseLayerF.forward" title="RAVE.eye_tracker.EyeTrackerModel.ReverseLayerF.forward"><code class="xref py py-func docutils literal notranslate"><span class="pre">forward()</span></code></a> needs gradient computated w.r.t. the
+output.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.eye_tracker.EyeTrackerModel.ReverseLayerF.forward">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ctx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.eye_tracker.EyeTrackerModel.ReverseLayerF.forward" title="Permalink to this definition"></a></dt>
+<dd><p>Performs the operation.</p>
+<p>This function is to be overridden by all subclasses.</p>
+<p>It must accept a context ctx as the first argument, followed by any
+number of arguments (tensors or other types).</p>
+<p>The context can be used to store arbitrary data that can be then
+retrieved during the backward pass. Tensors should not be stored
+directly on <cite>ctx</cite> (though this is not currently enforced for
+backward compatibility). Instead, tensors should be saved either with
+<code class="xref py py-func docutils literal notranslate"><span class="pre">ctx.save_for_backward()</span></code> if they are intended to be used in
+<code class="docutils literal notranslate"><span class="pre">backward</span></code> (equivalently, <code class="docutils literal notranslate"><span class="pre">vjp</span></code>) or <code class="xref py py-func docutils literal notranslate"><span class="pre">ctx.save_for_forward()</span></code>
+if they are intended to be used for in <code class="docutils literal notranslate"><span class="pre">jvp</span></code>.</p>
+</dd></dl>
 
 </dd></dl>
 
@@ -343,6 +473,11 @@ x axis (normalized)</p></li>
 </ul>
 </dd>
 </dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="RAVE.eye_tracker.NormalizedEllipse.NormalizedEllipse.crop">
+<span class="sig-name descname"><span class="pre">crop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ORIGINAL_HEIGHT</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ORIGINAL_WIDTH</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">crop_bbox</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.eye_tracker.NormalizedEllipse.NormalizedEllipse.crop" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="RAVE.eye_tracker.NormalizedEllipse.NormalizedEllipse.get_from_list">
 <em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_from_list</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">list</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.eye_tracker.NormalizedEllipse.NormalizedEllipse.get_from_list" title="Permalink to this definition"></a></dt>
@@ -460,33 +595,6 @@ and target ellipses</p>
 </dd>
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>float</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="RAVE.eye_tracker.ellipse_util.get_points_of_an_ellipse">
-<span class="sig-name descname"><span class="pre">get_points_of_an_ellipse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">h</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">NUMBER_OF_POINTS</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.eye_tracker.ellipse_util.get_points_of_an_ellipse" title="Permalink to this definition"></a></dt>
-<dd><p>Generates points that lie on the ellipse (using its parameters)
-TODO : Change calls to this function to the ‘get_points_of_ellipses’
-function instead, which uses paralellism to compute points faster</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>h</strong> (<em>float</em>) – x coordinate of the center of the ellipse</p></li>
-<li><p><strong>k</strong> (<em>float</em>) – y coordinate of the center of the ellipse</p></li>
-<li><p><strong>a</strong> (<em>float</em>) – length of the horizontal axis</p></li>
-<li><p><strong>b</strong> (<em>float</em>) – length of the vertical axis</p></li>
-<li><p><strong>theta</strong> (<em>float</em>) – rotation angle of the ellipse relative to the x axis</p></li>
-<li><p><strong>device</strong> (<em>String</em>) – device on which to run the computations</p></li>
-<li><p><strong>NUMBER_OF_POINTS</strong> (<em>int</em>) – Number of points to generate</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>The x and y coordinates of the points</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>tuple of pytorch tensor</p>
 </dd>
 </dl>
 </dd></dl>
