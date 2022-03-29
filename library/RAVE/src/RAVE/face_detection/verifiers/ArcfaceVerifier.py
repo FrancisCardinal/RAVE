@@ -1,8 +1,8 @@
 import numpy as np
 import cv2
-from deepface.basemodels import ArcFace as arcface_model
 
 from .Verifier import Verifier
+from .models.arcface import ArcFace as arcface_model
 
 
 class ArcFace(Verifier):
