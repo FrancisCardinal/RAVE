@@ -231,6 +231,7 @@ class AudioManager:
         return sink
 
     def reset_manager(self):
+        # TODO: ADD RESETS
         self.out_subfolder_path = None
 
     def compute_masks(self, signal):
@@ -556,7 +557,8 @@ class AudioManager:
             if self.speech_and_noise:
                 np_S = np.real(S)
                 np_N = np.real(N)
-                speech_mask_gt = (np_N[0] ** 2) / ((np_N[0] ** 2) + (np_S[0] ** 2) + EPSILON)
+                noise_mask_gt = (np_N[0] ** 2) / ((np_N[0] ** 2) + (np_S[0] ** 2) + EPSILON)
+                speech_mask_gt = 1 - noise_mask_gt
                 speech_mask_gt_exp = np.expand_dims(speech_mask_gt, axis=1)
                 if speech_mask_np_gt is not None:
                     speech_mask_np_gt = np.append(speech_mask_np_gt, speech_mask_gt_exp, axis=1)
@@ -615,7 +617,10 @@ class AudioManager:
         axs[2].pcolormesh(speech_mask_np, shading='gouraud', vmin=0, vmax=1)
         axs[3].pcolormesh(noise_mask_np, shading='gouraud', vmin=0, vmax=1)
         axs[2].set_xlabel("Temps(s)")
-        axs[1].set_ylabel("Fréquences (hz)")
+        axs[0].set_ylabel("Speech")
+        axs[1].set_ylabel("Energy")
+        axs[2].set_ylabel("Pred S")
+        axs[3].set_ylabel("Pred N")
         save_name = os.path.join(self.out_subfolder_path, 'out_spec_plots.jpg')
         plt.savefig(fname=save_name)
         if self.debug:
