@@ -28,11 +28,14 @@ class AudioTrainer(Trainer):
             # Clear the gradients
             self.optimizer.zero_grad()
             # Forward Pass
-            predictions = self.model(images)
+            predictions, _ = self.model(images)
             # Find the Loss
             loss = self.loss_function(predictions*total_energy, labels*total_energy)
             # Calculate gradients
             loss.backward()
+
+            # torch.nn.utils.clip_grad_norm_(self.model.parameters(), 0.25)
+
             # Update Weights
             self.optimizer.step()
             # Calculate Loss
@@ -60,7 +63,7 @@ class AudioTrainer(Trainer):
                 images, labels, total_energy = images.to(self.device), labels.to(self.device), total_energy.to(self.device)
 
                 # Forward Pass
-                predictions = self.model(images)
+                predictions, _ = self.model(images)
                 # Find the Loss
                 loss = self.loss_function(predictions*total_energy, labels*total_energy)
                 # Calculate Loss
