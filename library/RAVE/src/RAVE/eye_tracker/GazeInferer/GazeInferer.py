@@ -30,8 +30,7 @@ class GazeInferer:
         x_angle=22.5,
         flen=3.37,
         sensor_size=(2.7216, 3.6288),
-        original_image_size_pre_crop=(600, 800),
-        original_image_size_post_crop=(600, 450),
+        original_image_size_pre_crop=(480, 640),
     ):
         self._ellipse_dnn = ellipse_dnn
         self._dataloader = dataloader
@@ -52,7 +51,6 @@ class GazeInferer:
             x_angle=x_angle,
             image_shape=self.shape,
             original_image_size_pre_crop=original_image_size_pre_crop,
-            original_image_size_post_crop=original_image_size_post_crop,
             sensor_size=sensor_size,
         )
         self.x, self.y = None, None

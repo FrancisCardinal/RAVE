@@ -259,6 +259,7 @@ class EyeTrackerInferenceDataset(EyeTrackerDataset):
         return image, success
         """
         image, label = self.get_image_and_label_on_disk(idx)
+        image = image.resize((600, 800))
         
         top, left, height, width = EyeTrackerDataset.CROP_SIZE
         image = image.crop( (left, top, left+width, top+height) ) 

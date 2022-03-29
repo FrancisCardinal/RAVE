@@ -28,7 +28,6 @@ class SingleEyeFitter(object):
         x_angle,
         image_shape,
         original_image_size_pre_crop,
-        original_image_size_post_crop,
         sensor_size,
     ):
         self.camera_rotation_matrix = np.eye(3)
