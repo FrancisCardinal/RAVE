@@ -1,8 +1,14 @@
 import numpy as np
 import cv2
+import platform
+import torch
 
 from .Verifier import Verifier
-from .models.arcface import ArcFace as arcface_model
+
+if platform.release().split("-")[-1] == "tegra":
+    from .models.arcface import ArcFace_trt as arcface_model
+else:
+    from .models.arcface import ArcFace_tf as arcface_model
 
 
 class ArcFace(Verifier):
@@ -35,7 +41,18 @@ class ArcFace(Verifier):
                 int(bbox[0]) : int(bbox[0] + bbox[2]),
             ]
             image = ArcFace.preprocess_image(roi)
-            feature = self.model.predict(image)[0].tolist()
+
+            # TODO: Change inference call here.. could make predict() func in
+            #  both implementations
+            if platform.release().split("-")[-1] == "tegra":
+                tensor = ArcFace.opencv_image_to_tensor(
+                    frame.copy(), self.device
+                )
+                tensor = torch.unsqueeze(tensor, 0)
+                feature = self.model(tensor.cpu().numpy())
+            else:
+                feature = self.model.predict(image)[0].tolist()
+
             features.append(feature)
 
         return features
@@ -146,3 +163,18 @@ class ArcFace(Verifier):
         b = np.sum(np.multiply(source_representation, source_representation))
         c = np.sum(np.multiply(test_representation, test_representation))
         return 1 - (a / (np.sqrt(b) * np.sqrt(c)))
+
+    # TODO: Move with copies of this function to some common location
+    @staticmethod
+    def opencv_image_to_tensor(image, DEVICE):
+        """
+        OpenCV BGR image to tensor RGB image
+
+        Args:
+            Image (ndarray): Image with shape (width, height, 3).
+            DEVICE (string): Pytorch device.
+        """
+        tensor = torch.from_numpy(image).to(DEVICE)
+        tensor = tensor.permute(2, 0, 1).float()
+        tensor /= 255
+        return tensor
