@@ -70,7 +70,7 @@ class GazeInferer:
                 labels = labels.to(self._device)
 
                 # Forward Pass
-                predictions = labels#, _ =  self._ellipse_dnn(images)
+                predictions, _ =  self._ellipse_dnn(images)
 
                 for prediction in predictions:
                     self._eyefitter.unproject_single_observation(self.torch_prediction_to_deepvog_format(prediction))
@@ -120,7 +120,7 @@ class GazeInferer:
                 images = images.to(self._device)
                 labels = labels.to(self._device)
 
-                predictions = labels#, _ =  self._ellipse_dnn(images)
+                predictions, _ =  self._ellipse_dnn(images)
 
                 for prediction, gt in zip(predictions, gts): 
                     self._eyefitter.unproject_single_observation(self.torch_prediction_to_deepvog_format(prediction))
