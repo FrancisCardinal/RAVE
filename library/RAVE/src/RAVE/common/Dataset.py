@@ -30,7 +30,7 @@ class Dataset(torch.utils.data.Dataset):
     LABELS_DIR = "labels"
 
     TRAINING_DIR = "training"
-    VALIDATION_DIR = "validation"
+    VALIDATION_DIR = "calibration"
     TEST_DIR = "test"
 
     # TODO-jkealey: Dataset should not defined the file extension
@@ -142,8 +142,8 @@ class Dataset(torch.utils.data.Dataset):
         """
         paths = os.listdir(directory)
         # Just to make sure elements of a given batch don't look alike
-        random.Random(42).shuffle(paths)
-        return np.array([str(i) for i in paths], dtype=np.str)
+        #random.Random(42).shuffle(paths)
+        return np.array([str(i)+'_synthetic.png' for i in range(len(paths))], dtype=np.str)
 
     @staticmethod
     @abstractmethod

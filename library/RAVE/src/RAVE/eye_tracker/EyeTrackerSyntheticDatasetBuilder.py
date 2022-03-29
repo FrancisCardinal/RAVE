@@ -105,7 +105,7 @@ class EyeTrackerSyntheticDatasetBuilder(EyeTrackerDatasetBuilder):
         )
         random.Random(42).shuffle(images_files)
 
-        train_size = 0.85
+        train_size = 1
         train_index_end = int(len(images_files) * train_size)
 
         train_files = images_files[:train_index_end]
@@ -165,7 +165,8 @@ class EyeTrackerSyntheticDatasetBuilder(EyeTrackerDatasetBuilder):
                     "rb",
                 )
             )
-            self.current_ellipse = NormalizedEllipse.get_from_list(annotation)
+            ellipse, gaze = annotation["ellipse"], annotation["out_angles"]
+            self.current_ellipse = NormalizedEllipse.get_from_list(ellipse)
 
             frame = cv2.imread(os.path.join(self.INPUT_IMAGES_PATH, file))
             ORIGINAL_HEIGHT, ORIGINAL_WIDTH = frame.shape[0], frame.shape[1]
@@ -180,7 +181,8 @@ class EyeTrackerSyntheticDatasetBuilder(EyeTrackerDatasetBuilder):
             self.save_image_label_pair(
                 filename + "_synthetic",
                 processed_frame,
-                self.current_ellipse.to_list(),
+                {"ellipse":self.current_ellipse.to_list(),
+                "out_angles":gaze}
             )
             self.video_frame_id += 1
 

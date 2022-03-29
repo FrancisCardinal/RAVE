@@ -83,7 +83,7 @@ class EyeTrackerDataset(Dataset):
         image = self.PRE_PROCESS_TRANSFORM(image)
 
         image = self.NORMALIZE_TRANSFORM(image)
-        label = torch.tensor(label)
+        label = torch.tensor(label["ellipse"])
         domain = torch.tensor(domain).float()
 
         return image, label, domain
@@ -207,42 +207,22 @@ class EyeTrackerInferenceDataset(EyeTrackerDataset):
     """
 
     def __init__(self, opencv_device, is_real_time=True):
-        super().__init__("test")  # TODO FC : Find a more elegant solution
+        super().__init__(opencv_device) # TODO FC : Tmp until I get opencv to play nice with ffmpeg/videos  # TODO FC : Find a more elegant solution 
 
-        if isinstance(opencv_device, str):
-            opencv_device = os.path.join(
-                EyeTrackerDataset.EYE_TRACKER_DIR_PATH,
-                "GazeInferer",
-                opencv_device,
-            )
-
-        self._video_feed = cv2.VideoCapture(opencv_device)
-
+        """
+        if(isinstance(opencv_device, str)):
+            opencv_device = os.path.join(EyeTrackerDataset.EYE_TRACKER_DIR_PATH, "GazeInferer", opencv_device)
+        
+        self._video_feed = cv2.VideoCapture(opencv_device) 
         if not self._video_feed.isOpened():
-            raise IOError(
-                "Cannot open specified device ({})".format(opencv_device)
-            )
-
-        if not isinstance(opencv_device, str):
-            WIDTH, HEIGHT = 800, 600
-
-            codec = 0x47504A4D  # MJPG
-            self._video_feed.set(cv2.CAP_PROP_FPS, 30.0)
-            self._video_feed.set(cv2.CAP_PROP_FOURCC, codec)
-
-            self._video_feed.set(cv2.CAP_PROP_FRAME_WIDTH, HEIGHT)
-            self._video_feed.set(cv2.CAP_PROP_FRAME_HEIGHT, WIDTH)
-
-            self._video_feed.set(cv2.CAP_PROP_AUTO_EXPOSURE, 3)
-
-            self._video_feed.set(cv2.CAP_PROP_AUTOFOCUS, 0)
-            self._video_feed.set(cv2.CAP_PROP_FOCUS, 1000)
-
+            raise IOError("Cannot open specified device ({})".format(opencv_device))
+        """ 
+            
         self._length = 1
-        if not is_real_time:
-            self._length = (
-                int(self._video_feed.get(cv2.CAP_PROP_FRAME_COUNT)) - 1
-            )
+        if(not is_real_time):
+            self._length = super().__len__() # TODO FC : Tmp until I get opencv to play nice with ffmpeg/videos 
+            #self._length = int(self._video_feed.get(cv2.CAP_PROP_FRAME_COUNT))
+
 
     def __len__(self):
         """
@@ -254,10 +234,12 @@ class EyeTrackerInferenceDataset(EyeTrackerDataset):
         """
         return self._length
 
+
+
     def __getitem__(self, idx):
         """
         Method of the Dataset class that must be overwritten by this class.
-        Used to get an image
+        Used to get an image 
 
         Args:
             idx (int): Index of the pair to get, ignored
@@ -265,13 +247,19 @@ class EyeTrackerInferenceDataset(EyeTrackerDataset):
         Returns:
             tuple: Image, 0
         """
+
+        """# TODO FC : Tmp until I get opencv to play nice with ffmpeg/videos 
         success, frame = self._video_feed.read()
 
-        image = None
-        if success:
-            frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
-            frame = Image.fromarray(frame, "RGB")
+        if(success):
             image = self.PRE_PROCESS_TRANSFORM(frame)
             image = self.NORMALIZE_TRANSFORM(image)
 
         return image, success
+        """
+        image, label = self.get_image_and_label_on_disk(idx)
+
+        image = self.PRE_PROCESS_TRANSFORM(image)
+        image = self.NORMALIZE_TRANSFORM(image)
+
+        return image, torch.tensor(label["ellipse"]), torch.tensor(label["out_angles"])

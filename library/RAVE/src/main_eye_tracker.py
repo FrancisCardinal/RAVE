@@ -26,7 +26,7 @@ from RAVE.eye_tracker.ellipse_util import (
     draw_ellipse_on_image,
 )
 
-from RAVE.eye_tracker.GazeInferer.GazeInfererManager import GazeInfererManager
+from RAVE.eye_tracker.GazeInferer.GazeInferer import GazeInferer
 
 
 def main(
@@ -94,7 +94,7 @@ def main(
 
     eye_tracker_model = EyeTrackerModel()
     eye_tracker_model.to(DEVICE)
-    print(eye_tracker_model)
+    #print(eye_tracker_model)
 
     min_validation_loss = float("inf")
     if TRAIN:
@@ -148,7 +148,7 @@ def main(
         print("test loss = {}".format(test_loss / number_of_images))
 
     if INFERENCE:
-        inference(DEVICE)
+        inference(eye_tracker_model, DEVICE)
 
     return min_validation_loss
 
@@ -231,19 +231,27 @@ def annotate(root):
     ellipse_annotation_tool.annotate()
 
 
-def inference(device):
-    import time
+def inference(model, device):
+    eyeTracker_calibration_dataset = EyeTrackerInferenceDataset(os.path.join("calibration"), False)
+    calibration_loader = torch.utils.data.DataLoader(
+        eyeTracker_calibration_dataset,
+        batch_size=512,
+        shuffle=False,
+        num_workers=0,
+    )
+    gaze_inferer = GazeInferer(model, calibration_loader, device)
+    gaze_inferer.fit()
 
-    gaze_inferer_manager = GazeInfererManager(2, device)
-    gaze_inferer_manager.start_calibration_thread()
-    time.sleep(5)
-    gaze_inferer_manager.start_inference_thread()
-    for _ in range(500):
-        x, y = gaze_inferer_manager.get_current_gaze()
-        if x is not None:
-            print("x = {} | y = {}".format(x, y))
-        time.sleep(0.01)
-    gaze_inferer_manager.stop_inference()
+    eyeTracker_conversation_dataset = EyeTrackerInferenceDataset(os.path.join("conversation"), False)
+    conversation_loader = torch.utils.data.DataLoader(
+        eyeTracker_conversation_dataset,
+        batch_size=1,
+        shuffle=False,
+        num_workers=0,
+    )
+    gaze_inferer = GazeInferer(model, conversation_loader, device)
+    gaze_inferer.infer()
+
 
 
 if __name__ == "__main__":

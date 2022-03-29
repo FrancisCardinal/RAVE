@@ -239,7 +239,7 @@ class DatasetBuilder(ABC):
             label (List):
                 The label that will be saved to disk
         """
-        output_file_name = file_name + "_" + str(self.video_frame_id).zfill(4)
+        output_file_name = file_name#file_name + "_" + str(self.video_frame_id).zfill(4)
 
         output_frame = tensor_to_opencv_image(output_image_tensor)
         video_output_file_path = os.path.join(
