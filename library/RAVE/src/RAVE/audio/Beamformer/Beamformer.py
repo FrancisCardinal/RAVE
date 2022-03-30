@@ -27,4 +27,5 @@ class Beamformer:
         See PyOdas beamformer documentation
         <https://introlab.github.io/pyodas/_build/html/pyodas/core/beamformers.html>.
         """
-        return self.beamformer(**kwargs)
+        args = list(kwargs.values())
+        return self.beamformer(*args)
