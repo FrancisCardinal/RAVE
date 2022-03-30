@@ -431,8 +431,6 @@ class AudioManager:
         self.istft_dict['gt'] = IStft(self.channels, self.frame_size, self.chunk_size, "hann")
         self.istft_dict['speech'] = IStft(self.channels, self.frame_size, self.chunk_size, "hann")
         self.istft_dict['noise'] = IStft(self.channels, self.frame_size, self.chunk_size, "hann")
-        # self.istft_dict['speech_gt'] = IStft(self.channels, self.frame_size, self.chunk_size, "hann")
-        # self.istft_dict['noise_gt'] = IStft(self.channels, self.frame_size, self.chunk_size, "hann")
 
         self.scm_dict['speech'] = SpatialCov(self.channels, self.frame_size, weight=0.1)
         self.scm_dict['noise'] = SpatialCov(self.channels, self.frame_size, weight=0.1)
@@ -582,8 +580,6 @@ class AudioManager:
                     noise_mask_np_gt = noise_mask_gt_exp
 
                 # Spatial covariance matrices
-                # target_scm_gt = self.speech_spatial_cov_gt(X, speech_mask_gt)
-                # noise_scm_gt = self.noise_spatial_cov_gt(X, noise_mask_gt)
                 target_scm_gt = self.scm_dict['speech_gt'](X, S)
                 noise_scm_gt = self.scm_dict['noise_gt'](X, N)
 
@@ -595,8 +591,6 @@ class AudioManager:
                 y_gt = self.istft_dict['gt'](Y_gt)
                 n_out = self.istft_dict['noise'](N)
                 s_out = self.istft_dict['speech'](S)
-                # n_gt_out = self.n_gt_istft(noise_mask)
-                # s_gt_out = self.s_gt_istft(speech_mask)
 
                 # Output fully processed data
                 if 'output_gt' in self.sink_dict:
@@ -607,12 +601,6 @@ class AudioManager:
 
                 if 'noise_out' in self.sink_dict:
                     self.output_sink(data=n_out, sink_name='noise_out')
-
-                # if 'noise_gt_out' in self.sink_dict:
-                #     self.output_sink(data=n_gt_out, sink_name='noise_gt_out')
-                #
-                # if 'speech_gt_out' in self.sink_dict:
-                #     self.output_sink(data=s_gt_out, sink_name='speech_gt_out')
 
             loop_time = self.check_time(name='loop', is_start=False)
             if self.get_timers:

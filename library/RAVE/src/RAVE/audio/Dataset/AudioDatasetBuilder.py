@@ -63,11 +63,16 @@ class AudioDatasetBuilder:
     current_room_size = []
     snr = 1
     receiver_height = 1.5
+
     receiver_rel = np.array((                   # Receiver (microphone) positions relative to "user" [x, y, z] (m)
-                                [-0.05, -0.05, 0],
-                                [-0.05, 0.05, 0],
-                                [0.05, -0.05, 0],
-                                [0.05, 0.05, 0]
+                                [-0.001905, 0.00643, 0],
+                                [0.001905, 0.00643, 0],
+                                [-0.005715, 0.00643, 0],
+                                [0.005715, 0.00643, 0],
+                                [-0.007355, 0.00381, 0],
+                                [0.007355, 0.00381, 0],
+                                [-0.007355, 0, 0],
+                                [0.007355, 0, 0]
                             ))
 
     def __init__(self, sources_path, noises_path, output_path, noise_count_range,
@@ -91,7 +96,7 @@ class AudioDatasetBuilder:
         # Load params/configs
         self.configs = configs
         self.room_shapes = self.configs['room_shapes']
-        self.reverb_room_shapes = self.configs['room_shapes']
+        self.reverb_room_shapes = self.configs['reverb_room_shapes']
         self.room_sizes = self.configs['room_sizes']
         self.banned_noises = self.configs['banned_noises']
         self.diffuse_noises = self.configs['diffuse_noises']
@@ -447,11 +452,12 @@ class AudioDatasetBuilder:
                                                                self.wall_absorption_limits[1]*100)) / 100.
         # TODO: CHECK WALL_ABSORPTION AND SCATTERING VALUES
         mat = pra.Material(float(self.rir_wall_absorption), 0.1)
-        room = pra.Room.from_corners(corners, fs=SAMPLE_RATE,
+        room = pra.Room.from_corners(corners, fs=SAMPLE_RATE, air_absorption=True, humidity=40,
+                                     # ray_tracing=True,
                                      max_order=self.rir_reflexion_order,
                                      # absorption=self.rir_wall_absorption)
                                      materials=mat)
-        room.extrude(self.current_room_size[2])
+        room.extrude(self.current_room_size[2], materials=mat)
         self.current_room = room
 
         return room
@@ -461,7 +467,6 @@ class AudioDatasetBuilder:
         Generate absolute position for user (and for receivers).
         """
         # TODO: GENERATE A NOISE SPEECH SOURCE ON USER TO REPRESENT USER TALKING?
-        # TODO: TEST USER HEAD WITH PYROOMACOUSTICS
 
         # Get random position and assign x and y wth sound margins (user not stuck on wall)
         self.user_pos = self.get_random_position(user=True)
