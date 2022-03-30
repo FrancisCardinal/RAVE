@@ -23,11 +23,11 @@ def run_generator_loop(source_queue, worker_num, run_params, configs, file_cnt, 
                                           run_params['SPEECH_AS_NOISE'],
                                           run_params['SAMPLE_COUNT'],
                                           run_params['DEBUG'],
+                                          run_params['REVERB'],
                                           configs)
     while source_queue.qsize() > 0:
         # Get source file
         audio_file = source_queue.get()
-        # print(f'Worker {worker_num}: Generating elements with {audio_file}')
 
         # Run generator
         file_increment, dataset_list = dataset_builder.generate_dataset(source_path=audio_file, save_run=True)
@@ -39,7 +39,7 @@ def run_generator_loop(source_queue, worker_num, run_params, configs, file_cnt, 
 
 
 # Script used to generate the audio dataset
-def main(SOURCES, NOISES, OUTPUT, NOISE_COUNT, SPEECH_AS_NOISE, SAMPLE_COUNT, DEBUG, WORKERS):
+def main(SOURCES, NOISES, OUTPUT, NOISE_COUNT, SPEECH_AS_NOISE, SAMPLE_COUNT, DEBUG, WORKERS, REVERB):
 
     start_time = time.time()
 
@@ -52,7 +52,8 @@ def main(SOURCES, NOISES, OUTPUT, NOISE_COUNT, SPEECH_AS_NOISE, SAMPLE_COUNT, DE
         'NOISE_COUNT': NOISE_COUNT,
         'SPEECH_AS_NOISE': SPEECH_AS_NOISE,
         'SAMPLE_COUNT': SAMPLE_COUNT,
-        'DEBUG': DEBUG
+        'DEBUG': DEBUG,
+        'REVERB': REVERB
     }
 
     # Load multiprocess
@@ -143,6 +144,11 @@ if __name__ == '__main__':
         help="Range of noise count to add to audio (ex. '-c 5 10' to have 5 to 10 noise sources)",
     )
 
+    # RIR params
+    parser.add_argument(
+        "-r", "--reverb", action="store_true", help="Use reverberation to generate RIRs"
+    )
+
     # Multiprocess
     parser.add_argument(
         "-w",
@@ -182,5 +188,6 @@ if __name__ == '__main__':
         args.xtra_speech,
         args.sample_count,
         args.debug,
-        args.workers
+        args.workers,
+        args.reverb
     )

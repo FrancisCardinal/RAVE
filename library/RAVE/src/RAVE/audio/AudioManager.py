@@ -1,5 +1,6 @@
 import pyodas.core
 import torch
+import torchaudio
 import yaml
 import os
 import numpy as np
@@ -118,6 +119,7 @@ class AudioManager:
             self.masks = None
         else:
             self.model = None
+            self.last_h = None
             self.delay_and_sum = None
 
         # Beamformer
@@ -129,6 +131,8 @@ class AudioManager:
         self.stft_dict = {}
         self.istft_dict = {}
         self.scm_dict = {}
+
+        # Spectrogram arrays
 
     def init_sim_input(self, name, file):
         """
@@ -260,19 +264,19 @@ class AudioManager:
             sum_db = 20 * torch.log10(torch.abs(sum_tensor) + EPSILON)
 
             # Mono
-            energy = torch.from_numpy(signal ** 2)
-            mono_X = torch.mean(energy, dim=0, keepdim=True)
-            mono_db = 20 * torch.log10(torch.abs(mono_X) + EPSILON)
+            signal_sq = torch.from_numpy(signal ** 2)
+            signal_mono = torch.mean(signal_sq, dim=0, keepdims=True)
+            signal_mono_db = 20 * torch.log10(abs(signal_mono) + EPSILON)
 
-            concat_spec = torch.cat([mono_db, sum_db], dim=1)
+            concat_spec = torch.cat([signal_mono_db, sum_db], dim=1)
             concat_spec = torch.reshape(concat_spec, (1, 1, concat_spec.shape[1], 1))
 
             self.check_time(name='network', is_start=True)
             with torch.no_grad():
-                speech_mask = self.model(concat_spec)
+                noise_mask, self.last_h = self.model(concat_spec, self.last_h)
             self.check_time(name='network', is_start=False)
-            speech_mask = torch.squeeze(speech_mask).numpy()
-            noise_mask = 1 - speech_mask
+            noise_mask = torch.squeeze(noise_mask).numpy()
+            speech_mask = 1 - noise_mask
             self.check_time(name='data', is_start=False)
 
             return speech_mask, noise_mask
@@ -430,10 +434,10 @@ class AudioManager:
         # self.istft_dict['speech_gt'] = IStft(self.channels, self.frame_size, self.chunk_size, "hann")
         # self.istft_dict['noise_gt'] = IStft(self.channels, self.frame_size, self.chunk_size, "hann")
 
-        self.scm_dict['speech'] = SpatialCov(self.channels, self.frame_size, weight=0.03)
-        self.scm_dict['noise'] = SpatialCov(self.channels, self.frame_size, weight=0.03)
-        self.scm_dict['speech_gt'] = SpatialCov(self.channels, self.frame_size, weight=0.03)
-        self.scm_dict['noise_gt'] = SpatialCov(self.channels, self.frame_size, weight=0.03)
+        self.scm_dict['speech'] = SpatialCov(self.channels, self.frame_size, weight=0.1)
+        self.scm_dict['noise'] = SpatialCov(self.channels, self.frame_size, weight=0.1)
+        self.scm_dict['speech_gt'] = SpatialCov(self.channels, self.frame_size, weight=0.1)
+        self.scm_dict['noise_gt'] = SpatialCov(self.channels, self.frame_size, weight=0.1)
 
         # Model
         if self.mask:
@@ -471,15 +475,11 @@ class AudioManager:
         """
         Main audio loop.
         """
-        
-        # noise_mask_np = np.zeros((513, 176384//256))
-        # speech_mask_np = np.zeros((513, 176384//256))
-        # speech_mask_np_gt = np.zeros((513, 176384//256))
-        # speech_np_gt = np.zeros((513, 176384//256))
 
         noise_mask_np = None
         speech_mask_np = None
         speech_mask_np_gt = None
+        noise_mask_np_gt = None
         speech_np_gt = None
 
         samples = 0
@@ -506,7 +506,8 @@ class AudioManager:
             if self.speech_and_noise:
                 S = self.stft_dict['speech'](s)
                 s_mean = np.mean(S, axis=0)
-                s_mean = np.expand_dims(np.real(s_mean), axis=1)
+                s_log = 20 * np.log10(abs(s_mean) + EPSILON)
+                s_mean = np.expand_dims(s_log, axis=1)
                 if speech_np_gt is not None:
                     speech_np_gt = np.append(speech_np_gt, s_mean, axis=1)
                 else:
@@ -536,6 +537,7 @@ class AudioManager:
             # MVDR
             self.check_time(name='beamformer', is_start=True)
             Y = self.beamformer(signal=X, target_scm=target_scm, noise_scm=noise_scm)
+            # Y = X * speech_mask
             self.check_time(name='beamformer', is_start=False)
 
             # ISTFT
@@ -555,17 +557,31 @@ class AudioManager:
 
             # Speech and noise ground truth beamforming
             if self.speech_and_noise:
-                np_S = np.real(S)
-                np_N = np.real(N)
-                noise_mask_gt = (np_N[0] ** 2) / ((np_N[0] ** 2) + (np_S[0] ** 2) + EPSILON)
+                # Squared
+                S_sq = S ** 2
+                N_sq = N ** 2
+                # Mono
+                S_mono = np.mean(S_sq, axis=0, keepdims=False)
+                N_mono = np.mean(N_sq, axis=0, keepdims=False)
+                # Logarithic (dB)
+                S_db = 20 * np.log10(abs(S_mono) + EPSILON)
+                N_db = 20 * np.log10(abs(N_mono) + EPSILON)
+                # Offset to 0
+                S_offset = S_db - np.min(S_db)
+                N_offset = N_db - np.min(N_db)
+
+                noise_mask_gt = (N_offset ** 2) / ((N_offset ** 2) + (S_offset ** 2) + EPSILON)
                 speech_mask_gt = 1 - noise_mask_gt
                 speech_mask_gt_exp = np.expand_dims(speech_mask_gt, axis=1)
-                if speech_mask_np_gt is not None:
+                noise_mask_gt_exp = np.expand_dims(noise_mask_gt, axis=1)
+                if speech_mask_np_gt is not None and noise_mask_np_gt is not None:
                     speech_mask_np_gt = np.append(speech_mask_np_gt, speech_mask_gt_exp, axis=1)
+                    noise_mask_np_gt = np.append(noise_mask_np_gt, noise_mask_gt_exp, axis=1)
                 else:
                     speech_mask_np_gt = speech_mask_gt_exp
+                    noise_mask_np_gt = noise_mask_gt_exp
 
-                # Spatial covirance matrices
+                # Spatial covariance matrices
                 # target_scm_gt = self.speech_spatial_cov_gt(X, speech_mask_gt)
                 # noise_scm_gt = self.noise_spatial_cov_gt(X, noise_mask_gt)
                 target_scm_gt = self.scm_dict['speech_gt'](X, S)
@@ -573,6 +589,7 @@ class AudioManager:
 
                 # MVDR
                 Y_gt = self.beamformer(signal=X, target_scm=target_scm_gt, noise_scm=noise_scm_gt)
+                # Y_gt = X * speech_mask_gt
 
                 # ISTFT
                 y_gt = self.istft_dict['gt'](Y_gt)
@@ -610,21 +627,24 @@ class AudioManager:
             loop_i += 1
 
         # Plot spectrograms
-        fig, axs = plt.subplots(4)
+        fig, axs = plt.subplots(5)
         fig.suptitle('Spectrogrammes (Speech, Energy, Speech mask, Noise mask)')
-        axs[0].pcolormesh(speech_np_gt, shading='gouraud', vmin=0, vmax=1)
+        axs[0].pcolormesh(speech_np_gt, shading='gouraud')
         axs[1].pcolormesh(speech_mask_np_gt, shading='gouraud', vmin=0, vmax=1)
         axs[2].pcolormesh(speech_mask_np, shading='gouraud', vmin=0, vmax=1)
-        axs[3].pcolormesh(noise_mask_np, shading='gouraud', vmin=0, vmax=1)
+        axs[3].pcolormesh(noise_mask_np_gt, shading='gouraud', vmin=0, vmax=1)
+        axs[4].pcolormesh(noise_mask_np, shading='gouraud', vmin=0, vmax=1)
         axs[2].set_xlabel("Temps(s)")
         axs[0].set_ylabel("Speech")
-        axs[1].set_ylabel("Energy")
+        axs[1].set_ylabel("Target S")
         axs[2].set_ylabel("Pred S")
-        axs[3].set_ylabel("Pred N")
+        axs[3].set_ylabel("Target N")
+        axs[4].set_ylabel("Pred N")
         save_name = os.path.join(self.out_subfolder_path, 'out_spec_plots.jpg')
         plt.savefig(fname=save_name)
         if self.debug:
             plt.show(block=True)
+        plt.close()
 
         print(f'Audio_Manager: Finished running main_audio : {samples} samples')
         # input()
