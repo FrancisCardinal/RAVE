@@ -11,8 +11,9 @@ import sys
 sys.path.insert(1, './Dataset')
 from Dataset.AudioDatasetBuilder import AudioDatasetBuilder
 
-CONFIGS_PATH = 'C:\\GitProjet\\RAVE\\library\\RAVE\\src\\RAVE\\audio\\Dataset\\' + 'dataset_config.yaml'
+# CONFIGS_PATH = 'C:\\GitProjet\\RAVE\\library\\RAVE\\src\\RAVE\\audio\\Dataset\\' + 'dataset_config.yaml'
 
+CONFIGS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'Dataset', 'dataset_config.yaml')
 
 def run_generator_loop(source_queue, worker_num, run_params, configs, file_cnt, total_cnt):
     # TODO: CHECK TO RUN 1 GENERATOR AND ALL WORKERS CALL ON IT
