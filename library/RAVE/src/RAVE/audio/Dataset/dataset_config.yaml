@@ -4,12 +4,17 @@
 room_shapes:
     [
         [[0, 0], [0, 1], [1, 1], [1, 0]],
-        [[0, 0], [0, 1], [1, 1], [1, 0.5], [0.5, 0.5], [0.5, 0]],
-        [[0, 0], [0, 0.25], [0.5, 0.25], [0.5, 1], [1, 1], [1, 0]],
-        [[0, 0], [0, 0.25], [0.25, 0.25], [0.25, 1], [1, 1], [1, 0.75], [0.75, 0.75], [0.75, 0]],
         [[0, 0.33], [0, 0.66], [0.33, 1], [0.66, 1], [1, 0.66], [1, 0.33], [0.66, 0], [0.33, 0]],
         [[0, 0.33], [0, 0.66], [0.5, 1], [1, 0.66], [1, 0.33], [0.5, 0]]
     ]
+
+# Rooms that can only be used with reverb (L and Z shapes)
+reverb_room_shapes:
+  [
+        [[0, 0], [0, 1], [1, 1], [1, 0.5], [0.5, 0.5], [0.5, 0]],
+        [[0, 0], [0, 0.25], [0.5, 0.25], [0.5, 1], [1, 1], [1, 0]],
+        [[0, 0], [0, 0.25], [0.25, 0.25], [0.25, 1], [1, 1], [1, 0.75], [0.75, 0.75], [0.75, 0]],
+  ]
 
 # Random room size multiplication factor limits to use on room shapes ([[xmin, xmax], [ymin, ymax], [zmin, zmax]])
 room_sizes: [[10, 100], [10, 100], [3, 20]]
@@ -47,7 +52,7 @@ diffuse_noises:
     ]
 
 # Max diffuse noises
-max_diffuse_noises: 1
+max_diffuse_noises: 0
 
 # Range of noises count to add to audio file
 noise_count_range: [1, 1]
@@ -56,7 +61,7 @@ noise_count_range: [1, 1]
 speech_as_noise: False
 
 # SNR limit values
-snr_limits: [0.5, 1]
+snr_limits: [0.75, 5]
 
 # Number of samples to get per speech source
 sample_per_speech: 5
@@ -64,5 +69,6 @@ sample_per_speech: 5
 # Data split to use for [train, val, test]
 data_split: [0.7, 0.15, 0.15]
 
-# Wall absorption range
-wall_absorption_limits: [0.75, 0.95]
+# RIR parameters
+wall_absorption_limits: [0.95, 1]
+rir_reflexion_order: 3

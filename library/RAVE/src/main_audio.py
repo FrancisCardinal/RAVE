@@ -1,177 +1,61 @@
-import multiprocessing
 import os
-from numpy import block
+import glob
 
-import numpy as np
-import torch
-import argparse
-import matplotlib.pyplot as plt
+from multiprocessing import Process, Queue
 
-from RAVE.common.Trainer import Trainer
-
-from RAVE.audio.Neural_Network.AudioModel import AudioModel
-from RAVE.audio.Neural_Network.AudioTrainer import AudioTrainer
-from RAVE.audio.Dataset.AudioDataset import AudioDataset
-
-def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
-    """main function of the module
-
-    Args:
-        TRAIN (bool): Whether to train the model or not
-        NB_EPOCHS (int):
-            Number of epochs for which to train the network(ignored if TRAIN is
-            set to false)
-        CONTINUE_TRAINING(bool):
-            Whether to continue the training from the
-            checkpoint on disk or not
-        DISPLAY_VALIDATION (bool):
-            Whether to display the predictions on the validation dataset or not
-        TEST (bool):
-            Whether to display the predictions on the test dataset or not
-    """
-    DEVICE = "cpu"
-    if torch.cuda.is_available():
-        DEVICE = "cuda"
-
-    # training_sub_dataset = AudioDataset(dataset_path='/Users/felixducharmeturcotte/Documents/datasetV2/training', device=DEVICE)
-    # validation_sub_dataset = AudioDataset(dataset_path='/Users/felixducharmeturcotte/Documents/datasetV2/validation', device=DEVICE)
-
-    dataset = AudioDataset(dataset_path='/Users/felixducharmeturcotte/Documents/datasetV3',
-                                          device=DEVICE)
-
-    BATCH_SIZE = 32
-    lenght_dataset = len(dataset)
-    validation_size = round(lenght_dataset*0.3)
-
-    training_sub_dataset, validation_sub_dataset = torch.utils.data.random_split(dataset, [ lenght_dataset - validation_size, validation_size])
-
-    trainer_loader = torch.utils.data.DataLoader(
-        training_sub_dataset,
-        batch_size=BATCH_SIZE,
-        shuffle=True,
-        num_workers=6,
-        pin_memory=True,
-        persistent_workers=True
-    )
+from RAVE.audio.AudioManager import AudioManager
 
 
-    validation_loader = torch.utils.data.DataLoader(
-        validation_sub_dataset,
-        batch_size=BATCH_SIZE,
-        shuffle=False,
-        num_workers=6,
-        pin_memory=True,
-        persistent_workers=True
-    )
+def run_loop(file_queue, worker_num):
 
-    # todo: get directory from dataset class
-    directory = os.path.join("RAVE", "audio")
+    # TODO: ADD POSSIBILITY TO RESET AUDIO_MANAGER INSTEAD OF RECREATING
+    while file_queue.qsize() > 0:
 
-    audioModel = AudioModel(input_size=1026, hidden_size=128, num_layers=2)
-    audioModel.to(DEVICE)
-    print(audioModel)
+        # Get file in queue
+        audio_file = file_queue.get()
+        print(f'Worker {worker_num}: Starting speech enhancement on {audio_file}')
 
-    if TRAIN:
-        optimizer = torch.optim.Adam(
-            audioModel.parameters(),
-            lr=4e-03
-        )
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,verbose=True)
-        trainer = AudioTrainer(
-            trainer_loader,
-            validation_loader,
-            torch.nn.MSELoss(reduction='sum'),
-            DEVICE,
-            audioModel,
-            optimizer,
-            scheduler,
-            directory,
-            CONTINUE_TRAINING
-        )
-        trainer.train_with_validation(NB_EPOCHS)
-
-    AudioTrainer.load_best_model(
-        audioModel, directory
-    )
-    if DISPLAY_VALIDATION:
-        visualize_predictions(audioModel, validation_loader, DEVICE)
-
-    if TEST:
-        print('testing')
+        # Run audio manager
+        audio_manager = AudioManager(debug=False, mask=False, use_timers=False)
+        audio_dict = {
+            'name': 'loop_sim_source',
+            'type': 'sim',
+            'file': audio_file
+        }
+        audio_manager.initialise_audio(source=audio_dict)
+        audio_manager.main_loop()
+        # audio_manager.reset_manager()
 
 
-def visualize_predictions(model, data_loader, DEVICE):
-    """Used to visualize the target and the predictions of the model on some
-       input images
+def main2(LOOP_DIR=None):
 
-    Args:
-        model (Module): The model used to perform the predictions
-        data_loader (Dataloader):
-            The dataloader that provides the images and the targets
-        DEVICE (String): Device on which to perform the computations
-    """
-    with torch.no_grad():
-        for audios, labels, _ in data_loader:
-            audios, labels = audios.to(DEVICE), labels.to(DEVICE)
-            predictions = model(audios)
-            for audio, prediction, label in zip(audios, predictions, labels):
-                y, x = np.mgrid[slice(0, 513, 1),
-                                slice(0, 1, 1/63)]
+    # Get all files in a subdirectory
+    if LOOP_DIR:
+        worker_count = 3
+        worker_list = []
+        file_queue = Queue()
+        # Get audio files
+        input_files = glob.glob(os.path.join(LOOP_DIR, '**/audio.wav'))
+        for audio_file in input_files:
+            file_queue.put(audio_file)
 
-                fig, axs = plt.subplots(3)
-                fig.suptitle('Vertically stacked subplots')
-                axs[0].pcolormesh(x,y,audio[:513,:].float(), shading='gouraud')
-                axs[1].pcolormesh(x,y,prediction.float(), shading='gouraud')
-                axs[2].pcolormesh(x,y,label.float(), shading='gouraud')
-                axs[2].set_xlabel("Temps(s)")
-                axs[1].set_ylabel("Fréquences (hz)")
-                plt.show()
+        # Start workers
+        for w in range(1, worker_count+1):
+            p = Process(target=run_loop, args=(file_queue, w, ))
+            worker_list.append(p)
+            p.start()
+            print(f'Worker {w}: started.')
+
+        # Join workers when done
+        for w_num, p in enumerate(worker_list):
+            p.join()
+            print(f'Worker {w_num+1}: finished.')
+    else:
+        audio_manager = AudioManager(debug=True, mask=False, use_timers=False)
+        audio_manager.initialise_audio()
+        audio_manager.main_loop()
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "-t", "--train", action="store_true", help="Train the neural network"
-    )
-    parser.add_argument(
-        "-e",
-        "--nb_epochs",
-        action="store",
-        type=int,
-        default=20,
-        help="Number of epoch for which to train the neural network",
-    )
-    parser.add_argument(
-        "-c",
-        "--continue_training_from_checkpoint",
-        action="store_true",
-        help="Continue training from checkpoint",
-    )
-
-    parser.add_argument(
-        "-v",
-        "--display_validation",
-        action="store_true",
-        help=(
-            "Display the predictions of the neural network on the validation"
-            "dataset"
-        ),
-    )
-    parser.add_argument(
-        "-p",
-        "--predict",
-        action="store_true",
-        help=(
-            "Display the predictions of the neural network on the test"
-            "dataset"
-        ),
-    )
-    args = parser.parse_args()
-
-    main(
-        args.train,
-        args.nb_epochs,
-        args.continue_training_from_checkpoint,
-        args.display_validation,
-        args.predict,
-    )
+    # main2()
+    main2(LOOP_DIR='C:\\GitProjet\\MS-SNSD\\output\\no_reverb\\1')
