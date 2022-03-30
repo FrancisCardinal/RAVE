@@ -75,35 +75,40 @@ class AudioDatasetBuilder:
                                 [0.007355, 0, 0]
                             ))
 
-    def __init__(self, sources_path, noises_path, output_path, noise_count_range,
-                 speech_noise, sample_per_speech, debug, reverb, configs):
+    def __init__(self, sources_path, noises_path, output_path, debug, reverb, configs):
 
         # Set object values from arguments
-        self.dir_noise_count_range = [noise_count_range[0], noise_count_range[1] + 1]
-        self.speech_noise = speech_noise
-        self.sample_per_speech = sample_per_speech
         self.is_debug = debug
         self.is_reverb = reverb
 
         if not self.is_debug:
             matplotlib.use('Agg')
 
-        self.receiver_abs = None
-        self.dir_noise_count = noise_count_range[0]
-        self.max_source_distance = 5
-        self.n_channels = len(self.receiver_rel)
-
         # Load params/configs
         self.configs = configs
+        # Room configs
         self.room_shapes = self.configs['room_shapes']
         self.reverb_room_shapes = self.configs['reverb_room_shapes']
         self.room_sizes = self.configs['room_sizes']
+        # Noise configs
         self.banned_noises = self.configs['banned_noises']
         self.diffuse_noises = self.configs['diffuse_noises']
         self.max_diffuse_noises = self.configs['max_diffuse_noises']
+        self.dir_noise_count_range = self.configs['noise_count_range']
+        self.dir_noise_count_range = (self.dir_noise_count_range[0], self.dir_noise_count_range[1]+1)
+        self.sample_per_speech = self.configs['sample_per_speech']
+        self.speech_as_noise = self.configs['speech_as_noise']
         self.snr_limits = self.configs['snr_limits']
+        # RIR configs
         self.wall_absorption_limits = self.configs['wall_absorption_limits']
         self.rir_reflexion_order = self.configs['rir_reflexion_order']
+        self.air_absorption = self.configs['air_absorption']
+        self.air_humidity = self.configs['air_humidity']
+
+        self.receiver_abs = None
+        self.dir_noise_count = self.dir_noise_count_range[0]
+        self.max_source_distance = 5
+        self.n_channels = len(self.receiver_rel)
 
         # If use reverb add rooms, if not fix rir max order to 0 and wall absorption to 1
         if self.is_reverb:
@@ -452,10 +457,10 @@ class AudioDatasetBuilder:
                                                                self.wall_absorption_limits[1]*100)) / 100.
         # TODO: CHECK WALL_ABSORPTION AND SCATTERING VALUES
         mat = pra.Material(float(self.rir_wall_absorption), 0.1)
-        room = pra.Room.from_corners(corners, fs=SAMPLE_RATE, air_absorption=True, humidity=40,
-                                     # ray_tracing=True,
+        room = pra.Room.from_corners(corners, fs=SAMPLE_RATE,
+                                     air_absorption=self.air_absorption,
+                                     humidity=self.air_humidity,
                                      max_order=self.rir_reflexion_order,
-                                     # absorption=self.rir_wall_absorption)
                                      materials=mat)
         room.extrude(self.current_room_size[2], materials=mat)
         self.current_room = room
@@ -498,6 +503,7 @@ class AudioDatasetBuilder:
 
         # Generate user head wall corners
         # TODO: GENERATE HEAD CLOSER TO CIRCLE THAN SQUARE?
+        # TODO: DONT  GENERATE HEAD DIRECTLY BEHIND MICROPHONES
         rel_corners = self.receiver_rel
         abs_top_corners = []
         abs_bot_corners = []
