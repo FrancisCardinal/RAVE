@@ -187,7 +187,7 @@ class EyeTrackerDatasetBuilder(DatasetBuilder):
             processed_frame = self.process_frame(frame)
 
             self.save_image_label_pair(
-                filename, processed_frame, self.current_ellipse.to_list()
+                filename + "_real", processed_frame, self.current_ellipse.to_list()
             )
             self.video_frame_id += 1
 

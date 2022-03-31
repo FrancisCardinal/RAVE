@@ -71,23 +71,41 @@ def main(
         EyeTrackerSyntheticDatasetBuilder.create_datasets(True)
 
     BATCH_SIZE = 128
-    training_sub_dataset = EyeTrackerDataset.get_training_sub_dataset()
-    validation_sub_dataset = EyeTrackerDataset.get_validation_sub_dataset()
+    synthetic_training_sub_dataset, real_training_sub_dataset = EyeTrackerDataset.get_training_sub_datasets()
+    synthetic_validation_sub_dataset, real_validation_sub_dataset = EyeTrackerDataset.get_validation_sub_datasets()
 
-    training_loader = torch.utils.data.DataLoader(
-        training_sub_dataset,
+    synthetic_training_loader = torch.utils.data.DataLoader(
+        synthetic_training_sub_dataset,
         batch_size=BATCH_SIZE,
         shuffle=True,
-        num_workers=16,
+        num_workers=20,
         pin_memory=True,
         persistent_workers=True,
     )
 
-    validation_loader = torch.utils.data.DataLoader(
-        validation_sub_dataset,
+    synthetic_validation_loader = torch.utils.data.DataLoader(
+        synthetic_validation_sub_dataset,
         batch_size=BATCH_SIZE,
         shuffle=True,
-        num_workers=16,
+        num_workers=20,
+        pin_memory=True,
+        persistent_workers=True,
+    )
+
+    real_training_loader = torch.utils.data.DataLoader(
+        real_training_sub_dataset,
+        batch_size=BATCH_SIZE,
+        shuffle=True,
+        num_workers=20,
+        pin_memory=True,
+        persistent_workers=True,
+    )
+
+    real_validation_loader = torch.utils.data.DataLoader(
+        real_validation_sub_dataset,
+        batch_size=BATCH_SIZE,
+        shuffle=True,
+        num_workers=20,
         pin_memory=True,
         persistent_workers=True,
     )
@@ -102,8 +120,10 @@ def main(
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer)
 
         trainer = DANNTrainer(
-            training_loader,
-            validation_loader,
+            real_training_loader,
+            real_validation_loader,
+            synthetic_training_loader,
+            synthetic_validation_loader,
             ellipse_loss_function,
             DEVICE,
             eye_tracker_model,
@@ -120,7 +140,7 @@ def main(
     )
 
     if DISPLAY_VALIDATION:
-        visualize_predictions(eye_tracker_model, validation_loader, DEVICE)
+        visualize_predictions(eye_tracker_model, real_validation_loader, DEVICE)
 
     if TEST:
         test_sub_dataset = EyeTrackerDataset.get_test_sub_dataset()

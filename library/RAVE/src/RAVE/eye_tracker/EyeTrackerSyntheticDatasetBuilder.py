@@ -118,7 +118,7 @@ class EyeTrackerSyntheticDatasetBuilder(EyeTrackerDatasetBuilder):
                 "training   dataset",
                 EyeTrackerDataset.IMAGE_DIMENSIONS[1:3],
                 SOURCE_DIR,
-                EyeTrackerDatasetBuilder.CROP_SIZE,
+                EyeTrackerDataset.CROP_SIZE,
             ),
             EyeTrackerSyntheticDatasetBuilder(
                 val_files,
@@ -126,7 +126,7 @@ class EyeTrackerSyntheticDatasetBuilder(EyeTrackerDatasetBuilder):
                 "validation dataset",
                 EyeTrackerDataset.IMAGE_DIMENSIONS[1:3],
                 SOURCE_DIR,
-                EyeTrackerDatasetBuilder.CROP_SIZE,
+                EyeTrackerDataset.CROP_SIZE,
             ),
         ]
         return BUILDERS, dataset_found
@@ -165,14 +165,14 @@ class EyeTrackerSyntheticDatasetBuilder(EyeTrackerDatasetBuilder):
                     "rb",
                 )
             )
-            self.current_ellipse = NormalizedEllipse.get_from_list(annotation)
+            self.current_ellipse = NormalizedEllipse.get_from_list(annotation["ellipse"])
 
             frame = cv2.imread(os.path.join(self.INPUT_IMAGES_PATH, file))
             ORIGINAL_HEIGHT, ORIGINAL_WIDTH = frame.shape[0], frame.shape[1]
             self.current_ellipse.crop(
                 ORIGINAL_HEIGHT,
                 ORIGINAL_WIDTH,
-                EyeTrackerDatasetBuilder.CROP_SIZE,
+                EyeTrackerDataset.CROP_SIZE,
             )
 
             processed_frame = self.process_frame(frame)

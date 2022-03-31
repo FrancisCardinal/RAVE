@@ -19,16 +19,18 @@ class EyeTrackerDataset(Dataset):
 
     Args:
         sub_dataset_dir (String): Name of the directory of the sub-dataset
+        sub_domain (int): One of the class's constants 
     """
 
     EYE_TRACKER_DIR_PATH = os.path.join("RAVE", "eye_tracker")
     TRAINING_MEAN, TRAINING_STD = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
     IMAGE_DIMENSIONS = (3, 240, 320)
     CROP_SIZE = 150, 0, 450, 600
+
     SYNTHETIC_DOMAIN = 0
     REAL_DOMAIN = 1
 
-    def __init__(self, sub_dataset_dir):
+    def __init__(self, sub_dataset_dir, sub_domain):
         super().__init__(
             EyeTrackerDataset.TRAINING_MEAN,
             EyeTrackerDataset.TRAINING_STD,
@@ -36,25 +38,16 @@ class EyeTrackerDataset(Dataset):
             sub_dataset_dir,
             EyeTrackerDataset.IMAGE_DIMENSIONS,
         )
-
-        self.real_images_paths, self.synthetic_images_paths = [], []
+        self.domain = sub_domain
+        sub_domain_string = EyeTrackerDataset.get_domain_string_from_int(sub_domain)
+        self.sub_domain_images_paths = []
         for image_path in self.images_paths:
-            if "synthetic" in image_path:
-                self.synthetic_images_paths.append(image_path)
-            else:
-                self.real_images_paths.append(image_path)
+            if sub_domain_string in image_path:
+                self.sub_domain_images_paths.append(image_path)
 
-        self.nb_synthetic_images = len(self.synthetic_images_paths)
-        self.nb_real_images = len(self.real_images_paths)
-
-        self.real_images_paths = np.array(
-            [str(i) for i in self.real_images_paths], dtype=np.str
+        self.sub_domain_images_paths = np.array(
+            [str(i) for i in self.sub_domain_images_paths], dtype=np.str
         )
-        self.synthetic_images_paths = np.array(
-            [str(i) for i in self.synthetic_images_paths], dtype=np.str
-        )
-
-        self.random = random.Random(42)
 
     def __len__(self):
         """
@@ -64,7 +57,7 @@ class EyeTrackerDataset(Dataset):
         Returns:
             int: The number of elements in the dataset
         """
-        return self.nb_synthetic_images + self.nb_real_images
+        return len(self.sub_domain_images_paths)
 
     def __getitem__(self, idx):
         """
@@ -77,7 +70,7 @@ class EyeTrackerDataset(Dataset):
         Returns:
             tuple: Image and label pair
         """
-        image_path, domain = self.torch_index_to_image_path_and_domain(idx)
+        image_path = self.sub_domain_images_paths[idx]
 
         image, label = self.get_image_and_label_from_image_path(image_path)
 
@@ -85,45 +78,39 @@ class EyeTrackerDataset(Dataset):
 
         image = self.NORMALIZE_TRANSFORM(image)
         label = torch.tensor(label)
-        domain = torch.tensor(domain).float()
+        domain = torch.tensor(self.domain).float()
 
         return image, label, domain
 
-    def torch_index_to_image_path_and_domain(self, idx):
-        image_path, domain = None, None
-        if idx < self.nb_synthetic_images:
-            # idx is one of our self.nb_synthetic_images real imag
-            image_path = self.synthetic_images_paths[idx]
-            domain = EyeTrackerDataset.SYNTHETIC_DOMAIN
+    @staticmethod
+    def get_domain_string_from_int(domain_int):
+        if domain_int == EyeTrackerDataset.SYNTHETIC_DOMAIN:
+            return "_synthetic"
 
-        else:
-            # idx is one of our self.nb_real_images real image
-            image_path = self.real_images_paths[idx - self.nb_synthetic_images]
-            domain = EyeTrackerDataset.REAL_DOMAIN
+        if domain_int == EyeTrackerDataset.REAL_DOMAIN:
+            return "_real"
 
-        return image_path, domain
+        return ""
 
     @staticmethod
-    def get_training_sub_dataset():
+    def get_training_sub_datasets():
         """
-        Used to get the training sub dataset
+        Used to get the training sub datasets
 
         Returns:
-            Dataset: The training sub dataset
+            Dataset: The training sub datasets
         """
-        return EyeTrackerDatasetOnlineDataAugmentation(
-            EyeTrackerDataset.TRAINING_DIR
-        )
+        return EyeTrackerDatasetOnlineDataAugmentation(EyeTrackerDataset.TRAINING_DIR, EyeTrackerDataset.SYNTHETIC_DOMAIN), EyeTrackerDatasetOnlineDataAugmentation(EyeTrackerDataset.TRAINING_DIR, EyeTrackerDataset.REAL_DOMAIN)
 
     @staticmethod
-    def get_validation_sub_dataset():
+    def get_validation_sub_datasets():
         """
-        Used to get the validation sub dataset
+        Used to get the validation sub datasets
 
         Returns:
-            Dataset: The validation sub dataset
+            Dataset: The validation sub datasets
         """
-        return EyeTrackerDataset(EyeTrackerDataset.VALIDATION_DIR)
+        return EyeTrackerDataset(EyeTrackerDataset.VALIDATION_DIR, EyeTrackerDataset.SYNTHETIC_DOMAIN), EyeTrackerDataset(EyeTrackerDataset.VALIDATION_DIR, EyeTrackerDataset.REAL_DOMAIN)
 
     @staticmethod
     def get_test_sub_dataset():
@@ -133,7 +120,7 @@ class EyeTrackerDataset(Dataset):
         Returns:
             Dataset: The test sub dataset
         """
-        return EyeTrackerDataset(EyeTrackerDataset.TEST_DIR)
+        return EyeTrackerDataset(EyeTrackerDataset.TEST_DIR, EyeTrackerDataset.REAL_DOMAIN)
 
 
 class EyeTrackerDatasetOnlineDataAugmentation(EyeTrackerDataset):
@@ -145,8 +132,8 @@ class EyeTrackerDatasetOnlineDataAugmentation(EyeTrackerDataset):
         sub_dataset_dir (String): Name of the directory of the sub-dataset
     """
 
-    def __init__(self, sub_dataset_dir):
-        super().__init__(sub_dataset_dir)
+    def __init__(self, sub_dataset_dir, sub_domain):
+        super().__init__(sub_dataset_dir, sub_domain)
 
         self.TRAINING_TRANSFORM = transforms.Compose(
             [
@@ -170,7 +157,7 @@ class EyeTrackerDatasetOnlineDataAugmentation(EyeTrackerDataset):
         Returns:
             tuple: Image and label pair
         """
-        image_path, domain = self.torch_index_to_image_path_and_domain(idx)
+        image_path = self.sub_domain_images_paths[idx]
 
         image, label = self.get_image_and_label_from_image_path(image_path)
 
@@ -190,7 +177,7 @@ class EyeTrackerDatasetOnlineDataAugmentation(EyeTrackerDataset):
 
         image = self.NORMALIZE_TRANSFORM(output_image_tensor)
         label = torch.tensor(label)
-        domain = torch.tensor(domain).float()
+        domain = torch.tensor(self.domain).float()
 
         return image, label, domain
 
@@ -287,7 +274,7 @@ class EyeTrackerInferenceDataset(EyeTrackerDataset):
             frame = cv2.resize(frame, (600, 800))
 
             top, left, height, width = EyeTrackerDataset.CROP_SIZE
-            frame = frame[top : top + height, left : left + width]
+            frame = frame[top: top + height, left: left + width]
 
             frame = Image.fromarray(frame, "RGB")
             image = self.PRE_PROCESS_TRANSFORM(frame)
