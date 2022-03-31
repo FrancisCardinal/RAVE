@@ -8,8 +8,6 @@ from RAVE.eye_tracker.EyeTrackerDataset import (
     EyeTrackerInferenceDataset,
 )
 from RAVE.eye_tracker.GazeInferer.deepvog.eyefitter import SingleEyeFitter
-from RAVE.eye_tracker.GazeInferer.deepvog.LSqEllipse import LSqEllipse
-from RAVE.eye_tracker.ellipse_util import get_points_of_ellipses
 
 """
 This file is a combination of multiple files of deepvog. It regroups the
@@ -103,17 +101,37 @@ class GazeInferer:
         HEIGHT, WIDTH = self.shape[0], self.shape[1]
 
         h, k, a, b, theta = prediction
-        h, k, a, b = h * WIDTH, k * HEIGHT, a * WIDTH, b * HEIGHT
-        x, y = get_points_of_ellipses(
-            torch.tensor([h, k, a, b, theta]).unsqueeze(0), 360
+        h, k, a, b, theta = (
+            h * WIDTH,
+            k * HEIGHT,
+            a * WIDTH,
+            b * HEIGHT,
+            2 * np.pi * theta - np.pi,
         )
-        x, y = x.squeeze().cpu().numpy(), y.squeeze().cpu().numpy()
 
-        lsq_ellipse = LSqEllipse()
-        lsq_ellipse.fit(x, y)
-        center, width, height, radians = lsq_ellipse.parameters()
+        if (theta > np.pi / 4) and (theta < 3 * np.pi / 4):
+            theta -= np.pi / 2
+            a, b = b, a
 
-        return center, width, height, radians
+        elif theta > 3 * np.pi / 4:
+            theta -= np.pi
+
+        elif (theta < -np.pi / 4) and (theta > -3 * np.pi / 4):
+            theta += np.pi / 2
+            a, b = b, a
+
+        elif theta < -3 * np.pi / 4:
+            theta += np.pi
+
+        h, k, a, b, theta = (
+            h.cpu().numpy(),
+            k.cpu().numpy(),
+            a.cpu().numpy(),
+            b.cpu().numpy(),
+            theta.cpu().numpy(),
+        )
+
+        return [h, k], a, b, theta
 
     def save_eyeball_model(self):
         save_dict = {
