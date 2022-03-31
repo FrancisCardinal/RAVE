@@ -8,8 +8,6 @@ green : WS : 35
 
 card name : tegrasndt186ref
 
-speaker-test -c 2 -D hw:tegrasndt186ref,0 -f 48000 -l 4
-
 fuser -fv /dev/snd/* /dev/dsp*
 
 

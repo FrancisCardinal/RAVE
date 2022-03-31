@@ -7,10 +7,10 @@
 
 const int BUFFER_SIZE = 256;
 int ADMAIFInterface = 1;
-int I2SInterface = 2;
+int I2SInterface = 1;
 int channelNumber = 8;
 int frequency = 48000;
-std::string fileType = "raw"; // raw or wav
+std::string fileType = "wav"; // raw or wav
 
 void system_no_output(const char *cmd)
 {
@@ -26,7 +26,7 @@ void initEnvironment()
   std::string c4 = "amixer -c tegrasndt186ref cset name=\"I2S" + std::to_string(I2SInterface) + " Sample Rate\" " + std::to_string(frequency);
   std::string c5 = "amixer -c tegrasndt186ref cset name=\"I2S" + std::to_string(I2SInterface) + " codec bit format\" 32";
   std::string c6 = "amixer -c tegrasndt186ref cset name=\"I2S" + std::to_string(I2SInterface) + " input bit format\" 32";
-  std::string c7 = "amixer -c tegrasndt186ref cset name=\"I2S" + std::to_string(I2SInterface) + " codec master mode\" \"cbs-cfs\"";
+  std::string c7 = "amixer -c tegrasndt186ref cset name=\"I2S" + std::to_string(I2SInterface) + " codec master mode\" \"i2s\"";
   std::string c8 = "amixer -c tegrasndt186ref cset name=\"I2S" + std::to_string(I2SInterface) + " codec frame mode\" \"dsp-a\"";
   std::string c9 = "amixer -c tegrasndt186ref cset name=\"I2S" + std::to_string(I2SInterface) + " fsync width\" 0";
 
