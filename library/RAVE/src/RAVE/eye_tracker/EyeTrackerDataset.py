@@ -273,7 +273,7 @@ class EyeTrackerInferenceDataset(EyeTrackerDataset):
         """
         success, frame = self._video_feed.read()
 
-        image = None
+        image = 0
         if success:
             frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
             # This resize is temporary. A mistake was made during the

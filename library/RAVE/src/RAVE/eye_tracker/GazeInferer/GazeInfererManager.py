@@ -27,6 +27,9 @@ class GazeInfererManager:
         )
         self._current_state = GazeInfererManager.IDLE_STATE
         self.gaze_inferer = None
+        self.eye_tracker_inference_dataset = EyeTrackerInferenceDataset(
+            self.CAMERA_INDEX, True
+        )
 
     def start_calibration_thread(self):
         self.stop_inference()
@@ -41,11 +44,9 @@ class GazeInfererManager:
             self.gaze_inferer.stop_inference()
 
     def _add_to_fit(self):
-        eye_tracker_calibration_dataset = EyeTrackerInferenceDataset(
-            self.CAMERA_INDEX, True
-        )
+
         calibration_loader = torch.utils.data.DataLoader(
-            eye_tracker_calibration_dataset,
+            self.eye_tracker_inference_dataset,
             batch_size=1,
             shuffle=False,
             num_workers=0,
@@ -64,11 +65,8 @@ class GazeInfererManager:
 
         self._current_state = GazeInfererManager.INFERENCE_STATE
 
-        eye_tracker_conversation_dataset = EyeTrackerInferenceDataset(
-            self.CAMERA_INDEX, True
-        )
         conversation_loader = torch.utils.data.DataLoader(
-            eye_tracker_conversation_dataset,
+            self.eye_tracker_inference_dataset,
             batch_size=1,
             shuffle=False,
             num_workers=0,
@@ -83,7 +81,9 @@ class GazeInfererManager:
         self.gaze_inferer.fit()
 
     def get_current_gaze(self):
-        if self._current_state is not GazeInfererManager.INFERENCE_STATE:
+        if (self._current_state is not GazeInfererManager.INFERENCE_STATE) or (
+            self.gaze_inferer is None
+        ):
             return None, None
 
         return self.gaze_inferer.get_current_gaze()

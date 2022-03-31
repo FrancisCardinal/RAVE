@@ -8,7 +8,8 @@ import threading
 
 from RAVE.face_detection.TrackingManager import TrackingManager
 from RAVE.face_detection.Pixel2Delay import Pixel2Delay
-
+from RAVE.eye_tracker.GazeInferer import GazeInfererManager
+from RAVE.face_detection.Direction2Pixel import Direction2Pixel
 
 sio = socketio.Client()
 
@@ -58,6 +59,12 @@ def timed_callback(period, f, *args):
     while True:
         time.sleep(next(g))
         f(*args)
+
+
+class AppManagerTmp:
+    def __init__(self):
+        self._gaze_inferer_manager = GazeInfererManager()
+        self._direction_2_pixel = Direction2Pixel(16, 21)
 
 
 class AppManager:

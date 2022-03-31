@@ -232,17 +232,21 @@ def annotate(root):
 
 
 def inference(device):
-    import time
-
     gaze_inferer_manager = GazeInfererManager(2, device)
     gaze_inferer_manager.start_calibration_thread()
-    time.sleep(5)
-    gaze_inferer_manager.start_inference_thread()
-    for _ in range(500):
+
+    is_waiting_for_calibration_to_end = True
+    while is_waiting_for_calibration_to_end:
+        key = input("Next command : ")
+        if key == "":
+            gaze_inferer_manager.start_inference_thread()
+            is_waiting_for_calibration_to_end = False
+
+    while True:
         x, y = gaze_inferer_manager.get_current_gaze()
         if x is not None:
             print("x = {} | y = {}".format(x, y))
-        time.sleep(0.01)
+
     gaze_inferer_manager.stop_inference()
 
 
