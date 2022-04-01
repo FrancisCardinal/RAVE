@@ -63,5 +63,10 @@ sinks: [
         'name': 'speech_gt_out',
         'type': 'sim'
           #       'file': 'C:\\GitProjet\\MS-SNSD\\output\\2\\clnsp0_AirConditioner_2_Babble_8\\audio.wav'
+    },
+    {
+        'name': 'torch_gt',
+        'type': 'sim'
+          #       'file': 'C:\\GitProjet\\MS-SNSD\\output\\2\\clnsp0_AirConditioner_2_Babble_8\\audio.wav'
     }
 ]
