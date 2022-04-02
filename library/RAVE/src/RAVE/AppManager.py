@@ -61,12 +61,6 @@ def timed_callback(period, f, *args):
         f(*args)
 
 
-class AppManagerTmp:
-    def __init__(self):
-        self._gaze_inferer_manager = GazeInfererManager()
-        self._direction_2_pixel = Direction2Pixel(16, 21)
-
-
 class AppManager:
     """
     Class for managing the output of the tracking to the web

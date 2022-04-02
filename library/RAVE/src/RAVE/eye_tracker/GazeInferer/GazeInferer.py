@@ -10,6 +10,9 @@ from RAVE.eye_tracker.EyeTrackerDataset import (
 )
 from RAVE.eye_tracker.GazeInferer.deepvog.eyefitter import SingleEyeFitter
 
+import cv2
+from RAVE.common.image_utils import tensor_to_opencv_image, inverse_normalize
+from RAVE.eye_tracker.ellipse_util import draw_ellipse_on_image
 from RAVE.common.Filters import box_smooth
 
 """
@@ -64,6 +67,7 @@ class GazeInferer:
             np.zeros((self._median_size + self._box_size - 1)),
             np.zeros((self._median_size + self._box_size - 1)),
         )
+        self.out = None
 
     def add_to_fit(self):
         self.should_add_to_fit = True
@@ -103,8 +107,6 @@ class GazeInferer:
         ):
             raise TypeError("Eyeball model was not fitted.")
 
-        self.save_eyeball_model()
-
     def torch_prediction_to_deepvog_format(self, prediction):
         HEIGHT, WIDTH = self.shape[0], self.shape[1]
 
@@ -141,10 +143,24 @@ class GazeInferer:
 
         return [h, k], a, b, theta
 
+    def set_offset(self):
+        with torch.no_grad():
+            for images, success in self._dataloader:
+                if not success:
+                    raise ValueError("Could not set offset.")
+
+                self._x_offset, self._y_offset = self.get_angles_from_image(
+                    images
+                )
+                self.save_eyeball_model()
+                break
+
     def save_eyeball_model(self):
         save_dict = {
             "eye_centre": self._eyefitter.eye_centre.tolist(),
             "aver_eye_radius": self._eyefitter.aver_eye_radius,
+            "x_offset": self._x_offset,
+            "y_offset": self._y_offset,
         }
         json_str = json.dumps(save_dict, indent=4)
         with open(self._eyeball_model_path, "w") as fh:
@@ -152,7 +168,6 @@ class GazeInferer:
 
     def infer(self):
         self.load_eyeball_model()
-        x_offset, y_offset = None, None
 
         self.should_infer = True
         with torch.no_grad():
@@ -160,57 +175,75 @@ class GazeInferer:
                 for images, success in self._dataloader:
                     if not success:
                         continue
-                    images = images.to(self._device)
 
-                    predictions, _ = self._ellipse_dnn(images)
+                    x, y = self.get_angles_from_image(images)
 
-                    for prediction in predictions:
-                        self._eyefitter.unproject_single_observation(
-                            self.torch_prediction_to_deepvog_format(prediction)
-                        )
-                        (
-                            _,
-                            n_list,
-                            _,
-                            _,
-                        ) = self._eyefitter.gen_consistent_pupil()
-                        x, y = self._eyefitter.convert_vec2angle31(n_list[0])
+                    self._past_xs = np.roll(self._past_xs, -1)
+                    self._past_ys = np.roll(self._past_ys, -1)
+                    self._past_xs[-1] = x
+                    self._past_ys[-1] = y
 
-                        if x_offset is None:
-                            # TODO FC : The code assumes that the user will
-                            #        be looking straight forward on the first
-                            #        frame. Might need to had a calibration
-                            #        step for this.
-                            x_offset = x
-                            y_offset = y
+                    median_filtered_x = median_filter(
+                        self._past_xs, self._median_size
+                    )
+                    median_filtered_y = median_filter(
+                        self._past_ys, self._median_size
+                    )
 
-                        self._past_xs = np.roll(self._past_xs, -1)
-                        self._past_ys = np.roll(self._past_ys, -1)
-                        self._past_xs[-1] = x
-                        self._past_ys[-1] = y
+                    box_filtered_x = box_smooth(
+                        median_filtered_x[
+                            self._box_size - 1 : 2 * self._box_size - 1
+                        ],
+                        self._box_size,
+                    )
+                    box_filtered_y = box_smooth(
+                        median_filtered_y[
+                            self._box_size - 1 : 2 * self._box_size - 1
+                        ],
+                        self._box_size,
+                    )
 
-                        median_filtered_x = median_filter(
-                            self._past_xs, self._median_size
-                        )
-                        median_filtered_y = median_filter(
-                            self._past_ys, self._median_size
-                        )
+                    self.x = (
+                        box_filtered_x[self._box_size // 2] - self._x_offset
+                    )
+                    self.y = (
+                        box_filtered_y[self._box_size // 2] - self._y_offset
+                    )
 
-                        box_filtered_x = box_smooth(
-                            median_filtered_x[
-                                self._box_size - 1 : 2 * self._box_size - 1
-                            ],
-                            self._box_size,
-                        )
-                        box_filtered_y = box_smooth(
-                            median_filtered_y[
-                                self._box_size - 1 : 2 * self._box_size - 1
-                            ],
-                            self._box_size,
-                        )
+    def get_angles_from_image(self, images, save_video_feed=True):
+        images = images.to(self._device)
 
-                        self.x = box_filtered_x[self._box_size // 2] - x_offset
-                        self.y = box_filtered_y[self._box_size // 2] - y_offset
+        predictions, _ = self._ellipse_dnn(images)
+
+        prediction = predictions[0]
+        self._eyefitter.unproject_single_observation(
+            self.torch_prediction_to_deepvog_format(prediction)
+        )
+        (_, n_list, _, _,) = self._eyefitter.gen_consistent_pupil()
+        x, y = self._eyefitter.convert_vec2angle31(n_list[0])
+
+        if save_video_feed:
+            if self.out is None:
+                self.out = cv2.VideoWriter(
+                    "eye_tracker.avi",
+                    cv2.VideoWriter_fourcc("M", "J", "P", "G"),
+                    30,
+                    (320, 240),
+                )
+
+            image = inverse_normalize(
+                images[0],
+                EyeTrackerDataset.TRAINING_MEAN,
+                EyeTrackerDataset.TRAINING_STD,
+            )
+            image = tensor_to_opencv_image(image)
+
+            image = draw_ellipse_on_image(
+                image, predictions[0], color=(255, 0, 0)
+            )
+            self.out.write(image)
+
+        return x, y
 
     def stop_inference(self):
         self.should_infer = False
@@ -229,6 +262,9 @@ class GazeInferer:
 
         self._eyefitter.eye_centre = np.array(loaded_dict["eye_centre"])
         self._eyefitter.aver_eye_radius = loaded_dict["aver_eye_radius"]
+
+        self._x_offset = loaded_dict["x_offset"]
+        self._y_offset = loaded_dict["y_offset"]
 
     def get_current_gaze(self):
         return self.x, self.y

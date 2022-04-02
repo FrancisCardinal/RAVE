@@ -82,10 +82,25 @@ class Direction2Pixel:
             * np.sqrt(1 - (y ** 2 / self._pixel_radius_y_squared))
         ) / self._u_x
 
+        pixel_x = self._center_x + (sign_x * (x + sign_x * self._x_offset))
+
+        pixel_y = self._center_y + (
+            opposite_sign_y * (y + opposite_sign_y * self._y_offset)
+        )
+
+        if pixel_x > self._center_x * 2:
+            pixel_x = self._center_x * 2
+        elif pixel_x < 0:
+            pixel_x = 0
+
+        if pixel_y > self._center_y * 2:
+            pixel_y = self._center_y * 2
+        elif pixel_y < 0:
+            pixel_y = 0
+
         return (
-            self._center_x + (sign_x * (x + sign_x * self._x_offset)),
-            self._center_y
-            + (opposite_sign_y * (y + opposite_sign_y * self._y_offset)),
+            int(pixel_x),
+            int(pixel_y),
         )
 
 
