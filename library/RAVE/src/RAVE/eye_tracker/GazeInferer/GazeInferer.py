@@ -1,6 +1,7 @@
 import os
 import torch
 import numpy as np
+from scipy.ndimage import median_filter
 import json
 
 from RAVE.eye_tracker.EyeTrackerDataset import (
@@ -8,6 +9,8 @@ from RAVE.eye_tracker.EyeTrackerDataset import (
     EyeTrackerInferenceDataset,
 )
 from RAVE.eye_tracker.GazeInferer.deepvog.eyefitter import SingleEyeFitter
+
+from RAVE.common.Filters import box_smooth
 
 """
 This file is a combination of multiple files of deepvog. It regroups the
@@ -56,6 +59,11 @@ class GazeInferer:
             sensor_size=sensor_size,
         )
         self.x, self.y = None, None
+        self._median_size, self._box_size = 5, 3
+        self._past_xs, self._past_ys = (
+            np.zeros((self._median_size + self._box_size - 1)),
+            np.zeros((self._median_size + self._box_size - 1)),
+        )
 
     def add_to_fit(self):
         self.should_add_to_fit = True
@@ -166,20 +174,43 @@ class GazeInferer:
                             _,
                             _,
                         ) = self._eyefitter.gen_consistent_pupil()
-                        self.x, self.y = self._eyefitter.convert_vec2angle31(
-                            n_list[0]
-                        )
+                        x, y = self._eyefitter.convert_vec2angle31(n_list[0])
 
                         if x_offset is None:
                             # TODO FC : The code assumes that the user will
                             #        be looking straight forward on the first
                             #        frame. Might need to had a calibration
                             #        step for this.
-                            x_offset = self.x
-                            y_offset = self.y
+                            x_offset = x
+                            y_offset = y
 
-                        self.x -= x_offset
-                        self.y -= y_offset
+                        self._past_xs = np.roll(self._past_xs, -1)
+                        self._past_ys = np.roll(self._past_ys, -1)
+                        self._past_xs[-1] = x
+                        self._past_ys[-1] = y
+
+                        median_filtered_x = median_filter(
+                            self._past_xs, self._median_size
+                        )
+                        median_filtered_y = median_filter(
+                            self._past_ys, self._median_size
+                        )
+
+                        box_filtered_x = box_smooth(
+                            median_filtered_x[
+                                self._box_size - 1 : 2 * self._box_size - 1
+                            ],
+                            self._box_size,
+                        )
+                        box_filtered_y = box_smooth(
+                            median_filtered_y[
+                                self._box_size - 1 : 2 * self._box_size - 1
+                            ],
+                            self._box_size,
+                        )
+
+                        self.x = box_filtered_x[self._box_size // 2] - x_offset
+                        self.y = box_filtered_y[self._box_size // 2] - y_offset
 
     def stop_inference(self):
         self.should_infer = False

@@ -5,6 +5,7 @@ import torch
 import numpy as np
 import cv2
 import random
+import time
 
 from RAVE.common.DANNTrainer import DANNTrainer
 from RAVE.common.image_utils import tensor_to_opencv_image, inverse_normalize
@@ -242,7 +243,9 @@ def inference(device):
             gaze_inferer_manager.start_inference_thread()
             is_waiting_for_calibration_to_end = False
 
-    while True:
+    FPS = 30.0
+    for i in range(int(5 * FPS)):
+        time.sleep(1 / FPS)
         x, y = gaze_inferer_manager.get_current_gaze()
         if x is not None:
             print("x = {} | y = {}".format(x, y))

@@ -79,6 +79,7 @@ class GazeInfererManager:
     def _end_calibration_thread(self):
         self.gaze_inferer.stop_adding_to_fit()
         self.gaze_inferer.fit()
+        self._current_state = GazeInfererManager.IDLE_STATE
 
     def get_current_gaze(self):
         if (self._current_state is not GazeInfererManager.INFERENCE_STATE) or (
