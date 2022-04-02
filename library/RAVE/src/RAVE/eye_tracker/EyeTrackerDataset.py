@@ -100,7 +100,7 @@ class EyeTrackerDataset(Dataset):
         Returns:
             Dataset: The training sub datasets
         """
-        return EyeTrackerDatasetOnlineDataAugmentation(EyeTrackerDataset.TRAINING_DIR, EyeTrackerDataset.SYNTHETIC_DOMAIN), EyeTrackerDatasetOnlineDataAugmentation(EyeTrackerDataset.TRAINING_DIR, EyeTrackerDataset.REAL_DOMAIN)
+        return EyeTrackerDataset(EyeTrackerDataset.TRAINING_DIR, EyeTrackerDataset.SYNTHETIC_DOMAIN), EyeTrackerDatasetOnlineDataAugmentation(EyeTrackerDataset.TRAINING_DIR, EyeTrackerDataset.REAL_DOMAIN)
 
     @staticmethod
     def get_validation_sub_datasets():

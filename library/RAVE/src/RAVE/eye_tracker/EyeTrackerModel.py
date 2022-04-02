@@ -73,8 +73,8 @@ class EyeTrackerModel(nn.Module):
             nn.BatchNorm1d(num_features=128),
             nn.ReLU(),
             nn.Dropout(DROPOUT),
-            nn.Linear(128, 1),
-            nn.Sigmoid()
+            nn.Linear(128, 2),
+            nn.LogSoftmax(dim=1)
         )
 
     def forward(self, x, alpha=None):
@@ -109,7 +109,6 @@ class EyeTrackerModel(nn.Module):
         if alpha is not None:
             reverse_bottleneck = ReverseLayerF.apply(bottleneck, alpha)
             classification = self.domain_classification_head(reverse_bottleneck)
-            classification = torch.sigmoid(classification)
 
         return ellipse, classification
 

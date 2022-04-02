@@ -78,7 +78,7 @@ def main(
         synthetic_training_sub_dataset,
         batch_size=BATCH_SIZE,
         shuffle=True,
-        num_workers=20,
+        num_workers=32,
         pin_memory=True,
         persistent_workers=True,
     )
@@ -87,7 +87,7 @@ def main(
         synthetic_validation_sub_dataset,
         batch_size=BATCH_SIZE,
         shuffle=True,
-        num_workers=20,
+        num_workers=32,
         pin_memory=True,
         persistent_workers=True,
     )

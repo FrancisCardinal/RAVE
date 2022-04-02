@@ -38,7 +38,7 @@ class DANNTrainer(Trainer):
 
         self.synthetic_training_loader = synthetic_training_loader
         self.synthetic_validation_loader = synthetic_validation_loader
-        self.domain_classification_loss_function = torch.nn.BCELoss(reduction="sum")
+        self.domain_classification_loss_function = torch.nn.NLLLoss(reduction="sum")
 
         self.training_regression_losses, self.validation_regression_losses = [], []
         self.training_domain_losses, self.validation_domain_losses = [], []
@@ -121,8 +121,7 @@ class DANNTrainer(Trainer):
         """
         self.model.train()
 
-        training_regression_loss, training_domain_loss = 0.0, 0.0
-        number_of_images = 0
+        training_regression_loss, training_domain_loss, nb_images = 0.0, 0.0, 0.0
 
         len_synthetic_dataloader, len_real_dataloader = len(self.synthetic_training_loader), len(self.training_loader)
         data_synthetic_iter = iter(self.synthetic_training_loader)
@@ -141,14 +140,20 @@ class DANNTrainer(Trainer):
             # Get synthetic predictions and loss
             synthetic_regression_loss, synthetic_domain_loss, nb_synthetic_images = self.get_losses_of_one_batch(data_synthetic_iter, alpha)
 
+            regression_loss = synthetic_regression_loss
+            domain_loss = synthetic_domain_loss
+            nb_images += nb_synthetic_images
+
             # Get real predictions and loss
             if(i % len_real_dataloader == 0):
                 data_real_iter = iter(self.training_loader)
+
             real_regression_loss, real_domain_loss, nb_real_images = self.get_losses_of_one_batch(data_real_iter, alpha)
+            regression_loss += real_regression_loss
+            domain_loss += real_domain_loss
+            nb_images += nb_real_images
 
             # Total loss
-            regression_loss = synthetic_regression_loss + real_regression_loss
-            domain_loss = synthetic_domain_loss + real_domain_loss
             loss = regression_loss + domain_loss
             # Calculate gradients
             loss.backward()
@@ -158,10 +163,9 @@ class DANNTrainer(Trainer):
             training_regression_loss += regression_loss.item()
             training_domain_loss += domain_loss.item()
 
-            number_of_images = number_of_images + nb_synthetic_images + nb_real_images
             i += 1
 
-        return training_regression_loss / number_of_images, training_domain_loss / number_of_images
+        return training_regression_loss/nb_images, training_domain_loss/nb_images
 
     def get_losses_of_one_batch(self, data_iter, alpha):
         # Get predictions and loss
@@ -174,7 +178,7 @@ class DANNTrainer(Trainer):
         predictions, classifications = self.model(images, alpha)
         # Find the Loss
         loss = self.loss_function(predictions, labels)
-        domain_loss = self.domain_classification_loss_function(classifications, domains.unsqueeze(1))
+        domain_loss = self.domain_classification_loss_function(classifications, domains.long())
 
         return loss, domain_loss, len(images)
 
@@ -188,37 +192,41 @@ class DANNTrainer(Trainer):
         with torch.no_grad():
             self.model.eval()
 
-            validation_regression_loss, validation_domain_loss = 0.0, 0.0
-            number_of_images = 0
+            validation_regression_loss, validation_domain_loss, nb_images = 0.0, 0.0, 0.0
 
-            len_dataloader = min(len(self.synthetic_validation_loader), len(self.validation_loader))
+            len_synthetic_dataloader, len_real_dataloader = len(self.synthetic_validation_loader), len(self.validation_loader)
             data_synthetic_iter = iter(self.synthetic_validation_loader)
             data_real_iter = iter(self.validation_loader)
 
             i = 0
-            while i < len_dataloader:
+            while i < len_synthetic_dataloader:
                 # Compute alpha
-                p = (float(i + self.epoch * len_dataloader) / self.NB_EPOCHS / len_dataloader)  # https://github.com/fungtion/DANN
+                p = (float(i + self.epoch * len_synthetic_dataloader) / self.NB_EPOCHS / len_synthetic_dataloader)  # https://github.com/fungtion/DANN
                 # https://github.com/fungtion/DANN
                 alpha = 2.0 / (1.0 + np.exp(-10 * p)) - 1
 
                 # Get synthetic predictions and loss
                 synthetic_regression_loss, synthetic_domain_loss, nb_synthetic_images = self.get_losses_of_one_batch(data_synthetic_iter, alpha)
 
-                # Get real predictions and loss
-                real_regression_loss, real_domain_loss, nb_real_images = self.get_losses_of_one_batch(data_real_iter, alpha)
+                regression_loss = synthetic_regression_loss
+                domain_loss = synthetic_domain_loss
+                nb_images += nb_synthetic_images
 
-                # Total loss
-                regression_loss = synthetic_regression_loss + real_regression_loss
-                domain_loss = synthetic_domain_loss + real_domain_loss
+                # Get real predictions and loss
+                if(i % len_real_dataloader == 0):
+                    data_real_iter = iter(self.training_loader)
+
+                real_regression_loss, real_domain_loss, nb_real_images = self.get_losses_of_one_batch(data_real_iter, alpha)
+                regression_loss += real_regression_loss
+                domain_loss += real_domain_loss
+                nb_images += nb_real_images
 
                 # Calculate Loss
                 validation_regression_loss += regression_loss.item()
                 validation_domain_loss += domain_loss.item()
-                number_of_images = number_of_images + nb_synthetic_images + nb_real_images
                 i += 1
 
-            return validation_regression_loss / number_of_images, validation_domain_loss / number_of_images
+        return validation_regression_loss/nb_images, validation_domain_loss/nb_images
 
     def update_plot(self):
         """
