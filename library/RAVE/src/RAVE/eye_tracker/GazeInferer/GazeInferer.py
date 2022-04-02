@@ -49,7 +49,7 @@ class GazeInferer:
             eyeball_model_path,
         )
 
-        image, _ = next(iter(self._dataloader))
+        image = next(iter(self._dataloader))
         self.shape = image.shape[2], image.shape[3]
 
         self._eyefitter = SingleEyeFitter(
@@ -74,9 +74,7 @@ class GazeInferer:
         print("Adding to fitting")
         with torch.no_grad():
             while self.should_add_to_fit:
-                for images, success in self._dataloader:
-                    if not success:
-                        continue
+                for images in self._dataloader:
                     images = images.to(self._device)
 
                     # Forward Pass
@@ -145,10 +143,7 @@ class GazeInferer:
 
     def set_offset(self):
         with torch.no_grad():
-            for images, success in self._dataloader:
-                if not success:
-                    raise ValueError("Could not set offset.")
-
+            for images in self._dataloader:
                 self._x_offset, self._y_offset = self.get_angles_from_image(
                     images
                 )
@@ -172,9 +167,7 @@ class GazeInferer:
         self.should_infer = True
         with torch.no_grad():
             while self.should_infer:
-                for images, success in self._dataloader:
-                    if not success:
-                        continue
+                for images in self._dataloader:
 
                     x, y = self.get_angles_from_image(images)
 
