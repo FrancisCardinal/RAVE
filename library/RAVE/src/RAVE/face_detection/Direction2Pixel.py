@@ -1,5 +1,4 @@
 import numpy as np
-import time
 from math import copysign
 
 
@@ -34,6 +33,7 @@ class Direction2Pixel:
         self._center_x = img_width / 2
         self._center_y = img_height / 2
         self._u_x = max_x_angle / 2
+        self._u_y = max_y_angle / 2
         self._u_x_squared = self._u_x ** 2
         self._u_y_squared = (max_y_angle / 2) ** 2
         self._pixel_radius_y_squared = (img_height / 2) ** 2
@@ -43,12 +43,24 @@ class Direction2Pixel:
         self._eps = 1e-20
 
     def get_pixel(self, angle_x, angle_y):
-        sign_x = -1 * copysign(1, angle_x)
-        sign_y = -1 * copysign(1, angle_y)
+        sign_x = copysign(1, angle_x)
+        opposite_sign_y = -1 * copysign(1, angle_y)
 
         # Convert to abs
-        angle_x = -1 * sign_x * angle_x
-        angle_y = -1 * sign_y * angle_y
+        angle_x = sign_x * angle_x
+        angle_y = -1 * opposite_sign_y * angle_y
+
+        if angle_x > self._u_x:
+            angle_x = self._u_x
+            print(
+                "Warning: clipping in x when converting direction to a pixel"
+            )
+
+        if angle_y > self._u_y:
+            angle_y = self._u_y
+            print(
+                "Warning: clipping in y when converting direction to a pixel"
+            )
 
         y = np.sqrt(
             (
@@ -71,19 +83,35 @@ class Direction2Pixel:
         ) / self._u_x
 
         return (
-            self._center_x + (sign_x * (x + self._x_offset)),
-            self._center_y + (sign_y * (y + self._y_offset)),
+            self._center_x + (sign_x * (x + sign_x * self._x_offset)),
+            self._center_y
+            + (opposite_sign_y * (y + opposite_sign_y * self._y_offset)),
         )
 
 
 if __name__ == "__main__":
-    converter = Direction2Pixel(16, 21)
+    converter = Direction2Pixel(-16, 21)
 
-    start = time.time()
-    it = 100000
-    for _ in range(it):
-        x, y = converter.get_pixel(0, -20)
-    end_time = time.time()
-    print(f"it/s: {it/(end_time - start)}")
-
+    # start = time.time()
+    # it = 100000
+    # for _ in range(it):
+    #     x, y = converter.get_pixel(0, -20)
+    # end_time = time.time()
+    # print(f"it/s: {it/(end_time - start)}")
+    # x_plot = np.zeros((480, 640))
+    # x_plot += -10000
+    #
+    # for x_angle in range(-40, 40, 1):
+    #     for y_angle in range(-25, 25, 1):
+    #         x, y = converter.get_pixel(x_angle, y_angle)
+    #         x = 639 if int(x) >= 640 else x
+    #         y = 479 if int(y) >= 480 else y
+    #
+    #         x_plot[int(y), int(x)] = np.abs(x_angle)
+    #
+    #
+    #
+    # plt.imshow(x_plot, interpolation='nearest')
+    # plt.show()
+    x, y = converter.get_pixel(-15, 8.51)
     print(f"Point: {x}, {y}")
