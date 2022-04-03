@@ -22,7 +22,7 @@ mic_dict : {
 beamformer: 'mvdr'
 
 # Output channels (mono vs stereo)
-out_channels: 4
+out_channels: 8
 
 # Jetson configs
 # Jetson mic source  (default idx uses default device)
