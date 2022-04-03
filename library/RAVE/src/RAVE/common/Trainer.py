@@ -95,11 +95,11 @@ class Trainer:
         Args:
             NB_EPOCHS (int): Number of epoch for which to train the model
         """
-
+        self.NB_EPOCHS = NB_EPOCHS
         start_time = time()
 
-        epoch = 0
-        while (epoch < NB_EPOCHS) and (not self.terminate_training):
+        self.epoch = 0
+        while (self.epoch < self.NB_EPOCHS) and (not self.terminate_training):
             current_training_loss = self.compute_training_loss()
             current_validation_loss = self.compute_validation_loss()
 
@@ -108,7 +108,7 @@ class Trainer:
             self.update_plot()
 
             epoch_stats = (
-                f"Epoch {epoch:0>4d} | "
+                f"Epoch {self.epoch:0>4d} | "
                 f"validation_loss={current_validation_loss:.6f} | "
                 f"training_loss={current_training_loss:.6f}"
             )
@@ -125,7 +125,7 @@ class Trainer:
 
             print(epoch_stats)
             self.scheduler.step(current_validation_loss)
-            epoch += 1
+            self.epoch += 1
 
         self.terminate_training = True
         min_training_loss = min(self.training_losses)
@@ -148,6 +148,7 @@ class Trainer:
             dpi=200,
         )
         plt.close(None)
+        return self.min_validation_loss
 
     def compute_training_loss(self):
         """
@@ -258,7 +259,7 @@ class Trainer:
         self.min_validation_loss = checkpoint["min_validation_loss"]
 
     @staticmethod
-    def load_best_model(model, MODEL_DIR_PATH):
+    def load_best_model(model, MODEL_DIR_PATH, device):
         """
         Used to get the best version of a model from disk
 
@@ -266,7 +267,8 @@ class Trainer:
             model (Module): Model on which to update the weights
         """
         checkpoint = torch.load(
-            os.path.join(MODEL_DIR_PATH, Trainer.MODEL_INFO_FILE_NAME)
+            os.path.join(MODEL_DIR_PATH, Trainer.MODEL_INFO_FILE_NAME),
+            map_location=device,
         )
         model.load_state_dict(checkpoint["model_state_dict"])
 
