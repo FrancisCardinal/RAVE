@@ -34,10 +34,15 @@ banned_noises:
         'Hallway_1',
         'Office_1',
         'Washing_1',
-#        'Munching',
-#        'Neighbor',
-#        'ShuttingDoor',
-#        'Typing',
+        'Munching',
+        'Neighbor',
+        'ShuttingDoor',
+        'Typing',
+        'SqueakyChair',
+        'WasherDryer',
+#        'CopyMachine',
+        'AirConditioner',
+        'VacuumCleaner'
     ]
 
 # Diffuse noises
