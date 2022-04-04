@@ -210,46 +210,9 @@ class EyeTrackerInferenceDataset(EyeTrackerDataset):
 
     ACQUISITION_WIDTH, ACQUISITION_HEIGHT = 640, 480
 
-    def __init__(self, opencv_device, is_real_time=True):
+    def __init__(self, opencv_device):
         super().__init__("test")  # TODO FC : Find a more elegant solution
-
-        if isinstance(opencv_device, str):
-            opencv_device = os.path.join(
-                EyeTrackerDataset.EYE_TRACKER_DIR_PATH,
-                "GazeInferer",
-                opencv_device,
-            )
-
         self._video_feed = LatestVideoCapture(opencv_device)
-
-        if not self._video_feed.isOpened():
-            raise IOError(
-                "Cannot open specified device ({})".format(opencv_device)
-            )
-
-        if not isinstance(opencv_device, str):
-
-            codec = 0x47504A4D  # MJPG
-            self._video_feed.set(cv2.CAP_PROP_FPS, 30.0)
-            self._video_feed.set(cv2.CAP_PROP_FOURCC, codec)
-
-            self._video_feed.set(
-                cv2.CAP_PROP_FRAME_WIDTH, self.ACQUISITION_WIDTH
-            )
-            self._video_feed.set(
-                cv2.CAP_PROP_FRAME_HEIGHT, self.ACQUISITION_HEIGHT
-            )
-
-            self._video_feed.set(cv2.CAP_PROP_AUTO_EXPOSURE, 3)
-
-            self._video_feed.set(cv2.CAP_PROP_AUTOFOCUS, 0)
-            self._video_feed.set(cv2.CAP_PROP_FOCUS, 1000)
-
-        self._length = 1
-        if not is_real_time:
-            self._length = (
-                int(self._video_feed.get(cv2.CAP_PROP_FRAME_COUNT)) - 1
-            )
 
     def __len__(self):
         """
@@ -259,7 +222,7 @@ class EyeTrackerInferenceDataset(EyeTrackerDataset):
         Returns:
             int: The number of elements in the dataset
         """
-        return self._length
+        return 1
 
     def __getitem__(self, idx):
         """
@@ -293,3 +256,6 @@ class EyeTrackerInferenceDataset(EyeTrackerDataset):
         image = self.NORMALIZE_TRANSFORM(image)
 
         return image
+
+    def end(self):
+        self._video_feed.end()

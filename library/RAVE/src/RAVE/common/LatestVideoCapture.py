@@ -5,23 +5,26 @@ import cv2, queue, threading, time
 # Taken from https://stackoverflow.com/a/54755738
 class LatestVideoCapture:
     def __init__(self, index):
-        self._cap = cv2.VideoCapture(index)
-        if not self._cap.isOpened():
-            raise IOError("Cannot open specified device ({})".format(index))
-
+        self._index = index
         self.q = queue.Queue()
         self._should_run = True
         t = threading.Thread(target=self._reader)
         t.daemon = True
         t.start()
 
-    def __del__(self):
+    def end(self):
         self._should_run = False
         self._cap.release()
 
     # read frames as soon as they are available, keeping only most recent one
     def _reader(self):
-        time.sleep(0.25)
+        self._cap = cv2.VideoCapture(self._index)
+        if not self._cap.isOpened():
+            raise IOError(
+                "Cannot open specified device ({})".format(self._index)
+            )
+
+        self.setup()
 
         while self._should_run:
             ret, frame = self._cap.read()
@@ -37,11 +40,6 @@ class LatestVideoCapture:
     def read(self):
         return self.q.get()
 
-    def set(self, property, value):
-        self._cap.set(property, value)
+    def setup(self):
+        pass
 
-    def get(self, property):
-        return self._cap.get(property)
-
-    def isOpened(self):
-        return self._cap.isOpened()

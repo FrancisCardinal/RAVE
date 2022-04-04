@@ -281,6 +281,7 @@ def inference(device):
             cv2.waitKey(1)
 
     gaze_inferer_manager.stop_inference()
+    gaze_inferer_manager.end()
     out.release()
 
 
