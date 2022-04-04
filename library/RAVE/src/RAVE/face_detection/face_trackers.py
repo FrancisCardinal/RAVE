@@ -6,7 +6,7 @@ OPENCV_TRACKERS = [
     "mil",
     "boosting",
     "tld",
-    "medianflow"
+    "medianflow",
 ]
 
 
@@ -30,13 +30,12 @@ class TrackerFactory:
         """
         if tracker_type in OPENCV_TRACKERS:
             from .trackers.TrackerOpenCV import TrackerOpenCV
+
             return TrackerOpenCV(tracker_name=tracker_type)
         elif tracker_type == "dlib":
             from .trackers.CorrelationTracker import CorrelationTracker
+
             return CorrelationTracker()
         else:
             print("Unknown tracker type:", tracker_type)
             return None
-
-
-
