@@ -252,11 +252,10 @@ def inference(device):
     gaze_inferer_manager.end_calibration_thread()
 
     wait_for_enter("set offset")
-    gaze_inferer_manager.set_offset()
+    gaze_inferer_manager.set_offset("Jacob_2")
 
     wait_for_enter("start inference")
-    """
-
+    gaze_inferer_manager.set_selected_calibration_path("Jacob_2")
     gaze_inferer_manager.start_inference_thread()
 
     FPS = 30.0
