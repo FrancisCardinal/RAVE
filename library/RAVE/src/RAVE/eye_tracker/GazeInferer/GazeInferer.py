@@ -48,7 +48,7 @@ class GazeInferer:
             "GazeInferer",
             eyeball_model_path,
         )
-
+        self._selected_calibration_path = ""
         image = next(iter(self._dataloader))
         self.shape = image.shape[2], image.shape[3]
 
@@ -89,7 +89,7 @@ class GazeInferer:
     def stop_adding_to_fit(self):
         self.should_add_to_fit = False
 
-    def fit(self):
+    def fit(self, configName):
         # Fit eyeball models. Parameters are stored as internal attributes of
         # Eyefitter instance.
         self._eyefitter.fit_projected_eye_centre(
@@ -104,6 +104,8 @@ class GazeInferer:
             self._eyefitter.aver_eye_radius is None
         ):
             raise TypeError("Eyeball model was not fitted.")
+
+        self.save_eyeball_model(configName)
 
     def torch_prediction_to_deepvog_format(self, prediction):
         HEIGHT, WIDTH = self.shape[0], self.shape[1]
@@ -150,7 +152,13 @@ class GazeInferer:
                 self.save_eyeball_model()
                 break
 
-    def save_eyeball_model(self):
+    def save_eyeball_model(self, file_name):
+        full_path = os.path.join(
+            EyeTrackerDataset.EYE_TRACKER_DIR_PATH,
+            "GazeInferer",
+            "CalibrationMemory",
+            file_name + ".json",
+        )
         save_dict = {
             "eye_centre": self._eyefitter.eye_centre.tolist(),
             "aver_eye_radius": self._eyefitter.aver_eye_radius,
@@ -158,11 +166,11 @@ class GazeInferer:
             "y_offset": self._y_offset,
         }
         json_str = json.dumps(save_dict, indent=4)
-        with open(self._eyeball_model_path, "w") as fh:
+        with open(full_path, "w") as fh:
             fh.write(json_str)
 
-    def infer(self):
-        self.load_eyeball_model()
+    def infer(self, name):
+        self.load_eyeball_model(name)
 
         self.should_infer = True
         with torch.no_grad():
@@ -212,7 +220,12 @@ class GazeInferer:
         self._eyefitter.unproject_single_observation(
             self.torch_prediction_to_deepvog_format(prediction)
         )
-        (_, n_list, _, _,) = self._eyefitter.gen_consistent_pupil()
+        (
+            _,
+            n_list,
+            _,
+            _,
+        ) = self._eyefitter.gen_consistent_pupil()
         x, y = self._eyefitter.convert_vec2angle31(n_list[0])
 
         if save_video_feed:
@@ -241,14 +254,20 @@ class GazeInferer:
     def stop_inference(self):
         self.should_infer = False
 
-    def load_eyeball_model(self):
+    def load_eyeball_model(self, name):
         """
         Load eyeball model parameters of json format from path.
 
         Args:
             path (str): path of the eyeball model file.
         """
-        with open(self._eyeball_model_path, "r+") as fh:
+        full_path = os.path.join(
+            EyeTrackerDataset.EYE_TRACKER_DIR_PATH,
+            "GazeInferer",
+            "CalibrationMemory",
+            name,
+        )
+        with open(full_path, "r+") as fh:
             json_str = fh.read()
 
         loaded_dict = json.loads(json_str)
