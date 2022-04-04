@@ -28,7 +28,7 @@ class TrackerFactory:
                 Returns the created Tracker object or None if unknown
                 tracker_type supplied
         """
-        if OPENCV_TRACKERS.get(tracker_type, None) is not None:
+        if tracker_type in OPENCV_TRACKERS:
             from .trackers.TrackerOpenCV import TrackerOpenCV
             return TrackerOpenCV(tracker_name=tracker_type)
         elif tracker_type == "dlib":
