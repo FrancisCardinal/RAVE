@@ -68,12 +68,15 @@ class GazeInferer:
             np.zeros((self._median_size + self._box_size - 1)),
         )
         self.out = None
+        self.calibration_is_paused = False
 
     def add_to_fit(self):
-        self.should_add_to_fit = True
+        self.should_add_to_fit, self.calibration_is_paused = True, False
         print("Adding to fitting")
         with torch.no_grad():
             while self.should_add_to_fit:
+                if self.calibration_is_paused:
+                    continue
                 for images in self._dataloader:
                     images = images.to(self._device)
 

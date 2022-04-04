@@ -76,11 +76,11 @@ class GazeInfererManager:
 
     def pause_calibration_thread(self):
         print("pause calib")
-        pass  # TODO FC
+        self.gaze_inferer.calibration_is_paused = True
 
     def resume_calibration_thread(self):
         print("resume calib")
-        pass  # TODO FC
+        self.gaze_inferer.calibration_is_paused = False
 
     def _inference(self):
         if self._current_state == GazeInfererManager.CALIBRATION_STATE:
