@@ -35,9 +35,24 @@ class GazeInfererManager:
         )
         self.selected_calibration_path = []
         self.list_calibration = []
-        dir_list = os.listdir("RAVE/eye_tracker/GazeInferer/CalibrationMemory")
+        calibration_directory = os.path.join(
+            "RAVE", "eye_tracker", "GazeInferer", "CalibrationMemory"
+        )
+        self.create_directory_if_does_not_exist(calibration_directory)
+        dir_list = os.listdir(calibration_directory)
         for file_name in dir_list:
             self.list_calibration.append({"name": file_name.rstrip(".json")})
+
+    @staticmethod
+    def create_directory_if_does_not_exist(path):
+        """
+        Creates a directory if it does not exist on the disk
+
+        Args:
+            path (string): The path of the directory to create
+        """
+        if not os.path.isdir(path):
+            os.makedirs(path)
 
     def delete_calibration(self, filename):
         self.list_calibration[:] = [
@@ -106,6 +121,7 @@ class GazeInfererManager:
             for d in self.list_calibration
             if file_path == d.get("name")
         ]
+        self.selected_calibration_path = self.selected_calibration_path[0]
         print(self.selected_calibration_path)
 
     def end_calibration_thread(self, configName):
