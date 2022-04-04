@@ -249,7 +249,7 @@ def inference(device):
     gaze_inferer_manager.start_calibration_thread()
 
     wait_for_enter("end calibration")
-    gaze_inferer_manager._end_calibration_thread()
+    gaze_inferer_manager.end_calibration_thread()
 
     wait_for_enter("set offset")
     gaze_inferer_manager.set_offset()

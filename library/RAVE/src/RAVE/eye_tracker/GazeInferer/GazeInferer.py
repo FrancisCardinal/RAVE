@@ -32,7 +32,6 @@ class GazeInferer:
         eyeball_model_path="model_01.json",
         pupil_radius=4,
         initial_eye_z=52.271,
-        x_angle=22.5,
         flen=3.37,
         sensor_size=(2.7216, 3.6288),
         original_image_size_pre_crop=(
@@ -56,7 +55,6 @@ class GazeInferer:
             focal_length=flen,
             pupil_radius=pupil_radius,
             initial_eye_z=initial_eye_z,
-            x_angle=x_angle,
             image_shape=self.shape,
             original_image_size_pre_crop=original_image_size_pre_crop,
             sensor_size=sensor_size,
@@ -92,13 +90,11 @@ class GazeInferer:
     def stop_adding_to_fit(self):
         self.should_add_to_fit = False
 
-    def fit(self, configName):
+    def fit(self):
         # Fit eyeball models. Parameters are stored as internal attributes of
         # Eyefitter instance.
         self._eyefitter.fit_projected_eye_centre(
-            ransac=False,
-            max_iters=5000,
-            min_distance=10 * len(self._dataloader.dataset),
+            ransac=False, max_iters=250, min_distance=np.inf,
         )
         self._eyefitter.estimate_eye_sphere()
 
@@ -107,8 +103,6 @@ class GazeInferer:
             self._eyefitter.aver_eye_radius is None
         ):
             raise TypeError("Eyeball model was not fitted.")
-
-        self.save_eyeball_model(configName)
 
     def torch_prediction_to_deepvog_format(self, prediction):
         HEIGHT, WIDTH = self.shape[0], self.shape[1]
@@ -146,13 +140,13 @@ class GazeInferer:
 
         return [h, k], a, b, theta
 
-    def set_offset(self):
+    def set_offset(self, configName):
         with torch.no_grad():
             for images in self._dataloader:
                 self._x_offset, self._y_offset = self.get_angles_from_image(
                     images
                 )
-                self.save_eyeball_model()
+                self.save_eyeball_model(configName)
                 break
 
     def save_eyeball_model(self, file_name):
@@ -223,12 +217,7 @@ class GazeInferer:
         self._eyefitter.unproject_single_observation(
             self.torch_prediction_to_deepvog_format(prediction)
         )
-        (
-            _,
-            n_list,
-            _,
-            _,
-        ) = self._eyefitter.gen_consistent_pupil()
+        (_, n_list, _, _,) = self._eyefitter.gen_consistent_pupil()
         x, y = self._eyefitter.convert_vec2angle31(n_list[0])
 
         if save_video_feed:

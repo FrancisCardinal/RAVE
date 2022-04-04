@@ -10,7 +10,7 @@ import numpy as np
 
 from ..common.image_utils import apply_image_translation, apply_image_rotation
 from ..common.Dataset import Dataset
-from ..common.LatestVideoCapture import LatestVideoCapture
+from ..eye_tracker.EyeTrackerVideoCapture import EyeTrackerVideoCapture
 from .NormalizedEllipse import NormalizedEllipse
 
 
@@ -208,11 +208,14 @@ class EyeTrackerInferenceDataset(EyeTrackerDataset):
                          index
     """
 
-    ACQUISITION_WIDTH, ACQUISITION_HEIGHT = 640, 480
+    ACQUISITION_WIDTH, ACQUISITION_HEIGHT = (
+        EyeTrackerVideoCapture.ACQUISITION_WIDTH,
+        EyeTrackerVideoCapture.ACQUISITION_HEIGHT,
+    )
 
     def __init__(self, opencv_device):
         super().__init__("test")  # TODO FC : Find a more elegant solution
-        self._video_feed = LatestVideoCapture(opencv_device)
+        self._video_feed = EyeTrackerVideoCapture(opencv_device)
 
     def __len__(self):
         """

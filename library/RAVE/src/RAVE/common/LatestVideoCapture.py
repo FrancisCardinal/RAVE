@@ -14,12 +14,12 @@ class LatestVideoCapture:
 
     def end(self):
         self._should_run = False
-        self._cap.release()
+        self._video_feed.release()
 
     # read frames as soon as they are available, keeping only most recent one
     def _reader(self):
-        self._cap = cv2.VideoCapture(self._index)
-        if not self._cap.isOpened():
+        self._video_feed = cv2.VideoCapture(self._index)
+        if not self._video_feed.isOpened():
             raise IOError(
                 "Cannot open specified device ({})".format(self._index)
             )
@@ -27,7 +27,7 @@ class LatestVideoCapture:
         self.setup()
 
         while self._should_run:
-            ret, frame = self._cap.read()
+            ret, frame = self._video_feed.read()
             if not ret:
                 continue
             if not self.q.empty():
