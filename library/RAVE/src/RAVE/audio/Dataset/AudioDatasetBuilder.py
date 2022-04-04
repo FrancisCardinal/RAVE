@@ -6,7 +6,8 @@ from tqdm import tqdm
 import random
 from shapely.geometry import Polygon, Point
 
-import audiolib
+# import audiolib
+from RAVE.audio.Dataset import audiolib
 
 import numpy as np
 import math
