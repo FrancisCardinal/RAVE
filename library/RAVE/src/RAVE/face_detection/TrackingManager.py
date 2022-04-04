@@ -167,6 +167,8 @@ class TrackingManager:
 
             # Capture image and pass to classes that need it
             frame = cap()
+            frame = cv2.flip(frame, 0)
+            # frame = cv2.imread("test_image_faces.png")
             self.updater.last_frame = frame
             self.object_manager.last_frame = frame
 
@@ -210,6 +212,8 @@ class TrackingManager:
                 Arguments from argument parser, see main_tracking for more
                 information
         """
+        # cap = None
+        # shape = (1422, 948)
         cap = VideoSource(args.video_source, args.width, args.height)
         shape = (
             (cap.shape[1], cap.shape[0])

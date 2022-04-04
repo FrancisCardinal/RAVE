@@ -6,7 +6,9 @@ import torch
 from .Verifier import Verifier
 
 if platform.release().split("-")[-1] == "tegra":
+    print("About to import arcface_trt")
     from .models.arcface import ArcFace_trt as arcface_model
+    print("After arcface_trt import")
 else:
     from .models.arcface import ArcFace_tf as arcface_model
 
@@ -19,6 +21,7 @@ class ArcFace(Verifier):
     def __init__(self, score_threshold):
         self.score_threshold = score_threshold
         self.model = arcface_model.load_model()
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
     def get_features(self, frame, face_locations):
         """
@@ -45,8 +48,10 @@ class ArcFace(Verifier):
             # TODO: Change inference call here.. could make predict() func in
             #  both implementations
             if platform.release().split("-")[-1] == "tegra":
+                image = image.squeeze(0)
+                # TODO: No need to convert to tensor on cuda before bringing it back to numpy
                 tensor = ArcFace.opencv_image_to_tensor(
-                    frame.copy(), self.device
+                    image.copy(), self.device
                 )
                 tensor = torch.unsqueeze(tensor, 0)
                 feature = self.model(tensor.cpu().numpy())

@@ -65,7 +65,7 @@ class TrackingUpdater:
         self.verifier = VerifierFactory.create(
             verifier_type, threshold=verifier_threshold, device=device
         )
-
+        print("Got verifier from factory")
         self.object_manager = object_manager
         self.frequency = frequency
         self.intersection_threshold = intersection_threshold
@@ -158,6 +158,7 @@ class TrackingUpdater:
                 matched_object.increment_evaluation_frames()
 
                 # Also extract new feature vector
+                # TODO: Could set verifier on its own update freq (larger than detector update)
                 feature = self.verifier.get_features(frame, [detection.bbox])[
                     0
                 ]
@@ -342,7 +343,7 @@ class TrackingUpdater:
             if frame is None:
                 print("No frame received, exiting")
                 break
-
+            
             # Do pre-processing of faces
             pre_frame, pre_detections = None, None
             pre_tracked_objects = self.object_manager.pre_tracked_objects

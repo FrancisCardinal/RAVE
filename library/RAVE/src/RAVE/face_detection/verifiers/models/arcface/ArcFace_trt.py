@@ -19,7 +19,9 @@ def load_model():
         "arcface.trt",
     )
 
+    print("Creating TRTModel")
     model = TrtModel(model_path)
+    print("Created TRTModel")
     return model
 
 
