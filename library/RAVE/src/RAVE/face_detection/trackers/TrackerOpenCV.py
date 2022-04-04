@@ -1,6 +1,6 @@
 import cv2
 
-from Tracker import Tracker
+from .Tracker import Tracker
 
 
 OPENCV_TRACKERS = {
@@ -18,6 +18,7 @@ OPENCV_TRACKERS = {
     # NOTE: Could not find a working version
     "medianflow": cv2.legacy.TrackerMedianFlow_create,
 }
+
 
 class TrackerOpenCV(Tracker):
     """

@@ -1,6 +1,6 @@
 import cv2
 
-from .trackers import TrackerFactory
+from .face_trackers import TrackerFactory
 from .verifiers.Encoding import Encoding
 
 NB_FRAMES_TO_CONFIRMED = 8
