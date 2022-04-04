@@ -1,6 +1,3 @@
-from .verifiers.DlibFaceVerifier import DlibFaceRecognition
-from .verifiers.ResnetVerifier import ResNetVerifier
-from .verifiers.ArcfaceVerifier import ArcFace
 
 
 class VerifierFactory:
@@ -24,15 +21,24 @@ class VerifierFactory:
             (Verifier): The newly created verifier or None
         """
         if verifier_type == "dlib":
+            from .verifiers.DlibFaceVerifier import DlibFaceRecognition
             return DlibFaceRecognition(threshold)
-        elif verifier_type == "resnet_face_18":
-            return ResNetVerifier(threshold, device, 18)
+
+        resnet_size = None
+        if verifier_type == "resnet_face_18":
+            resnet_size = 18
         elif verifier_type == "resnet_face_34":
-            return ResNetVerifier(threshold, device, 34)
+            resnet_size = 34
         elif verifier_type == "resnet_face_50":
-            return ResNetVerifier(threshold, device, 50)
-        elif verifier_type == "arcface":
+            resnet_size = 50
+
+        if resnet_size is not None:
+            from .verifiers.ResnetVerifier import ResNetVerifier
+            return ResNetVerifier(threshold, device, resnet_size)
+
+        if verifier_type == "arcface":
+            from .verifiers.ArcfaceVerifier import ArcFace
             return ArcFace(threshold)
-        else:
-            print("Unknown verifier type:", verifier_type)
-            return None
+
+        print("Unknown verifier type:", verifier_type)
+        return None

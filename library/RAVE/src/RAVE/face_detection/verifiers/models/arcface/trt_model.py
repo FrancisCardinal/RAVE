@@ -30,6 +30,7 @@ def ONNX_to_TRT(onnx_model_path=None, trt_engine_path=None, fp16_mode=False):
 
     config = builder.create_builder_config()
     config.max_workspace_size = GiB(1)
+    # config.max_batch_size = 1
     if fp16_mode:
         config.set_flag(trt.BuilderFlag.FP16)
     with open(onnx_model_path, "rb") as model:

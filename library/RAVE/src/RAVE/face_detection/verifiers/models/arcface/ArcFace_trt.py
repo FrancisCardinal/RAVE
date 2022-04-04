@@ -1,7 +1,7 @@
 import os
 
-from trt_model import TrtModel
-from trt_model import ONNX_to_TRT
+from .trt_model import TrtModel
+from .trt_model import ONNX_to_TRT
 
 
 def load_model():
@@ -33,15 +33,20 @@ def convert_model():
     project_path = os.getcwd()
     model_path = os.path.join(
         project_path,
-        "RAVE",
-        "face_detection",
-        "verifiers",
-        "models",
-        "arcface",
+        #"RAVE",
+        #"face_detection",
+        #"verifiers",
+        #"models", 
+        #"arcface",
         "arcface.onnx",
     )
 
-    ONNX_to_TRT(model_path)
+    out_path = os.path.join(
+        project_path,
+        "arcface.trt",
+    )
+
+    ONNX_to_TRT(model_path, out_path)
 
 
 if __name__ == "__main__":

@@ -14,7 +14,7 @@ def get_deepface_home():
     return str(os.getenv("DEEPFACE_HOME", default=Path.home()))
 
 
-def loadModel(
+def load_model(
     url="https://github.com/serengil/deepface_models"
     + "/releases/download/v1.0/arcface_weights.h5",
 ):

@@ -18,7 +18,7 @@ class ArcFace(Verifier):
 
     def __init__(self, score_threshold):
         self.score_threshold = score_threshold
-        self.model = arcface_model.loadModel()
+        self.model = arcface_model.load_model()
 
     def get_features(self, frame, face_locations):
         """
