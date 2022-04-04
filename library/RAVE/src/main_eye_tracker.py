@@ -244,7 +244,6 @@ def inference(device):
         30,
         (640, 480),
     )
-    """ 
     wait_for_enter("start calibration")
     gaze_inferer_manager.start_calibration_thread()
 
