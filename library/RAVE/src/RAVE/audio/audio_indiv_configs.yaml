@@ -9,6 +9,9 @@ model_path: 'C:\\GitProjet\\RAVE\\library\\RAVE\\src\\RAVE\\audio\\Neural_Networ
 # Device index for microphone array
 mic_array_index: 0
 
+# Use beamformer or firect multiplication
+use_beamformer: True
+
 # Sources  (default idx uses default device)
 #source: {
 #    'name': 'Mic1',
@@ -31,42 +34,37 @@ sinks: [
 #    },
     {
         'name': 'original',
-        'type': 'sim'
+        'type': 'sim',
+        'beamform': False
 #        'file': 'C:\\GitProjet\\MS-SNSD\\output\\2\\clnsp0_AirConditioner_2_Babble_8\\audio.wav'
     },
     {
         'name': 'output',
-        'type': 'sim'
-#       'file': 'C:\\GitProjet\\MS-SNSD\\output\\2\\clnsp0_AirConditioner_2_Babble_8\\audio.wav'
-    },
-    {
-        'name': 'output_gt',
-        'type': 'sim'
-          #       'file': 'C:\\GitProjet\\MS-SNSD\\output\\2\\clnsp0_AirConditioner_2_Babble_8\\audio.wav'
-    },
+        'type': 'sim',
+        'beamform': True
+    }
+]
+
+# Debug sinks
+debug_sinks: [
     {
         'name': 'speech_out',
-        'type': 'sim'
-          #       'file': 'C:\\GitProjet\\MS-SNSD\\output\\2\\clnsp0_AirConditioner_2_Babble_8\\audio.wav'
+        'type': 'sim',
+        'beamform': False
     },
     {
         'name': 'noise_out',
-        'type': 'sim'
-          #       'file': 'C:\\GitProjet\\MS-SNSD\\output\\2\\clnsp0_AirConditioner_2_Babble_8\\audio.wav'
+        'type': 'sim',
+        'beamform': False
     },
     {
-        'name': 'noise_gt_out',
-        'type': 'sim'
-          #       'file': 'C:\\GitProjet\\MS-SNSD\\output\\2\\clnsp0_AirConditioner_2_Babble_8\\audio.wav'
-    },
-    {
-        'name': 'speech_gt_out',
-        'type': 'sim'
-          #       'file': 'C:\\GitProjet\\MS-SNSD\\output\\2\\clnsp0_AirConditioner_2_Babble_8\\audio.wav'
+        'name': 'output_gt',
+        'type': 'sim',
+        'beamform': True
     },
     {
         'name': 'torch_gt',
-        'type': 'sim'
-          #       'file': 'C:\\GitProjet\\MS-SNSD\\output\\2\\clnsp0_AirConditioner_2_Babble_8\\audio.wav'
+        'type': 'sim',
+        'beamform': True
     }
 ]

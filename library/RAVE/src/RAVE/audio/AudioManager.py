@@ -39,7 +39,9 @@ EPSILON = 1e-9
 MIN_DB_VAL = 20 * np.log10(EPSILON)
 
 
-THOMAS = True
+THOMAS = False
+
+SHOW_GRAPHS = False
 
 
 class AudioManager:
@@ -54,22 +56,26 @@ class AudioManager:
 
     def __init__(self, debug, mask, use_timers):
 
-        # Class variables init
+        # Argument variables
+        self.debug = debug
+        self.mask = mask
+        self.get_timers = use_timers
+
+        # Class variables init empty
         self.file_params = None
         self.in_subfolder_path = None
         self.out_subfolder_path = None
         self.source = None
         self.original_sink = None
         self.target = None
+        self.source_dict = {}
         self.sink_dict = {}
         self.timers = {}
+        self.transformation = None
+
+        # Set variables to false until changed at init or runtime
+        self.sim_input = False
         self.speech_and_noise = False
-
-        # Argument variables
-        self.debug = debug
-        self.mask = mask
-        self.get_timers = use_timers
-
         self.torch_gt = True
 
         # General configs
@@ -104,10 +110,11 @@ class AudioManager:
             except yaml.YAMLError as exc:
                 print(exc)
                 exit()
-        # Get general configs
+        # Get individual configs
         self.default_output_dir = self.individual_configs['default_output_dir']
         self.mic_array_index = self.individual_configs['mic_array_index']
-        self.source_dict = self.individual_configs['source']
+        self.use_beamformer = self.individual_configs['use_beamformer']
+        self.source_list = self.individual_configs['source']
         self.sink_list = self.individual_configs['sinks']
         self.model_path = self.individual_configs['model_path']
 
@@ -134,11 +141,8 @@ class AudioManager:
 
         # Utils
         # TODO: Check if we want to handle stft and istft in IOManager class
-        self.stft_dict = {}
         self.istft_dict = {}
         self.scm_dict = {}
-
-        # Spectrogram arrays
 
     def init_sim_input(self, name, file):
         """
@@ -151,6 +155,7 @@ class AudioManager:
         Returns:
             source: WavSource object created.
         """
+        # TODO: FIXE FILE PARAMS
         source = self.io_manager.add_source(source_name=name, source_type='sim', file=file, chunk_size=self.chunk_size)
         self.file_params = (1, source.wav_params[1], source.wav_params[2],
                             source.wav_params[3], source.wav_params[4], source.wav_params[5])
@@ -249,6 +254,20 @@ class AudioManager:
         # TODO: ADD RESETS
         self.out_subfolder_path = None
 
+        # Reset STFTs
+        for source_obj in self.source_dict.values():
+            if 'stft' in source_obj:
+                source_obj['stft'].reset()
+
+        # Reset SCMs
+        for scm_obj in self.scm_dict.values():
+            scm_obj.reset()
+
+        # Reset ISTFTs
+        # TODO: MAKE SURE PYODAS ACCEPTS ISTFT RESET
+        for istft_obj in self.istft_dict.values():
+            istft_obj.reset()
+
     def output_sink(self, data, sink_name):
         """
         Checks if sink exists, if yes, output to it
@@ -262,6 +281,7 @@ class AudioManager:
         """
 
         # TODO: ADD POSSIBILITY TO CONTROL OUTPUT CHANNELS
+        # TODO: ADD STEREO OUTPUT
 
         if sink_name in self.sink_dict:
             chosen_sink = self.sink_dict[sink_name]
@@ -375,6 +395,7 @@ class AudioManager:
             sum_db = 20 * torch.log10(sum_real + EPSILON)
 
             # Mono
+            # TODO: KEEP LOG OR NOT?
             signal_real = np.real(signal)
             signal_sq = torch.from_numpy(signal_real ** 2)
             signal_mono = torch.mean(signal_sq, dim=0, keepdims=True)
@@ -410,22 +431,33 @@ class AudioManager:
             self.out_subfolder_path = save_path
 
         # Inputs
+        window = 'hann'
         if source:
-            self.source_dict = source
-        if self.source_dict['type'] == 'sim':
-            self.source = self.init_sim_input(name=self.source_dict['name'], file=self.source_dict['file'])
-            try:
-                self.speech_file = os.path.join(os.path.split(self.source_dict['file'])[0], 'speech.wav')
-                self.speech_source_gt = self.init_sim_input(name='speech_gt_source', file=self.speech_file)
-                self.noise_file = os.path.join(os.path.split(self.source_dict['file'])[0], 'noise.wav')
-                self.noise_source_gt = self.init_sim_input(name='noise_gt_source', file=self.noise_file)
-                self.speech_and_noise = True
-            except:
-                self.speech_and_noise = False
+            self.source_list = source
+        if self.source_list['type'] == 'sim':
+            self.source_dict['audio']['src'] = self.init_sim_input(name=self.source_list['name'],
+                                                                   file=self.source_list['file'])
+            if self.debug:
+                try:
+                    # Load speech file
+                    self.speech_file = os.path.join(os.path.split(self.source_list['file'])[0], 'speech.wav')
+                    self.source_dict['speech']['src'] = self.init_sim_input(name='speech_gt_source', file=self.speech_file)
+                    self.source_dict['speech']['stft'] = Stft(self.channels, self.frame_size, window)
+                    # Load noise file
+                    self.noise_file = os.path.join(os.path.split(self.source_list['file'])[0], 'noise.wav')
+                    self.source_dict['noise']['src'] = self.init_sim_input(name='noise_gt_source', file=self.noise_file)
+                    self.source_dict['noise']['stft'] = Stft(self.channels, self.frame_size, window)
+                    # Set argument to True if successful
+                    self.speech_and_noise = True
+                except:
+                    self.speech_and_noise = False
         else:
-            self.source = self.init_mic_input(name=self.source_dict['name'], src_index=self.source_dict['idx'])
+            self.source_dict['audio']['src'] = self.init_mic_input(name=self.source_dict['name'],
+                                                                   src_index=self.source_dict['idx'])
+        self.source_dict['audio']['stft'] = Stft(self.channels, self.frame_size, window)
 
         # Outputs
+        # TODO: ADD SCM AND ISTFT IN SINK LOOP
         if sinks:
             if overwrite_sinks:
                 self.sink_list = sinks
@@ -436,12 +468,6 @@ class AudioManager:
                 self.sink_dict[sink['name']] = self.init_sim_output(name=sink['name'])
             else:
                 self.sink_dict[sink['name']] = self.init_play_output(name='original', sink_index=sink['idx'])
-
-        # PyODAS objects
-        window = 'hann'
-        self.stft_dict['audio'] = Stft(self.channels, self.frame_size, window)
-        self.stft_dict['speech'] = Stft(self.channels, self.frame_size, window)
-        self.stft_dict['noise'] = Stft(self.channels, self.frame_size, window)
 
         # Model
         if self.mask:
@@ -463,10 +489,17 @@ class AudioManager:
         self.scm_dict['torch_noise_gt'] = SpatialCov(self.channels, self.frame_size, weight=scm_weight)
 
         self.istft_dict['audio'] = IStft(1, self.frame_size, self.chunk_size, window)
-        self.istft_dict['gt'] = IStft(1, self.frame_size, self.chunk_size, window)
         self.istft_dict['speech'] = IStft(self.channels, self.frame_size, self.chunk_size, window)
         self.istft_dict['noise'] = IStft(self.channels, self.frame_size, self.chunk_size, window)
+        self.istft_dict['gt'] = IStft(1, self.frame_size, self.chunk_size, window)
         self.istft_dict['torch'] = IStft(self.channels, self.frame_size, self.chunk_size, window)
+
+        if self.torch_gt:
+            self.transformation = torchaudio.transforms.Spectrogram(
+                n_fft=self.frame_size,
+                hop_length=self.chunk_size,
+                power=None,
+            )
 
     def init_app(self, save_input, save_output, output_path=None):
         """
@@ -494,62 +527,68 @@ class AudioManager:
         Main audio loop.
         """
 
-        # Torchaudio
-        audio_data_t, _ = torchaudio.load(self.source_dict['file'])
-        speech_data_t, _ = torchaudio.load(self.speech_file)
-        noise_data_t, _ = torchaudio.load(self.noise_file)
-        self.transformation = torchaudio.transforms.Spectrogram(
-            n_fft=self.frame_size,
-            hop_length=self.chunk_size,
-            power=None,
-            return_complex=True,
-            normalized=True
-        )
-        # Audio
-        audio_data = self.transformation(audio_data_t)
-        audio_data = audio_data ** 2
-        audio_data = torch.mean(audio_data, dim=0, keepdim=False)
-        audio_data = 20 * torch.log10(torch.abs(audio_data) + EPSILON)
-        # Speech
-        speech_data = self.transformation(speech_data_t)
-        speech_data = speech_data ** 2
-        speech_data = torch.mean(speech_data, dim=0, keepdim=False)
-        speech_data = 20 * torch.log10(torch.abs(speech_data) + EPSILON)
-        # Noise
-        noise_data = self.transformation(noise_data_t)
-        noise_data = noise_data ** 2
-        noise_data = torch.mean(noise_data, dim=0, keepdim=False)
-        noise_data = 20 * torch.log10(torch.abs(noise_data) + EPSILON)
-        # Show
-        fig, axs = plt.subplots(3)
-        fig.suptitle('Spectrogrammes')
-        axs[0].pcolormesh(audio_data, shading='gouraud')
-        axs[1].pcolormesh(speech_data, shading='gouraud')
-        axs[2].pcolormesh(noise_data, shading='gouraud')
-        axs[2].set_xlabel("Temps(s)")
-        axs[0].set_ylabel("Audio")
-        axs[1].set_ylabel("Speech")
-        axs[2].set_ylabel("Noise")
-        save_name = os.path.join(self.out_subfolder_path, 'torch_plots.jpg')
-        plt.savefig(fname=save_name)
+        # TODO: SIMPLIFIED MAIN LOOP FOR "IN SYSTEM" USAGE (REMOVE ALL DEBUG OPTIONS AND SUCH)?
+
+        # Check torchaudio values for sanity-check when whole input is known
+        if self.debug and self.torch_gt:
+            # Audio
+            audio_data_t, _ = torchaudio.load(self.source_dict['file'])
+            audio_data = self.transformation(audio_data_t)
+            audio_data = audio_data.real ** 2
+            audio_data = torch.mean(audio_data, dim=0, keepdim=False)
+            if self.speech_and_noise:
+                # Speech
+                speech_data_t, _ = torchaudio.load(self.speech_file)
+                speech_data = self.transformation(speech_data_t)
+                speech_data = speech_data.real ** 2
+                speech_data = torch.mean(speech_data, dim=0, keepdim=False)
+                # Noise
+                noise_data_t, _ = torchaudio.load(self.noise_file)
+                noise_data = self.transformation(noise_data_t)
+                noise_data = noise_data.real ** 2
+                noise_data = torch.mean(noise_data, dim=0, keepdim=False)
+                # Show
+                fig, axs = plt.subplots(3)
+                fig.suptitle('Spectrogrammes')
+                axs[0].pcolormesh(audio_data, shading='gouraud')
+                axs[1].pcolormesh(speech_data, shading='gouraud')
+                axs[2].pcolormesh(noise_data, shading='gouraud')
+                axs[2].set_xlabel("Temps(s)")
+                axs[0].set_ylabel("Audio")
+                axs[1].set_ylabel("Speech")
+                axs[2].set_ylabel("Noise")
+            else:
+                fig, axs = plt.subplots(1)
+                fig.suptitle('Spectrogrammes')
+                axs[0].pcolormesh(audio_data, shading='gouraud')
+                axs[0].set_xlabel("Temps(s)")
+                axs[0].set_ylabel("Audio")
+            save_name = os.path.join(self.out_subfolder_path, 'torch_plots.jpg')
+            plt.savefig(fname=save_name)
+            if SHOW_GRAPHS:
+                plt.show(block=True)
+            plt.close()
+
+        # Arrays used to store spectrogram information
         if self.debug:
-            plt.show(block=True)
-        plt.close()
-
-        noise_mask_np = None
-        speech_mask_np = None
-        speech_mask_np_gt = None
-        noise_mask_np_gt = None
-        speech_np_gt = None
-
-        torch_speech_mask_np = None
-        torch_noise_mask_np = None
+            noise_mask_np = None
+            speech_mask_np = None
+            if self.speech_and_noise:
+                speech_mask_np_gt = None
+                noise_mask_np_gt = None
+                speech_np_gt = None
+            if self.torch_gt:
+                torch_speech_mask_np = None
+                torch_noise_mask_np = None
 
         samples = 0
         max_time = 0
         loop_i = 0
         while samples / CONST.SAMPLING_RATE < TIME:
             self.check_time(name='loop', is_start=True)
+
+            # Check App-Manager state
+            # TODO: ADD CHECK TO STATE MANAGER
 
             # Record from microphone
             x = self.source()
@@ -567,7 +606,8 @@ class AudioManager:
 
             # Compute the masks
             speech_mask, noise_mask = self.compute_masks(signal=X)
-            if self.speech_and_noise:
+            # Save masks for spectrogram if in debug
+            if self.debug:
                 speech_mask_exp = np.expand_dims(np.real(speech_mask), axis=1)
                 noise_mask_exp = np.expand_dims(np.real(noise_mask), axis=1)
                 if noise_mask_np is not None and speech_mask_np is not None:
@@ -579,14 +619,17 @@ class AudioManager:
 
             # Spatial covariance matrices
             self.check_time(name='scm', is_start=True)
-            target_scm = self.scm_dict['speech'](X, speech_mask)
-            noise_scm = self.scm_dict['noise'](X, noise_mask)
+            if self.use_beamformer:
+                target_scm = self.scm_dict['speech'](X, speech_mask)
+                noise_scm = self.scm_dict['noise'](X, noise_mask)
             self.check_time(name='scm', is_start=False)
 
             # MVDR
             self.check_time(name='beamformer', is_start=True)
-            Y = self.beamformer(signal=X, target_scm=target_scm, noise_scm=noise_scm)
-            # Y = X * speech_mask
+            if self.use_beamformer:
+                Y = self.beamformer(signal=X, target_scm=target_scm, noise_scm=noise_scm)
+            else:
+                Y = X * speech_mask
             self.check_time(name='beamformer', is_start=False)
 
             # ISTFT
@@ -604,112 +647,106 @@ class AudioManager:
             if 'output' in self.sink_dict:
                 self.output_sink(data=out, sink_name='output')
 
-            # Speech and noise ground truth beamforming
-            if self.speech_and_noise:
-                # Get signal
-                s = self.speech_source_gt()
-                n = self.noise_source_gt()
+            # If in debug, check additional sources and output in additional sinks
+            if self.debug:
+                # Speech and noise ground truth beamforming
+                if self.speech_and_noise:
+                    # Get signal
+                    s = self.speech_source_gt()
+                    n = self.noise_source_gt()
 
-                # Temporal top frequential
-                S = self.stft_dict['speech'](s)
-                s_mean = np.mean(S, axis=0)
-                s_log = 20 * np.log10(abs(s_mean) + EPSILON)
-                s_mean = np.expand_dims(s_log, axis=1)
-                if speech_np_gt is not None:
-                    speech_np_gt = np.append(speech_np_gt, s_mean, axis=1)
-                else:
-                    speech_np_gt = s_mean
-                N = self.stft_dict['noise'](n)
+                    # Temporal top frequential
+                    S = self.stft_dict['speech'](s)
+                    s_mean = np.mean(S, axis=0)
+                    s_log = 20 * np.log10(abs(s_mean) + EPSILON)
+                    s_mean = np.expand_dims(s_log, axis=1)
+                    if speech_np_gt is not None:
+                        speech_np_gt = np.append(speech_np_gt, s_mean, axis=1)
+                    else:
+                        speech_np_gt = s_mean
+                    N = self.stft_dict['noise'](n)
 
-                # TODO CHECK CHANGES HERE
+                    # Prepare target as done for the model
+                    # Real
+                    S_real = np.real(S)
+                    N_real = np.real(N)
+                    # Squared
+                    S_sq = np.square(S_real)
+                    N_sq = np.square(N_real)
+                    # Mono
+                    S_mono = np.mean(S_sq, axis=0, keepdims=False)
+                    N_mono = np.mean(N_sq, axis=0, keepdims=False)
 
-                # Real
-                S_real = np.real(S)
-                N_real = np.real(N)
-                # Squared
-                S_sq = np.square(S_real)
-                N_sq = np.square(N_real)
-                # Mono
-                S_mono = np.mean(S_sq, axis=0, keepdims=False)
-                N_mono = np.mean(N_sq, axis=0, keepdims=False)
+                    noise_mask_gt = N_mono / (N_mono + S_mono + EPSILON)
+                    speech_mask_gt = S_mono / (N_mono + S_mono + EPSILON)
 
-                # # Logarithic (dB)
-                # S_db = 20 * np.log10(abs(S_mono) + EPSILON)
-                # N_db = 20 * np.log10(abs(N_mono) + EPSILON)
-                # Offset to 0
-                # S_offset = S_db + MIN_DB_VAL
-                # N_offset = N_db + MIN_DB_VAL
+                    # Save for spectrogram
+                    speech_mask_gt_exp = np.expand_dims(speech_mask_gt, axis=1)
+                    noise_mask_gt_exp = np.expand_dims(noise_mask_gt, axis=1)
+                    if speech_mask_np_gt is not None and noise_mask_np_gt is not None:
+                        speech_mask_np_gt = np.append(speech_mask_np_gt, speech_mask_gt_exp, axis=1)
+                        noise_mask_np_gt = np.append(noise_mask_np_gt, noise_mask_gt_exp, axis=1)
+                    else:
+                        speech_mask_np_gt = speech_mask_gt_exp
+                        noise_mask_np_gt = noise_mask_gt_exp
 
-                noise_mask_gt = N_mono / (N_mono + S_mono + EPSILON)
-                speech_mask_gt = S_mono / (N_mono + S_mono + EPSILON)
+                    # Spatial covariance matrices
+                    target_scm_gt = self.scm_dict['speech_gt'](X, speech_mask_gt)
+                    noise_scm_gt = self.scm_dict['noise_gt'](X, noise_mask_gt)
 
-                # Save for spectrogram
-                speech_mask_gt_exp = np.expand_dims(speech_mask_gt, axis=1)
-                noise_mask_gt_exp = np.expand_dims(noise_mask_gt, axis=1)
-                if speech_mask_np_gt is not None and noise_mask_np_gt is not None:
-                    speech_mask_np_gt = np.append(speech_mask_np_gt, speech_mask_gt_exp, axis=1)
-                    noise_mask_np_gt = np.append(noise_mask_np_gt, noise_mask_gt_exp, axis=1)
-                else:
-                    speech_mask_np_gt = speech_mask_gt_exp
-                    noise_mask_np_gt = noise_mask_gt_exp
+                    # MVDR
+                    Y_gt = self.beamformer(signal=X, target_scm=target_scm_gt, noise_scm=noise_scm_gt)
+                    # Y_gt = X * speech_mask_gt
 
-                # Spatial covariance matrices
-                target_scm_gt = self.scm_dict['speech_gt'](X, speech_mask_gt)
-                noise_scm_gt = self.scm_dict['noise_gt'](X, noise_mask_gt)
+                    # ISTFT
+                    y_gt = self.istft_dict['gt'](Y_gt)
+                    n_out = self.istft_dict['noise'](N)
+                    s_out = self.istft_dict['speech'](S)
 
-                # MVDR
-                Y_gt = self.beamformer(signal=X, target_scm=target_scm_gt, noise_scm=noise_scm_gt)
-                # Y_gt = X * speech_mask_gt
+                    # Output fully processed data
+                    if 'output_gt' in self.sink_dict:
+                        self.output_sink(data=y_gt, sink_name='output_gt')
 
-                # ISTFT
-                y_gt = self.istft_dict['gt'](Y_gt)
-                n_out = self.istft_dict['noise'](N)
-                s_out = self.istft_dict['speech'](S)
+                    if 'speech_out' in self.sink_dict:
+                        self.output_sink(data=s_out, sink_name='speech_out')
 
-                # Output fully processed data
-                if 'output_gt' in self.sink_dict:
-                    self.output_sink(data=y_gt, sink_name='output_gt')
+                    if 'noise_out' in self.sink_dict:
+                        self.output_sink(data=n_out, sink_name='noise_out')
 
-                if 'speech_out' in self.sink_dict:
-                    self.output_sink(data=s_out, sink_name='speech_out')
+                # Offline torch ground truth
+                if self.torch_gt:
+                    # Offset
+                    # TODO: CHECK IF SHOULD REMOVE MIN OR 180 TO BE CONSISTENT
+                    torch_S = speech_data[:, loop_i].numpy()
+                    torch_N = noise_data[:, loop_i].numpy()
+                    torch_speech_offset = torch_S - torch.min(speech_data).numpy()
+                    torch_noise_offset = torch_N - torch.min(noise_data).numpy()
 
-                if 'noise_out' in self.sink_dict:
-                    self.output_sink(data=n_out, sink_name='noise_out')
+                    # Energy
+                    torch_speech_mask_gt = torch_speech_offset / (torch_noise_offset + torch_speech_offset + EPSILON)
+                    torch_noise_mask_gt = torch_noise_offset / (torch_noise_offset + torch_speech_offset + EPSILON)
 
-            # Offline torch ground truth
-            if self.torch_gt:
-                # Offset
-                # TODO: CHECK IF SHOULD REMOVE MIN OR 180 TO BE CONSISTENT
-                torch_S = speech_data[:, loop_i].numpy()
-                torch_N = noise_data[:, loop_i].numpy()
-                torch_speech_offset = torch_S - torch.min(speech_data).numpy()
-                torch_noise_offset = torch_N - torch.min(noise_data).numpy()
+                    # Save for spectrograms
+                    torch_speech_mask_gt_exp = np.expand_dims(torch_speech_mask_gt, axis=1)
+                    torch_noise_mask_gt_exp = np.expand_dims(torch_noise_mask_gt, axis=1)
+                    if torch_speech_mask_np is not None and torch_noise_mask_np is not None:
+                        torch_speech_mask_np = np.append(torch_speech_mask_np, torch_speech_mask_gt_exp, axis=1)
+                        torch_noise_mask_np = np.append(torch_noise_mask_np, torch_noise_mask_gt_exp, axis=1)
+                    else:
+                        torch_speech_mask_np = torch_speech_mask_gt_exp
+                        torch_noise_mask_np = torch_noise_mask_gt_exp
 
-                # Energy
-                torch_speech_mask_gt = torch_speech_offset / (torch_noise_offset + torch_speech_offset + EPSILON)
-                torch_noise_mask_gt = torch_noise_offset / (torch_noise_offset + torch_speech_offset + EPSILON)
+                    # SCM
+                    torch_target_scm_gt = self.scm_dict['torch_speech_gt'](X, torch_S)
+                    torch_noise_scm_gt = self.scm_dict['torch_noise_gt'](X, torch_N)
 
-                # Save for spectrograms
-                torch_speech_mask_gt_exp = np.expand_dims(torch_speech_mask_gt, axis=1)
-                torch_noise_mask_gt_exp = np.expand_dims(torch_noise_mask_gt, axis=1)
-                if torch_speech_mask_np is not None and torch_noise_mask_np is not None:
-                    torch_speech_mask_np = np.append(torch_speech_mask_np, torch_speech_mask_gt_exp, axis=1)
-                    torch_noise_mask_np = np.append(torch_noise_mask_np, torch_noise_mask_gt_exp, axis=1)
-                else:
-                    torch_speech_mask_np = torch_speech_mask_gt_exp
-                    torch_noise_mask_np = torch_noise_mask_gt_exp
+                    # Beamform
+                    torch_Y = self.beamformer(signal=X, target_scm=torch_target_scm_gt, noise_scm=torch_noise_scm_gt)
 
-                # SCM
-                torch_target_scm_gt = self.scm_dict['torch_speech_gt'](X, torch_S)
-                torch_noise_scm_gt = self.scm_dict['torch_noise_gt'](X, torch_N)
-
-                # Beamform
-                torch_Y = self.beamformer(signal=X, target_scm=torch_target_scm_gt, noise_scm=torch_noise_scm_gt)
-
-                # ISTFT and save
-                torch_y = self.istft_dict['torch'](torch_Y)
-                if 'torch_gt' in self.sink_dict:
-                    self.output_sink(data=torch_y, sink_name='torch_gt')
+                    # ISTFT and save
+                    torch_y = self.istft_dict['torch'](torch_Y)
+                    if 'torch_gt' in self.sink_dict:
+                        self.output_sink(data=torch_y, sink_name='torch_gt')
 
             loop_time = self.check_time(name='loop', is_start=False)
             if self.get_timers:
@@ -724,50 +761,51 @@ class AudioManager:
             loop_i += 1
 
         # Plot target + prediction spectrograms
-        if self.speech_and_noise:
-            fig, axs = plt.subplots(7)
-            fig.set_figheight(9)
-            fig.suptitle('Spectrogrammes')
-            axs[0].pcolormesh(speech_np_gt, shading='gouraud')
-            axs[1].pcolormesh(torch_speech_mask_np, shading='gouraud', vmin=0, vmax=1)
-            axs[2].pcolormesh(speech_mask_np_gt, shading='gouraud', vmin=0, vmax=1)
-            axs[3].pcolormesh(speech_mask_np, shading='gouraud', vmin=0, vmax=1)
-            axs[4].pcolormesh(torch_noise_mask_np, shading='gouraud', vmin=0, vmax=1)
-            axs[5].pcolormesh(noise_mask_np_gt, shading='gouraud', vmin=0, vmax=1)
-            axs[6].pcolormesh(noise_mask_np, shading='gouraud', vmin=0, vmax=1)
-            axs[0].set_ylabel("Speech")
-            axs[1].set_ylabel("Torch S")
-            axs[2].set_ylabel("Target S")
-            axs[3].set_ylabel("Pred S")
-            axs[4].set_ylabel("Torch N")
-            axs[5].set_ylabel("Target N")
-            axs[6].set_ylabel("Pred N")
-            axs[6].set_xlabel("Temps(s)")
-            save_name = os.path.join(self.out_subfolder_path, 'out_spec_plots.jpg')
-            plt.savefig(fname=save_name)
-            if self.debug:
-                plt.show(block=True)
-            plt.close()
-        else:
-            fig, axs = plt.subplots(5)
-            fig.set_figheight(9)
-            fig.suptitle('Spectrogrammes')
-            axs[0].pcolormesh(speech_np_gt, shading='gouraud')
-            axs[1].pcolormesh(torch_speech_mask_np, shading='gouraud', vmin=0, vmax=1)
-            axs[2].pcolormesh(speech_mask_np, shading='gouraud', vmin=0, vmax=1)
-            axs[3].pcolormesh(torch_noise_mask_np, shading='gouraud', vmin=0, vmax=1)
-            axs[4].pcolormesh(noise_mask_np, shading='gouraud', vmin=0, vmax=1)
-            axs[0].set_ylabel("Speech")
-            axs[1].set_ylabel("Torch S")
-            axs[2].set_ylabel("Pred S")
-            axs[3].set_ylabel("Torch N")
-            axs[4].set_ylabel("Pred N")
-            axs[4].set_xlabel("Temps(s)")
-            save_name = os.path.join(self.out_subfolder_path, 'out_spec_plots.jpg')
-            plt.savefig(fname=save_name)
-            if self.debug:
-                plt.show(block=True)
-            plt.close()
+        if self.debug:
+            if self.speech_and_noise:
+                fig, axs = plt.subplots(7)
+                fig.set_figheight(9)
+                fig.suptitle('Spectrogrammes')
+                axs[0].pcolormesh(speech_np_gt, shading='gouraud')
+                axs[1].pcolormesh(torch_speech_mask_np, shading='gouraud', vmin=0, vmax=1)
+                axs[2].pcolormesh(speech_mask_np_gt, shading='gouraud', vmin=0, vmax=1)
+                axs[3].pcolormesh(speech_mask_np, shading='gouraud', vmin=0, vmax=1)
+                axs[4].pcolormesh(torch_noise_mask_np, shading='gouraud', vmin=0, vmax=1)
+                axs[5].pcolormesh(noise_mask_np_gt, shading='gouraud', vmin=0, vmax=1)
+                axs[6].pcolormesh(noise_mask_np, shading='gouraud', vmin=0, vmax=1)
+                axs[0].set_ylabel("Speech")
+                axs[1].set_ylabel("Torch S")
+                axs[2].set_ylabel("Target S")
+                axs[3].set_ylabel("Pred S")
+                axs[4].set_ylabel("Torch N")
+                axs[5].set_ylabel("Target N")
+                axs[6].set_ylabel("Pred N")
+                axs[6].set_xlabel("Temps(s)")
+                save_name = os.path.join(self.out_subfolder_path, 'out_spec_plots.jpg')
+                plt.savefig(fname=save_name)
+                if SHOW_GRAPHS:
+                    plt.show(block=True)
+                plt.close()
+            else:
+                fig, axs = plt.subplots(5)
+                fig.set_figheight(9)
+                fig.suptitle('Spectrogrammes')
+                axs[0].pcolormesh(speech_np_gt, shading='gouraud')
+                axs[1].pcolormesh(torch_speech_mask_np, shading='gouraud', vmin=0, vmax=1)
+                axs[2].pcolormesh(speech_mask_np, shading='gouraud', vmin=0, vmax=1)
+                axs[3].pcolormesh(torch_noise_mask_np, shading='gouraud', vmin=0, vmax=1)
+                axs[4].pcolormesh(noise_mask_np, shading='gouraud', vmin=0, vmax=1)
+                axs[0].set_ylabel("Speech")
+                axs[1].set_ylabel("Torch S")
+                axs[2].set_ylabel("Pred S")
+                axs[3].set_ylabel("Torch N")
+                axs[4].set_ylabel("Pred N")
+                axs[4].set_xlabel("Temps(s)")
+                save_name = os.path.join(self.out_subfolder_path, 'out_spec_plots.jpg')
+                plt.savefig(fname=save_name)
+                if SHOW_GRAPHS:
+                    plt.show(block=True)
+                plt.close()
 
         print(f'Audio_Manager: Finished running main_audio : {samples} samples')
         # input()
