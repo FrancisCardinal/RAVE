@@ -30,7 +30,10 @@ class AudioTrainer(Trainer):
             # Forward Pass
             predictions, _ = self.model(images)
             # Find the Loss
-            loss = self.loss_function(predictions*total_energy, labels*total_energy)
+            #loss = self.loss_function(predictions*total_energy, labels*total_energy)
+            energy = torch.squeeze(images[:,:,:513,:])
+            loss = self.loss_function(predictions*energy, labels*energy)
+            #loss = self.loss_function(predictions, labels)
             # Calculate gradients
             loss.backward()
 
@@ -65,7 +68,10 @@ class AudioTrainer(Trainer):
                 # Forward Pass
                 predictions, _ = self.model(images)
                 # Find the Loss
-                loss = self.loss_function(predictions*total_energy, labels*total_energy)
+                #loss = self.loss_function(predictions*total_energy, labels*total_energy)
+                energy = torch.squeeze(images[:, :, :513, :])
+                loss = self.loss_function(predictions * energy, labels * energy)
+                #loss = self.loss_function(predictions, labels)
                 # Calculate Loss
                 validation_loss += loss.item()
                 number_of_images += len(images)
