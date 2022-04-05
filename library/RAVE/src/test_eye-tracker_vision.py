@@ -1,13 +1,14 @@
 import pickle
 import cv2
+import numpy as np
 
 from RAVE.face_detection.Direction2Pixel import (
     Direction2Pixel,
     Direction2PixelFrom3D,
 )
 
-if __name__ == "__main__":
 
+def main():
     angle_x = pickle.load(open("Xs.bin", "rb"))
     angle_y = pickle.load(open("Ys.bin", "rb"))
 
@@ -60,3 +61,28 @@ if __name__ == "__main__":
         counter += 1
 
     print("done!")
+
+
+if __name__ == "__main__":
+    algo_3D = Direction2PixelFrom3D()
+    unit_circle = np.linspace(0, 2 * np.pi, 360)
+    x_coordinates = np.cos(unit_circle)
+    y_coordinates = np.sin(unit_circle)
+
+    x_angles = np.arctan2(x_coordinates, 3)
+    y_angles = np.arctan2(y_coordinates, 3)
+
+    x_angles, y_angles = np.rad2deg(x_angles), np.rad2deg(y_angles)
+
+    for x_angle, y_angle in zip(x_angles, y_angles):
+        point1 = algo_3D.get_pixel(x_angle, y_angle, 1)
+        point2 = algo_3D.get_pixel(x_angle, y_angle, 5)
+
+        frame = np.zeros((480, 640, 3))
+        cv2.line(frame, point1, point2, color=(0, 0, 255), thickness=2)
+        cv2.drawMarker(frame, point1, color=(255, 0, 0), thickness=2)
+        cv2.drawMarker(frame, point2, color=(0, 255, 0), thickness=2)
+        cv2.drawMarker(frame, (320, 240), color=(255, 255, 255), thickness=2)
+
+        cv2.imshow("Test", frame)
+        cv2.waitKey(10)
