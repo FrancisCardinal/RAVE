@@ -12,7 +12,8 @@ export enum PYTHON_EVENTS {
   DELETE_CONFIG = 'deleteEyeTrackingCalib',
   EYE_TRACKER_ADD_NEW_CONFIG = 'addEyeTrackingCalib',
   EYE_TRACKING_CONFIG_SELECTED = 'selectEyeTrackingCalib',
-  EYE_TRACKER_NEXT_CALIBRATION_STEP = 'nextCalibStep',
+  EYE_TRACKER_RESUME_CALIBRATION = 'resumeEyeTrackingCalib',
+  EYE_TRACKER_PAUSE_CALIBRATION =  'pauseEyeTrackingCalib',
   FORCE_REFRESH = 'forceRefresh',
   GO_TO_VISION_CALIBRATION = 'goToVisionCalibration',
   GO_TO_EYE_TRACKER_CALIBRATION = 'goToEyeTrackingCalibration',
@@ -66,6 +67,20 @@ export function EyeTrackingConfigSelectedEvent(name : string) {
     payload : {
       name
     } as EyeTrackingConfigSelectedEventPayload
+  }
+};
+
+export function EyeTrackerResumeCalibEvent() {
+  return {
+    destination : MESSAGE_DESTINATIONS.PYTHON,
+    event: PYTHON_EVENTS.EYE_TRACKER_RESUME_CALIBRATION,
+  }
+};
+
+export function EyeTrackerPauseCalibEvent() {
+  return {
+    destination : MESSAGE_DESTINATIONS.PYTHON,
+    event: PYTHON_EVENTS.EYE_TRACKER_PAUSE_CALIBRATION,
   }
 };
 
@@ -157,13 +172,6 @@ export function StartEyeTrackerCalibrationEvent(){
   return {
     destination : MESSAGE_DESTINATIONS.PYTHON,
     event: PYTHON_EVENTS.START_EYE_TRACKER_CALIBRATION,
-  }
-}
-
-export function EyeTrackerNextCalibrationStepEvent(){
-  return {
-    destination : MESSAGE_DESTINATIONS.PYTHON,
-    event: PYTHON_EVENTS.EYE_TRACKER_NEXT_CALIBRATION_STEP,
   }
 }
 
