@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { SaveIcon, PlayIcon, StopIcon, CameraIcon } from "../../Ressources/icons";
 import { styled } from "@mui/material/styles";
 import { useEmit } from "../../Hooks";
-import { StartEyeTrackerCalibrationEvent, EyeTrackerAddNewConfigEvent, EyeTrackerResumeCalibEvent, EyeTrackerPauseCalibEvent, SetOffsetEyeTrackerCalibrationEvent } from 'rave-protocol/pythonEvents';
+import { StartEyeTrackerCalibrationEvent, EyeTrackerAddNewConfigEvent, EyeTrackerResumeCalibEvent, EndEyeTrackerCalibrationEvent, EyeTrackerPauseCalibEvent, SetOffsetEyeTrackerCalibrationEvent } from 'rave-protocol/pythonEvents';
 
 
 const CustomTextField = styled(TextField)({
@@ -53,6 +53,9 @@ const CalibInstructions : FC<CalibInstructionsProps> = ({setInstructionModalOpen
   const nextStep = () => {
     const newStep = step + 1;
     setStep(newStep);
+    if (step === 3) {
+      emit(EndEyeTrackerCalibrationEvent());
+    }
   }
 
   const handleNameIdChange = (event : React.ChangeEvent<HTMLInputElement>) => {
