@@ -10,6 +10,7 @@ export enum PYTHON_EVENTS {
   CHANGE_VISION_CALIBRATION_PARAMS = 'changeCalibParams',
   CHANGE_VISION_MODE = 'changeVisionMode',
   DELETE_CONFIG = 'deleteEyeTrackingCalib',
+  END_EYE_TRACKER_CALIBRATION = 'endEyeTrackingCalib',
   EYE_TRACKER_ADD_NEW_CONFIG = 'addEyeTrackingCalib',
   EYE_TRACKING_CONFIG_SELECTED = 'selectEyeTrackingCalib',
   EYE_TRACKER_RESUME_CALIBRATION = 'resumeEyeTrackingCalib',
@@ -20,6 +21,7 @@ export enum PYTHON_EVENTS {
   MUTE_REQUEST = 'muteRequest',
   NEXT_CALIBRATION_TARGET = 'nextCalibTarget',
   QUIT_CALIBRATION = 'quitVisionCalibration',
+  SET_OFFSET_EYE_TRACKER_CALIBRATION = 'setOffsetEyeTrackingCalib',
   SET_VOLUME = 'setVolume',
   START_EYE_TRACKER_CALIBRATION = 'startEyeTrackingCalibration',
   TARGET_SELECT = 'targetSelect',
@@ -172,6 +174,20 @@ export function StartEyeTrackerCalibrationEvent(){
   return {
     destination : MESSAGE_DESTINATIONS.PYTHON,
     event: PYTHON_EVENTS.START_EYE_TRACKER_CALIBRATION,
+  }
+}
+
+export function EndEyeTrackerCalibrationEvent(){
+  return {
+    destination : MESSAGE_DESTINATIONS.PYTHON,
+    event: PYTHON_EVENTS.END_EYE_TRACKER_CALIBRATION,
+  }
+}
+
+export function SetOffsetEyeTrackerCalibrationEvent(){
+  return {
+    destination : MESSAGE_DESTINATIONS.PYTHON,
+    event: PYTHON_EVENTS.SET_OFFSET_EYE_TRACKER_CALIBRATION,
   }
 }
 

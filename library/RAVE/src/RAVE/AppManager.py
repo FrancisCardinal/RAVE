@@ -116,12 +116,22 @@ class AppManager:
             "pauseEyeTrackingCalib",
             self._gaze_inferer_manager.pause_calibration_thread,
         )
-        sio.on("addEyeTrackingCalib", self._end_eye_tracking_calibration)
+        sio.on(
+            "endEyeTrackingCalib",
+            self._gaze_inferer_manager.end_calibration_thread,
+        )
+        sio.on(
+            "setOffsetEyeTrackingCalib", self._gaze_inferer_manager.set_offset
+        )
+        sio.on("addEyeTrackingCalib", self._save_eye_calibration)
         sio.on("selectEyeTrackingCalib", self._select_eye_tracking_calibration)
         sio.on("deleteEyeTrackingCalib", self._delete_eye_tracking_calibration)
         sio.on("activateEyeTracking", self.control_eye_tracking)
 
     def emit_calibration_list(self):
+        """
+        Sends the updated eye tracker calibration list to the server.
+        """
         emit(
             "configList",
             "client",
@@ -232,20 +242,18 @@ class AppManager:
         #  force refresh
         self._tracking_manager.stop_tracking()
 
-    def _end_eye_tracking_calibration(self, payload):
+    def _save_eye_calibration(self, payload):
         """
-        Ends the eye tracking calibration and saves the new calibration
+        Calibration is done and saves the nw calibration in a JSON file.
         Args:
-            payload(dict): Containing the new file name for the calibration
+            payload(dict): Contains the filename to use
         """
-        self._gaze_inferer_manager.end_calibration_thread(
-            payload["configName"]
-        )
+        self._gaze_inferer_manager.save_new_calibration(payload["configName"])
         self.emit_calibration_list()
 
     def _select_eye_tracking_calibration(self, payload):
         """
-
+        Assigns the calibration to use in eye-tracking mode.
         Args:
             payload(dict): Containing the calibration filename to use.
         """
@@ -264,7 +272,8 @@ class AppManager:
         """
         Activate and deactivates the eye tracking control mode.
         Args:
-            payload (bool): True to activate or false to stop
+            payload (dict): Key onStatus is a boolean True to
+             activate or false to stop
         """
         if payload["onStatus"]:
             self._gaze_inferer_manager.start_inference_thread()

@@ -1,11 +1,11 @@
 
-import { Modal, TextField, Button} from "@mui/material";
+import { Modal, TextField, Button, IconButton } from "@mui/material";
 import React, { FC, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { SaveIcon, PlayIcon, StopIcon } from "../../Ressources/icons";
+import { SaveIcon, PlayIcon, StopIcon, CameraIcon } from "../../Ressources/icons";
 import { styled } from "@mui/material/styles";
 import { useEmit } from "../../Hooks";
-import { StartEyeTrackerCalibrationEvent, EyeTrackerAddNewConfigEvent, EyeTrackerResumeCalibEvent, EyeTrackerPauseCalibEvent } from 'rave-protocol/pythonEvents';
+import { StartEyeTrackerCalibrationEvent, EyeTrackerAddNewConfigEvent, EyeTrackerResumeCalibEvent, EyeTrackerPauseCalibEvent, SetOffsetEyeTrackerCalibrationEvent } from 'rave-protocol/pythonEvents';
 
 
 const CustomTextField = styled(TextField)({
@@ -44,7 +44,7 @@ const CalibInstructions : FC<CalibInstructionsProps> = ({setInstructionModalOpen
   const [name_id, setName_id] = useState("");
   
   useEffect(() => {
-    if (step >= 3) {
+    if (step >= 4) {
       setOpen(true);
       (document.getElementById('next-button') as HTMLButtonElement).disabled = true;
     }
@@ -76,21 +76,38 @@ const CalibInstructions : FC<CalibInstructionsProps> = ({setInstructionModalOpen
     }
   };
 
+  const InstructionText = () => {
+    if (step < 3) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full pb-8">
+        <p className="bg-grey w-fit rounded p-2 shadow">{t('eyeTrackerCalibrationPage.instruction')}</p>
+        <iframe className="p-2 justify-center" width="100%" height="100%" title="moving-eye" src={gifs[step]}></iframe>
+        <div className="flex flex-row">
+          <Button sx={{ margin: '2px' }} onClick={handleResume} variant="contained" color="success" size="small">
+            <PlayIcon className={"w-5 h-5"} />
+          </Button>
+          <Button sx={{ margin: '2px' }} onClick={() => emit(EyeTrackerPauseCalibEvent())} variant="contained" color="error" size="small">
+            <StopIcon className={"w-5 h-5"} />
+          </Button>
+        </div>
+        </div>
+      );
+    }
+    else {
+      return (
+        <div className="flex flex-col items-center h-full justify-center">
+          <p className="w-fit text-center">{t('eyeTrackerCalibrationPage.offsetInstruction')}</p>
+          <IconButton size="large" color="error" onClick={() => emit(SetOffsetEyeTrackerCalibrationEvent())}>
+            <CameraIcon className={"w-40 h-40"} />
+          </IconButton>
+        </div>
+      );
+    }
+  }
+
   return (
     <div className="h-full">
-      <p className="bg-grey w-fit rounded p-2 shadow">{t('eyeTrackerCalibrationPage.instruction')}</p>
-      <div className="flex flex-col items-center justify-center h-full pb-8">
-        <iframe className="p-2 justify-center" width="100%" height="100%" title="moving-eye" src={gifs[step]}></iframe>
-      <div className="flex flex-row">
-        <Button sx={{ margin: '2px' }} onClick={handleResume} variant="contained" color="success" size="small">
-          <PlayIcon className={"w-5 h-5"} />
-        </Button>
-        <Button sx={{ margin: '2px' }} onClick={() => emit(EyeTrackerPauseCalibEvent())} variant="contained" color="error" size="small">
-          <StopIcon className={"w-5 h-5"} />
-        </Button>
-      </div>
-      </div>
-      
+      <InstructionText />
       <button
         id="next-button"
         className="absolute bottom-0 right-0 px-4 m-4 py-2 font-semibold text-sm bg-grey text-black rounded-md shadow-sm"

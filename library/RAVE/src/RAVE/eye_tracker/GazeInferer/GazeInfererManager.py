@@ -24,7 +24,9 @@ class GazeInfererManager:
         self.model = EyeTrackerModel()
         self.model.to(self.DEVICE)
         DANNTrainer.load_best_model(
-            self.model, EyeTrackerDataset.EYE_TRACKER_DIR_PATH, self.DEVICE,
+            self.model,
+            EyeTrackerDataset.EYE_TRACKER_DIR_PATH,
+            self.DEVICE,
         )
         self._current_state = GazeInfererManager.IDLE_STATE
         self.gaze_inferer = None
@@ -97,7 +99,7 @@ class GazeInfererManager:
 
     def _inference(self):
         if self._current_state == GazeInfererManager.CALIBRATION_STATE:
-            self._end_calibration_thread()
+            self.end_calibration_thread()
 
         self._current_state = GazeInfererManager.INFERENCE_STATE
 
@@ -129,14 +131,15 @@ class GazeInfererManager:
             self.gaze_inferer.fit()
             self._current_state = GazeInfererManager.IDLE_STATE
 
-    def set_offset(self, configName):
+    def set_offset(self):
         if self.gaze_inferer is not None:
-            self.gaze_inferer.set_offset(configName)
+            self.gaze_inferer.set_offset()
+
+    def save_new_calibration(self, name):
+        if self.gaze_inferer is not None:
+            self.gaze_inferer.save_eyeball_model(name)
             self.list_calibration.append(
-                {
-                    "name": configName
-                    + datetime.now().strftime("-%d-%m-%Y %H:%M:%S")
-                }
+                {"name": name + datetime.now().strftime("-%d-%m-%Y %H:%M:%S")}
             )
 
     def get_current_gaze(self):

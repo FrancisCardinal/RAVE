@@ -94,7 +94,9 @@ class GazeInferer:
         # Fit eyeball models. Parameters are stored as internal attributes of
         # Eyefitter instance.
         self._eyefitter.fit_projected_eye_centre(
-            ransac=False, max_iters=250, min_distance=np.inf,
+            ransac=False,
+            max_iters=250,
+            min_distance=np.inf,
         )
         self._eyefitter.estimate_eye_sphere()
 
@@ -140,13 +142,12 @@ class GazeInferer:
 
         return [h, k], a, b, theta
 
-    def set_offset(self, configName):
+    def set_offset(self):
         with torch.no_grad():
             for images in self._dataloader:
                 self._x_offset, self._y_offset = self.get_angles_from_image(
                     images
                 )
-                self.save_eyeball_model(configName)
                 break
 
     def save_eyeball_model(self, file_name):
@@ -217,7 +218,12 @@ class GazeInferer:
         self._eyefitter.unproject_single_observation(
             self.torch_prediction_to_deepvog_format(prediction)
         )
-        (_, n_list, _, _,) = self._eyefitter.gen_consistent_pupil()
+        (
+            _,
+            n_list,
+            _,
+            _,
+        ) = self._eyefitter.gen_consistent_pupil()
         x, y = self._eyefitter.convert_vec2angle31(n_list[0])
 
         if save_video_feed:
