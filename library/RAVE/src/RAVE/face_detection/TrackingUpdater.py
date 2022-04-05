@@ -158,7 +158,8 @@ class TrackingUpdater:
                 matched_object.increment_evaluation_frames()
 
                 # Also extract new feature vector
-                # TODO: Could set verifier on its own update freq (larger than detector update)
+                # TODO: Could set verifier on its own update freq
+                #  (larger than detector update)
                 feature = self.verifier.get_features(frame, [detection.bbox])[
                     0
                 ]
@@ -169,7 +170,7 @@ class TrackingUpdater:
         # Handle unmatched detections
         for new_detection in unmatched_detections:
             # A new object was discovered
-            self.object_manager.add_tracked_object(
+            self.object_manager.add_pre_tracked_object(
                 frame, new_detection.bbox, new_detection.mouth
             )
 
@@ -239,14 +240,12 @@ class TrackingUpdater:
 
                 if similarity_score >= self.verifier_threshold:
                     # Appearance matched last detection
-                    # print("Encoding matched last encoding")
                     pre_tracked_object.update_encoding(
                         feature, frame, detection.bbox
                     )
                     pre_tracked_object.confirm()
                 else:
                     pre_tracked_object.increment_evaluation_frames()
-                    # print("Encoding did not match last")
             else:
                 # Skip verifier compare on first detection
                 pre_tracked_object.update_encoding(
@@ -262,40 +261,43 @@ class TrackingUpdater:
         finished_trackers_id = set()
         pre_tracker_frame = frame.copy()
         rejected_objects = self.object_manager.rejected_objects
-        for tracker_id, tracked_object in pre_tracked_objects.items():
-            if tracked_object.confirmed:
+        for pre_tracker_id, pre_tracked_object in pre_tracked_objects.items():
+            if pre_tracked_object.confirmed:
                 # Check if this object matches an old face
                 restored_object = False
                 rejected_objects_list = list(rejected_objects.values())
                 if any(rejected_objects_list):
                     matched_object = self.compare_encoding_to_objects(
-                        rejected_objects_list, tracked_object.encoding
+                        rejected_objects_list, pre_tracked_object.encoding
                     )
                     if matched_object:
                         # Matched with old face: start tracking again
                         self.object_manager.restore_rejected_object(
-                            matched_object.id, tracked_object
+                            matched_object.id, pre_tracked_object
                         )
                         restored_object = True
 
                 if not restored_object:
+                    # Passing object from pre-tracked to tracked
+                    new_tracked_id = self.object_manager.new_identifier()
+                    pre_tracked_object.update_id(new_tracked_id)
                     self.object_manager.tracked_objects[
-                        tracker_id
-                    ] = tracked_object
+                        new_tracked_id
+                    ] = pre_tracked_object
 
-            if not tracked_object.pending:
-                finished_trackers_id.add(tracker_id)
-                print("Adding finished tracker:", tracker_id)
+            if not pre_tracked_object.pending:
+                finished_trackers_id.add(pre_tracker_id)
+                print("Adding finished tracker:", pre_tracker_id)
 
-            if tracked_object.bbox is None:
+            if pre_tracked_object.bbox is None:
                 continue
 
-            pre_tracker_frame = tracked_object.draw_prediction_on_frame(
+            pre_tracker_frame = pre_tracked_object.draw_prediction_on_frame(
                 pre_tracker_frame
             )
 
-        for id in finished_trackers_id:
-            self.object_manager.remove_pre_tracked_object(id)
+        for pre_id in finished_trackers_id:
+            self.object_manager.remove_pre_tracked_object(pre_id)
 
         self.pre_process_frame = pre_tracker_frame
         return annotated_frame, detections
@@ -343,7 +345,7 @@ class TrackingUpdater:
             if frame is None:
                 print("No frame received, exiting")
                 break
-            
+
             # Do pre-processing of faces
             pre_frame, pre_detections = None, None
             pre_tracked_objects = self.object_manager.pre_tracked_objects
