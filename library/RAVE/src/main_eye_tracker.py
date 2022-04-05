@@ -188,7 +188,7 @@ def visualize_predictions(model, data_loader, DEVICE):
 
 
 def film(root):
-    camera_dataset = EyeTrackerInferenceDataset(2, True)
+    camera_dataset = EyeTrackerInferenceDataset(2)
     camera_loader = torch.utils.data.DataLoader(
         camera_dataset, batch_size=1, shuffle=False, num_workers=0,
     )
@@ -209,7 +209,7 @@ def film(root):
     should_run = True
     while should_run:
         with torch.no_grad():
-            for images, _ in camera_loader:
+            for images in camera_loader:
                 image = inverse_normalize(
                     images[0],
                     EyeTrackerDataset.TRAINING_MEAN,
