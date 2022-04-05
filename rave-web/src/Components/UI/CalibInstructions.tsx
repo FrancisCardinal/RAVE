@@ -53,7 +53,8 @@ const CalibInstructions : FC<CalibInstructionsProps> = ({setInstructionModalOpen
   const nextStep = () => {
     const newStep = step + 1;
     setStep(newStep);
-    if (step === 3) {
+    if (newStep === 3) 
+    {
       emit(EndEyeTrackerCalibrationEvent());
     }
   }
