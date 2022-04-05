@@ -35,13 +35,7 @@ class GazeInfererManager:
         )
         self.selected_calibration_path = []
         self.list_calibration = []
-        calibration_directory = os.path.join(
-            "RAVE", "eye_tracker", "GazeInferer", "CalibrationMemory"
-        )
-        self.create_directory_if_does_not_exist(calibration_directory)
-        dir_list = os.listdir(calibration_directory)
-        for file_name in dir_list:
-            self.list_calibration.append({"name": file_name.rstrip(".json")})
+        self.list_available_calibrations()
 
     @staticmethod
     def create_directory_if_does_not_exist(path):
@@ -54,10 +48,28 @@ class GazeInfererManager:
         if not os.path.isdir(path):
             os.makedirs(path)
 
+    def list_available_calibrations(self):
+        calibration_directory = os.path.join(
+            "RAVE", "eye_tracker", "GazeInferer", "CalibrationMemory"
+        )
+        dir_list = os.listdir(calibration_directory)
+        self.list_calibration = []
+        for file_name in dir_list:
+            self.list_calibration.append({"name": file_name.rsplit(".")[0]})
+        return self.list_calibration
+
     def delete_calibration(self, filename):
-        self.list_calibration[:] = [
-            d for d in self.list_calibration if d.get("name") != filename
-        ]
+        file_path = os.path.join(
+            EyeTrackerDataset.EYE_TRACKER_DIR_PATH,
+            "GazeInferer",
+            "CalibrationMemory",
+            filename + ".json",
+        )
+        print("File to delete:" + file_path)
+        if os.path.exists(file_path):
+            print("Deleted!")
+            os.remove(file_path)
+        self.list_available_calibrations()
 
     def start_calibration_thread(self):
         print("Start calib")
