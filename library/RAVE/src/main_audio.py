@@ -9,7 +9,7 @@ from RAVE.audio.AudioManager import AudioManager
 def run_loop(file_queue, worker_num):
 
     # TODO: ADD POSSIBILITY TO RESET AUDIO_MANAGER INSTEAD OF RECREATING
-    while file_queue.qsize() > 0:
+    while not file_queue.empty():
 
         # Get file in queue
         audio_file = file_queue.get()
@@ -58,4 +58,4 @@ def main2(LOOP_DIR=None):
 
 if __name__ == "__main__":
     # main2()
-    main2(LOOP_DIR='C:\\GitProjet\\MS-SNSD\\output\\no_reverb\\1')
+    main2(LOOP_DIR='C:\\GitProjet\\pipeline\\new')

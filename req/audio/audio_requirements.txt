@@ -4,7 +4,6 @@ pyodas-JacobKealey
 
 soundfile
 scipy
-rir-generator
 pyroomacoustics
 
 -r ../requirements.txt
