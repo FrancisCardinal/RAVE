@@ -794,7 +794,9 @@ class AudioDatasetBuilder:
                 rir_plot = channel_rir[0].T
                 axes[channel_i//2, channel_i % 2].plot(rir_plot)
             plt.savefig(os.path.join(self.current_subfolder, 'rir_channel_plots.jpg'))
-            # plt.show()
+            if SHOW_GRAPHS:
+                plt.show()
+            plt.close()
 
         # Apply RIR to signal
         rir_idx = 0
