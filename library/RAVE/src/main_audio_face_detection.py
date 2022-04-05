@@ -2,26 +2,16 @@ import json
 import numpy as np
 import torch
 from itertools import product
+from tqdm import tqdm
 
 import pyodas.core as core
 import pyodas.visualize as vis
 import pyodas.io as io
 from pyodas.utils import CONST
 
-
-from RAVE.face_detection.FaceDetectionModel import FaceDetectionModel
-from RAVE.common.image_utils import (
-    xyxy2xywh,
-    opencv_image_to_tensor,
-    scale_coords,
-    scale_coords_landmarks,
-)
-from RAVE.common.fpsHelper import FPS
-from main_face_detection import show_results
-
-CHUNK_SIZE = 512
+CHUNK_SIZE = 256
 FRAME_SIZE = 2 * CHUNK_SIZE
-CHANNELS = 4
+CHANNELS = 6
 INT16_BYTE_SIZE = 2
 # NB_OF_FRAMES is 0 because we want to record
 # for an indefinite amount of time
@@ -45,14 +35,11 @@ if torch.cuda.is_available():
 
 # Get calibration matrix
 with open(
-    "./calibration.json",
+    "./calibration_6.json",
     "r",
     encoding="utf-8",
 ) as f:
     calibration_matrix = np.array(json.load(f))
-
-face_detection_model = FaceDetectionModel(DEVICE)
-fps = FPS()
 
 # Used to reconstruct the full matrix delay
 upper_triangle_indices = np.triu_indices(CHANNELS, k=1)
@@ -65,68 +52,46 @@ exponents = np.array(
 )
 
 # Visualize
-video_source = vis.VideoSource(4, WIDTH, HEIGHT)
+video_source = vis.VideoSource(0, WIDTH, HEIGHT)
 m = vis.Monitor("Camera", video_source.shape, refresh_rate=10)
 
 # Core
 stft = core.Stft(CHANNELS, FRAME_SIZE, "sqrt_hann")
 istft = core.IStft(CHANNELS, FRAME_SIZE, CHUNK_SIZE, "sqrt_hann")
 delay_and_sum = core.DelaySum(FRAME_SIZE)
+mvdr = core.Mvdr(CHANNELS)
+gev = core.Gev()
+speech_spatial_cov = core.SpatialCov(CHANNELS, FRAME_SIZE, weight=0.03)
+noise_spatial_cov = core.SpatialCov(CHANNELS, FRAME_SIZE, weight=0.03)
 
 # io
-mic_source = io.MicSource(CHANNELS, "ReSpeaker_USB", chunk_size=CHUNK_SIZE)
+mic_source = io.MicSource(CHANNELS, "ReSpeaker Core v2", chunk_size=CHUNK_SIZE)
 ds_sink = io.WavSink(
     "./audio_files/delay_and_sum.wav", FILE_PARAMS, CHUNK_SIZE
 )
 unprocessed_sink = io.WavSink(
     "./audio_files/unprocessed.wav", FILE_PARAMS, CHUNK_SIZE
 )
+output_sink = io.PlaybackSink(CHANNELS)
 
-fps.start()
-while m.window_is_alive():
-    # Get the audio signal and image frame
-    x = mic_source()
-    frame = video_source()
-    unprocessed_sink(x[0])
+masks = core.KissMask(mic_source.mic_array, buffer_size=30)
+TARGET = np.array([0, 1, 0.25])
+x = mic_source()
+X = stft(x)
+speech_mask, noise_mask = masks(X, TARGET)
 
-    # Get predictions
-    tensor = opencv_image_to_tensor(frame, DEVICE)
-    tensor = torch.unsqueeze(tensor, 0)
-    predictions = face_detection_model(tensor)[0]
+with tqdm(total=25000) as pbar:
+    while True:
+        # Get the audio signal and image frame
+        x = mic_source()
+        # frame = video_source()
+        # unprocessed_sink(x[0])
 
-    # Scale coords
-    predictions[:, 5:15] = scale_coords_landmarks(
-        tensor.shape[2:], predictions[:, 5:15], frame.shape
-    ).round()
-    predictions[:, :4] = scale_coords(
-        tensor.shape[2:], predictions[:, :4], frame.shape
-    ).round()
+        # Get the signal in the frequency domain
+        X = stft(x)
 
-    # Draw predictions
-    for i in range(predictions.size()[0]):
-        gn = torch.tensor(frame.shape)[[1, 0, 1, 0]].to(
-            DEVICE
-        )  # normalization gain whwh
-        gn_lks = torch.tensor(frame.shape)[[1, 0, 1, 0, 1, 0, 1, 0, 1, 0]].to(
-            DEVICE
-        )  # normalization gain landmarks
-        xywh = (
-            (xyxy2xywh(predictions[i, :4].view(1, 4)) / gn).view(-1).tolist()
-        )
-        confidence = predictions[i, 4].cpu().item()
-        landmarks = (
-            (predictions[i, 5:15].view(1, 10) / gn_lks).view(-1).tolist()
-        )
-        frame = show_results(frame, xywh, confidence, landmarks)
-
-    # Get the signal in the frequency domain
-    X = stft(x)
-
-    # If we have a face
-    if predictions.size()[0] > 0:
-        # Target pixels
-        mouth_x = int(((landmarks[6] + landmarks[8]) * WIDTH) / 2)
-        mouth_y = int(((landmarks[7] + landmarks[9]) * HEIGHT) / 2)
+        mouth_x = 300
+        mouth_y = 400
         normalized_mouth_x = (2 * mouth_x - WIDTH - 1) / (WIDTH - 1)
         normalized_mouth_y = (2 * mouth_y - HEIGHT - 1) / (HEIGHT - 1)
 
@@ -143,12 +108,12 @@ while m.window_is_alive():
             -1 * delay_pairs
         )
 
-        X = delay_and_sum(X, delay)
+        speech_SCM = speech_spatial_cov(X, speech_mask)
+        noise_SCM = speech_spatial_cov(X, noise_mask)
+        X = mvdr(X, speech_SCM, noise_SCM)
 
-    y = istft(X)
-    ds_sink(y[0])
+        y = istft(X)
+        output_sink(y)
+        # ds_sink(y[0])
 
-    fps.incrementFps()
-    final_frame = fps.writeFpsToFrame(frame)
-
-    m.update("Camera", frame)
+        pbar.update()

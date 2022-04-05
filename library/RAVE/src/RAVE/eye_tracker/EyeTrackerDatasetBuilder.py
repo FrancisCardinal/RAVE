@@ -1,20 +1,20 @@
 import os
+import shutil
 from threading import Thread
+import random
+from pathlib import Path
+from tqdm import tqdm
 
+import cv2
+import pickle
 from torchvision import transforms
 
 from ..common import DatasetBuilder
-from .NormalizedEllipse import NormalizedEllipse
-from .videos_and_dataset_association import (
-    TRAINING_VIDEOS,
-    VALIDATION_VIDEOS,
-    TEST_VIDEOS,
-)
-
-from .EyeTrackerDataset import EyeTrackerDataset
-
 from ..common.image_utils import apply_image_translation, apply_image_rotation
 
+from .NormalizedEllipse import NormalizedEllipse
+
+from .EyeTrackerDataset import EyeTrackerDataset
 
 (
     DATASET_DIR,
@@ -43,7 +43,7 @@ class EyeTrackerDatasetBuilder(DatasetBuilder):
     """
 
     @staticmethod
-    def create_images_datasets_with_LPW_videos():
+    def create_datasets():
         """
         Main method of the EyeTrackerDatasetBuilder class.
         This method checks if the dataset as already been built, and builds it
@@ -51,17 +51,20 @@ class EyeTrackerDatasetBuilder(DatasetBuilder):
         """
         BUILDERS = EyeTrackerDatasetBuilder.get_builders()
         if BUILDERS == -1:
-            return
+            return False
 
-        print("dataset has NOT been found on disk, creating dataset")
         threads = []
         for builder in BUILDERS:
-            thread = Thread(target=builder.create_images_of_one_video_group)
+            thread = Thread(target=builder.generate_dataset)
             thread.start()
             threads.append(thread)
 
         for thread in threads:
             thread.join()
+
+        shutil.rmtree(VideosUnpacker.TMP_PATH)
+
+        return True
 
     @staticmethod
     def get_builders():
@@ -74,9 +77,6 @@ class EyeTrackerDatasetBuilder(DatasetBuilder):
                 The 3 EyeTrackerDatasetBuilder objects
                 (one for each sub-dataset)
         """
-        SOURCE_DIR = os.path.join(
-            EyeTrackerDataset.EYE_TRACKER_DIR_PATH, "LPW"
-        )
 
         TRAINING_PATH = os.path.join(
             EyeTrackerDatasetBuilder.ROOT_PATH,
@@ -101,65 +101,141 @@ class EyeTrackerDatasetBuilder(DatasetBuilder):
             print("dataset found on disk")
             return -1
 
+        print("dataset has NOT been found on disk, creating dataset")
+
+        VIDEO_UNPACKER = VideosUnpacker.get_builders()
+        VIDEO_UNPACKER.create_images_of_one_video_group()
+
+        SOURCE_DIR = VideosUnpacker.TMP_PATH
+
+        images_files = os.listdir(
+            os.path.join(
+                EyeTrackerDatasetBuilder.ROOT_PATH, SOURCE_DIR, IMAGES_DIR
+            )
+        )
+        random.Random(42).shuffle(images_files)
+
+        train_size, val_size = 0.75, 0.15
+        train_index_end = int(len(images_files) * train_size)
+        val_index_end = train_index_end + int(len(images_files) * val_size)
+
+        train_files = images_files[:train_index_end]
+        val_files = images_files[train_index_end:val_index_end]
+        test_files = images_files[val_index_end:]
+
         BUILDERS = [
-            EyeTrackerDatasetBuilderOfflineDataAugmentation(
-                TRAINING_VIDEOS,
+            EyeTrackerDatasetBuilder(
+                train_files,
                 TRAINING_PATH,
                 "training   dataset",
                 EyeTrackerDataset.IMAGE_DIMENSIONS[1:3],
                 SOURCE_DIR,
             ),
             EyeTrackerDatasetBuilder(
-                VALIDATION_VIDEOS,
+                val_files,
                 VALIDATION_PATH,
                 "validation dataset",
                 EyeTrackerDataset.IMAGE_DIMENSIONS[1:3],
                 SOURCE_DIR,
             ),
             EyeTrackerDatasetBuilder(
-                TEST_VIDEOS,
+                test_files,
                 TEST_PATH,
-                "test       dataset",
+                "test      dataset",
                 EyeTrackerDataset.IMAGE_DIMENSIONS[1:3],
                 SOURCE_DIR,
             ),
         ]
         return BUILDERS
 
-    def process_image_label_pair(
+    def __init__(
         self,
-        processed_frame,
-        file_name,
-        annotations,
-        INPUT_IMAGE_WIDTH,
-        INPUT_IMAGE_HEIGHT,
+        files,
+        OUTPUT_DIR_PATH,
+        log_name,
+        IMAGE_DIMENSIONS,
+        SOURCE_DIR,
+        CROP_SIZE=None,
+    ):
+        super().__init__(
+            [],
+            OUTPUT_DIR_PATH,
+            log_name,
+            IMAGE_DIMENSIONS,
+            SOURCE_DIR,
+            CROP_SIZE,
+        )
+        self.INPUT_IMAGES_PATH = os.path.join(SOURCE_DIR, IMAGES_DIR)
+        self.INPUT_LABELS_PATH = os.path.join(SOURCE_DIR, LABELS_DIR)
+
+        self.files = files
+
+    def generate_dataset(self):
+        self.video_frame_id = 0
+        for file in tqdm(self.files, leave=False, desc=self.log_name):
+            filename = Path(file).stem
+
+            annotation = pickle.load(
+                open(
+                    os.path.join(self.INPUT_LABELS_PATH, filename + ".bin"),
+                    "rb",
+                )
+            )
+            self.current_ellipse = NormalizedEllipse.get_from_list(annotation)
+
+            frame = cv2.imread(os.path.join(self.INPUT_IMAGES_PATH, file))
+            processed_frame = self.process_frame(frame)
+
+            self.save_image_label_pair(
+                filename, processed_frame, self.current_ellipse.to_list()
+            )
+            self.video_frame_id += 1
+
+
+class VideosUnpacker(DatasetBuilder):
+    TMP_PATH = os.path.join(
+        EyeTrackerDatasetBuilder.ROOT_PATH,
+        EyeTrackerDataset.EYE_TRACKER_DIR_PATH,
+        DATASET_DIR,
+        "tmp",
+    )
+
+    @staticmethod
+    def get_builders():
+        VIDEOS = [
+            "Amelie_1.avi",
+            "Anthony_1.avi",
+            "Felix_1.avi",
+            "Francis_1.avi",
+            "Olivier_1.avi",
+            "Vincent_1.avi",
+            "Jacob_1.avi",
+            "Julien_1.avi",
+            "Etienne_1.avi",
+        ]
+
+        BUILDER = VideosUnpacker(
+            VIDEOS,
+            VideosUnpacker.TMP_PATH,
+            "Unpacking videos",
+            EyeTrackerDataset.IMAGE_DIMENSIONS[1:3],
+            os.path.join(
+                EyeTrackerDataset.EYE_TRACKER_DIR_PATH, "real_dataset"
+            ),
+            EyeTrackerDataset.CROP_SIZE,
+        )
+
+        return BUILDER
+
+    def process_image_label_pair(
+        self, processed_frame, file_name, ORIGINAL_HEIGHT, ORIGINAL_WIDTH
     ):
         """
         To process the image and label from LPW
         """
-        (
-            angle,
-            center_x,
-            center_y,
-            ellipse_width,
-            ellipse_height,
-        ) = self.parse_current_annotation(annotations)
-
-        if angle == -1:
-            # The annotation files use '-1' when the pupil is not visible
-            # on a frame.
-            return
-
-        self.current_ellipse = NormalizedEllipse.get_from_opencv_ellipse(
-            center_x,
-            ellipse_width,
-            center_y,
-            ellipse_height,
-            angle,
-            INPUT_IMAGE_WIDTH,
-            INPUT_IMAGE_HEIGHT,
+        self.current_ellipse.crop(
+            ORIGINAL_HEIGHT, ORIGINAL_WIDTH, EyeTrackerDataset.CROP_SIZE
         )
-
         self.save_image_label_pair(
             file_name, processed_frame, self.current_ellipse.to_list()
         )
@@ -171,28 +247,20 @@ class EyeTrackerDatasetBuilder(DatasetBuilder):
 
         Args:
             annotations (List of strings): All the annotations
+            INPUT_IMAGE_WIDTH (int) The width of the input image
+            INPUT_IMAGE_HEIGHT (int) The height of the input image
 
         Returns:
-            quintuplet: The parameters of the ellipse as defined by opencv
+            bool: True if the parsing was a success, false if it wasn't.
         """
-        annotation = annotations[self.annotation_line_index].split(";")
-        # The end of the line has a ';' that must be removed
-        annotation = annotation[0:-1]
-        # To go from strings to floats
-        annotation = [float(i) for i in annotation]
-        (
-            annotation_frame_id,
-            angle,
-            center_x,
-            center_y,
-            ellipse_width,
-            ellipse_height,
-        ) = annotation
-        # To make sure that the current annotation really belongs to
-        # the current frame
-        assert self.video_frame_id == annotation_frame_id
+        annotation = annotations[str(self.annotation_line_index)]
+        if (annotation[0] == -1) or (annotation[0] == -2):
+            # The annotation files use '-1' and '-2' when the pupil is not
+            # visible on a frame.
+            return False
 
-        return angle, center_x, center_y, ellipse_width, ellipse_height
+        self.current_ellipse = NormalizedEllipse.get_from_list(annotation)
+        return True
 
 
 class EyeTrackerDatasetBuilderOfflineDataAugmentation(
@@ -204,7 +272,13 @@ class EyeTrackerDatasetBuilderOfflineDataAugmentation(
     """
 
     def __init__(
-        self, VIDEOS, OUTPUT_DIR_PATH, log_name, IMAGE_DIMENSIONS, SOURCE_DIR
+        self,
+        VIDEOS,
+        OUTPUT_DIR_PATH,
+        log_name,
+        IMAGE_DIMENSIONS,
+        SOURCE_DIR,
+        CROP_SIZE=None,
     ):
         """
         Constructor of the TrainingDatasetBuilder.Calls the parent
@@ -220,7 +294,12 @@ class EyeTrackerDatasetBuilderOfflineDataAugmentation(
                 Name to be displayed alongside the progress bar in the terminal
         """
         super().__init__(
-            VIDEOS, OUTPUT_DIR_PATH, log_name, IMAGE_DIMENSIONS, SOURCE_DIR
+            VIDEOS,
+            OUTPUT_DIR_PATH,
+            log_name,
+            IMAGE_DIMENSIONS,
+            SOURCE_DIR,
+            CROP_SIZE,
         )
 
         self.TRAINING_TRANSFORM = transforms.Compose(
@@ -245,7 +324,8 @@ class EyeTrackerDatasetBuilderOfflineDataAugmentation(
 
         output_image_tensor = self.TRAINING_TRANSFORM(output_image_tensor)
         output_image_tensor = self.apply_translation_and_rotation(
-            output_image_tensor)
+            output_image_tensor
+        )
 
         return output_image_tensor
 
