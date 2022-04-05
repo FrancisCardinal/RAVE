@@ -122,7 +122,8 @@ class Direction2PixelFrom3D:
                 [0.0, 0.0, 1.0],
             ]
         )
-        self._translation_eye_camera = np.array([-0.031, -0.032, 0])
+        self._translation_eye_camera = np.array([0.13, 0.092, 0])
+        # self._translation_eye_camera = np.array([0.1246, 0.07485, 0])
         self._distortion = np.array([-0.321459, 0.073634])
 
         self._eps = 1e-20
@@ -169,6 +170,52 @@ class Direction2PixelFrom3D:
             int(pixel_x),
             int(pixel_y),
         )
+
+    def is_line_segment_in_rectangle(
+        self, point1, point2, top_left_corner, bottom_right_corner
+    ):
+        a, b = self.get_line_from_2_points(point1, point2)
+
+        if point1[0] >= point2[0]:
+            x_range = np.arange(point2[0], point1[0])
+        else:
+            x_range = np.arange(point2[0], point1[0])
+
+        y_range = (a * x_range + b).astype(int)
+
+        points_on_line = np.vstack((x_range, y_range))
+
+        return self.are_points_in_rectangle(
+            points_on_line, top_left_corner, bottom_right_corner
+        )
+
+    @staticmethod
+    def are_points_in_rectangle(
+        points,
+        top_left_corner,
+        bottom_right_corner,
+    ):
+        condition1 = points[0] > top_left_corner[0]
+        condition2 = points[0] < bottom_right_corner[0]
+        condition3 = points[1] > top_left_corner[1]
+        condition4 = points[1] < bottom_right_corner[1]
+        answer = sum(
+            np.logical_and.reduce(
+                (condition1, condition2, condition3, condition4)
+            )
+        )
+
+        return answer >= 1
+
+    @staticmethod
+    def get_line_from_2_points(point1, point2):
+        # TODO - JKealey handle when line is vertical or horizontal
+        a = (point1[1] - point2[1]) / (point1[0] - point2[0])
+        b = (point1[0] * point2[1] - point2[0] * point1[1]) / (
+            point1[0] - point2[0]
+        )
+
+        return a, b
 
 
 if __name__ == "__main__":
