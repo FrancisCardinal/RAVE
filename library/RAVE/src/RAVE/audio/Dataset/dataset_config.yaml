@@ -68,7 +68,7 @@ max_diffuse_noises: 0
 dir_noise_count_range: [1, 1]
 
 # Number of samples to get per speech source
-sample_per_speech: 5
+sample_per_speech: 2
 
 # Whether to use speech as noise sources
 speech_as_noise: False

@@ -31,7 +31,7 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
     """
     DEVICE = "cpu"
     if torch.cuda.is_available():
-        DEVICE = "cuda:0"
+        DEVICE = "cuda:1"
 
     dataset = AudioDataset(dataset_path='/home/rave/audiodataset/dataset/no_reverb')
 
@@ -45,17 +45,17 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
         training_sub_dataset,
         batch_size=BATCH_SIZE,
         shuffle=True,
-        num_workers=18,
+        num_workers=32,
         pin_memory=True,
         persistent_workers=True
     )
 
 
     validation_loader = torch.utils.data.DataLoader(
-        training_sub_dataset,
+        validation_sub_dataset,
         batch_size=BATCH_SIZE,
         shuffle=False,
-        num_workers=18,
+        num_workers=32,
         pin_memory=True,
         persistent_workers=True
     )

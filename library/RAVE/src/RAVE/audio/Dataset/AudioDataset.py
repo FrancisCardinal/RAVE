@@ -84,7 +84,7 @@ class AudioDataset(torch.utils.data.Dataset):
             item_path)
 
         min_val = min(audio_signal.shape[1], noise_target.shape[1], speech_target.shape[1])
-        begin = 0#random.randint(0, (min_val - self.num_samples)) if min_val > self.num_samples + 1 else 0
+        begin = random.randint(0, (min_val - self.num_samples)) if min_val > self.num_samples + 1 else 0
 
         signal1 = self.signal1(audio_signal, audio_sr, begin)
         signal2 = self._delaySum(audio_signal, audio_sr, config_dict, begin)

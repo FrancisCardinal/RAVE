@@ -6,7 +6,8 @@ from tqdm import tqdm
 import random
 from shapely.geometry import Polygon, Point
 
-import audiolib
+# import audiolib
+from RAVE.audio.Dataset import audiolib
 
 import numpy as np
 import math
@@ -333,8 +334,7 @@ class AudioDatasetBuilder:
 
         return new_coords
 
-    @staticmethod
-    def create_subfolder(audio_source_dict, output_subfolder):
+    def create_subfolder(self, audio_source_dict, output_subfolder):
         """
         Creates subfolder in which to save current dataset element.
 
@@ -350,7 +350,8 @@ class AudioDatasetBuilder:
         for dif_noise in audio_source_dict['dif_noise']:
             subfolder_name += f"_{dif_noise['name']}"
         noise_quantity = len(audio_source_dict['dir_noise']) + len(audio_source_dict['dif_noise'])
-        subfolder_path = os.path.join(output_subfolder, f'{noise_quantity}', subfolder_name)
+        reverb_str = 'reverb' if self.is_reverb else 'no_reverb'
+        subfolder_path = os.path.join(output_subfolder, reverb_str, f'{noise_quantity}', subfolder_name)
         subfolder_index = 1
         if os.path.exists(subfolder_path):
             while os.path.exists(subfolder_path + f'_{subfolder_index}'):
@@ -742,6 +743,8 @@ class AudioDatasetBuilder:
 
         Args:
             audio_dict (dict{}): Dictionary containing all audio sources and info.
+        Returns:
+            False if RIR was broken on one channel.
         """
         # TODO: MOVING RIR
 
@@ -755,6 +758,8 @@ class AudioDatasetBuilder:
         for channel_idx, channel_rirs in enumerate(rirs):
             for rir in channel_rirs:
                 max_val = np.max(np.abs(rir))
+                if max_val == 0:
+                    return -1
                 rir /= max_val
 
         # If diffuse, remove early RIR peaks (remove direct and non-diffuse peaks)
@@ -789,7 +794,9 @@ class AudioDatasetBuilder:
                 rir_plot = channel_rir[0].T
                 axes[channel_i//2, channel_i % 2].plot(rir_plot)
             plt.savefig(os.path.join(self.current_subfolder, 'rir_channel_plots.jpg'))
-            # plt.show()
+            if SHOW_GRAPHS:
+                plt.show()
+            plt.close()
 
         # Apply RIR to signal
         rir_idx = 0
@@ -1000,7 +1007,10 @@ class AudioDatasetBuilder:
                 for source in source_list:
                     self.current_room.add_source(source['position'], source['signal'])
 
-            self.generate_and_apply_rirs(audio_source_dict)
+            rir_success = self.generate_and_apply_rirs(audio_source_dict)
+            if rir_success == -1:
+                print(f"RIR returned false, problem with one channel. Restarting sample.")
+                continue
 
             # Combine noises
             self.combine_sources(audio_source_dict, ['dir_noise', 'dif_noise'], 'combined_noise', noise=True)
