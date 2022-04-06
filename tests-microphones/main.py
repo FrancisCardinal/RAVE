@@ -64,24 +64,24 @@ import pyaudio
 import numpy as np
 import os
 
-# print(os.getcwd())
+print(os.getcwd())
 
 CHANNELS = 8
 FREQ = 48000
 CHUNK = 256
 
 # # instantiate PyAudio (1)
-# p = pyaudio.PyAudio()
+p = pyaudio.PyAudio()
 
-# info = p.get_host_api_info_by_index(0)
-# numdevices = info.get('deviceCount')
-# # for each audio device, determine if is an input or an output and add it to the appropriate list and dictionary
-# for i in range (0,numdevices):
-#         if p.get_device_info_by_host_api_device_index(0,i).get('maxInputChannels')>0:
-#                 print(f"Input Device id {i},- {p.get_device_info_by_host_api_device_index(0,i).get('name')}")
+info = p.get_host_api_info_by_index(0)
+numdevices = info.get('deviceCount')
+# for each audio device, determine if is an input or an output and add it to the appropriate list and dictionary
+for i in range (0,numdevices):
+        if p.get_device_info_by_host_api_device_index(0,i).get('maxInputChannels')>0:
+                print(f"Input Device id {i},- {p.get_device_info_by_host_api_device_index(0,i).get('name')}")
 
-#         if p.get_device_info_by_host_api_device_index(0,i).get('maxOutputChannels')>0:
-#                 print(f"Outut Device id {i},- {p.get_device_info_by_host_api_device_index(0,i).get('name')}")
+        if p.get_device_info_by_host_api_device_index(0,i).get('maxOutputChannels')>0:
+                print(f"Outut Device id {i},- {p.get_device_info_by_host_api_device_index(0,i).get('name')}")
 
 
 file_params = (CHANNELS,
@@ -92,13 +92,15 @@ file_params = (CHANNELS,
                'NONE')
 
 # mic = io.MicSource(CHANNELS, mic_index=2)
-headphone = io.PlaybackSink(1, device_index=3)
-wav_source = io.WavSource("./tests-microphones/out_good.wav")
+# headphone = io.PlaybackSink(1, device_index=2)
+mic = io.MicSource(CHANNELS, mic_index=2)
+# wav_source = io.WavSource("./clap_2_channels.wav")
+wav_sink = io.WavSink("./clap.wav", file_params)
 
 # start = time.time()
 # play stream (3)
-while True:
-    data= wav_source()
-    if data is None:
-        break
-    headphone(data[0])
+start = time.time()
+while time.time()-start < 5:
+    data = mic()
+    wav_sink(data)
+    # headphone(data)

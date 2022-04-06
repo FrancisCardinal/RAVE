@@ -12,6 +12,7 @@ amixer -c tegrasndt186ref cset name="I2S1 fsync width" 0
 
 PLAYBACK I2S
 
+# 40 pin
 amixer -c tegrasndt186ref cset name="I2S1 Mux" ADMAIF1
 amixer -c tegrasndt186ref cset name="ADMAIF1 Mux" "I2S1"
 amixer -c tegrasndt186ref cset name="ADMAIF1 Channels" 2
@@ -22,6 +23,18 @@ amixer -c tegrasndt186ref cset name="I2S1 input bit format" 32
 amixer -c tegrasndt186ref cset name="I2S1 codec master mode" "cbs-cfs"
 amixer -c tegrasndt186ref cset name="I2S1 codec frame mode" "i2s"
 amixer -c tegrasndt186ref cset name="I2S1 fsync width" 0
+
+# 30 pin
+amixer -c tegrasndt186ref cset name="I2S2 Mux" ADMAIF2
+amixer -c tegrasndt186ref cset name="ADMAIF2 Mux" "I2S2"
+amixer -c tegrasndt186ref cset name="ADMAIF2 Channels" 2
+amixer -c tegrasndt186ref cset name="I2S2 Channels" 2
+amixer -c tegrasndt186ref cset name="I2S2 Sample Rate" 48000
+amixer -c tegrasndt186ref cset name="I2S2 codec bit format" 32
+amixer -c tegrasndt186ref cset name="I2S2 input bit format" 32
+amixer -c tegrasndt186ref cset name="I2S2 codec master mode" "cbs-cfs"
+amixer -c tegrasndt186ref cset name="I2S2 codec frame mode" "i2s"
+amixer -c tegrasndt186ref cset name="I2S2 fsync width" 0
  
 
 arecord -D hw:tegrasndt186ref,0 -r 48000 -c 1 -f S32_LE -d 6 out.wav

@@ -9,6 +9,7 @@ green : WS : 35
 card name : tegrasndt186ref
 
 fuser -fv /dev/snd/* /dev/dsp*
+killall pulseaudio
 
 
 https://forums.developer.nvidia.com/t/i2s-sound-output-sclk-issue/161345/5
