@@ -9,7 +9,7 @@ class Encoding:
         feature (list of floats): the main feature vector of the encoding
     """
 
-    MEMORY = 5
+    MEMORY = 10
 
     def __init__(self, feature=None):
         self.feature = feature

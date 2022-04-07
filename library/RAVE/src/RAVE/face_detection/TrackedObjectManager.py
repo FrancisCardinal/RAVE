@@ -36,7 +36,8 @@ class TrackedObjectManager:
         self.pre_tracked_objects = {}
         self.rejected_objects = {}
 
-        self.count = 0
+        self.count_id = 0
+        self.count_id_pre = 0
         self.last_frame = None
 
     def tracking_count(self):
@@ -63,12 +64,25 @@ class TrackedObjectManager:
             int:
                 A new id
         """
-        new_id = str(self.count)
-        self.count += 1
+        new_id = str(self.count_id_pre)
+        self.count_id_pre += 1
+        return new_id
+
+        # Assumed to be called from main thread only
+
+    def new_pre_identifier(self):
+        """
+        Used to assign a new id to a new pre-tracking object
+        Returns:
+            int:
+                A new id for pre-tracked object
+        """
+        new_id = str(self.count_id)
+        self.count_id += 1
         return new_id
 
     # Register a new object to tracker. Assumed to be called from main thread
-    def add_tracked_object(self, frame, bbox, mouth):
+    def add_pre_tracked_object(self, frame, bbox, mouth):
         """
         Creates a new TrackedObject for the new bbox and adds it to the
         pre-tracked list. It also starts the tracking thread.
@@ -81,7 +95,7 @@ class TrackedObjectManager:
             mouth (list or None):
                 The position of the mouth in x,y
         """
-        new_id = self.new_identifier()
+        new_id = self.new_pre_identifier()
         new_tracked_object = TrackedObject(
             self.tracker_type, frame, bbox, mouth, new_id
         )

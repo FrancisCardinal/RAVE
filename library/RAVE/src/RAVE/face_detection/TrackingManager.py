@@ -86,7 +86,9 @@ class TrackingManager:
             selected_roi = cv2.selectROI(
                 "Frame", frame, fromCenter=False, showCrosshair=True
             )
-            self.object_manager.add_tracked_object(frame, selected_roi, None)
+            self.object_manager.add_pre_tracked_object(
+                frame, selected_roi, None
+            )
         elif key == ord("x"):
             # Remove last tracked object
             if len(self.object_manager.tracked_objects) > 0:
@@ -105,7 +107,7 @@ class TrackingManager:
             for obj in tracked_objects:
                 face_images = []
                 for i in range(slot_count):
-                    if len(obj.encoding.all_faces) >= i:
+                    if len(obj.encoding.all_faces) > i:
                         face_image = obj.encoding.all_faces[i]
                         face_image = cv2.resize(face_image, (150, 150))
                         face_images.append(face_image)
@@ -151,7 +153,7 @@ class TrackingManager:
 
         return tracking_frame
 
-    def main_loop(self, monitor, cap, fps):
+    def main_loop(self, monitor, cap, fps, flip):
         """
         Loop to be called on separate thread that handles retrieving new image
         frames from video input and displaying output in windows
@@ -167,8 +169,9 @@ class TrackingManager:
 
             # Capture image and pass to classes that need it
             frame = cap()
-            frame = cv2.flip(frame, 0)
-            # frame = cv2.imread("test_image_faces.png")
+            if flip:
+                frame = cv2.flip(frame, 0)
+
             self.updater.last_frame = frame
             self.object_manager.last_frame = frame
 
@@ -243,5 +246,5 @@ class TrackingManager:
         update_loop.start()
 
         # Start capture & display loop
-        self.main_loop(monitor, cap, fps)
+        self.main_loop(monitor, cap, fps, args.flip)
         self.object_manager.stop_tracking()

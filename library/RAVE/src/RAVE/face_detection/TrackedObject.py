@@ -144,6 +144,12 @@ class TrackedObject:
         """
         return self._rejected
 
+    def update_id(self, new_id):
+        """
+        Setter for id property
+        """
+        self._id = new_id
+
     def update_bbox(self, bbox):
         """
         Update the bounding box
@@ -261,15 +267,16 @@ class TrackedObject:
 
         x, y, w, h = self.bbox
         cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-        cv2.putText(
-            frame,
-            self.id,
-            (x, y - 2),
-            0,
-            1,
-            [0, 0, 255],
-            thickness=2,
-            lineType=cv2.LINE_AA,
-        )
+        if self.id is not None:
+            cv2.putText(
+                frame,
+                self.id,
+                (x, y - 2),
+                0,
+                1,
+                [0, 0, 255],
+                thickness=2,
+                lineType=cv2.LINE_AA,
+            )
 
         return frame

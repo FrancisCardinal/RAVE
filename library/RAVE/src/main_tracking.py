@@ -11,6 +11,13 @@ if __name__ == "__main__":
         default=0,
     )
     parser.add_argument(
+        "--flip",
+        dest="flip",
+        type=bool,
+        help="Flip display orientation by 180 degrees on horizontal axis",
+        default=False,
+    )
+    parser.add_argument(
         "--flip_display_dim",
         dest="flip_display_dim",
         type=bool,
