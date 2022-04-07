@@ -1,4 +1,5 @@
 import os
+import pathlib
 
 from .trt_model import TrtModel
 from .trt_model import ONNX_to_TRT
@@ -8,20 +9,13 @@ def load_model():
     """
     Load the model
     """
-    project_path = os.getcwd()
+    current_path = pathlib.Path(__file__).parent.resolve()
     model_path = os.path.join(
-        project_path,
-        "RAVE",
-        "face_detection",
-        "verifiers",
-        "models",
-        "arcface",
+        current_path,
         "arcface.trt",
     )
 
-    print("Creating TRTModel")
     model = TrtModel(model_path)
-    print("Created TRTModel")
     return model
 
 
