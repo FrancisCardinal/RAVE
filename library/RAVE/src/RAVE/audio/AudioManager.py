@@ -22,15 +22,25 @@ from .IO.IO_manager import IOManager
 from .Neural_Network.AudioModel import AudioModel
 from .Beamformer.Beamformer import Beamformer
 
-TIME = float('inf')
-FILE_PARAMS = (
-            4,
+#TIME = float('inf')
+TIME = 5
+FILE_PARAMS_MONO = (
+            1,
             2,
             CONST.SAMPLING_RATE,
             0,
             "NONE",
             "not compressed",
         )
+FILE_PARAMS_MULTI = (
+            8,
+            2,
+            CONST.SAMPLING_RATE,
+            0,
+            "NONE",
+            "not compressed",
+        )
+
 TARGET = np.array([0, 1, 0.5])
 
 EPSILON = 1e-9
@@ -60,13 +70,13 @@ class AudioManager:
         self.get_timers = use_timers
 
         # Class variables init empty
-        self.file_params_output = None
-        self.file_params_multi = None
+        self.file_params_output = FILE_PARAMS_MONO
+        self.file_params_multi = FILE_PARAMS_MULTI
         self.in_subfolder_path = None
         self.out_subfolder_path = None
         self.source = None
         self.original_sink = None
-        self.target = None
+        self.target = TARGET
         self.source_dict = {}
         self.sink_dict = {}
         self.timers = {}
@@ -99,6 +109,9 @@ class AudioManager:
                 exit()
         # Get general configs
         self.mic_dict = self.general_configs['mic_dict']
+        if self.mic_dict == 'respeaker':
+            self.mic_dict = load_mic_array_from_ressources("ReSpeaker_USB")
+            print(self.mic_dict)
         self.mic_array = generate_mic_array(self.mic_dict)
         self.channels = self.mic_dict['nb_of_channels']
         self.out_channels = self.general_configs['out_channels']
@@ -121,7 +134,7 @@ class AudioManager:
         # Get individual configs
         self.default_output_dir = self.individual_configs['default_output_dir']
         self.model_path = self.individual_configs['model_path']
-        self.mic_array_index = self.individual_configs['mic_array_index']
+        # self.mic_array_index = self.individual_configs['mic_array_index']
         self.use_beamformer = self.individual_configs['use_beamformer']
         self.speech_and_noise = self.individual_configs['use_groundtruth']
         self.torch_gt = self.individual_configs['use_torch']
@@ -324,20 +337,21 @@ class AudioManager:
             return
 
         if unit == 'ms':
-            unit_factor = 1 / 10000000
+            unit_factor = 1000
 
         if name not in self.timers:
-            self.timers[name]['unit'] = unit
-            self.timers[name]['total'] = 0
-            self.timers[name]['call_cnt'] = 0
+            self.timers[name] = {'unit': unit, 'total': 0, 'call_cnt': 0}
+            # self.timers[name]['unit'] = unit
+            # self.timers[name]['total'] = 0
+            # self.timers[name]['call_cnt'] = 0
 
-        current_time = time.perf_counter_ns() * unit_factor
+        current_time = time.perf_counter() * unit_factor
         if is_start:
             self.timers[name]['start'] = current_time
             return current_time
         else:
             self.timers[name]['end'] = current_time
-            elapsed_time = self.timers[name]['start'] - current_time
+            elapsed_time = current_time - self.timers[name]['start']
             self.timers[name]['total'] += elapsed_time
             self.timers[name]['call_cnt'] += 1
             return elapsed_time
@@ -364,7 +378,7 @@ class AudioManager:
 
             time_string = f'Timer: {mean_str} "{name}" = {time} {unit}'
         else:
-            time_string = 'Timer not found.'
+            time_string = f'Timer "{name}" not found.'
 
         return time_string
 
@@ -375,8 +389,10 @@ class AudioManager:
         Args:
             max_time (float): Max time for one loop.
         """
-        print(self.get_time(name='total', is_mean=False))
-        print(self.get_time(name='total', is_mean=True))
+        # TODO: AUTOMATE WITH LOOP
+        print(self.get_time(name='init_audio', is_mean=False))
+        print(self.get_time(name='loop', is_mean=False))
+        print(self.get_time(name='loop', is_mean=True))
         print(f'Timer: Longest time per loop: {max_time} ms.')
         print(self.get_time(name='beamformer', is_mean=True))
         if self.mask:
@@ -465,11 +481,11 @@ class AudioManager:
                 target_np = np.array([self.target])
                 delay = get_delays_based_on_mic_array(target_np, self.mic_array, self.frame_size)
             sum = self.delay_and_sum(signal, delay[0])
-            sum_tensor = torch.tensor(sum)
+            sum_tensor = torch.tensor(sum).to(self.device)
             sum_db = 20 * torch.log10(torch.abs(sum_tensor) + EPSILON)
 
             # Mono
-            signal_tensor = torch.tensor(signal)
+            signal_tensor = torch.tensor(signal).to(self.device)
             signal_mono = torch.mean(signal_tensor, dim=0, keepdims=True)
             signal_mono_db = 20 * torch.log10(torch.abs(signal_mono) + EPSILON)
 
@@ -480,7 +496,7 @@ class AudioManager:
             with torch.no_grad():
                 noise_mask, self.last_h = self.model(concat_spec, self.last_h)
             self.check_time(name='network', is_start=False)
-            noise_mask = torch.squeeze(noise_mask).numpy()
+            noise_mask = torch.squeeze(noise_mask).cpu().numpy()
             speech_mask = 1 - noise_mask
             self.check_time(name='data', is_start=False)
 
@@ -648,6 +664,9 @@ class AudioManager:
             overwrite_sinks (bool): Whether to overwrite or append sinks.
             save_path (str): Path at which to save the simulated sinks (.wav files).
         """
+
+        self.check_time(name='init_audio', is_start=True)
+
         # Params
         if save_path:
             self.out_subfolder_path = save_path
@@ -682,8 +701,8 @@ class AudioManager:
                 except:
                     self.speech_and_noise = False
         else:
-            self.source_dict['audio']['src'] = self.init_mic_input(name=self.source_dict['name'],
-                                                                   src_index=self.source_dict['idx'])
+            self.source_dict['audio']['src'] = self.init_mic_input(name=self.source_list['name'],
+                                                                   src_index=self.source_list['idx'])
         self.source_dict['audio']['stft'] = Stft(self.channels, self.frame_size, window)
 
         # Outputs
@@ -701,7 +720,7 @@ class AudioManager:
                 wav_params = self.file_params_output if sink['beamform'] else self.file_params_multi
                 self.sink_dict[sink['name']]['sink'] = self.init_sim_output(name=sink['name'], wav_params=wav_params)
             else:
-                self.sink_dict[sink['name']]['sink'] = self.init_play_output(name='original', sink_index=sink['idx'])
+                self.sink_dict[sink['name']]['sink'] = self.init_play_output(name=sink['name'], sink_index=sink['idx'])
             # Add ISTFT and SCM (if needed for beamforming)
             if sink['beamform']:
                 self.sink_dict[sink['name']]['scm_target'] = SpatialCov(self.channels, self.frame_size, weight=scm_weight)
@@ -727,6 +746,8 @@ class AudioManager:
                 hop_length=self.chunk_size,
                 power=None,
             )
+
+        self.check_time(name='init_audio', is_start=False)
 
     def init_app(self, save_input, save_output, passthrough_mode, output_path=None):
         """
@@ -934,7 +955,8 @@ class AudioManager:
 
             loop_time = self.check_time(name='loop', is_start=False)
             if self.get_timers:
-                max_time = loop_time if loop_time > max_time else max_time
+                if loop_i != 0:
+                    max_time = loop_time if loop_time > max_time else max_time
 
             if self.debug and samples % (self.chunk_size * 50) == 0:
                 print(f'Samples processed: {samples}')
