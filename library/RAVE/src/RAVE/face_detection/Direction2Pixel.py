@@ -129,10 +129,12 @@ class Direction2PixelFrom3D:
         self._eps = 1e-20
 
     def get_pixel(self, angle_x, angle_y, dist):
-        angle_y = -1 * angle_y
-        x_eye = dist * np.sin(np.deg2rad(angle_x))
-        y_eye = dist * np.tan(np.deg2rad(angle_y))
-        z_eye = dist * np.cos(np.deg2rad(angle_x))
+        angle_x = np.deg2rad(90 + angle_x)
+        angle_y = np.deg2rad(90 + angle_y)
+
+        x_eye = dist * np.sin(angle_y) * np.cos(angle_x)
+        y_eye = dist * np.cos(angle_y)
+        z_eye = dist * np.sin(angle_y) * np.sin(angle_x)
 
         x_cam = x_eye + self._translation_eye_camera[0]
         y_cam = y_eye + self._translation_eye_camera[1]
