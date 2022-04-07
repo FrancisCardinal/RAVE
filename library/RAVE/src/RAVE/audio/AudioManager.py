@@ -23,7 +23,7 @@ from .Neural_Network.AudioModel import AudioModel
 from .Beamformer.Beamformer import Beamformer
 
 #TIME = float('inf')
-TIME = 5
+TIME = 30
 FILE_PARAMS_MONO = (
             1,
             2,
@@ -33,7 +33,7 @@ FILE_PARAMS_MONO = (
             "not compressed",
         )
 FILE_PARAMS_MULTI = (
-            8,
+            4,
             2,
             CONST.SAMPLING_RATE,
             0,
@@ -109,9 +109,6 @@ class AudioManager:
                 exit()
         # Get general configs
         self.mic_dict = self.general_configs['mic_dict']
-        if self.mic_dict == 'respeaker':
-            self.mic_dict = load_mic_array_from_ressources("ReSpeaker_USB")
-            print(self.mic_dict)
         self.mic_array = generate_mic_array(self.mic_dict)
         self.channels = self.mic_dict['nb_of_channels']
         self.out_channels = self.general_configs['out_channels']
@@ -333,7 +330,7 @@ class AudioManager:
         Returns:
             If start, returns current time, if end, returns elapsed time.
         """
-        if not self.get_timers:
+        if not self.get_timers or self.loop_i < 5:
             return
 
         if unit == 'ms':
@@ -376,7 +373,7 @@ class AudioManager:
                 time /= self.timers[name]['call_cnt']
                 mean_str = 'Mean time per loop'
 
-            time_string = f'Timer: {mean_str} "{name}" = {time} {unit}'
+            time_string = f'Timer: {mean_str} "{name}" = {time:.3f} {unit}'
         else:
             time_string = f'Timer "{name}" not found.'
 
@@ -665,7 +662,7 @@ class AudioManager:
             save_path (str): Path at which to save the simulated sinks (.wav files).
         """
 
-        self.check_time(name='init_audio', is_start=True)
+        # self.check_time(name='init_audio', is_start=True)
 
         # Params
         if save_path:
@@ -747,7 +744,7 @@ class AudioManager:
                 power=None,
             )
 
-        self.check_time(name='init_audio', is_start=False)
+        # self.check_time(name='init_audio', is_start=False)
 
     def init_app(self, save_input, save_output, passthrough_mode, output_path=None):
         """
@@ -874,7 +871,7 @@ class AudioManager:
 
         samples = 0
         max_time = 0
-        loop_i = 0
+        self.loop_i = 0
         while samples / CONST.SAMPLING_RATE < TIME:
             self.check_time(name='loop', is_start=True)
 
@@ -951,20 +948,20 @@ class AudioManager:
 
                 # Offline torch ground truth
                 if self.torch_gt:
-                    self.torch_run_loop(X, loop_i, speech_data, noise_data)
+                    self.torch_run_loop(X, self.loop_i, speech_data, noise_data)
 
             loop_time = self.check_time(name='loop', is_start=False)
             if self.get_timers:
-                if loop_i != 0:
+                if self.loop_i >= 5:
                     max_time = loop_time if loop_time > max_time else max_time
 
             if self.debug and samples % (self.chunk_size * 50) == 0:
                 print(f'Samples processed: {samples}')
-                if self.get_timers:
-                    print(f'Time for loop: {loop_time} ms.')
+                if self.get_timers and self.loop_i > 5:
+                    print(f'Time for loop: {loop_time:.4f} ms.')
 
             samples += self.chunk_size
-            loop_i += 1
+            self.loop_i += 1
 
         # Plot target + prediction spectrograms
         if self.print_specs:
