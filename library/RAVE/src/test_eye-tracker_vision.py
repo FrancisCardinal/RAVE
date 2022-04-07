@@ -4,7 +4,6 @@ import numpy as np
 
 from RAVE.face_detection.Direction2Pixel import (
     Direction2Pixel,
-    Direction2PixelFrom3D,
 )
 
 
@@ -14,10 +13,16 @@ def main():
 
     video = cv2.VideoCapture("head_camera.avi")
 
+    # out = cv2.VideoWriter(
+    #     "demo.avi",
+    #     cv2.VideoWriter_fourcc("M", "J", "P", "G"),
+    #     30,
+    #     (640, 480),
+    # )
+
     counter = 0
 
-    algo_article = Direction2Pixel(31, 40)
-    algo_3D = Direction2PixelFrom3D()
+    algo_3D = Direction2Pixel()
 
     while True:
         succes, frame = video.read()
@@ -25,20 +30,15 @@ def main():
         if not succes:
             break
 
-        point1 = algo_3D.get_pixel(angle_x[counter], angle_y[counter], 1)
+        point1 = algo_3D.get_pixel(angle_x[counter], angle_y[counter], 1.41)
         point2 = algo_3D.get_pixel(angle_x[counter], angle_y[counter], 5)
-        # point1 = algo_3D.get_pixel(-5, -20, 1)
-        # point2 = algo_3D.get_pixel(-5, -20, 5)
-        point3 = algo_3D.get_pixel(0, 0, 1)
-        # point = algo_3D.get_pixel(angle_x[counter], angle_y[counter], 1.41)
-        # point = algo_article.get_pixel(angle_x[counter], angle_y[counter])
 
         cv2.line(frame, point1, point2, color=(0, 0, 255), thickness=2)
         # cv2.drawMarker(frame, point1, color=(0, 0, 255), thickness=2)
-        cv2.drawMarker(frame, point3, color=(255, 0, 0), thickness=2)
+        # cv2.drawMarker(frame, point3, color=(255, 0, 0), thickness=2)
 
         rectangle_color = (0, 0, 255)
-        rectangle_top_left_corner = (250, 180)
+        rectangle_top_left_corner = (320, 240)
         rectangle_bottom_right_corner = (360, 280)
 
         if algo_3D.is_line_segment_in_rectangle(
@@ -56,6 +56,7 @@ def main():
             thickness=2,
         )
 
+        # out.write(frame)
         cv2.imshow("Facial camera", frame)
         cv2.waitKey(10)
         counter += 1
@@ -64,7 +65,10 @@ def main():
 
 
 if __name__ == "__main__":
-    algo_3D = Direction2PixelFrom3D()
+    # main()
+    algo_3D = Direction2Pixel(
+        translation_eye_camera=np.array([0.13, 0.092, 0])
+    )
     unit_circle = np.linspace(0, 2 * np.pi, 360)
     x_coordinates = np.cos(unit_circle)
     y_coordinates = np.sin(unit_circle)
