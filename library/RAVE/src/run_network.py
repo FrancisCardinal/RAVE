@@ -105,6 +105,7 @@ def visualize_predictions(model, data_loader, DEVICE, dataset):
         data_loader (Dataloader):
             The dataloader that provides the images and the targets
         DEVICE (String): Device on which to perform the computations
+        dataset (Dataset): Dataset used to visualize predictions
     """
     with torch.no_grad():
         for audios, labels, _ in data_loader:
@@ -141,6 +142,15 @@ def visualize_predictions(model, data_loader, DEVICE, dataset):
 
 
 def test(model, data_loader, DEVICE, dataset):
+    """
+    Used to permorm tests to generate output .wav with masks predictions from recurent neural network
+    Args:
+        model (Module): Neural network to be trained
+        data_loader (Dataloader): Dataloader that returns signals from the test dataset
+        DEVICE (string): Device on which to perform the computations
+        dataset (Dataset): Dataset used to get signals
+
+    """
     audios, labels, _ = next(iter(data_loader))
     audios, labels = audios.to(DEVICE), labels.to(DEVICE)
     index = 0

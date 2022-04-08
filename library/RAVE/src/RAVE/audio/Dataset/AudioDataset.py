@@ -104,6 +104,16 @@ class AudioDataset(torch.utils.data.Dataset):
         return signal, torch.squeeze(target), total_energy
 
     def signal1(self, raw_signal, sr, begin):
+        """
+        Used to transform a signal into a logarithmic energy mask
+        Args:
+            raw_signal: The temporal signal to be converted
+            sr (int) : target sample rate to be used
+            begin (int) : index from which to start the signal, This allows to not always start from 0
+
+        Returns: The logarithmic energy mask calculated
+
+        """
         signal = self._resample(raw_signal, sr)
         signal = self._cut(signal, begin)
         signal = self._right_pad(signal)
@@ -115,6 +125,16 @@ class AudioDataset(torch.utils.data.Dataset):
         return freq_signal
 
     def targets(self, raw_signal, sr, begin):
+        """
+        Used to transform a signal into an energy mask
+        Args:
+            raw_signal: The temporal signal to be converted
+            sr (int) : target sample rate to be used
+            begin (int) : index from which to start the signal, This allows to not always start from 0
+
+        Returns: The energy mask calculated
+
+        """
         signal = self._resample(raw_signal, sr)
         signal = self._cut(signal, begin)
         signal = self._right_pad(signal)
@@ -167,8 +187,7 @@ class AudioDataset(torch.utils.data.Dataset):
             signal = resampler(signal)
         return signal
 
-    @staticmethod
-    def _set_mono(signal):
+    def _set_mono(self, signal):
         if signal.shape[0] > 1:
             signal = torch.mean(signal, dim=0, keepdim=True)
         return signal
@@ -187,6 +206,12 @@ class AudioDataset(torch.utils.data.Dataset):
         return signal
 
     def get_dataset(self, dataset_path):
+        """
+        Used to get all data from a directory to perform further computations
+        Args:
+            dataset_path (string): Path where .wav files to train are located
+
+        """
 
         # TODO: Other way to check if dataset is ok?
         # Check if exists, and if contains files
@@ -217,7 +242,15 @@ class AudioDataset(torch.utils.data.Dataset):
 
     @staticmethod
     def load_item_from_disk(subfolder_path):
+        """
+        Used to load a sample with speech.wav, noise.wav, audio.wav and configs.yaml from disk
+        Args:
+            subfolder_path (string): path where the sample is located on disk
 
+        Returns:
+            tuple: audio signal, audio sample rate, noise signal, noise sample rate, speech signal, speech sample rate,
+                signal configuration dictionary
+        """
         # Get paths for files
         audio_file_path = os.path.join(subfolder_path, 'audio.wav')
         noise_target_path = os.path.join(subfolder_path, 'noise.wav')
@@ -237,19 +270,3 @@ class AudioDataset(torch.utils.data.Dataset):
         speech_target, speech_sr = torchaudio.load(speech_target_path)
 
         return audio_signal, audio_sr, noise_target, noise_sr, speech_target, speech_sr, config_dict
-
-    def run_dataset_builder(self):
-
-        # Get generator need arguments
-        rooms = self.configs['room']
-        room_size = rooms[np.random.randint(0, len(rooms))]
-
-        results = self.dataset_builder.generate_single_run(room_size)
-
-        audio_signal = results['audio']
-        audio_mask = results['combined_audio_gt']
-        speech_mask = results['source']
-        noise_mask = results['noise']
-        config_dict = results['configs']
-
-        return audio_signal, audio_mask, speech_mask, noise_mask, config_dict
