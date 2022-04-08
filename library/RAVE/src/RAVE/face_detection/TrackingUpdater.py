@@ -287,7 +287,6 @@ class TrackingUpdater:
 
             if not pre_tracked_object.pending:
                 finished_trackers_id.add(pre_tracker_id)
-                print("Adding finished tracker:", pre_tracker_id)
 
             if pre_tracked_object.bbox is None:
                 continue

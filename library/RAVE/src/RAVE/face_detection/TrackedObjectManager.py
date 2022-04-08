@@ -128,6 +128,7 @@ class TrackedObjectManager:
 
     def restore_rejected_object(self, identifier, pre_tracked_object):
         """
+        Restore old tracked object to resume tracking.
         Remove tracked object from the _rejected_objects dictionary
         and add it to the tracked_object. Also start the tracking thread
 
