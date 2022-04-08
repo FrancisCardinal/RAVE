@@ -44,6 +44,9 @@ class AudioManager:
             use_timers (bool): Get and print timers.
     """
 
+    scm_weight = 0.1
+    window = "hann"
+
     def __init__(self, debug=False, mask=False, use_timers=False):
 
         # Argument variables
@@ -703,7 +706,6 @@ class AudioManager:
             self.out_subfolder_path = save_path
 
         # Inputs
-        window = "hann"
         if source:
             self.source_list = source
 
@@ -723,7 +725,7 @@ class AudioManager:
                     self.source_dict["speech"]["src"] = self.init_sim_input(
                         name="speech_gt_source", file=self.speech_file
                     )
-                    self.source_dict["speech"]["stft"] = Stft(self.channels, self.frame_size, window)
+                    self.source_dict["speech"]["stft"] = Stft(self.channels, self.frame_size, self.window)
                     # Load noise file
                     self.source_dict["noise"] = {}
                     self.noise_file = os.path.join(os.path.split(self.source_list["file"])[0], "noise.wav")
@@ -731,7 +733,7 @@ class AudioManager:
                     self.source_dict["noise"]["src"] = self.init_sim_input(
                         name="noise_gt_source", file=self.noise_file
                     )
-                    self.source_dict["noise"]["stft"] = Stft(self.channels, self.frame_size, window)
+                    self.source_dict["noise"]["stft"] = Stft(self.channels, self.frame_size, self.window)
                     # Set argument to True if successful
                     self.speech_and_noise = True
                 except Exception as e:
@@ -742,11 +744,10 @@ class AudioManager:
             self.source_dict["audio"]["src"] = self.init_mic_input(
                 name=self.source_list["name"], src_index=self.source_list["idx"]
             )
-        self.source_dict["audio"]["stft"] = Stft(self.channels, self.frame_size, window)
+        self.source_dict["audio"]["stft"] = Stft(self.channels, self.frame_size, self.window)
 
         # Outputs
         # TODO: ADD OUTPUT CHANNELS CONTROL
-        scm_weight = 0.1
         if sinks:
             if overwrite_sinks:
                 self.sink_list = sinks
@@ -763,14 +764,16 @@ class AudioManager:
             # Add ISTFT and SCM (if needed for beamforming)
             if sink["beamform"]:
                 self.sink_dict[sink["name"]]["scm_target"] = SpatialCov(
-                    self.channels, self.frame_size, weight=scm_weight
+                    self.channels, self.frame_size, weight=self.scm_weight
                 )
                 self.sink_dict[sink["name"]]["scm_noise"] = SpatialCov(
-                    self.channels, self.frame_size, weight=scm_weight
+                    self.channels, self.frame_size, weight=self.scm_weight
                 )
-                self.sink_dict[sink["name"]]["istft"] = IStft(1, self.frame_size, self.chunk_size, window)
+                self.sink_dict[sink["name"]]["istft"] = IStft(1, self.frame_size, self.chunk_size, self.window)
             else:
-                self.sink_dict[sink["name"]]["istft"] = IStft(self.channels, self.frame_size, self.chunk_size, window)
+                self.sink_dict[sink["name"]]["istft"] = IStft(
+                    self.channels, self.frame_size, self.chunk_size, self.window
+                )
 
         # Model
         if self.mask:
@@ -792,13 +795,14 @@ class AudioManager:
 
         # self.check_time(name='init_audio', is_start=False)
 
-    def init_app(self, save_input, save_output, passthrough_mode, output_path=None):
+    def init_app(self, save_input, save_output, passthrough_mode, output_path=""):
         """
         Function used to init jetson application.
 
         Args:
             save_input (bool): Whether to save the input (original) or not.
             save_output (bool): Whether to save the output or not.
+            passthrough_mode (bool): Whether for "no target mode" to be passthrough or muted.
             output_path (str): Path at which to save the simulated sinks (.wav files).
         """
 
@@ -807,19 +811,35 @@ class AudioManager:
         self.is_delays = True
         self.passthrough_mode = passthrough_mode
 
-        # Init sources
-        self.source = self.init_mic_input(name=self.jetson_source["name"], src_index=self.jetson_source["idx"])
+        # Init source
+        self.source_dict[self.jetson_source["name"]]["src"] = self.init_mic_input(
+            name=self.jetson_source["name"], src_index=self.jetson_source["idx"]
+        )
+        self.source_dict[self.jetson_source["name"]]["stft"] = Stft(self.channels, self.frame_size, self.window)
 
-        # Init sinks
-        self.sink_dict[self.jetson_sink["name"]] = self.init_play_output(
+        # Init playback sink
+        self.sink_dict[self.jetson_sink["name"]]["sink"] = self.init_play_output(
             name=self.jetson_sink["name"], sink_index=self.jetson_sink["idx"]
         )
-        if save_input:
-            self.sink_dict["original"] = self.init_sim_output(name="original", path=output_path)
-        if save_output:
-            self.sink_dict["output"] = self.init_sim_output(name="output", path=output_path)
+        self.sink_dict[self.jetson_sink["name"]]["scm_target"] = SpatialCov(
+            self.channels, self.frame_size, weight=self.scm_weight
+        )
+        self.sink_dict[self.jetson_sink["name"]]["scm_noise"] = SpatialCov(
+            self.channels, self.frame_size, weight=self.scm_weight
+        )
+        self.sink_dict[self.jetson_sink["name"]]["istft"] = IStft(1, self.frame_size, self.chunk_size, self.window)
 
-    def start(self):
+        # Init simulated sources (.wav)
+        if save_input:
+            self.sink_dict["original"]["sink"] = self.init_sim_output(
+                name="original", path=output_path, wav_params=self.file_params_multi
+            )
+        if save_output:
+            self.sink_dict["output"]["sink"] = self.init_sim_output(
+                name="output", path=output_path, wav_params=self.file_params_output
+            )
+
+    def start_app(self):
         """
         Simplified main function used by app. Similar to main_loop, but with less debugging options.
         """
@@ -830,7 +850,7 @@ class AudioManager:
             self.check_time(name="loop", is_start=True)
 
             # Record from microphone
-            x = self.source_dict["audio"]["src"]()
+            x = self.source_dict[self.jetson_source["name"]]["src"]()
             if x is None:
                 if self.debug:
                     print("End of transmission. Closing.")
@@ -843,12 +863,13 @@ class AudioManager:
                     out = x[0]
                 else:
                     out = np.zeros((1, self.chunk_size))
+                self.output_sink(data=out, sink_name=self.jetson_sink["name"])
                 self.output_sink(data=out, sink_name="output")
                 continue
 
             # Temporal to Frequential
             self.check_time(name="stft", is_start=True)
-            X = self.source_dict["audio"]["stft"](x)
+            X = self.source_dict[self.jetson_source["name"]]["stft"](x)
             self.check_time(name="stft", is_start=False)
 
             # Compute the masks
@@ -867,8 +888,8 @@ class AudioManager:
             # Spatial covariance matrices
             self.check_time(name="scm", is_start=True)
             if self.use_beamformer:
-                target_scm = self.sink_dict["output"]["scm_target"](X, speech_mask)
-                noise_scm = self.sink_dict["output"]["scm_noise"](X, noise_mask)
+                target_scm = self.sink_dict[self.jetson_sink["name"]]["scm_target"](X, speech_mask)
+                noise_scm = self.sink_dict[self.jetson_sink["name"]]["scm_noise"](X, noise_mask)
             self.check_time(name="scm", is_start=False)
 
             # MVDR
@@ -882,9 +903,11 @@ class AudioManager:
 
             # ISTFT
             self.check_time(name="istft", is_start=True)
-            y = self.sink_dict["output"]["istft"](Y)
+            y = self.sink_dict[self.jetson_sink["name"]]["istft"](Y)
             self.check_time(name="istft", is_start=False)
 
+            # Output enhanced speech
+            self.output_sink(data=y, sink_name=self.jetson_sink["name"])
             self.output_sink(data=y, sink_name="output")
 
             loop_time = self.check_time(name="loop", is_start=False)
