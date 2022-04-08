@@ -16,6 +16,18 @@ CONFIGS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'Dataset
 
 
 def run_generator_loop(source_queue, worker_num, run_params, configs, file_cnt, total_cnt):
+    """
+    Function to be called by individual workers. Creates generator object, gets an audio file from the queue and
+    generated the audio files required with the configs.
+
+    Args:
+        source_queue (Queue): Queue containing audio files from source folder.
+        worker_num (int): Number index of current worker process.
+        run_params (dict): Dictionary containing info from run parameters.
+        configs (dict): Configurations lodaded from config file.
+        file_cnt (int): Shared int containing current file count.
+        total_cnt (int):  Shared int containing total number of files to create.
+    """
     # TODO: CHECK TO RUN 1 GENERATOR AND ALL WORKERS CALL ON IT
     dataset_builder = AudioDatasetBuilder(run_params['SOURCES'],
                                           run_params['NOISES'],
@@ -23,7 +35,7 @@ def run_generator_loop(source_queue, worker_num, run_params, configs, file_cnt, 
                                           run_params['DEBUG'],
                                           run_params['REVERB'],
                                           configs)
-    while source_queue.qsize() > 0:
+    while not source_queue.empty():
         # Get source file
         audio_file = source_queue.get()
 
@@ -38,6 +50,17 @@ def run_generator_loop(source_queue, worker_num, run_params, configs, file_cnt, 
 
 # Script used to generate the audio dataset
 def main(SOURCES, NOISES, OUTPUT, DEBUG, WORKERS, REVERB):
+    """
+    Main running loop to generate dataset. Calls forth worker functions with multiprocessing.
+
+    Args:
+        SOURCES (str): Path to sources folder.
+        NOISES (str): Path to noises folder.
+        OUTPUT (str): Path to output folder.
+        DEBUG (bool): Whether to run in debug mode or not.
+        WORKERS (int): Number of worker processes to call.
+        REVERB (bool): Whether to generate with or without reverb.
+    """
 
     start_time = time.time()
 
