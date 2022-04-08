@@ -2,6 +2,8 @@ import os
 import cv2
 import numpy as np
 import torch
+from torch2trt import TRTModule
+import platform
 
 from .Verifier import Verifier
 from .Encoding import Encoding
@@ -49,7 +51,7 @@ class ResNetVerifier(Verifier):
         img.div_(255).sub_(0.5).div_(0.5)
         return img
 
-    def get_encodings(self, frame, face_locations):
+    def get_features(self, frame, face_locations):
         """
         Get the encodings (feature vectors) for all request objects
 
@@ -74,12 +76,11 @@ class ResNetVerifier(Verifier):
             # TODO JKealey: is context manager necessary if model is in eval?
             with torch.no_grad():
                 # TODO JKealey: possibility to keep on gpu with numpy
-                feature = self.model(image).cpu().numpy()
+                feature = self.model(image).cpu().numpy().squeeze()
             features.append(feature)
 
-        face_encodings = Encoding.create_encodings(features)
 
-        return face_encodings
+        return features
 
     @staticmethod
     def get_scores(reference_encodings, face_encoding):
@@ -110,6 +111,8 @@ class ResNetVerifier(Verifier):
                     * np.linalg.norm(reference_feature)
                 )
             )
+            
+        # TODO: is this really a score or a dist?
         return np.array(dist)
 
     def get_closest_face(self, reference_encodings, face_encoding):
@@ -167,11 +170,16 @@ class ResNetVerifier(Verifier):
 
         if architecture == 18:
             # Load ResNet18
-            model = resnet_face18(pretrained=False)
-            pretrained_dict = torch.load(
-                os.path.join(ResNetVerifier.MODEL_PATH, "resnet18.pth"),
-                map_location=map_fct,
-            )
+            if platform.release().split("-")[-1] == "tegra":
+                model = TRTModule()
+                model_path = os.path.join(ResNetVerifier.MODEL_PATH, "resnet18", "resnet18_trt.pth")
+                pretrained_dict = torch.load(model_path)
+            else:
+                model = resnet_face18(pretrained=False)
+                pretrained_dict = torch.load(
+                    os.path.join(ResNetVerifier.MODEL_PATH, "resnet18", "resnet18.pth"),
+                    map_location=map_fct,
+                )
         elif architecture == 34:
             # Load ResNet34
             model = resnet_face34(pretrained=False)

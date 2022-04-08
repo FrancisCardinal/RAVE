@@ -13,16 +13,14 @@ if __name__ == "__main__":
     parser.add_argument(
         "--flip",
         dest="flip",
-        type=bool,
         help="Flip display orientation by 180 degrees on horizontal axis",
-        default=False,
+        action="store_true"
     )
     parser.add_argument(
         "--flip_display_dim",
         dest="flip_display_dim",
-        type=bool,
         help="If true, will flip window dimensions to (width, height)",
-        default=False,
+        action="store_true"
     )
     parser.add_argument(
         "--height",
@@ -46,10 +44,10 @@ if __name__ == "__main__":
         default=1,
     )
     parser.add_argument(
-        "--visualize",
-        dest="visualize",
+        "--headless",
+        dest="headless",
         help="If true, will show the different tracking frames",
-        action="store_true",
+        action="store_true"
     )
     args = parser.parse_args()
 
@@ -57,8 +55,9 @@ if __name__ == "__main__":
     tracking_manager = TrackingManager(
         tracker_type="kcf",
         detector_type="yolo",
-        verifier_type="arcface",
+        verifier_type="resnet_face_18",#"arcface",
         verifier_threshold=0.32,
         frequency=frequency,
+        visualize=not args.headless
     )
     tracking_manager.start(args)
