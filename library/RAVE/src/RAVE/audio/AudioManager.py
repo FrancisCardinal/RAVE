@@ -22,8 +22,8 @@ from .IO.IO_manager import IOManager
 from .Neural_Network.AudioModel import AudioModel
 from .Beamformer.Beamformer import Beamformer
 
-#TIME = float('inf')
-TIME = 30
+TIME = float('inf')
+# TIME = 30
 FILE_PARAMS_MONO = (
             1,
             2,
@@ -32,15 +32,6 @@ FILE_PARAMS_MONO = (
             "NONE",
             "not compressed",
         )
-FILE_PARAMS_MULTI = (
-            4,
-            2,
-            CONST.SAMPLING_RATE,
-            0,
-            "NONE",
-            "not compressed",
-        )
-
 TARGET = np.array([0, 1, 0.5])
 
 EPSILON = 1e-9
@@ -71,7 +62,6 @@ class AudioManager:
 
         # Class variables init empty
         self.file_params_output = FILE_PARAMS_MONO
-        self.file_params_multi = FILE_PARAMS_MULTI
         self.in_subfolder_path = None
         self.out_subfolder_path = None
         self.source = None
@@ -117,6 +107,15 @@ class AudioManager:
         self.beamformer_name = self.general_configs['beamformer']
         self.jetson_source = self.general_configs['jetson_source']
         self.jetson_sink = self.general_configs['jetson_sink']
+
+        self.file_params_multi = (
+            4,
+            2,
+            CONST.SAMPLING_RATE,
+            0,
+            "NONE",
+            "not compressed",
+        )
 
         # Individual configs
         config_path = os.path.join(self.path, 'audio_indiv_configs.yaml')
@@ -171,7 +170,6 @@ class AudioManager:
         Returns:
             source: WavSource object created.
         """
-        # TODO: FIX FILE PARAMS
         source = self.io_manager.add_source(source_name=name, source_type='sim', file=file, chunk_size=self.chunk_size)
         self.file_params_output = (1, source.wav_params[1], source.wav_params[2],
                                  source.wav_params[3], source.wav_params[4], source.wav_params[5])
@@ -417,7 +415,7 @@ class AudioManager:
                 speech_torch_idx = 1
                 speech_target_idx += 1
                 speech_pred_idx += 1
-                noise_torch_idx = 3
+                noise_torch_idx = 4
                 noise_target_idx += 2
                 noise_pred_idx += 2
 
@@ -580,21 +578,22 @@ class AudioManager:
         if self.speech_and_noise:
             # Speech
             speech_data_t, _ = torchaudio.load(self.speech_file)
-            speech_data = self.transformation(speech_data_t)
-            speech_data = torch.abs(speech_data) ** 2
+            speech_data_f = self.transformation(speech_data_t)
+            speech_data = torch.abs(speech_data_f) ** 2
             speech_data = torch.mean(speech_data, dim=0, keepdim=False)
             # Noise
             noise_data_t, _ = torchaudio.load(self.noise_file)
-            noise_data = self.transformation(noise_data_t)
-            noise_data = torch.abs(noise_data) ** 2
+            noise_data_f = self.transformation(noise_data_t)
+            noise_data = torch.abs(noise_data_f) ** 2
             noise_data = torch.mean(noise_data, dim=0, keepdim=False)
             # Show
+            # TODO: FIX TORCH SPECTROGRAMS
             if self.print_specs:
                 fig, axs = plt.subplots(3)
                 fig.suptitle('Spectrogrammes')
-                axs[0].pcolormesh(audio_data, shading='gouraud')
-                axs[1].pcolormesh(speech_data, shading='gouraud')
-                axs[2].pcolormesh(noise_data, shading='gouraud')
+                axs[0].pcolormesh(audio_data.cpu().numpy(), shading='gouraud', vmin=0, vmax=1)
+                axs[1].pcolormesh(speech_data.cpu().numpy(), shading='gouraud', vmin=0, vmax=1)
+                axs[2].pcolormesh(noise_data.cpu().numpy(), shading='gouraud', vmin=0, vmax=1)
                 axs[2].set_xlabel("Temps(s)")
                 axs[0].set_ylabel("Audio")
                 axs[1].set_ylabel("Speech")
@@ -603,7 +602,7 @@ class AudioManager:
             if self.print_specs:
                 fig, axs = plt.subplots(1)
                 fig.suptitle('Spectrogrammes')
-                axs[0].pcolormesh(audio_data, shading='gouraud')
+                axs[0].pcolormesh(audio_data, shading='gouraud', vmin=0, vmax=1)
                 axs[0].set_xlabel("Temps(s)")
                 axs[0].set_ylabel("Audio")
         save_name = os.path.join(self.out_subfolder_path, 'torch_plots.jpg')
