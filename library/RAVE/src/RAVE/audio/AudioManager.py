@@ -49,6 +49,8 @@ class AudioManager:
 
     def __init__(self, debug=False, mask=False, use_timers=False):
 
+        # TODO: ADD PRIVATE ATTRIBUTES (_)
+
         # Argument variables
         self.debug = debug
         self.mask = mask
@@ -127,6 +129,9 @@ class AudioManager:
         # self.mic_array_index = self.individual_configs['mic_array_index']
         self.use_beamformer = self.individual_configs["use_beamformer"]
         self.speech_and_noise = self.individual_configs["use_groundtruth"]
+        if self.speech_and_noise:
+            self.speech_file = None
+            self.noise_file = None
         self.torch_gt = self.individual_configs["use_torch"]
         self.print_specs = self.individual_configs["print_specs"]
         self.source_list = self.individual_configs["source"]
@@ -708,32 +713,29 @@ class AudioManager:
         # Inputs
         if source:
             self.source_list = source
-
-        self.source_dict["audio"] = {}
         if self.source_list["type"] == "sim":
-            self.source_dict["audio"]["src"] = self.init_sim_input(
-                name=self.source_list["name"], file=self.source_list["file"]
-            )
-            self.source_dict["audio"]["file"] = self.source_list["file"]
+            self.source_dict["audio"] = {
+                "file": self.source_list["file"],
+                "src": self.init_sim_input(name=self.source_list["name"], file=self.source_list["file"]),
+                "stft": Stft(self.channels, self.frame_size, self.window),
+            }
             if self.speech_and_noise:
                 # Try loading speech and noise ground truths if present
                 try:
                     # Load speech file
-                    self.source_dict["speech"] = {}
                     self.speech_file = os.path.join(os.path.split(self.source_list["file"])[0], "speech.wav")
-                    self.source_dict["speech"]["file"] = self.speech_file
-                    self.source_dict["speech"]["src"] = self.init_sim_input(
-                        name="speech_gt_source", file=self.speech_file
-                    )
-                    self.source_dict["speech"]["stft"] = Stft(self.channels, self.frame_size, self.window)
+                    self.source_dict["speech"] = {
+                        "file": self.speech_file,
+                        "src": self.init_sim_input(name="speech_gt_source", file=self.speech_file),
+                        "stft": Stft(self.channels, self.frame_size, self.window),
+                    }
                     # Load noise file
-                    self.source_dict["noise"] = {}
                     self.noise_file = os.path.join(os.path.split(self.source_list["file"])[0], "noise.wav")
-                    self.source_dict["noise"]["file"] = self.noise_file
-                    self.source_dict["noise"]["src"] = self.init_sim_input(
-                        name="noise_gt_source", file=self.noise_file
-                    )
-                    self.source_dict["noise"]["stft"] = Stft(self.channels, self.frame_size, self.window)
+                    self.source_dict["noise"] = {
+                        "file": self.noise_file,
+                        "src": self.init_sim_input(name="noise_gt_source", file=self.noise_file),
+                        "stft": Stft(self.channels, self.frame_size, self.window),
+                    }
                     # Set argument to True if successful
                     self.speech_and_noise = True
                 except Exception as e:
@@ -741,10 +743,10 @@ class AudioManager:
                         print(e)
                     self.speech_and_noise = False
         else:
-            self.source_dict["audio"]["src"] = self.init_mic_input(
-                name=self.source_list["name"], src_index=self.source_list["idx"]
-            )
-        self.source_dict["audio"]["stft"] = Stft(self.channels, self.frame_size, self.window)
+            self.source_dict["audio"] = {
+                "src": self.init_mic_input(name=self.source_list["name"], src_index=self.source_list["idx"]),
+                "stft": Stft(self.channels, self.frame_size, self.window),
+            }
 
         # Outputs
         # TODO: ADD OUTPUT CHANNELS CONTROL
@@ -805,39 +807,32 @@ class AudioManager:
             passthrough_mode (bool): Whether for "no target mode" to be passthrough or muted.
             output_path (str): Path at which to save the simulated sinks (.wav files).
         """
-
-        # TODO: FIX JETSON APP
-
         self.is_delays = True
         self.passthrough_mode = passthrough_mode
 
         # Init source
-        self.source_dict[self.jetson_source["name"]]["src"] = self.init_mic_input(
-            name=self.jetson_source["name"], src_index=self.jetson_source["idx"]
-        )
-        self.source_dict[self.jetson_source["name"]]["stft"] = Stft(self.channels, self.frame_size, self.window)
+        self.source_dict[self.jetson_source["name"]] = {
+            "src": self.init_mic_input(name=self.jetson_source["name"], src_index=self.jetson_source["idx"]),
+            "stft": Stft(self.channels, self.frame_size, self.window),
+        }
 
         # Init playback sink
-        self.sink_dict[self.jetson_sink["name"]]["sink"] = self.init_play_output(
-            name=self.jetson_sink["name"], sink_index=self.jetson_sink["idx"]
-        )
-        self.sink_dict[self.jetson_sink["name"]]["scm_target"] = SpatialCov(
-            self.channels, self.frame_size, weight=self.scm_weight
-        )
-        self.sink_dict[self.jetson_sink["name"]]["scm_noise"] = SpatialCov(
-            self.channels, self.frame_size, weight=self.scm_weight
-        )
-        self.sink_dict[self.jetson_sink["name"]]["istft"] = IStft(1, self.frame_size, self.chunk_size, self.window)
+        self.sink_dict[self.jetson_sink["name"]] = {
+            "sink": self.init_play_output(name=self.jetson_sink["name"], sink_index=self.jetson_sink["idx"]),
+            "scm_target": SpatialCov(self.channels, self.frame_size, weight=self.scm_weight),
+            "scm_noise": SpatialCov(self.channels, self.frame_size, weight=self.scm_weight),
+            "istft": IStft(1, self.frame_size, self.chunk_size, self.window),
+        }
 
-        # Init simulated sources (.wav)
+        # Init simulated sources (.wav) if needed
         if save_input:
-            self.sink_dict["original"]["sink"] = self.init_sim_output(
-                name="original", path=output_path, wav_params=self.file_params_multi
-            )
+            self.sink_dict["original"] = {
+                "sink": self.init_sim_output(name="original", path=output_path, wav_params=self.file_params_multi)
+            }
         if save_output:
-            self.sink_dict["output"]["sink"] = self.init_sim_output(
-                name="output", path=output_path, wav_params=self.file_params_output
-            )
+            self.sink_dict["output"] = {
+                "sink": self.init_sim_output(name="output", path=output_path, wav_params=self.file_params_output)
+            }
 
     def start_app(self):
         """
