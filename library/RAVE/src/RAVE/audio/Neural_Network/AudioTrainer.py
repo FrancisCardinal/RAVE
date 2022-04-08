@@ -6,6 +6,31 @@ from RAVE.common.Trainer import Trainer
 
 
 class AudioTrainer(Trainer):
+    """
+        Trainer class, used to train neural networks
+
+        Args:
+            training_loader (Dataloader):
+                Dataloader that returns images and labels pairs of the training
+                dataset
+            validation_loader (Dataloader):
+                Dataloader that returns images and labels pairs of the
+                validation dataset
+            loss_function (Functor):
+                Loss function used to compute the training and
+                validation losses
+            device (String):
+                Device on which to perform the computations
+            model (Module):
+                Neural network to be trained
+            optimizer (Optimizer):
+                Optimizer used to update the weights during training
+            scheduler (_LRScheduler):
+                Learning rate scheduler
+            CONTINUE_TRAINING (bool):
+                Whether to continue the training from the checkpoint
+                on disk or not
+        """
     def __init__(self, training_loader, validation_loader, loss_function, device, model, optimizer, scheduler, ROOT_DIR_PATH, CONTINUE_TRAINING):
         super().__init__(training_loader, validation_loader, loss_function, device, model, optimizer, scheduler, ROOT_DIR_PATH, CONTINUE_TRAINING)
 
