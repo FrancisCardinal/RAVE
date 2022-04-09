@@ -12,7 +12,12 @@ class EyeTrackerModel(nn.Module):
         Defines the architecture of the model.
         Uses a pretrained version of resnet to do some transfer
         learning. The model also has some fully connected layers at the end,
-        as they help the network to make better predictions.
+        as they help the network to make better predictions. It has two heads,
+        one for the regression (main) task, and the other for the domain
+        classification task. The domain classification task is needed in order
+        to implement the DANN algorithm, which we use because we have a lot
+        of synthetic data, and not so much real data. The domain classification
+        head is only useful / used during the training process.
         """
         super(EyeTrackerModel, self).__init__()
         self.model = torch.hub.load(
@@ -70,14 +75,14 @@ class EyeTrackerModel(nn.Module):
 
     def forward(self, x, alpha=None):
         """
-        Method of the Dataset class that must be overwritten by this class.
+        Method of the Module class that must be overwritten by this class.
         Specifies how the forward pass should be executed
         The sigmoid is used to limit the ouput domain, as to converge more
         easily. Each parameter is normalized between 0 and 1, where 1
         represents the max pixel value of the corresponding axis of the
         parameter (or 2*pi radians for theta). For example, if the h
         parameter is 0.5 and the image width is 480, then the h value in
-        pixels is 240
+        pixels is 240. The alpha parameter is used by the domain head.
 
         Args:
             x (pytorch tensor):
@@ -107,16 +112,43 @@ class EyeTrackerModel(nn.Module):
         return ellipse, classification
 
 
-# The following was taken from https://github.com/fungtion/DANN
 class ReverseLayerF(torch.autograd.Function):
+    """Class to reverse the gradient.
+    Taken from https://github.com/fungtion/DANN
+    """
+
     @staticmethod
     def forward(ctx, x, alpha):
+        """Method of the Function class that must be overwritten by this class.
+           Its only use is to note the alpha parameter for later use in the
+           backward propagation.
+
+        Args:
+            ctx (object): Memory used to stored useful information (alpha)
+            x (tensor): The input of the layer
+            alpha (float):
+                Relative importance of the domain gradient with respect to the
+                regression gradient (how much is it important that the
+                network generalizes well ?).
+
+        Returns:
+            tensor: the unmodified input tensor
+        """
         ctx.alpha = alpha
 
         return x.view_as(x)
 
     @staticmethod
     def backward(ctx, grad_output):
+        """Backward propagation
+
+        Args:
+            ctx (object): Memory used to stored useful information (alpha)
+            grad_output (tensor): Gradient up to this point
+
+        Returns:
+            tensor: The modified gradient
+        """
         output = grad_output.neg() * ctx.alpha
 
         return output, None

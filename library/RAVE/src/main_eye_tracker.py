@@ -100,7 +100,10 @@ def main(
 
     min_validation_loss = float("inf")
     if TRAIN:
-        optimizer = torch.optim.AdamW(eye_tracker_model.parameters(), lr=lr,)
+        optimizer = torch.optim.AdamW(
+            eye_tracker_model.parameters(),
+            lr=lr,
+        )
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer)
 
         trainer = DANNTrainer(
@@ -188,9 +191,18 @@ def visualize_predictions(model, data_loader, DEVICE):
 
 
 def film(root):
+    """Films a video (most likely a video that will be part of the dataset
+       once annoted)
+
+    Args:
+        root (string): Root path of the eye tracker module
+    """
     camera_dataset = EyeTrackerInferenceDataset(2)
     camera_loader = torch.utils.data.DataLoader(
-        camera_dataset, batch_size=1, shuffle=False, num_workers=0,
+        camera_dataset,
+        batch_size=1,
+        shuffle=False,
+        num_workers=0,
     )
     frame_height = EyeTrackerDataset.IMAGE_DIMENSIONS[1]
     frame_width = EyeTrackerDataset.IMAGE_DIMENSIONS[2]
@@ -229,11 +241,28 @@ def film(root):
 
 
 def annotate(root):
+    """Annotates videos so that they can be part of the dataset
+
+    Args:
+        root (string): Root path of the eye tracker module
+    """
     ellipse_annotation_tool = EllipseAnnotationTool(root)
     ellipse_annotation_tool.annotate()
 
 
 def inference(device):
+    """Once the model has been trained, it can be used here to infer the
+       gaze of the user in real time (i.e, do some eye tracking). This is
+       a small test-like/headless script: the user will most likely want to use
+       the eye tracking module by using the web site, which provides a nice GUI
+       The Direction2Pixel class is also used to convert the gaze prediction
+       into a pixel of the vision's module camera (this is then used to select
+       a bounding box of interest (i.e, which person in the room do we want to
+       listen to ?))
+
+    Args:
+        device (string): Torch device (most likely 'cpu' or 'cuda')
+    """
     gaze_inferer_manager = GazeInfererManager(2, device)
     head_camera = cv2.VideoCapture(4)
     head_camera.set(cv2.CAP_PROP_FPS, 30.0)
@@ -284,6 +313,12 @@ def inference(device):
 
 
 def wait_for_enter(msg=""):
+    """Function used by the inference (headless) function to wait for the
+       enter key before we move to the next step of the program
+
+    Args:
+        msg (str, optional): Message to display. Defaults to "".
+    """
     is_waiting_for_enter = True
     while is_waiting_for_enter:
         key = input("Waiting for enter key to {}".format(msg))

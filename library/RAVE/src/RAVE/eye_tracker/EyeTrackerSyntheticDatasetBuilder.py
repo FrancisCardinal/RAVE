@@ -43,10 +43,20 @@ class EyeTrackerSyntheticDatasetBuilder(EyeTrackerDatasetBuilder):
 
     @staticmethod
     def create_datasets(force_generate):
-        """
-        Main method of the EyeTrackerSyntheticDatasetBuilder class.
-        This method checks if the dataset as already been built, and builds it
-        otherwise.
+        """Main method of the EyeTrackerSyntheticDatasetBuilder class.
+            This method checks if the dataset as already been built,
+            and builds it otherwise. The force_generate flag can be used
+            to generate the dataset even if there is a dataset on disk. This
+            is useful as we call this method after the create_datasets method
+            of the EyeTrackerDatasetBuilder class, which generates the datasets
+            from the real images. However, we want this class to add the
+            synthetic data to the same directories where the real data was
+            stored. As such, we need to bypass the "dataset_found" check.
+
+        Args:
+            force_generate (bool) : Should we generate the dataset even if
+            data is already there ? Should be true if we are in a hybrid
+            (real/synthetic) dataset situation.
         """
         (
             BUILDERS,
@@ -140,6 +150,19 @@ class EyeTrackerSyntheticDatasetBuilder(EyeTrackerDatasetBuilder):
         SOURCE_DIR,
         CROP_SIZE,
     ):
+        """Constructor of the EyeTrackerSyntheticDatasetBuilder class
+
+        Args:
+            files (List): Filenames of the elements of the dataset
+            OUTPUT_DIR_PATH (string): Directory where we should put the dataset
+            log_name (string): Name that sould be displayed in the logs to
+               represent this dataset while its being builded
+            IMAGE_DIMENSIONS (tuple): (Height, Width) Output image dimension
+            SOURCE_DIR (string): Directory where we can get the video
+            CROP_SIZE (tuple, optional): 4 values that correspond to a crop
+               operation : top (y coordinate), left (x coordinate),
+               height, width. Defaults to None. If None, do not perform a crop.
+        """
         super().__init__(
             [],
             OUTPUT_DIR_PATH,
@@ -154,6 +177,7 @@ class EyeTrackerSyntheticDatasetBuilder(EyeTrackerDatasetBuilder):
         self.files = files
 
     def generate_dataset(self):
+        """Generates a dataset"""
         self.video_frame_id = 0
 
         for file in tqdm(self.files, leave=False, desc=self.log_name):
@@ -209,13 +233,15 @@ class EyeTrackerSyntheticDatasetBuilderOfflineDataAugmentation(
         the offline training transforms
 
         Args:
-            VIDEOS (List of strings):
-                The names of the videos that belong to this sub-dataset
-            OUTPUT_DIR_PATH (String):
-                Path of the directory that will contain the images and
-                labels pairs
-            log_name (String):
-                Name to be displayed alongside the progress bar in the terminal
+            files (List): Filenames of the elements of the dataset
+            OUTPUT_DIR_PATH (string): Directory where we should put the dataset
+            log_name (string): Name that sould be displayed in the logs to
+               represent this dataset while its being builded
+            IMAGE_DIMENSIONS (tuple): (Height, Width) Output image dimension
+            SOURCE_DIR (string): Directory where we can get the video
+            CROP_SIZE (tuple, optional): 4 values that correspond to a crop
+               operation : top (y coordinate), left (x coordinate),
+               height, width. Defaults to None. If None, do not perform a crop.
         """
         super().__init__(
             files,
@@ -237,8 +263,8 @@ class EyeTrackerSyntheticDatasetBuilderOfflineDataAugmentation(
         )
 
     def process_frame(self, frame):
-        """Calls the parent method, then applies some data augmentation operations.
-           Used to perform offline data augmentation.
+        """Calls the parent method, then applies some data augmentation
+           operations. Used to perform offline data augmentation.
         Args:
             frame (numpy array): The frame that needs to be processed
         Returns:

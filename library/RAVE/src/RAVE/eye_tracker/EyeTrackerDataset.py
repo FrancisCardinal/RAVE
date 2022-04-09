@@ -30,6 +30,11 @@ class EyeTrackerDataset(Dataset):
     REAL_DOMAIN = 1
 
     def __init__(self, sub_dataset_dir):
+        """Constructor of the EyeTrackerDataset class
+
+        Args:
+            sub_dataset_dir (string): Name of the sub dataset directory
+        """
         super().__init__(
             EyeTrackerDataset.TRAINING_MEAN,
             EyeTrackerDataset.TRAINING_STD,
@@ -70,13 +75,14 @@ class EyeTrackerDataset(Dataset):
     def __getitem__(self, idx):
         """
         Method of the Dataset class that must be overwritten by this class.
-        Used to get an image and label pair
+        Used to get an image and label pair (and domain).
 
         Args:
             idx (int): Index of the pair to get
 
         Returns:
-            tuple: Image and label pair
+            tuple: Image and label pair, and the domain of the image (is this
+            image synthetic or real ?)
         """
         image_path, domain = self.torch_index_to_image_path_and_domain(idx)
 
@@ -91,6 +97,15 @@ class EyeTrackerDataset(Dataset):
         return image, label, domain
 
     def torch_index_to_image_path_and_domain(self, idx):
+        """Determines if a given index corresponds to a synthetic or real image
+           (i.e its domain) and returns the image's path and domain
+
+        Args:
+            idx (int): Index of the image
+
+        Returns:
+            tuple: The image's path and domain
+        """
         image_path, domain = None, None
         if idx < self.nb_synthetic_images:
             # idx is one of our self.nb_synthetic_images real imag
@@ -147,6 +162,11 @@ class EyeTrackerDatasetOnlineDataAugmentation(EyeTrackerDataset):
     """
 
     def __init__(self, sub_dataset_dir):
+        """Constructor of the EyeTrackerDatasetOnlineDataAugmentation class
+
+        Args:
+            sub_dataset_dir (string): Name of the sub dataset directory
+        """
         super().__init__(sub_dataset_dir)
 
         self.TRAINING_TRANSFORM = transforms.Compose(
@@ -162,14 +182,15 @@ class EyeTrackerDatasetOnlineDataAugmentation(EyeTrackerDataset):
     def __getitem__(self, idx):
         """
         Method of the Dataset class that must be overwritten by this class.
-        Used to get an image and label pair. Before returning the image and
-        label pair, this class performs online data augmentation.
+        Used to get an image and label pair (and domain). Before returning the
+        image and label pair, this class performs online data augmentation.
 
         Args:
             idx (int): Index of the pair to get
 
         Returns:
-            tuple: Image and label pair
+            tuple: Image and label pair, and the domain of the image (is this
+            image synthetic or real ?)
         """
         image_path, domain = self.torch_index_to_image_path_and_domain(idx)
 
@@ -223,7 +244,8 @@ class EyeTrackerInferenceDataset(EyeTrackerDataset):
         Used to get the number of elements in the dataset
 
         Returns:
-            int: The number of elements in the dataset
+            int: The number of elements in the dataset (1, as we are only
+            interested in the most recent frame (which changes over time))
         """
         return 1
 
@@ -236,7 +258,7 @@ class EyeTrackerInferenceDataset(EyeTrackerDataset):
             idx (int): Index of the pair to get, ignored
 
         Returns:
-            tuple: Image, 0
+            Image: The most recent image
         """
         frame = self._video_feed.read()
 
@@ -261,4 +283,6 @@ class EyeTrackerInferenceDataset(EyeTrackerDataset):
         return image
 
     def end(self):
+        """Should be called at the end of the program to free the opencv
+        device"""
         self._video_feed.end()

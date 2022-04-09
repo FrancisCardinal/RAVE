@@ -1,4 +1,5 @@
 import os
+from os.path import isfile, join
 import shutil
 from threading import Thread
 import random
@@ -78,19 +79,19 @@ class EyeTrackerDatasetBuilder(DatasetBuilder):
                 (one for each sub-dataset)
         """
 
-        TRAINING_PATH = os.path.join(
+        TRAINING_PATH = join(
             EyeTrackerDatasetBuilder.ROOT_PATH,
             EyeTrackerDataset.EYE_TRACKER_DIR_PATH,
             DATASET_DIR,
             TRAINING_DIR,
         )
-        VALIDATION_PATH = os.path.join(
+        VALIDATION_PATH = join(
             EyeTrackerDatasetBuilder.ROOT_PATH,
             EyeTrackerDataset.EYE_TRACKER_DIR_PATH,
             DATASET_DIR,
             VALIDATION_DIR,
         )
-        TEST_PATH = os.path.join(
+        TEST_PATH = join(
             EyeTrackerDatasetBuilder.ROOT_PATH,
             EyeTrackerDataset.EYE_TRACKER_DIR_PATH,
             DATASET_DIR,
@@ -109,9 +110,7 @@ class EyeTrackerDatasetBuilder(DatasetBuilder):
         SOURCE_DIR = VideosUnpacker.TMP_PATH
 
         images_files = os.listdir(
-            os.path.join(
-                EyeTrackerDatasetBuilder.ROOT_PATH, SOURCE_DIR, IMAGES_DIR
-            )
+            join(EyeTrackerDatasetBuilder.ROOT_PATH, SOURCE_DIR, IMAGES_DIR)
         )
         random.Random(42).shuffle(images_files)
 
@@ -157,6 +156,19 @@ class EyeTrackerDatasetBuilder(DatasetBuilder):
         SOURCE_DIR,
         CROP_SIZE=None,
     ):
+        """Constructor of the EyeTrackerDatasetBuilder class
+
+        Args:
+            files (List): Filenames of the elements of the dataset
+            OUTPUT_DIR_PATH (string): Directory where we should put the dataset
+            log_name (string): Name that sould be displayed in the logs to
+               represent this dataset while its being builded
+            IMAGE_DIMENSIONS (tuple): (Height, Width) Output image dimension
+            SOURCE_DIR (string): Directory where we can get the video
+            CROP_SIZE (tuple, optional): 4 values that correspond to a crop
+               operation : top (y coordinate), left (x coordinate),
+               height, width. Defaults to None. If None, do not perform a crop.
+        """
         super().__init__(
             [],
             OUTPUT_DIR_PATH,
@@ -165,25 +177,26 @@ class EyeTrackerDatasetBuilder(DatasetBuilder):
             SOURCE_DIR,
             CROP_SIZE,
         )
-        self.INPUT_IMAGES_PATH = os.path.join(SOURCE_DIR, IMAGES_DIR)
-        self.INPUT_LABELS_PATH = os.path.join(SOURCE_DIR, LABELS_DIR)
+        self.INPUT_IMAGES_PATH = join(SOURCE_DIR, IMAGES_DIR)
+        self.INPUT_LABELS_PATH = join(SOURCE_DIR, LABELS_DIR)
 
         self.files = files
 
     def generate_dataset(self):
+        """Generates the dataset"""
         self.video_frame_id = 0
         for file in tqdm(self.files, leave=False, desc=self.log_name):
             filename = Path(file).stem
 
             annotation = pickle.load(
                 open(
-                    os.path.join(self.INPUT_LABELS_PATH, filename + ".bin"),
+                    join(self.INPUT_LABELS_PATH, filename + ".bin"),
                     "rb",
                 )
             )
             self.current_ellipse = NormalizedEllipse.get_from_list(annotation)
 
-            frame = cv2.imread(os.path.join(self.INPUT_IMAGES_PATH, file))
+            frame = cv2.imread(join(self.INPUT_IMAGES_PATH, file))
             processed_frame = self.process_frame(frame)
 
             self.save_image_label_pair(
@@ -193,7 +206,12 @@ class EyeTrackerDatasetBuilder(DatasetBuilder):
 
 
 class VideosUnpacker(DatasetBuilder):
-    TMP_PATH = os.path.join(
+    """Class that is used to unpack a video into its constituting frames
+    and dumps them into a temporary directory so that it can be used
+    by the EyeTrackerDatasetBuilder class
+    """
+
+    TMP_PATH = join(
         EyeTrackerDatasetBuilder.ROOT_PATH,
         EyeTrackerDataset.EYE_TRACKER_DIR_PATH,
         DATASET_DIR,
@@ -202,16 +220,22 @@ class VideosUnpacker(DatasetBuilder):
 
     @staticmethod
     def get_builders():
+        """Get the builder
+
+        Returns:
+            VideosUnpacker: The VideosUnpacker object
+        """
+        VIDEOS_DIR = "real_dataset"
+        VIDEOS_DIR_PATH = join(
+            EyeTrackerDatasetBuilder.ROOT_PATH,
+            EyeTrackerDataset.EYE_TRACKER_DIR_PATH,
+            VIDEOS_DIR,
+            "videos",
+        )
         VIDEOS = [
-            "Amelie_1.avi",
-            "Anthony_1.avi",
-            "Felix_1.avi",
-            "Francis_1.avi",
-            "Olivier_1.avi",
-            "Vincent_1.avi",
-            "Jacob_1.avi",
-            "Julien_1.avi",
-            "Etienne_1.avi",
+            f
+            for f in os.listdir(VIDEOS_DIR_PATH)
+            if isfile(join(VIDEOS_DIR_PATH, f))
         ]
 
         BUILDER = VideosUnpacker(
@@ -219,9 +243,7 @@ class VideosUnpacker(DatasetBuilder):
             VideosUnpacker.TMP_PATH,
             "Unpacking videos",
             EyeTrackerDataset.IMAGE_DIMENSIONS[1:3],
-            os.path.join(
-                EyeTrackerDataset.EYE_TRACKER_DIR_PATH, "real_dataset"
-            ),
+            join(EyeTrackerDataset.EYE_TRACKER_DIR_PATH, VIDEOS_DIR),
             EyeTrackerDataset.CROP_SIZE,
         )
 
@@ -231,7 +253,7 @@ class VideosUnpacker(DatasetBuilder):
         self, processed_frame, file_name, ORIGINAL_HEIGHT, ORIGINAL_WIDTH
     ):
         """
-        To process the image and label from LPW
+        To process the image and label from the target dataset
         """
         self.current_ellipse.crop(
             ORIGINAL_HEIGHT, ORIGINAL_WIDTH, EyeTrackerDataset.CROP_SIZE
@@ -243,7 +265,7 @@ class VideosUnpacker(DatasetBuilder):
     def parse_current_annotation(self, annotations):
         """
         Parses the current annotation to extract the parameters of
-        the ellipse as defined by opencv
+        the ellipse as defined by the annotation tool
 
         Args:
             annotations (List of strings): All the annotations
@@ -281,7 +303,7 @@ class EyeTrackerDatasetBuilderOfflineDataAugmentation(
         CROP_SIZE=None,
     ):
         """
-        Constructor of the TrainingDatasetBuilder.Calls the parent
+        Constructor of the TrainingDatasetBuilder. Calls the parent
         constructor and defines the training transforms
 
         Args:
@@ -313,8 +335,8 @@ class EyeTrackerDatasetBuilderOfflineDataAugmentation(
         )
 
     def process_frame(self, frame):
-        """Calls the parent method, then applies some data augmentation operations.
-           Used to perform offline data augmentation.
+        """Calls the parent method, then applies some data augmentation
+           operations. Used to perform offline data augmentation.
         Args:
             frame (numpy array): The frame that needs to be processed
         Returns:

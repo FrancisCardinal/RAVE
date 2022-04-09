@@ -6,6 +6,8 @@ from RAVE.common.Trainer import Trainer
 
 
 class DANNTrainer(Trainer):
+    """Class that implements the DANN algorithm to train a network"""
+
     def __init__(
         self,
         training_loader,
@@ -18,6 +20,30 @@ class DANNTrainer(Trainer):
         ROOT_DIR_PATH,
         CONTINUE_TRAINING,
     ):
+        """Constructor of the DANNTrainer class
+
+        Args:
+            training_loader (Dataloader):
+                Dataloader that returns images and labels pairs of the training
+                dataset
+            validation_loader (Dataloader):
+                Dataloader that returns images and labels pairs of the
+                validation dataset
+            loss_function (Functor):
+                Loss function used to compute the training and
+                validation losses
+            device (String):
+                Device on which to perform the computations
+            model (Module):
+                Neural network to be trained
+            optimizer (Optimizer):
+                Optimizer used to update the weights during training
+            scheduler (_LRScheduler):
+                Learning rate scheduler
+            CONTINUE_TRAINING (bool):
+                Whether to continue the training from the checkpoint
+                on disk or not
+        """
         super().__init__(
             training_loader,
             validation_loader,
