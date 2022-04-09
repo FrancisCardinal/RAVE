@@ -36,6 +36,16 @@ class Direction2Pixel:
         self._eps = 1e-20
 
     def get_pixel(self, angle_x, angle_y, dist):
+        """
+        Methode to get the pixel from the x and y angles
+        Args:
+            angle_x (float): horizontal angle in degrees
+            angle_y (float): vertical angle in degrees
+            dist (float): the distance in meters between the eye and the object
+
+        Returns:
+            (pixel_x, pixel_y): the pixel values for the position in the image
+        """
         angle_x = math.radians(90 - angle_x)
         angle_y = math.radians(90 + angle_y)
 
@@ -50,13 +60,13 @@ class Direction2Pixel:
         a = x_cam / z_cam
         b = y_cam / z_cam
 
-        r = math.sqrt(a ** 2 + b ** 2)
+        r = math.sqrt(a**2 + b**2)
         theta = math.atan(r)
 
         theta_distorted = theta * (
             1
-            + (self._distortion[0] * (theta ** 2))
-            + (self._distortion[1] * (theta ** 4))
+            + (self._distortion[0] * (theta**2))
+            + (self._distortion[1] * (theta**4))
         )
 
         x_cam = theta_distorted * a / (r + self._eps)
@@ -83,6 +93,19 @@ class Direction2Pixel:
     def is_line_segment_in_rectangle(
         self, point1, point2, top_left_corner, bottom_right_corner
     ):
+        """
+        Args:
+            point1 (Tuple of int): First point of the line in pixels (x, y)
+            point2 (Tuple of int): Second point of the line in pixels (x, y)
+            top_left_corner (Tuple of int):
+                Top left corner of the rectangle in pixels (x, y)
+            bottom_right_corner (Tuple of int):
+                Bottom right corner of the rectangle in pixels (x, y)
+
+        Returns:
+            bool:
+                Whether the line is segment is in the rectangle.
+        """
         a, b = self.get_line_from_2_points(point1, point2)
 
         x_range = np.arange(point2[0], point1[0])
@@ -101,6 +124,21 @@ class Direction2Pixel:
         top_left_corner,
         bottom_right_corner,
     ):
+        """
+
+        Args:
+            points (nd.array): array of points (x, y)
+                        top_left_corner (Tuple of int):
+            top_left_corner (Tuple of int):
+                Top left corner of the rectangle in pixels (x, y)
+            bottom_right_corner (Tuple of int):
+                Bottom right corner of the rectangle in pixels (x, y)
+
+        Returns:
+            bool:
+                Whether the points are in the rectangle.
+
+        """
         condition1 = points[0] > top_left_corner[0]
         condition2 = points[0] < bottom_right_corner[0]
         condition3 = points[1] > top_left_corner[1]
@@ -115,6 +153,15 @@ class Direction2Pixel:
 
     @staticmethod
     def get_line_from_2_points(point1, point2):
+        """
+        Args:
+            point1 (Tuple of int): First point of the line in pixels (x, y)
+            point2 (Tuple of int): Second point of the line in pixels (x, y)
+
+        Returns:
+            (a, b):
+                The parameters for the line y = ax+b
+        """
         # TODO - JKealey: handle when line is vertical or horizontal
         #  if necessary because it seems our lines will never be.
         a = (point1[1] - point2[1]) / (point1[0] - point2[0])
