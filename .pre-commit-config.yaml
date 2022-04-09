@@ -4,7 +4,7 @@ repos:
   hooks:
     - id: docstr-coverage
 -   repo: https://github.com/ambv/black
-    rev: 21.9b0
+    rev: 22.3.0
     hooks:
     - id: black
       args: [--config=./library/RAVE/pyproject.toml]
@@ -15,5 +15,6 @@ repos:
       # https://github.com/psf/black/issues/315
       args: [
           '--exclude=__init__.py, library/RAVE/src/RAVE/face_detection/model',
-          '--ignore=E203,W503'
+          '--ignore=E203,W503',
+          '--max-line-length=120'
       ]

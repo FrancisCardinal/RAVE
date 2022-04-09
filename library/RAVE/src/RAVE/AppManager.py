@@ -6,8 +6,10 @@ import threading
 
 # from tqdm import tqdm
 
-from RAVE.face_detection.TrackingManager import TrackingManager
-from RAVE.face_detection.Pixel2Delay import Pixel2Delay
+from .face_detection.TrackingManager import TrackingManager
+from .face_detection.Pixel2Delay import Pixel2Delay
+
+from .audio.AudioManager import AudioManager
 
 
 sio = socketio.Client()
@@ -88,14 +90,15 @@ class AppManager:
             frequency=args.freq,
             visualize=args.visualize,
         )
-        self._pixel_to_delay = Pixel2Delay(
-            (args.height, args.width), "./calibration.json"
-        )
+        self._pixel_to_delay = Pixel2Delay((args.height, args.width), "./calibration.json")
         self._args = args
         self._frame_output_frequency = 0.05
         self._delay_update_frequency = 0.25
         self._selected_face = None
         self._vision_mode = "mute"
+
+        self._audio_manager = AudioManager()
+        self._audio_manager.init_app(save_input=True, save_output=True, passthrough_mode=True, output_path="")
 
         sio.on("targetSelect", self._update_selected_face)
         sio.on("changeVisionMode", self._change_mode)
@@ -128,6 +131,12 @@ class AppManager:
             daemon=True,
         ).start()
 
+        # Start audio thread
+        threading.Thread(
+            target=self._audio_manager.start_app,
+            daemon=True,
+        ).start()
+
     def send_to_server(self):
         """
         Function to send the frame to the server
@@ -145,9 +154,7 @@ class AppManager:
                     }
                 )
 
-            frame_string = base64.b64encode(
-                cv2.imencode(".jpg", self._tracking_manager.last_frame)[1]
-            ).decode()
+            frame_string = base64.b64encode(cv2.imencode(".jpg", self._tracking_manager.last_frame)[1]).decode()
             emit(
                 "newFrameAvailable",
                 "client",
@@ -183,17 +190,13 @@ class AppManager:
         Function to send the audio section the target delay
         """
         if self._selected_face in self._tracking_manager.tracked_objects:
-            pass
-            # print(
-            #     self._pixel_to_delay.get_delay(
-            #         self._tracking_manager.tracked_objects[
-            #             self._selected_face
-            #         ].landmark
-            #     )
-            # )
+            pixel_val = self._tracking_manager.tracked_objects[self._selected_face].landmark
+            print(pixel_val)
+            delay = self._pixel_to_delay.get_delay(pixel_val)
         else:
-            pass
-            # print(None)
+            delay = None
+            print(None)
+        self._audio_manager.set_target(delay)
 
     def stop_tracking(self):
         """
