@@ -48,7 +48,7 @@ class AudioManager:
     window = "hann"
 
     model_input_size = 1026
-    model_hidden_size = 256
+    model_hidden_size = 128
     model_layers = 2
 
     def __init__(self, debug=False, mask=False, use_timers=False):
@@ -66,7 +66,7 @@ class AudioManager:
         self.out_subfolder_path = None
         self.source = None
         self.original_sink = None
-        self.target = TARGET
+        self.target = None
         self.source_dict = {}
         self.sink_dict = {}
         self.timers = {}
@@ -504,8 +504,8 @@ class AudioManager:
                 delay = self.target
             else:
                 target_np = np.array([self.target])
-                delay = get_delays_based_on_mic_array(target_np, self.mic_array, self.frame_size)
-            sum = self.delay_and_sum(signal, delay[0])
+                delay = get_delays_based_on_mic_array(target_np, self.mic_array, self.frame_size)[0]
+            sum = self.delay_and_sum(signal, delay)
             sum_tensor = torch.tensor(sum).to(self.device)
             sum_db = 20 * torch.log10(torch.abs(sum_tensor) + EPSILON)
 
