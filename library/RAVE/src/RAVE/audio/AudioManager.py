@@ -47,6 +47,10 @@ class AudioManager:
     scm_weight = 0.1
     window = "hann"
 
+    model_input_size = 1026
+    model_hidden_size = 256
+    model_layers = 2
+
     def __init__(self, debug=False, mask=False, use_timers=False):
 
         # TODO: ADD PRIVATE ATTRIBUTES (_)
@@ -781,7 +785,9 @@ class AudioManager:
         if self.mask:
             self.masks = KissMask(self.mic_array, buffer_size=30)
         else:
-            self.model = AudioModel(input_size=1026, hidden_size=128, num_layers=2)
+            self.model = AudioModel(
+                input_size=self.model_input_size, hidden_size=self.model_hidden_size, num_layers=self.model_layers
+            )
             self.model.to(self.device)
             if self.debug:
                 print(self.model)
@@ -833,6 +839,19 @@ class AudioManager:
             self.sink_dict["output"] = {
                 "sink": self.init_sim_output(name="output", path=output_path, wav_params=self.file_params_output)
             }
+
+        # Model
+        if self.mask:
+            self.masks = KissMask(self.mic_array, buffer_size=30)
+        else:
+            self.model = AudioModel(
+                input_size=self.model_input_size, hidden_size=self.model_hidden_size, num_layers=self.model_layers
+            )
+            self.model.to(self.device)
+            if self.debug:
+                print(self.model)
+            self.model.load_best_model(self.model_path, self.device)
+            self.delay_and_sum = DelaySum(self.frame_size)
 
     def start_app(self):
         """
