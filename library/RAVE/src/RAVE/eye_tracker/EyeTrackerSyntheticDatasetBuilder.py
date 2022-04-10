@@ -128,7 +128,7 @@ class EyeTrackerSyntheticDatasetBuilder(EyeTrackerDatasetBuilder):
                 "training   dataset",
                 EyeTrackerDataset.IMAGE_DIMENSIONS[1:3],
                 SOURCE_DIR,
-                EyeTrackerDatasetBuilder.CROP_SIZE,
+                EyeTrackerDataset.CROP_SIZE,
             ),
             EyeTrackerSyntheticDatasetBuilder(
                 val_files,
@@ -136,7 +136,7 @@ class EyeTrackerSyntheticDatasetBuilder(EyeTrackerDatasetBuilder):
                 "validation dataset",
                 EyeTrackerDataset.IMAGE_DIMENSIONS[1:3],
                 SOURCE_DIR,
-                EyeTrackerDatasetBuilder.CROP_SIZE,
+                EyeTrackerDataset.CROP_SIZE,
             ),
         ]
         return BUILDERS, dataset_found
@@ -196,7 +196,7 @@ class EyeTrackerSyntheticDatasetBuilder(EyeTrackerDatasetBuilder):
             self.current_ellipse.crop(
                 ORIGINAL_HEIGHT,
                 ORIGINAL_WIDTH,
-                EyeTrackerDatasetBuilder.CROP_SIZE,
+                EyeTrackerDataset.CROP_SIZE,
             )
 
             processed_frame = self.process_frame(frame)
