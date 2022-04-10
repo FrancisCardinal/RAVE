@@ -7,8 +7,6 @@ import matplotlib.pyplot as plt
 
 from RAVE.eye_tracker.EyeTrackerDataset import EyeTrackerDataset
 from RAVE.eye_tracker.GazeInferer.deepvog.eyefitter import SingleEyeFitter
-from RAVE.eye_tracker.GazeInferer.deepvog.LSqEllipse import LSqEllipse
-from RAVE.eye_tracker.ellipse_util import get_points_of_ellipses
 
 """
 This file is a combination of multiple files of deepvog. It regroups the
@@ -54,7 +52,7 @@ class GazeInferer:
             sensor_size=sensor_size,
         )
         self.x, self.y = None, None
-        
+
         self.gts_x = []
         self.gts_y = []
 
@@ -85,9 +83,9 @@ class GazeInferer:
         # Issue error if eyeball model still does not exist after fitting.
         if (self._eyefitter.eye_centre is None) or (self._eyefitter.aver_eye_radius is None):
             raise TypeError("Eyeball model was not fitted.")
-        
+
         self.save_eyeball_model()
-    
+
     def torch_prediction_to_deepvog_format(self, prediction):
         HEIGHT, WIDTH = self.shape[0], self.shape[1]
 
@@ -118,7 +116,6 @@ class GazeInferer:
         with open(self._eyeball_model_path, "w") as fh:
             fh.write(json_str)
 
-
     def infer(self):
         self.load_eyeball_model()
         x_offset, y_offset = None, None
@@ -129,30 +126,30 @@ class GazeInferer:
 
                 predictions, _ =  self._ellipse_dnn(images)
 
-                for prediction, gt in zip(predictions, gts): 
+                for prediction, gt in zip(predictions, gts):
                     self._eyefitter.unproject_single_observation(self.torch_prediction_to_deepvog_format(prediction))
                     _, n_list, _, _ = self._eyefitter.gen_consistent_pupil()
                     x, y = self._eyefitter.convert_vec2angle31(n_list[0])
 
                     if(x_offset is None):
 
-                        x_offset = x 
+                        x_offset = x
                         y_offset = y
 
                     x -= x_offset
                     y -= y_offset
-                    
+
                     self.gts_x.append(gt[0])
                     self.gts_y.append(gt[1])
 
                     self.preds_x.append(x)
                     self.preds_y.append(y)
-        
-        self.gts_x = np.array( self.gts_x)
-        self.gts_y = np.array( self.gts_y) 
 
-        self.preds_x = np.array( self.preds_x) 
-        self.preds_y = np.array( self.preds_y) 
+        self.gts_x = np.array(self.gts_x)
+        self.gts_y = np.array(self.gts_y)
+
+        self.preds_x = np.array(self.preds_x)
+        self.preds_y = np.array(self.preds_y)
 
         x_error, y_error = 0, 0
         for i in range(len(self.preds_x)):
@@ -160,23 +157,21 @@ class GazeInferer:
             y_error += np.abs(self.gts_y[i] - self.preds_y[i])
 
         print("mean_x_error = {} ; mean_y_error = {} ".format(x_error/len(self.preds_x), y_error/len(self.preds_x)))
-        print("max_x_error = {} ; max_y_error = {} ".format((np.abs(self.gts_x - self.preds_x)).max(), np.abs((self.gts_y - self.preds_y)).max()) )
+        print("max_x_error = {} ; max_y_error = {} ".format((np.abs(self.gts_x - self.preds_x)).max(), np.abs((self.gts_y - self.preds_y)).max()))
 
         plt.figure(0)
-        plt.plot( range(len(self.gts_x)), self.gts_x )
-        plt.plot( range(len(self.preds_x)), self.preds_x )
+        plt.plot(range(len(self.gts_x)), self.gts_x)
+        plt.plot(range(len(self.preds_x)), self.preds_x)
 
         plt.figure(1)
-        plt.plot( range(len(self.gts_y)), self.gts_y )
-        plt.plot( range(len(self.preds_y)), self.preds_y )
+        plt.plot(range(len(self.gts_y)), self.gts_y)
+        plt.plot(range(len(self.preds_y)), self.preds_y)
         plt.show(block=True)
-
-
 
     def load_eyeball_model(self):
         """
         Load eyeball model parameters of json format from path.
-        
+
         Args:
             path (str): path of the eyeball model file.
         """

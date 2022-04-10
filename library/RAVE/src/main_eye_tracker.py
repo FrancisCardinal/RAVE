@@ -66,9 +66,9 @@ def main(
     if ANNOTATE:
         annotate(EyeTrackerDataset.EYE_TRACKER_DIR_PATH)
 
-    created_real_dataset = EyeTrackerDatasetBuilder.create_datasets()
-    if created_real_dataset:
-        EyeTrackerSyntheticDatasetBuilder.create_datasets(True)
+    #created_real_dataset = EyeTrackerDatasetBuilder.create_datasets()
+    # if created_real_dataset:
+    # EyeTrackerSyntheticDatasetBuilder.create_datasets(True)
 
     BATCH_SIZE = 128
     training_sub_dataset = EyeTrackerDataset.get_training_sub_dataset()
@@ -94,7 +94,7 @@ def main(
 
     eye_tracker_model = EyeTrackerModel()
     eye_tracker_model.to(DEVICE)
-    #print(eye_tracker_model)
+    # print(eye_tracker_model)
 
     min_validation_loss = float("inf")
     if TRAIN:
@@ -132,20 +132,7 @@ def main(
             pin_memory=True,
             persistent_workers=True,
         )
-        with torch.no_grad():
-            test_loss, number_of_images = 0, 0
-            for images, labels, _ in test_loader:
-                images, labels = images.to(DEVICE), labels.to(DEVICE)
-
-                # Forward Pass
-                predictions, _ = eye_tracker_model(images)
-                # Find the Loss
-                loss = ellipse_loss_function(predictions, labels)
-                # Calculate Loss
-                test_loss += loss.item()
-                number_of_images += len(images)
-
-        print("test loss = {}".format(test_loss / number_of_images))
+        visualize_predictions(eye_tracker_model, test_loader, DEVICE)
 
     if INFERENCE:
         inference(eye_tracker_model, DEVICE)
@@ -232,7 +219,7 @@ def annotate(root):
 
 
 def inference(model, device):
-    eyeTracker_calibration_dataset = EyeTrackerInferenceDataset(os.path.join("calibration_480"), False)
+    eyeTracker_calibration_dataset = EyeTrackerInferenceDataset(os.path.join("extensive_test"), False)
     calibration_loader = torch.utils.data.DataLoader(
         eyeTracker_calibration_dataset,
         batch_size=512,
@@ -242,7 +229,7 @@ def inference(model, device):
     gaze_inferer = GazeInferer(model, calibration_loader, device)
     gaze_inferer.fit()
 
-    eyeTracker_conversation_dataset = EyeTrackerInferenceDataset(os.path.join("conversation_480"), False)
+    eyeTracker_conversation_dataset = EyeTrackerInferenceDataset(os.path.join("extensive_test"), False)
     conversation_loader = torch.utils.data.DataLoader(
         eyeTracker_conversation_dataset,
         batch_size=1,
@@ -251,7 +238,6 @@ def inference(model, device):
     )
     gaze_inferer = GazeInferer(model, conversation_loader, device)
     gaze_inferer.infer()
-
 
 
 if __name__ == "__main__":

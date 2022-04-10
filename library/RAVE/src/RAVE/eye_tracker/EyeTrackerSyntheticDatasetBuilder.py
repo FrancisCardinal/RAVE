@@ -118,7 +118,7 @@ class EyeTrackerSyntheticDatasetBuilder(EyeTrackerDatasetBuilder):
                 "training   dataset",
                 EyeTrackerDataset.IMAGE_DIMENSIONS[1:3],
                 SOURCE_DIR,
-                EyeTrackerDatasetBuilder.CROP_SIZE,
+                EyeTrackerDataset.CROP_SIZE,
             ),
             EyeTrackerSyntheticDatasetBuilder(
                 val_files,
@@ -126,7 +126,7 @@ class EyeTrackerSyntheticDatasetBuilder(EyeTrackerDatasetBuilder):
                 "validation dataset",
                 EyeTrackerDataset.IMAGE_DIMENSIONS[1:3],
                 SOURCE_DIR,
-                EyeTrackerDatasetBuilder.CROP_SIZE,
+                EyeTrackerDataset.CROP_SIZE,
             ),
         ]
         return BUILDERS, dataset_found
@@ -169,11 +169,12 @@ class EyeTrackerSyntheticDatasetBuilder(EyeTrackerDatasetBuilder):
             self.current_ellipse = NormalizedEllipse.get_from_list(ellipse)
 
             frame = cv2.imread(os.path.join(self.INPUT_IMAGES_PATH, file))
-            ORIGINAL_HEIGHT, ORIGINAL_WIDTH = frame.shape[0], frame.shape[1]
+            frame = cv2.resize(frame, (600, 800))
+            ORIGINAL_HEIGHT, ORIGINAL_WIDTH = 800, 600
             self.current_ellipse.crop(
                 ORIGINAL_HEIGHT,
                 ORIGINAL_WIDTH,
-                EyeTrackerDatasetBuilder.CROP_SIZE,
+                EyeTrackerDataset.CROP_SIZE,
             )
 
             processed_frame = self.process_frame(frame)
@@ -181,8 +182,8 @@ class EyeTrackerSyntheticDatasetBuilder(EyeTrackerDatasetBuilder):
             self.save_image_label_pair(
                 filename + "_synthetic",
                 processed_frame,
-                {"ellipse":self.current_ellipse.to_list(),
-                "out_angles":gaze}
+                {"ellipse": self.current_ellipse.to_list(),
+                 "out_angles": gaze}
             )
             self.video_frame_id += 1
 

@@ -208,7 +208,7 @@ class EyeTrackerInferenceDataset(EyeTrackerDataset):
     """
 
     def __init__(self, opencv_device, is_real_time=True):
-        super().__init__(opencv_device) # TODO FC : Tmp until I get opencv to play nice with ffmpeg/videos  # TODO FC : Find a more elegant solution 
+        super().__init__(opencv_device)  # TODO FC : Tmp until I get opencv to play nice with ffmpeg/videos  # TODO FC : Find a more elegant solution
 
         """
         if(isinstance(opencv_device, str)):
@@ -217,13 +217,12 @@ class EyeTrackerInferenceDataset(EyeTrackerDataset):
         self._video_feed = cv2.VideoCapture(opencv_device) 
         if not self._video_feed.isOpened():
             raise IOError("Cannot open specified device ({})".format(opencv_device))
-        """ 
-            
+        """
+
         self._length = 1
         if(not is_real_time):
-            self._length = super().__len__() # TODO FC : Tmp until I get opencv to play nice with ffmpeg/videos 
+            self._length = super().__len__()  # TODO FC : Tmp until I get opencv to play nice with ffmpeg/videos
             #self._length = int(self._video_feed.get(cv2.CAP_PROP_FRAME_COUNT))
-
 
     def __len__(self):
         """
@@ -234,8 +233,6 @@ class EyeTrackerInferenceDataset(EyeTrackerDataset):
             int: The number of elements in the dataset
         """
         return self._length
-
-
 
     def __getitem__(self, idx):
         """
@@ -259,10 +256,6 @@ class EyeTrackerInferenceDataset(EyeTrackerDataset):
         return image, success
         """
         image, label = self.get_image_and_label_on_disk(idx)
-        image = image.resize((600, 800))
-        
-        top, left, height, width = EyeTrackerDataset.CROP_SIZE
-        image = image.crop( (left, top, left+width, top+height) ) 
 
         image = self.PRE_PROCESS_TRANSFORM(image)
         image = self.NORMALIZE_TRANSFORM(image)
