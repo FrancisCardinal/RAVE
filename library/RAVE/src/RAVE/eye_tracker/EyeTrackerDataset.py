@@ -4,7 +4,6 @@ import random
 import torch
 from torchvision import transforms
 
-import cv2
 from PIL import Image
 import numpy as np
 
@@ -258,29 +257,64 @@ class EyeTrackerInferenceDataset(EyeTrackerDataset):
             idx (int): Index of the pair to get, ignored
 
         Returns:
-            Image: The most recent image
+            torch.tensor: The most recent image
         """
         frame = self._video_feed.read()
-
-        frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
-        # This resize is temporary. A mistake was made during the
-        # acquisition. I thought that the camera had a resolution of
-        # (800, 600) when it was in (640, 480). As such, cv2 upscaled
-        # the video from (640, 480) to (800, 600) before saving it.
-        # Because the network was trained on videos like this, I do
-        # the same here, but this operation would have no value otherwise.
-        # This will be fixed when we will build the second dataset with
-        # the new camera.
-        frame = cv2.resize(frame, (600, 800))
-
-        top, left, height, width = EyeTrackerDataset.CROP_SIZE
-        frame = frame[top : top + height, left : left + width]
 
         frame = Image.fromarray(frame, "RGB")
         image = self.PRE_PROCESS_TRANSFORM(frame)
         image = self.NORMALIZE_TRANSFORM(image)
 
         return image
+
+    def end(self):
+        """Should be called at the end of the program to free the opencv
+        device"""
+        self._video_feed.end()
+
+
+class EyeTrackerFilm(EyeTrackerDataset):
+    """
+    Class that handles the management of the frames
+    of a live video.
+
+    Args:
+        opencv_device (String): OpenCV device index
+    """
+
+    ACQUISITION_WIDTH, ACQUISITION_HEIGHT = (
+        EyeTrackerVideoCapture.ACQUISITION_WIDTH,
+        EyeTrackerVideoCapture.ACQUISITION_HEIGHT,
+    )
+
+    def __init__(self, opencv_device):
+        super().__init__("test")  # TODO FC : Find a more elegant solution
+        self._video_feed = EyeTrackerVideoCapture(opencv_device)
+
+    def __len__(self):
+        """
+        Method of the Dataset class that must be overwritten by this class.
+        Used to get the number of elements in the dataset
+
+        Returns:
+            int: The number of elements in the dataset (1, as we are only
+            interested in the most recent frame (which changes over time))
+        """
+        return 1
+
+    def __getitem__(self, idx):
+        """
+        Method of the Dataset class that must be overwritten by this class.
+        Used to get an image
+
+        Args:
+            idx (int): Index of the pair to get, ignored
+
+        Returns:
+            torch.tensor: The most recent frame
+        """
+        frame = self._video_feed.read()
+        return frame
 
     def end(self):
         """Should be called at the end of the program to free the opencv

@@ -12,7 +12,7 @@ from RAVE.common.image_utils import tensor_to_opencv_image, inverse_normalize
 
 from RAVE.eye_tracker.EyeTrackerDataset import (
     EyeTrackerDataset,
-    EyeTrackerInferenceDataset,
+    EyeTrackerFilm,
 )
 
 from RAVE.eye_tracker.EllipseAnnotationTool import EllipseAnnotationTool
@@ -197,15 +197,15 @@ def film(root):
     Args:
         root (string): Root path of the eye tracker module
     """
-    camera_dataset = EyeTrackerInferenceDataset(2)
+    camera_dataset = EyeTrackerFilm(2)
     camera_loader = torch.utils.data.DataLoader(
         camera_dataset,
         batch_size=1,
         shuffle=False,
         num_workers=0,
     )
-    frame_height = EyeTrackerDataset.IMAGE_DIMENSIONS[1]
-    frame_width = EyeTrackerDataset.IMAGE_DIMENSIONS[2]
+    frame_height = EyeTrackerFilm.ACQUISITION_HEIGHT
+    frame_width = EyeTrackerFilm.ACQUISITION_WIDTH
 
     file_name = input("Enter file name : ")
 
@@ -221,17 +221,12 @@ def film(root):
     should_run = True
     while should_run:
         with torch.no_grad():
-            for images in camera_loader:
-                image = inverse_normalize(
-                    images[0],
-                    EyeTrackerDataset.TRAINING_MEAN,
-                    EyeTrackerDataset.TRAINING_STD,
-                )
-                image = tensor_to_opencv_image(image)
+            for frames in camera_loader:
+                frame = frames[0].cpu().numpy()
 
-                out.write(image)
+                out.write(frame)
 
-                cv2.imshow("video", image)
+                cv2.imshow("video", frame)
                 key = cv2.waitKey(1)
 
                 if key == ord("q"):

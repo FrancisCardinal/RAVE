@@ -22,11 +22,10 @@ class EyeTrackerVideoCapture(LatestVideoCapture):
         """This method is an abstract method of the LatestVideoCapture class
         that is overidden by this child class as we wish to perform some
         operations before the frame acquisition begins. Notably, it sets
-        the width and height of the capture, its exposure time, and disables
-        autofocus.
+        the width and height of the capture and its exposure time.
         """
         codec = 0x47504A4D  # MJPG
-        self._video_feed.set(cv2.CAP_PROP_FPS, 30.0)
+        self._video_feed.set(cv2.CAP_PROP_FPS, 30)
         self._video_feed.set(cv2.CAP_PROP_FOURCC, codec)
 
         self._video_feed.set(
@@ -41,7 +40,3 @@ class EyeTrackerVideoCapture(LatestVideoCapture):
         # Set the auto exposure flag to true (i.e, don't use a fixed exposure
         # time)
         self._video_feed.set(cv2.CAP_PROP_AUTO_EXPOSURE, 3)
-
-        # Disable autofocus and fix it to a manual value.
-        self._video_feed.set(cv2.CAP_PROP_AUTOFOCUS, 0)
-        self._video_feed.set(cv2.CAP_PROP_FOCUS, 1000)
