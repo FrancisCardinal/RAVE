@@ -4,12 +4,12 @@ import random
 import torch
 from torchvision import transforms
 
-import cv2
 from PIL import Image
 import numpy as np
 
 from ..common.image_utils import apply_image_translation, apply_image_rotation
 from ..common.Dataset import Dataset
+from ..eye_tracker.EyeTrackerVideoCapture import EyeTrackerVideoCapture
 from .NormalizedEllipse import NormalizedEllipse
 
 
@@ -29,6 +29,11 @@ class EyeTrackerDataset(Dataset):
     REAL_DOMAIN = 1
 
     def __init__(self, sub_dataset_dir):
+        """Constructor of the EyeTrackerDataset class
+
+        Args:
+            sub_dataset_dir (string): Name of the sub dataset directory
+        """
         super().__init__(
             EyeTrackerDataset.TRAINING_MEAN,
             EyeTrackerDataset.TRAINING_STD,
@@ -69,13 +74,14 @@ class EyeTrackerDataset(Dataset):
     def __getitem__(self, idx):
         """
         Method of the Dataset class that must be overwritten by this class.
-        Used to get an image and label pair
+        Used to get an image and label pair (and domain).
 
         Args:
             idx (int): Index of the pair to get
 
         Returns:
-            tuple: Image and label pair
+            tuple: Image and label pair, and the domain of the image (is this
+            image synthetic or real ?)
         """
         image_path, domain = self.torch_index_to_image_path_and_domain(idx)
 
@@ -90,6 +96,15 @@ class EyeTrackerDataset(Dataset):
         return image, label, domain
 
     def torch_index_to_image_path_and_domain(self, idx):
+        """Determines if a given index corresponds to a synthetic or real image
+           (i.e its domain) and returns the image's path and domain
+
+        Args:
+            idx (int): Index of the image
+
+        Returns:
+            tuple: The image's path and domain
+        """
         image_path, domain = None, None
         if idx < self.nb_synthetic_images:
             # idx is one of our self.nb_synthetic_images real imag
@@ -146,6 +161,11 @@ class EyeTrackerDatasetOnlineDataAugmentation(EyeTrackerDataset):
     """
 
     def __init__(self, sub_dataset_dir):
+        """Constructor of the EyeTrackerDatasetOnlineDataAugmentation class
+
+        Args:
+            sub_dataset_dir (string): Name of the sub dataset directory
+        """
         super().__init__(sub_dataset_dir)
 
         self.TRAINING_TRANSFORM = transforms.Compose(
@@ -161,14 +181,15 @@ class EyeTrackerDatasetOnlineDataAugmentation(EyeTrackerDataset):
     def __getitem__(self, idx):
         """
         Method of the Dataset class that must be overwritten by this class.
-        Used to get an image and label pair. Before returning the image and
-        label pair, this class performs online data augmentation.
+        Used to get an image and label pair (and domain). Before returning the
+        image and label pair, this class performs online data augmentation.
 
         Args:
             idx (int): Index of the pair to get
 
         Returns:
-            tuple: Image and label pair
+            tuple: Image and label pair, and the domain of the image (is this
+            image synthetic or real ?)
         """
         image_path, domain = self.torch_index_to_image_path_and_domain(idx)
 
@@ -207,48 +228,14 @@ class EyeTrackerInferenceDataset(EyeTrackerDataset):
                          index
     """
 
-    ACQUISITION_WIDTH, ACQUISITION_HEIGHT = 640, 480
+    ACQUISITION_WIDTH, ACQUISITION_HEIGHT = (
+        EyeTrackerVideoCapture.ACQUISITION_WIDTH,
+        EyeTrackerVideoCapture.ACQUISITION_HEIGHT,
+    )
 
-    def __init__(self, opencv_device, is_real_time=True):
+    def __init__(self, opencv_device):
         super().__init__("test")  # TODO FC : Find a more elegant solution
-
-        if isinstance(opencv_device, str):
-            opencv_device = os.path.join(
-                EyeTrackerDataset.EYE_TRACKER_DIR_PATH,
-                "GazeInferer",
-                opencv_device,
-            )
-
-        self._video_feed = cv2.VideoCapture(opencv_device)
-
-        if not self._video_feed.isOpened():
-            raise IOError(
-                "Cannot open specified device ({})".format(opencv_device)
-            )
-
-        if not isinstance(opencv_device, str):
-
-            codec = 0x47504A4D  # MJPG
-            self._video_feed.set(cv2.CAP_PROP_FPS, 30.0)
-            self._video_feed.set(cv2.CAP_PROP_FOURCC, codec)
-
-            self._video_feed.set(
-                cv2.CAP_PROP_FRAME_WIDTH, self.ACQUISITION_WIDTH
-            )
-            self._video_feed.set(
-                cv2.CAP_PROP_FRAME_HEIGHT, self.ACQUISITION_HEIGHT
-            )
-
-            self._video_feed.set(cv2.CAP_PROP_AUTO_EXPOSURE, 3)
-
-            self._video_feed.set(cv2.CAP_PROP_AUTOFOCUS, 0)
-            self._video_feed.set(cv2.CAP_PROP_FOCUS, 1000)
-
-        self._length = 1
-        if not is_real_time:
-            self._length = (
-                int(self._video_feed.get(cv2.CAP_PROP_FRAME_COUNT)) - 1
-            )
+        self._video_feed = EyeTrackerVideoCapture(opencv_device)
 
     def __len__(self):
         """
@@ -256,9 +243,10 @@ class EyeTrackerInferenceDataset(EyeTrackerDataset):
         Used to get the number of elements in the dataset
 
         Returns:
-            int: The number of elements in the dataset
+            int: The number of elements in the dataset (1, as we are only
+            interested in the most recent frame (which changes over time))
         """
-        return self._length
+        return 1
 
     def __getitem__(self, idx):
         """
@@ -269,28 +257,66 @@ class EyeTrackerInferenceDataset(EyeTrackerDataset):
             idx (int): Index of the pair to get, ignored
 
         Returns:
-            tuple: Image, 0
+            torch.tensor: The most recent image
         """
-        success, frame = self._video_feed.read()
+        frame = self._video_feed.read()
 
-        image = None
-        if success:
-            frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
-            # This resize is temporary. A mistake was made during the
-            # acquisition. I thought that the camera had a resolution of
-            # (800, 600) when it was in (640, 480). As such, cv2 upscaled
-            # the video from (640, 480) to (800, 600) before saving it.
-            # Because the network was trained on videos like this, I do
-            # the same here, but this operation would have no value otherwise.
-            # This will be fixed when we will build the second dataset with
-            # the new camera.
-            frame = cv2.resize(frame, (600, 800))
+        frame = Image.fromarray(frame, "RGB")
+        image = self.PRE_PROCESS_TRANSFORM(frame)
+        image = self.NORMALIZE_TRANSFORM(image)
 
-            top, left, height, width = EyeTrackerDataset.CROP_SIZE
-            frame = frame[top : top + height, left : left + width]
+        return image
 
-            frame = Image.fromarray(frame, "RGB")
-            image = self.PRE_PROCESS_TRANSFORM(frame)
-            image = self.NORMALIZE_TRANSFORM(image)
+    def end(self):
+        """Should be called at the end of the program to free the opencv
+        device"""
+        self._video_feed.end()
 
-        return image, success
+
+class EyeTrackerFilm(EyeTrackerDataset):
+    """
+    Class that handles the management of the frames
+    of a live video.
+
+    Args:
+        opencv_device (String): OpenCV device index
+    """
+
+    ACQUISITION_WIDTH, ACQUISITION_HEIGHT = (
+        EyeTrackerVideoCapture.ACQUISITION_WIDTH,
+        EyeTrackerVideoCapture.ACQUISITION_HEIGHT,
+    )
+
+    def __init__(self, opencv_device):
+        super().__init__("test")  # TODO FC : Find a more elegant solution
+        self._video_feed = EyeTrackerVideoCapture(opencv_device)
+
+    def __len__(self):
+        """
+        Method of the Dataset class that must be overwritten by this class.
+        Used to get the number of elements in the dataset
+
+        Returns:
+            int: The number of elements in the dataset (1, as we are only
+            interested in the most recent frame (which changes over time))
+        """
+        return 1
+
+    def __getitem__(self, idx):
+        """
+        Method of the Dataset class that must be overwritten by this class.
+        Used to get an image
+
+        Args:
+            idx (int): Index of the pair to get, ignored
+
+        Returns:
+            torch.tensor: The most recent frame
+        """
+        frame = self._video_feed.read()
+        return frame
+
+    def end(self):
+        """Should be called at the end of the program to free the opencv
+        device"""
+        self._video_feed.end()

@@ -44,10 +44,26 @@ class Dataset(torch.utils.data.Dataset):
         sub_dataset_dir,
         IMAGE_DIMENSIONS,
     ):
+        """Constructor of the dataset class
+
+        Args:
+            TRAINING_MEAN (list): Means of each channel of the images of the
+                training subdataset
+            TRAINING_STD (list): Standard deviation of each channel of the
+                images of the training subdataset
+            ROOT_PATH (string): The full path to the eye tracker directory
+            sub_dataset_dir (string): The name of the current sub dataset
+                directory
+            IMAGE_DIMENSIONS (tuple): Image dimension of the form
+                (number of channels, height, width)
+        """
         self.TRAINING_MEAN, self.TRAINING_STD = TRAINING_MEAN, TRAINING_STD
         self.IMAGE_DIMENSIONS = IMAGE_DIMENSIONS
         self.PRE_PROCESS_TRANSFORM = transforms.Compose(
-            [transforms.Resize(IMAGE_DIMENSIONS[1:3]), transforms.ToTensor(), ]
+            [
+                transforms.Resize(IMAGE_DIMENSIONS[1:3]),
+                transforms.ToTensor(),
+            ]
         )
         self.NORMALIZE_TRANSFORM = transforms.Normalize(
             mean=TRAINING_MEAN, std=TRAINING_STD
