@@ -24,7 +24,7 @@ class EyeTrackerDataset(Dataset):
     EYE_TRACKER_DIR_PATH = os.path.join("RAVE", "eye_tracker")
     TRAINING_MEAN, TRAINING_STD = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
     IMAGE_DIMENSIONS = (3, 240, 320)
-    CROP_SIZE = 150, 0, 450, 600
+    CROP_SIZE = 50, 0, 390, 520
     SYNTHETIC_DOMAIN = 0
     REAL_DOMAIN = 1
 
