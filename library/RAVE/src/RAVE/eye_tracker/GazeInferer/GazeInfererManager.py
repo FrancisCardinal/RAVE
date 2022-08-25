@@ -57,7 +57,19 @@ class GazeInfererManager:
         Returns:
             list: The list of known calibration files
         """
+<<<<<<< Updated upstream
         dir_list = os.listdir(GazeInferer.CALIBRATION_MEMORY_PATH)
+=======
+        if not os.path.isdir(path):
+            os.makedirs(path)
+
+    def list_available_calibrations(self):
+        calibration_directory = os.path.join(
+            "RAVE", "eye_tracker", "GazeInferer", "CalibrationMemory"
+        )
+        self.create_directory_if_does_not_exist(calibration_directory)
+        dir_list = os.listdir(calibration_directory)
+>>>>>>> Stashed changes
         self.list_calibration = []
         for file_name in dir_list:
             self.list_calibration.append({"name": file_name.rsplit(".")[0]})
