@@ -263,17 +263,49 @@ class TrackingUpdater:
         for obj_id, obj in unmatched_objects.items():
             obj.increment_evaluation_frames()
 
+        # TODO: Could possibly split this function here ----------------
+
         # Perform operations on all pre-tracked objects
         finished_trackers_id = set()
         pre_tracker_frame = frame_object.frame.copy()
         rejected_objects = self.object_manager.rejected_objects
+        tracked_objects = self.object_manager.tracked_objects
         for pre_tracker_id, pre_tracked_object in pre_tracked_objects.items():
             if pre_tracked_object.confirmed:
+                matched_object = None
+
+                # Check if this object doesn't match a face that is currently
+                # being tracked, but that was not caught by IOU and is
+                # mistaken for a new face
+                tracked_objects_list = list(tracked_objects.values())
+                if any(tracked_objects_list):
+                    matched_object = self.compare_encoding_to_objects(
+                        tracked_objects_list, pre_tracked_object.encoding
+                    )
+                    if matched_object:
+                        # Recover object lost by tracker
+                        # Get detection associated
+                        detection = None
+
+                        for pair in matched_pairs:
+                            object_in_pair, detection_in_pair = pair
+                            if object_in_pair == pre_tracked_object:
+                                detection = detection_in_pair
+                                break
+
+                        if detection:
+                            print("Recovering face that was lost by tracker")
+                            matched_object.reset(
+                                frame_object, detection.bbox, detection.mouth
+                            )
+                        else:
+                            # We wrongly assumed that the  confirmed object
+                            # was in matched_pairs...
+                            print("Couldn't find detection to recover face")
+
                 # Check if this object matches an old face
-                restored_object = False
                 rejected_objects_list = list(rejected_objects.values())
                 if any(rejected_objects_list):
-                    # TODO: Could compare with current faces as well
                     matched_object = self.compare_encoding_to_objects(
                         rejected_objects_list, pre_tracked_object.encoding
                     )
@@ -282,9 +314,8 @@ class TrackingUpdater:
                         self.object_manager.restore_rejected_object(
                             matched_object.id, pre_tracked_object
                         )
-                        restored_object = True
 
-                if not restored_object:
+                if matched_object is None:
                     # Passing object from pre-tracked to tracked
                     new_tracked_id = self.object_manager.new_identifier()
                     pre_tracked_object.update_id(new_tracked_id)

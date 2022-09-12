@@ -10,6 +10,17 @@ from .fpsHelper import FPS
 from pyodas.visualize import VideoSource, Monitor
 
 
+class FrameObject:
+    """
+    Container for frames
+    Associate a frame with an id
+    """
+
+    def __init__(self, frame, id):
+        self.frame = frame
+        self.id = id
+
+
 class TrackingManager:
     """
     Used to coordinate the detector, the trackers and the verifier together.
@@ -67,7 +78,7 @@ class TrackingManager:
         self.is_alive = False
         self.updater.is_alive = False
 
-    def listen_keyboard_input(self, frame, key_pressed):
+    def listen_keyboard_input(self, frame_object, key_pressed):
         """
         Opencv keyboard input handler for defining object to track manually
         or exiting the program.
@@ -85,10 +96,13 @@ class TrackingManager:
         if key == ord("s"):
             # Select object to track manually
             selected_roi = cv2.selectROI(
-                "Frame", frame, fromCenter=False, showCrosshair=True
+                "Frame",
+                frame_object.frame,
+                fromCenter=False,
+                showCrosshair=True,
             )
             self.object_manager.add_pre_tracked_object(
-                frame, selected_roi, None
+                frame_object, selected_roi, None
             )
         elif key == ord("x"):
             # Remove last tracked object
@@ -203,7 +217,7 @@ class TrackingManager:
 
                 # Keyboard input controls
                 terminate = self.listen_keyboard_input(
-                    frame, monitor.key_pressed
+                    frame_object, monitor.key_pressed
                 )
                 if terminate or not monitor.window_is_alive():
                     self.kill_threads()
@@ -252,14 +266,3 @@ class TrackingManager:
         # Start capture & display loop
         self.main_loop(monitor, cap, fps, args.flip)
         self.object_manager.stop_tracking()
-
-
-class FrameObject:
-    """
-    Container for frames
-    Associate a frame with an id
-    """
-
-    def __init__(self, frame, id):
-        self.frame = frame
-        self.id = id

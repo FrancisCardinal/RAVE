@@ -266,6 +266,7 @@ class TrackedObject:
         # Request missing frames update
         self.missed_frames_update_pending = True
         self.tracker_started = True  # Tracker is ready to use
+        self._confirmed = True  # Useful when recovering from pre-processing
 
     def draw_prediction_on_frame(self, frame):
         """
