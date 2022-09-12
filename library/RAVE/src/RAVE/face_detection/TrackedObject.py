@@ -55,12 +55,13 @@ class TrackedObject:
 
     """
 
-    def __init__(self, tracker_type, frame, bbox, mouth, identifier):
+    def __init__(self, tracker_type, frame_object, bbox, mouth, identifier):
         self.tracker = TrackerFactory.create(tracker_type)
         self._tracker_type = tracker_type
         self._id = identifier
         self.bbox = bbox
         self._encoding = Encoding()
+        self.current_frame = frame_object
 
         # Validation
         self._evaluation_frames = 0
@@ -80,8 +81,12 @@ class TrackedObject:
         self._relative_landmark = None
         self.update_landmark(mouth)
 
-        self.tracker.start(frame, bbox)
+        self.tracker.start(frame_object.frame, bbox)
         self.tracker_started = True
+
+        # Flags used by TrackedObjectManager
+        self.updating_missed_frames = False
+        self.missed_frames_update_pending = False
 
     @property
     def id(self):
@@ -217,6 +222,7 @@ class TrackedObject:
         self._rejected_frames = 0
         self._rejected = False
         self.bbox = pre_tracked_object.bbox
+        self.current_frame = pre_tracked_object.current_frame
         self.encoding.restore(pre_tracked_object)
         self._relative_landmark = pre_tracked_object._relative_landmark
 
@@ -239,7 +245,7 @@ class TrackedObject:
         y_rel = (y - y_b) / h_b
         self._relative_landmark = (x_rel, y_rel)
 
-    def reset(self, frame, bbox, landmark):
+    def reset(self, frame_object, bbox, landmark):
         """
         Used to refresh (reset) the bounding box and landmarks with new
         information
@@ -252,9 +258,13 @@ class TrackedObject:
         """
         self.tracker_started = False  # Tracker is not ready to use
         self.tracker = TrackerFactory.create(self._tracker_type)
-        self.tracker.start(frame, bbox)
+        self.tracker.start(frame_object.frame, bbox)
         self.bbox = bbox
+        self.current_frame = frame_object
         self.update_landmark(landmark)
+
+        # Request missing frames update
+        self.missed_frames_update_pending = True
         self.tracker_started = True  # Tracker is ready to use
 
     def draw_prediction_on_frame(self, frame):

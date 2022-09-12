@@ -58,6 +58,7 @@ class TrackingManager:
 
         self.is_alive = False
         self._visualize = visualize
+        self.frame_count = 0
 
     def kill_threads(self):
         """
@@ -172,8 +173,11 @@ class TrackingManager:
             if flip:
                 frame = cv2.flip(frame, 0)
 
-            self.updater.last_frame = frame
-            self.object_manager.last_frame = frame
+            frame_object = FrameObject(frame, self.frame_count)
+            self.frame_count += 1
+
+            self.updater.last_frame = frame_object
+            self.object_manager.on_new_frame(frame_object)
 
             if monitor is not None:
                 # Draw detections from tracked objects
@@ -248,3 +252,14 @@ class TrackingManager:
         # Start capture & display loop
         self.main_loop(monitor, cap, fps, args.flip)
         self.object_manager.stop_tracking()
+
+
+class FrameObject:
+    """
+    Container for frames
+    Associate a frame with an id
+    """
+
+    def __init__(self, frame, id):
+        self.frame = frame
+        self.id = id

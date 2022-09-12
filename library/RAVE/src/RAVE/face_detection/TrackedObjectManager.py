@@ -40,6 +40,8 @@ class TrackedObjectManager:
         self.count_id_pre = 0
         self.last_frame = None
 
+        self.recent_frames = []
+
     def tracking_count(self):
         """
         Returns:
@@ -55,6 +57,17 @@ class TrackedObjectManager:
                 Dictionary of all faces being tracked confirmed and unconfirmed
         """
         return {**self.tracked_objects, **self.pre_tracked_objects}
+
+    def on_new_frame(self, frame_object):
+        """
+        Receives new frame objects
+        """
+        self.last_frame = frame_object
+        self.recent_frames.append(frame_object)
+
+        # Flush older frames
+        if len(self.recent_frames) > 50:
+            self.recent_frames.pop(0)
 
     # Assumed to be called from main thread only
     def new_identifier(self):
@@ -82,7 +95,7 @@ class TrackedObjectManager:
         return new_id
 
     # Register a new object to tracker. Assumed to be called from main thread
-    def add_pre_tracked_object(self, frame, bbox, mouth):
+    def add_pre_tracked_object(self, frame_object, bbox, mouth):
         """
         Creates a new TrackedObject for the new bbox and adds it to the
         pre-tracked list. It also starts the tracking thread.
@@ -97,7 +110,7 @@ class TrackedObjectManager:
         """
         new_id = self.new_pre_identifier()
         new_tracked_object = TrackedObject(
-            self.tracker_type, frame, bbox, mouth, new_id
+            self.tracker_type, frame_object, bbox, mouth, new_id
         )
         self.pre_tracked_objects[new_tracked_object.id] = new_tracked_object
         self.start_tracking_thread(new_tracked_object)
@@ -164,6 +177,36 @@ class TrackedObjectManager:
         self.pre_tracked_objects = {}
         self.rejected_objects = {}
 
+    def update_tracked_object(self, tracked_object, frame_object):
+        """
+        Update a tracked object with a new frame
+        """
+        success, box = tracked_object.tracker.update(frame_object.frame)
+
+        if success:
+            xywh_rect = [int(v) for v in box]
+            tracked_object.update_bbox(xywh_rect)
+
+    def update_missed_frames(self, tracked_object):
+        """
+        Call update on frames that were missed by the tracker (after reset)
+        """
+
+        tracked_object.missed_frames_update_pending = False
+        tracked_object.updating_missed_frames = True
+
+        # Find the first missed frame and update from there
+        last_id = tracked_object.current_frame.id
+        target_id = self.last_frame.id
+        for frame_object in self.recent_frames:
+            if last_id < frame_object.id <= target_id:
+                self.update_tracked_object(tracked_object, frame_object)
+
+            if frame_object.id >= target_id:
+                break  # Done
+
+        tracked_object.updating_missed_frames = False
+
     def track_loop(self, tracked_object):
         """
         Thread worker for calling the tracker on the TrackedObject
@@ -171,13 +214,16 @@ class TrackedObjectManager:
         Args:
             tracked_object (TrackedObject): The object to track
         """
+
         while (
             tracked_object in self.tracked_objects.values()
             or tracked_object in self.pre_tracked_objects.values()
         ):
-            frame = self.last_frame
+            time.sleep(0.05)
 
-            if frame is None:
+            frame_object = self.last_frame
+
+            if frame_object is None:
                 print("No frame received")
                 continue
 
@@ -185,12 +231,14 @@ class TrackedObjectManager:
             if not tracked_object.tracker_started:
                 continue
 
-            success, box = tracked_object.tracker.update(frame)
+            # Start updating missed frames if required by object
+            if tracked_object.missed_frames_update_pending:
+                self.update_missed_frames(tracked_object)
 
-            if success:
-                xywh_rect = [int(v) for v in box]
-                tracked_object.update_bbox(xywh_rect)
+            # Make sure missed frame update is not in progress
+            if tracked_object.updating_missed_frames:
+                continue
 
-            time.sleep(0.05)
+            self.update_tracked_object(tracked_object, frame_object)
 
         print(f"Stopped tracking object {tracked_object.id}")

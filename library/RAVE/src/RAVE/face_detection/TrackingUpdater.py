@@ -126,7 +126,7 @@ class TrackingUpdater:
 
         return matched_pairs, unmatched_objects, unmatched_detections
 
-    def associate_faces(self, frame, detections):
+    def associate_faces(self, frame_object, detections):
         """
         Associate predictions to objects currently being tracked
 
@@ -154,24 +154,28 @@ class TrackingUpdater:
             if obj.id in tracked_objects.keys():
                 # Do not reset pre-tracked objects
                 matched_object = tracked_objects[obj.id]
-                matched_object.reset(frame, detection.bbox, detection.mouth)
+                matched_object.reset(
+                    frame_object, detection.bbox, detection.mouth
+                )
                 matched_object.increment_evaluation_frames()
 
                 # Also extract new feature vector
                 # TODO: Could set verifier on its own update freq
                 #  (larger than detector update)
-                feature = self.verifier.get_features(frame, [detection.bbox])[
-                    0
-                ]
+                feature = self.verifier.get_features(
+                    frame_object.frame, [detection.bbox]
+                )[0]
 
                 # TODO: Verify that the new face actually matches (verifier)
-                matched_object.update_encoding(feature, frame, detection.bbox)
+                matched_object.update_encoding(
+                    feature, frame_object.frame, detection.bbox
+                )
 
         # Handle unmatched detections
         for new_detection in unmatched_detections:
             # A new object was discovered
             self.object_manager.add_pre_tracked_object(
-                frame, new_detection.bbox, new_detection.mouth
+                frame_object, new_detection.bbox, new_detection.mouth
             )
 
         # Reject unmatched tracked objects
@@ -202,7 +206,7 @@ class TrackingUpdater:
 
         return None
 
-    def preprocess_faces(self, frame):
+    def preprocess_faces(self, frame_object):
         """
         Associate predictions to objects currently being pre-tracked to confirm
         that they are faces.
@@ -215,7 +219,7 @@ class TrackingUpdater:
             return
 
         annotated_frame, detections = self.detector.predict(
-            frame.copy(), draw_on_frame=True
+            frame_object.frame.copy(), draw_on_frame=True
         )
 
         pre_tracked_objects_copy = pre_tracked_objects.copy()
@@ -229,7 +233,9 @@ class TrackingUpdater:
 
             # TODO: Maybe throttle/control when to call verifier
             # Compute encoding for detection
-            feature = self.verifier.get_features(frame, [detection.bbox])[0]
+            feature = self.verifier.get_features(
+                frame_object.frame, [detection.bbox]
+            )[0]
 
             # Verify detection with past detections
             if not pre_tracked_object.encoding.is_empty:
@@ -241,7 +247,7 @@ class TrackingUpdater:
                 if similarity_score >= self.verifier_threshold:
                     # Appearance matched last detection
                     pre_tracked_object.update_encoding(
-                        feature, frame, detection.bbox
+                        feature, frame_object.frame, detection.bbox
                     )
                     pre_tracked_object.confirm()
                 else:
@@ -249,7 +255,7 @@ class TrackingUpdater:
             else:
                 # Skip verifier compare on first detection
                 pre_tracked_object.update_encoding(
-                    feature, frame, detection.bbox
+                    feature, frame_object.frame, detection.bbox
                 )
                 pre_tracked_object.confirm()
 
@@ -259,7 +265,7 @@ class TrackingUpdater:
 
         # Perform operations on all pre-tracked objects
         finished_trackers_id = set()
-        pre_tracker_frame = frame.copy()
+        pre_tracker_frame = frame_object.frame.copy()
         rejected_objects = self.object_manager.rejected_objects
         for pre_tracker_id, pre_tracked_object in pre_tracked_objects.items():
             if pre_tracked_object.confirmed:
@@ -267,6 +273,7 @@ class TrackingUpdater:
                 restored_object = False
                 rejected_objects_list = list(rejected_objects.values())
                 if any(rejected_objects_list):
+                    # TODO: Could compare with current faces as well
                     matched_object = self.compare_encoding_to_objects(
                         rejected_objects_list, pre_tracked_object.encoding
                     )
@@ -301,7 +308,7 @@ class TrackingUpdater:
         self.pre_process_frame = pre_tracker_frame
         return annotated_frame, detections
 
-    def detector_update(self, frame, pre_frame, pre_detections):
+    def detector_update(self, frame_object, pre_frame, pre_detections):
         """
         Obtain the detection predictions, unless the pre-process already
         called the detection then use those
@@ -316,12 +323,12 @@ class TrackingUpdater:
             detections = pre_detections
         else:
             face_frame, detections = self.detector.predict(
-                frame.copy(), draw_on_frame=True
+                frame_object.frame.copy(), draw_on_frame=True
             )
         self.last_detect = time.time()
         self.detector_frame = face_frame
 
-        self.associate_faces(frame, detections)
+        self.associate_faces(frame_object, detections)
 
     def update_loop(self):
         """
@@ -339,9 +346,9 @@ class TrackingUpdater:
             time.sleep(0.1)
 
         while self.is_alive:
-            frame = self.last_frame
+            frame_object = self.last_frame
 
-            if frame is None:
+            if frame_object is None:
                 print("No frame received, exiting")
                 break
 
@@ -349,8 +356,8 @@ class TrackingUpdater:
             pre_frame, pre_detections = None, None
             pre_tracked_objects = self.object_manager.pre_tracked_objects
             if pre_tracked_objects:
-                pre_frame, pre_detections = self.preprocess_faces(frame)
+                pre_frame, pre_detections = self.preprocess_faces(frame_object)
             if time.time() - self.last_detect >= self.frequency:
-                self.detector_update(frame, pre_frame, pre_detections)
+                self.detector_update(frame_object, pre_frame, pre_detections)
 
             time.sleep(0.05)
