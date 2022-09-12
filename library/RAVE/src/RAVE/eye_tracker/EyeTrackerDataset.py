@@ -261,6 +261,9 @@ class EyeTrackerInferenceDataset(EyeTrackerDataset):
         """
         frame = self._video_feed.read()
 
+        top, left, height, width = EyeTrackerDataset.CROP_SIZE
+        frame = frame[top : top + height, left : left + width]
+
         frame = Image.fromarray(frame, "RGB")
         image = self.PRE_PROCESS_TRANSFORM(frame)
         image = self.NORMALIZE_TRANSFORM(image)
