@@ -69,7 +69,7 @@ def photoshoot(start_ind=0):
 def deepFaceTests(model_name="Facenet", metric="default", threshold="default", verbose=False):
     model = None
     if model_name not in ["VGG-Face", "Facenet", "OpenFace", "DeepFace", "DeepID", "Dlib", "ArcFace"]:
-        model = VerifierFactory.create(model_name)
+        model = VerifierFactory.create(model_name, device="cuda")
 
     curr_path = pathlib.Path(__file__).parent.resolve()
     dir_name = os.path.join(
@@ -225,7 +225,7 @@ if __name__ == "__main__":
 
         verbose = False
         # deepFaceTests(model_name="dlib", threshold=0.32, verbose=verbose)
-        # deepFaceTests(model_name="resnet_face_18", threshold=0.32, verbose=verbose)
+        deepFaceTests(model_name="resnet_face_18", threshold=0.25, verbose=verbose)
         # deepFaceTests(model_name="resnet_face_34", threshold=0.32, verbose=verbose)
         # deepFaceTests(model_name="resnet_face_50", threshold=0.32, verbose=verbose)
         # deepFaceTests(model_name="dlib", threshold=0.4, verbose=verbose)
@@ -238,7 +238,7 @@ if __name__ == "__main__":
         # deepFaceTests(model_name="ArcFace", metric="cosine", verbose=verbose)
         # deepFaceTests(model_name="DeepFace", metric="cosine", verbose=verbose)
 
-        deepFaceTests(model_name="arcface", threshold=0.15, verbose=verbose)
+        # deepFaceTests(model_name="arcface", threshold=0.32, verbose=verbose)
     else:
         model = DetectorFactory.create("yolo")
         detect_func = model.predict
