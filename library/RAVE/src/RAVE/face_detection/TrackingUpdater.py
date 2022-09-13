@@ -294,7 +294,10 @@ class TrackingUpdater:
                                 break
 
                         if detection:
-                            print("Recovering face that was lost by tracker")
+                            print(
+                                "Recovering face that was lost by tracker:",
+                                matched_object.id,
+                            )
                             matched_object.reset(
                                 frame_object, detection.bbox, detection.mouth
                             )
@@ -304,16 +307,18 @@ class TrackingUpdater:
                             print("Couldn't find detection to recover face")
 
                 # Check if this object matches an old face
-                rejected_objects_list = list(rejected_objects.values())
-                if any(rejected_objects_list):
-                    matched_object = self.compare_encoding_to_objects(
-                        rejected_objects_list, pre_tracked_object.encoding
-                    )
-                    if matched_object:
-                        # Matched with old face: start tracking again
-                        self.object_manager.restore_rejected_object(
-                            matched_object.id, pre_tracked_object
+                if matched_object is None:
+                    rejected_objects_list = list(rejected_objects.values())
+                    if any(rejected_objects_list):
+                        matched_object = self.compare_encoding_to_objects(
+                            rejected_objects_list, pre_tracked_object.encoding
                         )
+                        if matched_object:
+                            # Matched with old face: start tracking again
+                            print("Matched with old face:", matched_object.id)
+                            self.object_manager.restore_rejected_object(
+                                matched_object.id, pre_tracked_object
+                            )
 
                 if matched_object is None:
                     # Passing object from pre-tracked to tracked
