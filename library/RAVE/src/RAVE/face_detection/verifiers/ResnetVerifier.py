@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 import torch
 
-# from torch2trt import TRTModule
+from .models.arcface.trt_model import TrtModel
 import platform
 
 from .Verifier import Verifier
@@ -171,7 +171,7 @@ class ResNetVerifier(Verifier):
             # Load ResNet18
             if platform.release().split("-")[-1] == "tegra":
                 # TODO: Note: to be modified for use on the Jetson
-                model = None  # TRTModule()
+                model = TrtModel()
                 model_path = os.path.join(
                     ResNetVerifier.MODEL_PATH, "resnet18", "resnet18_trt.pth"
                 )
