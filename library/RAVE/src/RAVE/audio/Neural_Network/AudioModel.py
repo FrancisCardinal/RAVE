@@ -19,6 +19,16 @@ class AudioModel(nn.Module):
         self.sig = nn.Sigmoid()
 
     def forward(self, x, hidden=None):
+        """
+        Method used to go through the recurent neural network to estimate a noise mask
+        Args:
+            x: frequence signal (N x 1 x F x T) used to estimate the mask
+            hidden: If given, the context will be passed to the recurent neural network layer, else the context is set
+             to 0
+
+        Returns: Output of the model which is the estimated noise mask to apply in a beamforming method
+
+        """
         # N x 1 x F x T > N x 1 x T x F
         x = x.permute(0, 1, 3, 2)
 
@@ -64,41 +74,14 @@ class AudioModel(nn.Module):
     def load_best_model(self, MODEL_DIR_PATH, device):
         """
         Used to get the best version of a model from disk
-
         Args:
-            model (Module): Model on which to update the weights
-        """
+            MODEL_DIR_PATH (string): Path to the best model on local disk
+            device (string): Device used to perform the computations
 
+        """
         checkpoint = torch.load(MODEL_DIR_PATH, map_location=device)
         self.load_state_dict(checkpoint["model_state_dict"])
 
         self.eval()
-
-
-class AudioModel_old(nn.Module):
-    """
-    Model of the neural network that generate a mask to combine with a beamformer method to cancel noise for the audio module
-    """
-    def __init__(self, input_size, hidden_size, num_layers):
-        super(AudioModel, self).__init__()
-        self.hidden_size = hidden_size
-        self.num_layers = num_layers
-        self.BN = nn.BatchNorm1d(63)
-        self.blstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, bidirectional=False, dropout=0.5)
-        self.fc = nn.Linear(hidden_size,32319)
-        self.sig = nn.Sigmoid()
-
-    def forward(self, x):
-        #h0 = torch.zeros(self.num_layers*2, x.size(0), self.hidden_size)
-        #c0 = torch.zeros(self.num_layers*2, x.size(0), self.hidden_size)
-        x = torch.einsum("ijk->ikj", x)
-        x = x.float()
-        x = self.BN(x)
-        x, _ = self.blstm(x)
-        x = self.fc(x[:,-1,:])
-        #x = torch.tanh(x)
-        x = self.sig(x)
-        x = torch.reshape(x,(-1,513, 63))
-        return x
 
 

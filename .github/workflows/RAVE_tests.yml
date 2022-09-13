@@ -26,7 +26,7 @@ jobs:
           use-isort: false
           extra-pylint-options: ""
           extra-pycodestyle-options: ""
-          extra-flake8-options: "--exclude=__init__.py"
+          extra-flake8-options: "--exclude=__init__.py --ignore=E203,W503 --max-line-length=120"
           extra-black-options: ""
           extra-mypy-options: ""
           extra-isort-options: ""

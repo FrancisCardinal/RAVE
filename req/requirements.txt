@@ -1,12 +1,14 @@
 matplotlib
 numpy
-opencv-python
+opencv-contrib-python
 tqdm
 torch
 torchaudio
 torchvision
 pre-commit
 jsonschema
+python-socketio
+pyaudio
 Sphinx
 sphinx_rtd_theme
 pyyaml

@@ -16,7 +16,7 @@ from RAVE.common.image_utils import (
 
 from RAVE.face_detection.FaceDetectionDataset import FaceDetectionDataset
 from RAVE.face_detection.FaceDetectionModel import FaceDetectionModel
-from RAVE.common.fpsHelper import FPS
+from RAVE.face_detection.fpsHelper import FPS
 
 CONFIDENCE_THRESHOLD = 0.5
 INTERSECTION_OVER_UNION_THRESHOLD = 0.5
@@ -220,7 +220,7 @@ def visualize_predictions_on_stream(
                 )
                 frame = show_results(frame, xywh, confidence, landmarks)
 
-            fps.incrementFps()
+            fps.setFps()
             final_frame = fps.writeFpsToFrame(frame)
 
             cv2.imshow("Facial detection", final_frame)

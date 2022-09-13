@@ -131,6 +131,10 @@ dmypy.json
 # PyCharm:
 .idea/
 
+# rave web
+/rave-server/node_modules/
+/rave-web/node_modules/
+
 # VSCode
 .vscode/
 

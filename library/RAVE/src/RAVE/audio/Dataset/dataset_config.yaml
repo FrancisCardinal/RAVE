@@ -19,20 +19,30 @@ reverb_room_shapes:
 # Random room size multiplication factor limits to use on room shapes ([[xmin, xmax], [ymin, ymax], [zmin, zmax]])
 room_sizes: [[10, 100], [10, 100], [3, 20]]
 
-# Path to folder containing source files
-source_folder: "/home/rave/RAVE-Audio/MS-SNSD/clean_train"
+## Path to folder containing source files
+#source_folder: "/home/rave/RAVE-Audio/MS-SNSD/clean_train"
+#
+## Path to folder containing noise files
+#noise_folder: "/home/rave/RAVE-Audio/MS-SNSD/noise_train"
 
-# Path to folder containing noise files
-noise_folder: "/home/rave/RAVE-Audio/MS-SNSD/noise_train"
 
-# Authorized noises
+# Non authorized noises
 banned_noises:
     [
         'Bus_1',
         'Car_1',
         'Hallway_1',
         'Office_1',
-        'Washing_1'
+        'Washing_1',
+        'Munching',
+        'Neighbor',
+        'ShuttingDoor',
+        'Typing',
+        'SqueakyChair',
+        'WasherDryer',
+#        'CopyMachine',
+        'AirConditioner',
+        'VacuumCleaner'
     ]
 
 # Diffuse noises
@@ -55,7 +65,10 @@ diffuse_noises:
 max_diffuse_noises: 0
 
 # Range of noises count to add to audio file
-noise_count_range: [1, 1]
+dir_noise_count_range: [1, 1]
+
+# Number of samples to get per speech source
+sample_per_speech: 2
 
 # Whether to use speech as noise sources
 speech_as_noise: False
@@ -63,12 +76,8 @@ speech_as_noise: False
 # SNR limit values
 snr_limits: [0.75, 5]
 
-# Number of samples to get per speech source
-sample_per_speech: 5
-
-# Data split to use for [train, val, test]
-data_split: [0.7, 0.15, 0.15]
-
 # RIR parameters
-wall_absorption_limits: [0.95, 1]
-rir_reflexion_order: 3
+wall_absorption_limits: [0.75, 1]
+rir_reflexion_order: 5
+air_absorption: True
+air_humidity: 40

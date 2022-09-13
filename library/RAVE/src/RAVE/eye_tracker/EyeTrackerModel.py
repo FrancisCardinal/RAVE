@@ -16,7 +16,7 @@ class EyeTrackerModel(nn.Module):
         """
         super(EyeTrackerModel, self).__init__()
         self.model = torch.hub.load(
-            "pytorch/vision:v0.9.0", "resnet18", pretrained=True
+            "pytorch/vision:v0.9.0", "resnet34", pretrained=True
         )
         for param in self.model.parameters():
             param.requires_grad = False
@@ -29,9 +29,19 @@ class EyeTrackerModel(nn.Module):
 
         n_inputs = self.model.fc.in_features
 
-        DROPOUT = 0.05
+        DROPOUT = 0.02
         self.model.fc = nn.Sequential(
-            nn.Linear(n_inputs, 512),
+            nn.Linear(n_inputs, 2048),
+            nn.BatchNorm1d(num_features=2048),
+            nn.ReLU(),
+            nn.Dropout(DROPOUT),
+        )
+        self.regression_head = nn.Sequential(
+            nn.Linear(2048, 1024),
+            nn.BatchNorm1d(num_features=1024),
+            nn.ReLU(),
+            nn.Dropout(DROPOUT),
+            nn.Linear(1024, 512),
             nn.BatchNorm1d(num_features=512),
             nn.ReLU(),
             nn.Dropout(DROPOUT),
@@ -43,14 +53,22 @@ class EyeTrackerModel(nn.Module):
             nn.BatchNorm1d(num_features=128),
             nn.ReLU(),
             nn.Dropout(DROPOUT),
-            nn.Linear(128, 64),
-            nn.BatchNorm1d(num_features=64),
-            nn.ReLU(),
-            nn.Dropout(DROPOUT),
-            nn.Linear(64, 5),
+            nn.Linear(128, 5),
         )
 
-    def forward(self, x):
+        self.domain_classification_head = nn.Sequential(
+            nn.Linear(2048, 1024),
+            nn.BatchNorm1d(num_features=1024),
+            nn.ReLU(),
+            nn.Dropout(DROPOUT),
+            nn.Linear(1024, 128),
+            nn.BatchNorm1d(num_features=128),
+            nn.ReLU(),
+            nn.Dropout(DROPOUT),
+            nn.Linear(128, 1),
+        )
+
+    def forward(self, x, alpha=None):
         """
         Method of the Dataset class that must be overwritten by this class.
         Specifies how the forward pass should be executed
@@ -64,11 +82,41 @@ class EyeTrackerModel(nn.Module):
         Args:
             x (pytorch tensor):
                 The input of the network (images)
+            alpha (float):
+                Relative importance of the domain gradient with respect to the
+                regression gradient (how much is it important that the
+                network generalizes well ?).
 
         Returns:
             pytorch tensor:
                 The predictions of the network (ellipses parameters)
         """
-        x = self.model(x)
-        x = torch.sigmoid(x)
-        return x
+        bottleneck = self.model(x)
+
+        ellipse = self.regression_head(bottleneck)
+        ellipse = torch.sigmoid(ellipse)
+
+        classification = None
+        if alpha is not None:
+            reverse_bottleneck = ReverseLayerF.apply(bottleneck, alpha)
+            classification = self.domain_classification_head(
+                reverse_bottleneck
+            )
+            classification = torch.sigmoid(classification)
+
+        return ellipse, classification
+
+
+# The following was taken from https://github.com/fungtion/DANN
+class ReverseLayerF(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, x, alpha):
+        ctx.alpha = alpha
+
+        return x.view_as(x)
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        output = grad_output.neg() * ctx.alpha
+
+        return output, None

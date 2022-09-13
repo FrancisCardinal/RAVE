@@ -3,6 +3,8 @@ import os
 
 import numpy as np
 import torch
+import torchaudio
+
 import argparse
 import matplotlib.pyplot as plt
 
@@ -29,12 +31,9 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
     """
     DEVICE = "cpu"
     if torch.cuda.is_available():
-        DEVICE = "cuda:0"
+        DEVICE = "cuda:1"
 
-    # training_sub_dataset = AudioDataset(dataset_path='/Users/felixducharmeturcotte/Documents/datasetV2/training', device=DEVICE)
-    # validation_sub_dataset = AudioDataset(dataset_path='/Users/felixducharmeturcotte/Documents/datasetV2/validation', device=DEVICE)
-
-    dataset = AudioDataset(dataset_path='/home/rave/audiodataset/dataset')
+    dataset = AudioDataset(dataset_path='/home/rave/audiodataset/dataset/no_reverb')
 
     BATCH_SIZE = 32
     lenght_dataset = len(dataset)
@@ -46,7 +45,7 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
         training_sub_dataset,
         batch_size=BATCH_SIZE,
         shuffle=True,
-        num_workers=18,
+        num_workers=32,
         pin_memory=True,
         persistent_workers=True
     )
@@ -56,16 +55,15 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
         validation_sub_dataset,
         batch_size=BATCH_SIZE,
         shuffle=False,
-        num_workers=18,
+        num_workers=32,
         pin_memory=True,
         persistent_workers=True
     )
 
     # todo: get directory from dataset class
-    directory = os.path.join(os.getcwd(), 'RAVE/audio/Neural_Network/model')
-    #directory = os.path.join(os.getcwd(), 'model')
+    directory = os.path.join('/home/rave/RAVE-Audio/RAVE/library/RAVE/src/RAVE/audio/Neural_Network/model')
 
-    audioModel = AudioModel(input_size=1026, hidden_size=256, num_layers=2)
+    audioModel = AudioModel(input_size=1026, hidden_size=512, num_layers=2)
     audioModel.to(DEVICE)
     print(audioModel)
 
@@ -95,7 +93,7 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
         visualize_predictions(audioModel, validation_loader, DEVICE, dataset)
 
     if TEST:
-        print('testing')
+        test(audioModel, validation_loader, DEVICE, dataset)
 
 
 def visualize_predictions(model, data_loader, DEVICE, dataset):
@@ -107,19 +105,23 @@ def visualize_predictions(model, data_loader, DEVICE, dataset):
         data_loader (Dataloader):
             The dataloader that provides the images and the targets
         DEVICE (String): Device on which to perform the computations
+        dataset (Dataset): Dataset used to visualize predictions
     """
     with torch.no_grad():
         for audios, labels, _ in data_loader:
             audios, labels = audios.to(DEVICE), labels.to(DEVICE)
-            predictions = model(audios)
+            predictions, _ = model(audios)
+
             for audio, prediction, label in zip(audios, predictions, labels):
                 audio = torch.squeeze(audio)
                 y, x = np.mgrid[slice(0, 513, 1),
                                 slice(0, dataset.duration, dataset.duration/dataset.nb_chunks)]
+                y2, x2 = np.mgrid[slice(0, 1026, 1),
+                                slice(0, dataset.duration, dataset.duration / dataset.nb_chunks)]
 
                 fig, axs = plt.subplots(5)
                 fig.suptitle('Vertically stacked subplots')
-                pc0 = axs[0].pcolormesh(x,y,audio[:513,:].cpu().float(), shading='gouraud')
+                pc0 = axs[0].pcolormesh(x2,y2,audio[:,:].cpu().float(), shading='gouraud')
                 pc1 = axs[1].pcolormesh(x,y,prediction.cpu().float(), shading='gouraud', vmin=0, vmax=1)
                 pc2 = axs[2].pcolormesh(x,y,label.cpu().float(), shading='gouraud', vmin=0, vmax=1)
                 pc3 = axs[3].pcolormesh(x, y, 1- prediction.cpu().float(), shading='gouraud', vmin=0, vmax=1)
@@ -137,6 +139,37 @@ def visualize_predictions(model, data_loader, DEVICE, dataset):
                 fig.colorbar(pc3, ax=axs[3])
                 fig.colorbar(pc4, ax=axs[4])
                 plt.show()
+
+
+def test(model, data_loader, DEVICE, dataset):
+    """
+    Used to permorm tests to generate output .wav with masks predictions from recurent neural network
+    Args:
+        model (Module): Neural network to be trained
+        data_loader (Dataloader): Dataloader that returns signals from the test dataset
+        DEVICE (string): Device on which to perform the computations
+        dataset (Dataset): Dataset used to get signals
+
+    """
+    audios, labels, _ = next(iter(data_loader))
+    audios, labels = audios.to(DEVICE), labels.to(DEVICE)
+    index = 0
+    predictions, _ = model(audios[index:index+1,:,:])
+
+    item_path = dataset.data[index]
+    audio_signal, _, _, _, _, _, _ = dataset.load_item_from_disk(
+        item_path)
+
+    audio_freq = dataset.transformation(audio_signal[:, :32000]).to(DEVICE)
+    mvdr = torchaudio.transforms.MVDR(ref_channel=0, solution='ref_channel', multi_mask=False, online=True)
+    istft = torchaudio.transforms.InverseSpectrogram(n_fft=1024, hop_length=256)
+
+    stft_est = mvdr(audio_freq.type(torch.complex128), 1 - predictions, predictions)
+
+    est = istft(stft_est.detach().cpu(), length=audios.shape[-1] * 256)
+
+    torchaudio.save('output.wav', torch.unsqueeze(est, dim=0).float(), 16000)
+    print('output.wav file generated - ' + item_path)
 
 
 if __name__ == "__main__":
