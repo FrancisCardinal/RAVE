@@ -173,7 +173,7 @@ class DANNTrainer(Trainer):
             predictions, classifications = self.model(images, 2 * alpha)
             # Find the Loss
             regression_loss = self.loss_function(predictions, labels)
-            domain_loss = 100.0*self.domain_classification_loss_function(
+            domain_loss = self.domain_classification_loss_function(
                 classifications, domains.unsqueeze(1)
             )
             loss = regression_loss + domain_loss
@@ -225,7 +225,7 @@ class DANNTrainer(Trainer):
                 predictions, classifications = self.model(images, 2 * alpha)
                 # Find the Loss
                 regression_loss = self.loss_function(predictions, labels)
-                domain_loss = 100.0*self.domain_classification_loss_function(
+                domain_loss = self.domain_classification_loss_function(
                     classifications, domains.unsqueeze(1)
                 )
                 # Calculate Loss

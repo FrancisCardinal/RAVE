@@ -44,13 +44,13 @@ class EyeTrackerDatasetBuilder(DatasetBuilder):
     """
 
     @staticmethod
-    def create_datasets():
+    def create_datasets(VIDEOS_DIR, IS_SECONDARY_DATASET=False):
         """
         Main method of the EyeTrackerDatasetBuilder class.
         This method checks if the dataset as already been built, and builds it
         otherwise.
         """
-        BUILDERS = EyeTrackerDatasetBuilder.get_builders()
+        BUILDERS = EyeTrackerDatasetBuilder.get_builders(VIDEOS_DIR, IS_SECONDARY_DATASET)
         if BUILDERS == -1:
             return False
 
@@ -68,7 +68,7 @@ class EyeTrackerDatasetBuilder(DatasetBuilder):
         return True
 
     @staticmethod
-    def get_builders():
+    def get_builders(VIDEOS_DIR, IS_SECONDARY_DATASET):
         """
         Used to get the 3 EyeTrackerDatasetBuilder objects
         (one for each sub-dataset)
@@ -98,13 +98,17 @@ class EyeTrackerDatasetBuilder(DatasetBuilder):
             TEST_DIR,
         )
 
-        if os.path.isdir(TEST_PATH):
+        if os.path.isdir(TEST_PATH) and not IS_SECONDARY_DATASET:
             print("dataset found on disk")
             return -1
 
         print("dataset has NOT been found on disk, creating dataset")
 
-        VIDEO_UNPACKER = VideosUnpacker.get_builders()
+        CROP_SIZE = EyeTrackerDataset.CROP_SIZE
+        if IS_SECONDARY_DATASET : 
+            CROP_SIZE = 150, 0, 450, 600
+
+        VIDEO_UNPACKER = VideosUnpacker.get_builders(VIDEOS_DIR, CROP_SIZE)
         VIDEO_UNPACKER.create_images_of_one_video_group()
 
         SOURCE_DIR = VideosUnpacker.TMP_PATH
@@ -115,12 +119,15 @@ class EyeTrackerDatasetBuilder(DatasetBuilder):
         random.Random(42).shuffle(images_files)
 
         train_size, val_size = 0.75, 0.15
+
+        if IS_SECONDARY_DATASET : 
+            train_size += 0.10
+
         train_index_end = int(len(images_files) * train_size)
         val_index_end = train_index_end + int(len(images_files) * val_size)
 
         train_files = images_files[:train_index_end]
         val_files = images_files[train_index_end:val_index_end]
-        test_files = images_files[val_index_end:]
 
         BUILDERS = [
             EyeTrackerDatasetBuilder(
@@ -137,14 +144,20 @@ class EyeTrackerDatasetBuilder(DatasetBuilder):
                 EyeTrackerDataset.IMAGE_DIMENSIONS[1:3],
                 SOURCE_DIR,
             ),
-            EyeTrackerDatasetBuilder(
-                test_files,
-                TEST_PATH,
-                "test      dataset",
-                EyeTrackerDataset.IMAGE_DIMENSIONS[1:3],
-                SOURCE_DIR,
-            ),
         ]
+
+        if not IS_SECONDARY_DATASET : 
+            test_files = images_files[val_index_end:]
+            BUILDERS.append(
+                EyeTrackerDatasetBuilder(
+                    test_files,
+                    TEST_PATH,
+                    "test      dataset",
+                    EyeTrackerDataset.IMAGE_DIMENSIONS[1:3],
+                    SOURCE_DIR,
+                )
+            )
+            
         return BUILDERS
 
     def __init__(
@@ -219,13 +232,12 @@ class VideosUnpacker(DatasetBuilder):
     )
 
     @staticmethod
-    def get_builders():
+    def get_builders(VIDEOS_DIR, CROP_SIZE):
         """Get the builder
 
         Returns:
             VideosUnpacker: The VideosUnpacker object
         """
-        VIDEOS_DIR = "real_dataset"
         VIDEOS_DIR_PATH = join(
             EyeTrackerDatasetBuilder.ROOT_PATH,
             EyeTrackerDataset.EYE_TRACKER_DIR_PATH,
@@ -244,7 +256,7 @@ class VideosUnpacker(DatasetBuilder):
             "Unpacking videos",
             EyeTrackerDataset.IMAGE_DIMENSIONS[1:3],
             join(EyeTrackerDataset.EYE_TRACKER_DIR_PATH, VIDEOS_DIR),
-            EyeTrackerDataset.CROP_SIZE,
+            CROP_SIZE,
         )
 
         return BUILDER
