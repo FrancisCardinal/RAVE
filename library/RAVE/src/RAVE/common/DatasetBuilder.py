@@ -5,6 +5,8 @@ from PIL import Image
 import pickle
 from tqdm import tqdm
 
+import json
+
 from torchvision import transforms
 
 from .Dataset import Dataset
@@ -53,7 +55,13 @@ class DatasetBuilder(ABC):
     ROOT_PATH = os.getcwd()
 
     def __init__(
-        self, VIDEOS, OUTPUT_DIR_PATH, log_name, IMAGE_DIMENSIONS, SOURCE_DIR
+        self,
+        VIDEOS,
+        OUTPUT_DIR_PATH,
+        log_name,
+        IMAGE_DIMENSIONS,
+        SOURCE_DIR,
+        CROP_SIZE=None,
     ):
         self.VIDEOS = VIDEOS
         self.log_name = log_name
@@ -76,6 +84,7 @@ class DatasetBuilder(ABC):
         DatasetBuilder.create_directory_if_does_not_exist(
             self.OUTPUT_LABELS_PATH
         )
+        self._CROP_SIZE = CROP_SIZE
 
         self.RESIZE_TRANSFORM = transforms.Compose(
             [transforms.Resize(IMAGE_DIMENSIONS), transforms.ToTensor()]
@@ -118,10 +127,12 @@ class DatasetBuilder(ABC):
                 return
 
             file_name = os.path.splitext(os.path.basename(video_file_name))[0]
-            annotations_file = open(
-                os.path.join(self.ANNOTATIONS_PATH, file_name + ".txt"), "r"
+            annotations_file = os.path.join(
+                self.ANNOTATIONS_PATH, file_name + ".json"
             )
-            annotations = annotations_file.readlines()
+
+            with open(annotations_file, "r") as file:
+                annotations = json.load(file)
 
             self.create_images_dataset_with_one_video(
                 file_name, video_path, annotations
@@ -143,11 +154,8 @@ class DatasetBuilder(ABC):
         """
         cap = cv2.VideoCapture(video_path)
 
-        INPUT_IMAGE_WIDTH = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
-        INPUT_IMAGE_HEIGHT = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
-
-        self.annotation_line_index = 0
-        self.video_frame_id = 0
+        self.annotation_line_index = -1
+        self.video_frame_id = -1
         while cap.isOpened():
             self.annotation_line_index += 1
             self.video_frame_id += 1
@@ -156,26 +164,36 @@ class DatasetBuilder(ABC):
             if not is_ok:
                 break
 
+            success = self.parse_current_annotation(annotations)
+            if not success:
+                continue
+
+            ORIGINAL_HEIGHT, ORIGINAL_WIDTH = frame.shape[0], frame.shape[1]
             processed_frame = self.process_frame(frame)
             self.process_image_label_pair(
-                processed_frame,
-                file_name,
-                annotations,
-                INPUT_IMAGE_WIDTH,
-                INPUT_IMAGE_HEIGHT,
+                processed_frame, file_name, ORIGINAL_HEIGHT, ORIGINAL_WIDTH,
             )
 
         cap.release()
 
-    @abstractmethod
-    def process_image_label_pair(
-        self,
-        frame,
-        file_name,
-        annotations,
-        INPUT_IMAGE_WIDTH,
-        INPUT_IMAGE_HEIGHT,
+    def parse_current_annotation(
+        self, annotations, INPUT_IMAGE_WIDTH, INPUT_IMAGE_HEIGHT
     ):
+        """
+        Parses the current annotation to extract the parameters of
+        the ellipse as defined by opencv
+
+        Args:
+            annotations (List of strings): All the annotations
+            INPUT_IMAGE_WIDTH (int) The width of the input image
+            INPUT_IMAGE_HEIGHT (int) The height of the input image
+
+        Returns:
+            bool: True if the parsing was a success, false if it wasn't.
+        """
+        raise NotImplementedError
+
+    def process_image_label_pair(self, frame, file_name):
         """
         To process the image and label from the specific dataset
         """
@@ -192,7 +210,19 @@ class DatasetBuilder(ABC):
         Returns:
             pytorch tensor: The processed frame
         """
-        im_pil = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+        im_pil = Image.fromarray(frame)
+
+        if self._CROP_SIZE is not None:
+            top, left, height, width = (
+                self._CROP_SIZE[0],
+                self._CROP_SIZE[1],
+                self._CROP_SIZE[2],
+                self._CROP_SIZE[3],
+            )
+            im_pil = transforms.functional.crop(
+                im_pil, top, left, height, width
+            )
+
         output_image_tensor = self.RESIZE_TRANSFORM(im_pil)
 
         return output_image_tensor

@@ -4,6 +4,9 @@ import CalibConfigs from '../../Components/UI/CalibConfigs';
 import { useEmit } from '../../Hooks';
 import { GoToEyeTrackerCalibrationEvent } from 'rave-protocol/pythonEvents';
 
+/**
+ * This screen is to choose and create your eye-tracking calibration configuration.
+ */
 function EyeTrackerCalibScreen() {
   const emit = useEmit();
   const [t] = useTranslation('common');

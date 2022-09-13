@@ -23,6 +23,12 @@ interface CalibInstructionsProps {
   setInstructionModalOpen: (openState : boolean) => void;
 }
 
+/**
+* This component describes the steps to follow to calibrate the eye-tracker camera for the user
+* and pops a form to save the calibratio once it's done.
+* The steps are described by gifs showing the eye movement need.
+* @param {function} setInstructionModalOpen - The method to open and close the instrcution modal.
+*/
 const CalibInstructions : FC<CalibInstructionsProps> = ({setInstructionModalOpen}) => {
   const emit = useEmit();
 

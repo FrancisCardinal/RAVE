@@ -1,5 +1,3 @@
-
-
 class VerifierFactory:
     """
     Static factory class used to create verifier instances of different types
@@ -22,6 +20,7 @@ class VerifierFactory:
         """
         if verifier_type == "dlib":
             from .verifiers.DlibFaceVerifier import DlibFaceRecognition
+
             return DlibFaceRecognition(threshold)
 
         resnet_size = None
@@ -34,10 +33,12 @@ class VerifierFactory:
 
         if resnet_size is not None:
             from .verifiers.ResnetVerifier import ResNetVerifier
+
             return ResNetVerifier(threshold, device, resnet_size)
 
         if verifier_type == "arcface":
             from .verifiers.ArcfaceVerifier import ArcFace
+
             return ArcFace(threshold)
 
         print("Unknown verifier type:", verifier_type)

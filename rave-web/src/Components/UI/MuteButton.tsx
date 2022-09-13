@@ -4,6 +4,9 @@ import IconButton from '@mui/material/Button';
 import { useEmit } from '../../Hooks';
 import { MuteRequestEvent } from 'rave-protocol/pythonEvents';
 
+/**
+ * This component allows the user to mute and unmute the headphones via a button.
+ */
 function MuteButton() {
   const emit = useEmit();
   const [soundOn, setSound] = useState(true);
@@ -13,6 +16,10 @@ function MuteButton() {
     emit(MuteRequestEvent(soundOn));
   };
 
+  /**
+   * This function controls the SoundIcon appearence depending on the volume setting (on/off).
+   * @return {component} VolumeUp or MuteIcon.
+   */
   function SoundIcon() {
     if (soundOn) {
       return <VolumeUp className={'w-9 h-9'} />;

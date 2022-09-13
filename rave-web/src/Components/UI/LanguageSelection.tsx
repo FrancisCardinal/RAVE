@@ -9,7 +9,10 @@ import { useTranslation } from 'react-i18next';
 interface LanguageSelectionProps {
   className: string,
 }
-
+/**
+ * This component allows the user to change the site's language.
+ * The current languages available are english and french (default is english).
+ */
 const LanguageSelection : FC<LanguageSelectionProps> = (props) => {
   const [t, i18n] = useTranslation('common');
   const [language, setLanguage] = useState(i18n.language);

@@ -1,35 +1,37 @@
-import React from 'react';
-import { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useContext} from 'react';
 import { BrowserView, MobileView } from 'react-device-detect';
 import { useEventListener, useEmit } from "../../Hooks";
 import { CLIENT_EVENTS, NewFrameAvailablePayload } from 'rave-protocol/clientEvents';
 import { TargetSelectEvent } from 'rave-protocol/pythonEvents';
+import { DebugContext } from '../../DebugContextProvider';
 
+/**
+ * This component displays face detection video stream with
+ * boxes for each detected face which the user can press on to listen to them.
+ */
 function Stream() {
   const [frame, setFrame] = useState<NewFrameAvailablePayload|null>(null);
   const roomCanvasRef = useRef<HTMLCanvasElement|null>(null);
   const emit = useEmit();
 
-  useEventListener(CLIENT_EVENTS.NEW_FRAME_AVAILABLE,(newFrame : NewFrameAvailablePayload) => {
-    newFrame.boundingBoxes.forEach((box) => {
-        box.color = '#' + getRandomColor();
-    });
-    setFrame(newFrame);
+  const [selectedTarget, setSelectedTarget] = useState<number>(-1);
+  useEventListener(CLIENT_EVENTS.SELECTED_TARGET, ({targetId} : {targetId:number}) => {
+    setSelectedTarget(targetId);
   });
 
-  const onCanvasClick = (e : any) => {
-    const { target: canvas } = e;
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    // Check if the click is in any box
-    frame && frame.boundingBoxes.forEach((box) => {
-      if (x >= box.dx && x <= box.dx + box.width && y >= box.dy && y <= box.dy + box.height) {
-        emit(TargetSelectEvent(box.id));
+  useEventListener(CLIENT_EVENTS.NEW_FRAME_AVAILABLE,(newFrame : NewFrameAvailablePayload) => {
+    newFrame.boundingBoxes.forEach((box) => {
+      if(box.id === selectedTarget){
+        box.color = "#0BB862"
+      }
+      else {
+        box.color = "#D32F2F"
       }
     });
-  };
+    setFrame(newFrame);
+  },[selectedTarget]);
 
+  const { debugging } = useContext(DebugContext);
   useEffect(() => {
     if (roomCanvasRef && roomCanvasRef.current && frame) {
       const canvas = roomCanvasRef.current;
@@ -45,12 +47,30 @@ function Stream() {
           ctx.strokeStyle = box.color || 'black';
           ctx.rect(box.dx, box.dy, box.width, box.height);
           ctx.stroke();
+          if(debugging){
+            ctx.font = '40px Arial';
+            ctx.fillText(String(box.id), box.dx, box.dy);
+          }
         });
       }
     }
-  }, [frame]);
+  }, [frame,debugging]);
 
-  const getRandomColor = () => Math.floor(Math.random() * 16777215).toString(16);
+  const onCanvasClick = (e : any) => {
+    const { target: canvas } = e;
+    const rect = (canvas as HTMLCanvasElement).getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const [imgHeight,imgWidth,] = frame?.dimensions || [0,0,0];
+    const xRatio = rect.width / imgWidth;
+    const yRatio = rect.height / imgHeight;
+    // Check if the click is in any box
+    frame && frame.boundingBoxes.forEach((box) => {
+      if (x >= (box.dx*xRatio) && x <= (box.dx*xRatio) + (box.width*xRatio) && y >= (box.dy*yRatio) && y <= (box.dy*yRatio) + (box.height*yRatio)) {
+        emit(TargetSelectEvent(box.id));
+      }
+    });
+  };
 
   return (
     <div className="container px-2">

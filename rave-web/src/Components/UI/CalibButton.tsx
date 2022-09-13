@@ -3,6 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { useEmit } from '../../Hooks';
 import { NextCalibTargetEvent } from 'rave-protocol/pythonEvents';
 
+/**
+ * This component is a button that is clicked when
+ * the user wants to move to the next target in the visual-audio calibration.
+ */
 function CalibButton() {
   const [t] = useTranslation('common');
   const emit = useEmit();

@@ -8,6 +8,10 @@ import { useTranslation } from 'react-i18next';
 import { useEmit } from "../../Hooks";
 import { ForceRefreshEvent } from 'rave-protocol/pythonEvents';
 
+/**
+ * This screen is the home screen. It displays the vision stream with the bounding boxes if faces are detected.
+ * It also displays the volume controls and the eye-tracking mode switch.
+ */
 function HomeScreen() {
   const emit = useEmit();
   const [t] = useTranslation('common');

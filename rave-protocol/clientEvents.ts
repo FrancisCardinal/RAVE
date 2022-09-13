@@ -11,6 +11,7 @@ export enum CLIENT_EVENTS {
   CONNECTION_STATUS = 'connectionStatus',
   EYE_TRACKING_CONFIGURATIONS = 'configList',
   NEW_FRAME_AVAILABLE = 'newFrameAvailable',
+  SELECTED_TARGET = 'selectedTarget',
 };
 
 export interface BoundingBox {
@@ -92,5 +93,15 @@ export interface NewFrameAvailablePayload {
       dimensions,
       boundingBoxes,
     } as NewFrameAvailablePayload
+  }
+};
+
+export function selectedTargetEvent(targetId: number) {
+  return {
+    destination : MESSAGE_DESTINATIONS.CLIENT,
+    event : CLIENT_EVENTS.SELECTED_TARGET,
+    payload : {
+      targetId,
+    }
   }
 };

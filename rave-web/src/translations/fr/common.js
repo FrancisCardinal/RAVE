@@ -12,9 +12,15 @@ const common = {
       french: 'Français',
       english: 'Anglais',
     },
+    visionMode: {
+      label: 'Mode de vision',
+      muteMode: "Tout en sourdine",
+      hearMode: 'Tout entendre',
+    },
     connectionLabel: 'État de la connexion:',
     visionCalibration: 'Calibration audio-visuelle',
     eyeTrackerCalibration: 'Calibration eye-tracker',
+    debugMode: 'Mode débogage',
   },
   helpPage: {
     title: 'Aide',
@@ -47,6 +53,7 @@ const common = {
     configName: 'Nom',
     configPlaceholder: 'Entrer votre nom complet',
     errorMessage: 'Le nom que vous avez choisi existe déjà, choisir un nouveau.',
+    deleteMessage: 'Êtes-vous sûr de vouloir supprimer cette calibration?',
   }
 };
 export default common;

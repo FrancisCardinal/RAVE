@@ -3,6 +3,10 @@ import RAVE from '../../Ressources/RAVE.png';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
+/**
+ * This component displays the available pages of the website at the top
+ * of the screen when the website is opened on a desktop.
+ */
 function DesktopMainBar() {
 	const [t] = useTranslation('common');
 	return (

@@ -20,7 +20,20 @@ def connect():
     """
     print("connection established to server")
     # Emit the socket id to the server to "authenticate yourself"
-    sio.emit("pythonSocket", sio.get_sid())
+
+    emit("pythonSocketAuth", "server", {"socketId": sio.get_sid()})
+
+
+def emit(event_name, destination, payload):
+    """
+    Emits event to destination.
+    Args:
+        event_name (string): The name of the event to emit.
+        destination (string):
+            The destination to emit the event ("client" or "server").
+        payload (dict): The information needed to be passed to the destination.
+    """
+    sio.emit(event_name, {"destination": destination, "payload": payload})
 
 
 def timed_callback(period, f, *args):
@@ -83,8 +96,10 @@ class AppManager:
         self._frame_output_frequency = 0.05
         self._delay_update_frequency = 0.25
         self._selected_face = None
+        self._vision_mode = "mute"
 
         sio.on("targetSelect", self._update_selected_face)
+        sio.on("changeVisionMode", self._change_mode)
 
     def start(self):
         """
@@ -134,22 +149,35 @@ class AppManager:
             frame_string = base64.b64encode(
                 cv2.imencode(".jpg", self._tracking_manager.last_frame)[1]
             ).decode()
-            sio.emit(
+            emit(
                 "newFrameAvailable",
+                "client",
                 {
-                    "frame": frame_string,
+                    "base64Frame": frame_string,
                     "dimensions": self._tracking_manager.last_frame.shape,
                     "boundingBoxes": boundingBoxes,
                 },
             )
 
-    def _update_selected_face(self, ident):
+    def _update_selected_face(self, payload):
         """
         Update the current selected face from the web client
         Args:
-            ident (id): Id of the face selected in the web client
+            payload (dict): Dictionary containing the id of the
+            face selected in the web client.
         """
-        self._selected_face = ident
+        self._selected_face = payload["targetId"]
+        emit("selectedTarget", "client", {"targetId": self._selected_face})
+
+    def _change_mode(self, payload):
+        """
+        Changes the vision mode when no faces are detected.
+        Args:
+            payload (dict):
+                Dictionary containing Mode of the vision module
+                when no faces are detected('mute' or 'hear').
+        """
+        self._vision_mode = payload["mode"]
 
     def _update_target_delays(self):
         """
