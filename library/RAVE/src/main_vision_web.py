@@ -22,6 +22,12 @@ if __name__ == "__main__":
         default=False,
     )
     parser.add_argument(
+        "--flip",
+        dest="flip",
+        help="Flip display orientation by 180 degrees on horizontal axis",
+        action="store_true",
+    )
+    parser.add_argument(
         "--freq",
         dest="freq",
         type=float,

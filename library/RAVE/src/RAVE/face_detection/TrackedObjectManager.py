@@ -42,6 +42,15 @@ class TrackedObjectManager:
 
         self.recent_frames = []
 
+    def get_last_frame(self):
+        """
+        Returns the image of the last frame
+        """
+        if self.last_frame is None:
+            return None
+
+        return self.last_frame.frame
+
     def tracking_count(self):
         """
         Returns:

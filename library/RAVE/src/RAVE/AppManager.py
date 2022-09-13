@@ -85,10 +85,11 @@ class AppManager:
         self._tracking_manager = TrackingManager(
             tracker_type="kcf",
             detector_type="yolo",
-            verifier_type="resnet_face_34",
+            verifier_type="arcface",
             frequency=args.freq,
             visualize=args.visualize,
         )
+        self._object_manager = self._tracking_manager.object_manager
         self._pixel_to_delay = Pixel2Delay(
             (args.height, args.width), "./calibration.json"
         )
@@ -133,9 +134,9 @@ class AppManager:
         """
         Function to send the frame to the server
         """
-        if self._tracking_manager.last_frame is not None:
+        if self._object_manager.get_last_frame() is not None:
             boundingBoxes = []
-            for obj in self._tracking_manager.tracked_objects.values():
+            for obj in self._object_manager.tracked_objects.values():
                 boundingBoxes.append(
                     {
                         "id": obj.id,
@@ -147,14 +148,14 @@ class AppManager:
                 )
 
             frame_string = base64.b64encode(
-                cv2.imencode(".jpg", self._tracking_manager.last_frame)[1]
+                cv2.imencode(".jpg", self._object_manager.get_last_frame())[1]
             ).decode()
             emit(
                 "newFrameAvailable",
                 "client",
                 {
                     "base64Frame": frame_string,
-                    "dimensions": self._tracking_manager.last_frame.shape,
+                    "dimensions": self._object_manager.get_last_frame().shape,
                     "boundingBoxes": boundingBoxes,
                 },
             )
@@ -183,7 +184,7 @@ class AppManager:
         """
         Function to send the audio section the target delay
         """
-        if self._selected_face in self._tracking_manager.tracked_objects:
+        if self._selected_face in self._object_manager.tracked_objects:
             pass
             # print(
             #     self._pixel_to_delay.get_delay(
@@ -203,4 +204,4 @@ class AppManager:
         # TODO-JKealey: won't stop the thread maybe have a bool to skip
         #  tracking part and only output frame, maybe use this for the
         #  force refresh
-        self._tracking_manager.stop_tracking()
+        self._object_manager.stop_tracking()

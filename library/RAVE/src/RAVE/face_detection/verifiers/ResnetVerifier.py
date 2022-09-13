@@ -2,11 +2,11 @@ import os
 import cv2
 import numpy as np
 import torch
-from torch2trt import TRTModule
+
+# from torch2trt import TRTModule
 import platform
 
 from .Verifier import Verifier
-from .Encoding import Encoding
 
 from .models.resnet import (
     resnet_face18,
@@ -79,7 +79,6 @@ class ResNetVerifier(Verifier):
                 feature = self.model(image).cpu().numpy().squeeze()
             features.append(feature)
 
-
         return features
 
     @staticmethod
@@ -111,7 +110,7 @@ class ResNetVerifier(Verifier):
                     * np.linalg.norm(reference_feature)
                 )
             )
-            
+
         # TODO: is this really a score or a dist?
         return np.array(dist)
 
@@ -171,13 +170,18 @@ class ResNetVerifier(Verifier):
         if architecture == 18:
             # Load ResNet18
             if platform.release().split("-")[-1] == "tegra":
-                model = TRTModule()
-                model_path = os.path.join(ResNetVerifier.MODEL_PATH, "resnet18", "resnet18_trt.pth")
+                # TODO: Note: to be modified for use on the Jetson
+                model = None  # TRTModule()
+                model_path = os.path.join(
+                    ResNetVerifier.MODEL_PATH, "resnet18", "resnet18_trt.pth"
+                )
                 pretrained_dict = torch.load(model_path)
             else:
                 model = resnet_face18(pretrained=False)
                 pretrained_dict = torch.load(
-                    os.path.join(ResNetVerifier.MODEL_PATH, "resnet18", "resnet18.pth"),
+                    os.path.join(
+                        ResNetVerifier.MODEL_PATH, "resnet18", "resnet18.pth"
+                    ),
                     map_location=map_fct,
                 )
         elif architecture == 34:
