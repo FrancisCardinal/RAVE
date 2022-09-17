@@ -48,7 +48,7 @@ def main2(DEBUG, MASK, TIMER, WORKERS, SOURCE_DIR):
                 'file': wav_file[0]
             }
             audio_manager = AudioManager(debug=DEBUG, mask=MASK, use_timers=TIMER)
-            audio_manager.initialise_audio(source=audio_dict)
+            audio_manager.initialise_audio(source=audio_dict, path=None)
             audio_manager.main_loop()
         else:
             # Given a whole dataset folder

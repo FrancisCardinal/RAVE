@@ -29,18 +29,18 @@ def run_generator_loop(source_queue, worker_num, run_params, configs, file_cnt, 
         total_cnt (int):  Shared int containing total number of files to create.
     """
     # TODO: CHECK TO RUN 1 GENERATOR AND ALL WORKERS CALL ON IT
-    dataset_builder = AudioDatasetBuilder(run_params['SOURCES'],
-                                          run_params['NOISES'],
-                                          run_params['OUTPUT'],
+    dataset_builder = AudioDatasetBuilder(run_params['OUTPUT'],
                                           run_params['DEBUG'],
-                                          run_params['REVERB'],
                                           configs)
+
+    dataset_builder.init_sim(run_params['SOURCES'], run_params['NOISES'], reverb=run_params['REVERB'])
+
     while not source_queue.empty():
         # Get source file
         audio_file = source_queue.get()
 
         # Run generator
-        file_increment, dataset_list = dataset_builder.generate_dataset(source_path=audio_file, save_run=True)
+        file_increment, dataset_list = dataset_builder.generate_sim_dataset(source_path=audio_file, save_run=True)
 
         # Add results
         with file_cnt.get_lock():
