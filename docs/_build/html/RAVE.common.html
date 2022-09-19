@@ -14,6 +14,7 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -78,13 +79,13 @@
            <div itemprop="articleBody">
              
   <section id="common">
-<h1>common<a class="headerlink" href="#common" title="Permalink to this headline"></a></h1>
+<h1>common<a class="headerlink" href="#common" title="Permalink to this heading"></a></h1>
 <section id="module-RAVE.common.Dataset">
-<span id="dataset"></span><h2>Dataset<a class="headerlink" href="#module-RAVE.common.Dataset" title="Permalink to this headline"></a></h2>
+<span id="dataset"></span><h2>Dataset<a class="headerlink" href="#module-RAVE.common.Dataset" title="Permalink to this heading"></a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="RAVE.common.Dataset.Dataset">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">TRAINING_MEAN</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">TRAINING_STD</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ROOT_PATH</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sub_dataset_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">IMAGE_DIMENSIONS</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.Dataset.Dataset" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.utils.data.dataset.Dataset</span></code></p>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Dataset</span></code></p>
 <p>Class that handles pairs of images and labels that are on disk</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -153,7 +154,23 @@ Used to get an image and label pair</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="RAVE.common.Dataset.Dataset.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">TRAINING_MEAN</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">TRAINING_STD</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ROOT_PATH</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sub_dataset_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">IMAGE_DIMENSIONS</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.Dataset.Dataset.__init__" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Constructor of the dataset class</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>TRAINING_MEAN</strong> (<em>list</em>) – Means of each channel of the images of the
+training subdataset</p></li>
+<li><p><strong>TRAINING_STD</strong> (<em>list</em>) – Standard deviation of each channel of the
+images of the training subdataset</p></li>
+<li><p><strong>ROOT_PATH</strong> (<em>string</em>) – The full path to the eye tracker directory</p></li>
+<li><p><strong>sub_dataset_dir</strong> (<em>string</em>) – The name of the current sub dataset
+directory</p></li>
+<li><p><strong>IMAGE_DIMENSIONS</strong> (<em>tuple</em>) – Image dimension of the form
+(number of channels, height, width)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="RAVE.common.Dataset.Dataset.__len__">
@@ -280,11 +297,11 @@ workers
 
 </section>
 <section id="module-RAVE.common.DatasetBuilder">
-<span id="datasetbuilder"></span><h2>DatasetBuilder<a class="headerlink" href="#module-RAVE.common.DatasetBuilder" title="Permalink to this headline"></a></h2>
+<span id="datasetbuilder"></span><h2>DatasetBuilder<a class="headerlink" href="#module-RAVE.common.DatasetBuilder" title="Permalink to this heading"></a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="RAVE.common.DatasetBuilder.DatasetBuilder">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">DatasetBuilder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">VIDEOS</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">OUTPUT_DIR_PATH</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">IMAGE_DIMENSIONS</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">SOURCE_DIR</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CROP_SIZE</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.DatasetBuilder.DatasetBuilder" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></p>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></p>
 <p>This class builds the sub-datasets. It takes videos, extracts the frames
 and saves them on the disk, with the corresponding labels.
 It also applies data augmentation transforms to the training sub-dataset</p>
@@ -334,8 +351,8 @@ them to disk</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>file_name</strong> (<em>String</em>) – Name of the video</p></li>
 <li><p><strong>video_path</strong> (<em>String</em>) – Path to the video</p></li>
-<li><p><strong>annotations</strong> (<em>List of strings</em>) – One string per frame. Each string represents the ellipse that
-is present on the frame</p></li>
+<li><p><strong>annotations</strong> (<em>List of strings</em>) – One string per frame. Each string represents the annotation
+that is present on the frame</p></li>
 </ul>
 </dd>
 </dl>
@@ -406,7 +423,11 @@ saved</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="RAVE.common.DatasetBuilder.DatasetBuilder.process_image_label_pair">
 <span class="sig-name descname"><span class="pre">process_image_label_pair</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">frame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.DatasetBuilder.DatasetBuilder.process_image_label_pair" title="Permalink to this definition"></a></dt>
-<dd><p>To process the image and label from the specific dataset</p>
+<dd><p>Processes the image and label from the specific dataset
+:param frame: The frame that needs to be processed
+:type frame: numpy array
+:param file_name: The name of the frame’s file
+:type file_name: str</p>
 </dd></dl>
 
 <dl class="py method">
@@ -428,7 +449,7 @@ saved</p>
 
 </section>
 <section id="module-RAVE.common.Trainer">
-<span id="trainer"></span><h2>Trainer<a class="headerlink" href="#module-RAVE.common.Trainer" title="Permalink to this headline"></a></h2>
+<span id="trainer"></span><h2>Trainer<a class="headerlink" href="#module-RAVE.common.Trainer" title="Permalink to this heading"></a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="RAVE.common.Trainer.Trainer">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Trainer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">training_loader</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">validation_loader</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss_function</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheduler</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ROOT_DIR_PATH</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">CONTINUE_TRAINING</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.Trainer.Trainer" title="Permalink to this definition"></a></dt>
@@ -496,7 +517,10 @@ on disk or not</p></li>
 <dd><p>Used to get the best version of a model from disk</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>model</strong> (<em>Module</em>) – Model on which to update the weights</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<em>Module</em>) – Model on which to update the weights</p></li>
+<li><p><strong>device</strong> (<em>string</em>) – Torch device (most likely ‘cpu’ or ‘cuda’)</p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -544,10 +568,10 @@ losses and validation losses computed so far</p>
 
 </section>
 <section id="module-RAVE.common.image_utils">
-<span id="image-utils"></span><h2>image_utils<a class="headerlink" href="#module-RAVE.common.image_utils" title="Permalink to this headline"></a></h2>
+<span id="image-utils"></span><h2>image_utils<a class="headerlink" href="#module-RAVE.common.image_utils" title="Permalink to this heading"></a></h2>
 <dl class="py function">
 <dt class="sig sig-object py" id="RAVE.common.image_utils.apply_image_rotation">
-<span class="sig-name descname"><span class="pre">apply_image_rotation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image_tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rotation_angle_extremums</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[-</span> <span class="pre">0.1,</span> <span class="pre">0.1]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.image_utils.apply_image_rotation" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">apply_image_rotation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image_tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rotation_angle_extremums</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[-0.1,</span> <span class="pre">0.1]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.image_utils.apply_image_rotation" title="Permalink to this definition"></a></dt>
 <dd><p>A data augmentation operation, rotates the frame randomly, by selecting
 an angle in the ‘rotation_angle_extremums’range.
 This should be used instead of the pytorch transform if you wish to know
@@ -571,7 +595,7 @@ Defaults to [-0.1, 0.1]</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="RAVE.common.image_utils.apply_image_translation">
-<span class="sig-name descname"><span class="pre">apply_image_translation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image_tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_extremums</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[-</span> <span class="pre">0.2,</span> <span class="pre">0.2]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_extremums</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[-</span> <span class="pre">0.2,</span> <span class="pre">0.2]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.image_utils.apply_image_translation" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">apply_image_translation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image_tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_extremums</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[-0.2,</span> <span class="pre">0.2]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_extremums</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[-0.2,</span> <span class="pre">0.2]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.image_utils.apply_image_translation" title="Permalink to this definition"></a></dt>
 <dd><p>A data augmentation operation, translates the frame randomly, by
 selecting an x and y value in the x_extremums and y_extremums ranges,
 respectively.This should be used instead of the pytorch transform if
@@ -596,7 +620,7 @@ y offset (float)</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="RAVE.common.image_utils.apply_image_translation_and_rotation">
-<span class="sig-name descname"><span class="pre">apply_image_translation_and_rotation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image_tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_extremums</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[-</span> <span class="pre">0.2,</span> <span class="pre">0.2]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_extremums</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[-</span> <span class="pre">0.2,</span> <span class="pre">0.2]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rotation_angle_extremums</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[-</span> <span class="pre">0.1,</span> <span class="pre">0.1]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.image_utils.apply_image_translation_and_rotation" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">apply_image_translation_and_rotation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image_tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_extremums</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[-0.2,</span> <span class="pre">0.2]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_extremums</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[-0.2,</span> <span class="pre">0.2]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rotation_angle_extremums</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[-0.1,</span> <span class="pre">0.1]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.image_utils.apply_image_translation_and_rotation" title="Permalink to this definition"></a></dt>
 <dd><p>A data augmentation operation,translates and rotates the frame randomly,
 by selecting an x and y value in the x_extremums and y_extremums ranges,
 respectively, and by selecting an angle in the

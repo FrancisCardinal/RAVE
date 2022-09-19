@@ -14,6 +14,7 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -77,13 +78,13 @@
            <div itemprop="articleBody">
              
   <section id="facial-detection">
-<h1>facial_detection<a class="headerlink" href="#facial-detection" title="Permalink to this headline"></a></h1>
+<h1>facial_detection<a class="headerlink" href="#facial-detection" title="Permalink to this heading"></a></h1>
 <section id="module-RAVE.face_detection.FaceDetectionDataset">
-<span id="facedetectiondataset"></span><h2>FaceDetectionDataset<a class="headerlink" href="#module-RAVE.face_detection.FaceDetectionDataset" title="Permalink to this headline"></a></h2>
+<span id="facedetectiondataset"></span><h2>FaceDetectionDataset<a class="headerlink" href="#module-RAVE.face_detection.FaceDetectionDataset" title="Permalink to this heading"></a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="RAVE.face_detection.FaceDetectionDataset.FaceDetectionDataset">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">FaceDetectionDataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sub_dataset_dir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.face_detection.FaceDetectionDataset.FaceDetectionDataset" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="RAVE.common.html#RAVE.common.Dataset.Dataset" title="RAVE.common.Dataset.Dataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">RAVE.common.Dataset.Dataset</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="RAVE.common.html#RAVE.common.Dataset.Dataset" title="RAVE.common.Dataset.Dataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dataset</span></code></a></p>
 <p>Class that handles pairs of images and labels that are on disk</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -156,11 +157,11 @@
 
 </section>
 <section id="module-RAVE.face_detection.FaceDetectionModel">
-<span id="facedetectionmodel"></span><h2>FaceDetectionModel<a class="headerlink" href="#module-RAVE.face_detection.FaceDetectionModel" title="Permalink to this headline"></a></h2>
+<span id="facedetectionmodel"></span><h2>FaceDetectionModel<a class="headerlink" href="#module-RAVE.face_detection.FaceDetectionModel" title="Permalink to this heading"></a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="RAVE.face_detection.FaceDetectionModel.FaceDetectionModel">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">FaceDetectionModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">DEVICE</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.face_detection.FaceDetectionModel.FaceDetectionModel" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code></p>
 <p>Model of the neural network that detects faces for facial detection</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -203,7 +204,7 @@
 
 </section>
 <section id="module-RAVE.face_detection.fpsHelper">
-<span id="fpshelper"></span><h2>FpsHelper<a class="headerlink" href="#module-RAVE.face_detection.fpsHelper" title="Permalink to this headline"></a></h2>
+<span id="fpshelper"></span><h2>FpsHelper<a class="headerlink" href="#module-RAVE.face_detection.fpsHelper" title="Permalink to this heading"></a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="RAVE.face_detection.fpsHelper.FPS">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">FPS</span></span><a class="headerlink" href="#RAVE.face_detection.fpsHelper.FPS" title="Permalink to this definition"></a></dt>
