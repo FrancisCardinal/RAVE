@@ -8,7 +8,9 @@ import threading
 
 from RAVE.face_detection.TrackingManager import TrackingManager
 from RAVE.face_detection.Pixel2Delay import Pixel2Delay
+from RAVE.eye_tracker.GazeInferer.GazeInfererManager import GazeInfererManager
 
+# from RAVE.face_detection.Direction2Pixel import Direction2Pixel
 
 sio = socketio.Client()
 
@@ -97,8 +99,44 @@ class AppManager:
         self._selected_face = None
         self._vision_mode = "mute"
 
+        self._gaze_inferer_manager = GazeInfererManager(2, "cpu")
+
         sio.on("targetSelect", self._update_selected_face)
         sio.on("changeVisionMode", self._change_mode)
+        sio.on("goToEyeTrackingCalibration", self.emit_calibration_list)
+        sio.on(
+            "startEyeTrackingCalibration",
+            self._gaze_inferer_manager.start_calibration_thread,
+        )
+        sio.on(
+            "resumeEyeTrackingCalib",
+            self._gaze_inferer_manager.resume_calibration_thread,
+        )
+        sio.on(
+            "pauseEyeTrackingCalib",
+            self._gaze_inferer_manager.pause_calibration_thread,
+        )
+        sio.on(
+            "endEyeTrackingCalib",
+            self._gaze_inferer_manager.end_calibration_thread,
+        )
+        sio.on(
+            "setOffsetEyeTrackingCalib", self._gaze_inferer_manager.set_offset
+        )
+        sio.on("addEyeTrackingCalib", self._save_eye_calibration)
+        sio.on("selectEyeTrackingCalib", self._select_eye_tracking_calibration)
+        sio.on("deleteEyeTrackingCalib", self._delete_eye_tracking_calibration)
+        sio.on("activateEyeTracking", self.control_eye_tracking)
+
+    def emit_calibration_list(self):
+        """
+        Sends the updated eye tracker calibration list to the server.
+        """
+        emit(
+            "configList",
+            "client",
+            {"configuration": self._gaze_inferer_manager.list_calibration},
+        )
 
     def start(self):
         """
@@ -203,3 +241,41 @@ class AppManager:
         #  tracking part and only output frame, maybe use this for the
         #  force refresh
         self._tracking_manager.stop_tracking()
+
+    def _save_eye_calibration(self, payload):
+        """
+        Calibration is done and saves the nw calibration in a JSON file.
+        Args:
+            payload(dict): Contains the filename to use
+        """
+        self._gaze_inferer_manager.save_new_calibration(payload["configName"])
+        self.emit_calibration_list()
+
+    def _select_eye_tracking_calibration(self, payload):
+        """
+        Assigns the calibration to use in eye-tracking mode.
+        Args:
+            payload(dict): Containing the calibration filename to use.
+        """
+        self._gaze_inferer_manager.set_selected_calibration_path(
+            payload["name"]
+        )
+
+    def _delete_eye_tracking_calibration(self, payload):
+        """
+        Deletes the selected eye tracking calibration file.
+        """
+        self._gaze_inferer_manager.delete_calibration(payload["id"])
+        self.emit_calibration_list()
+
+    def control_eye_tracking(self, payload):
+        """
+        Activate and deactivates the eye tracking control mode.
+        Args:
+            payload (dict): Key onStatus is a boolean True to
+             activate or false to stop
+        """
+        if payload["onStatus"]:
+            self._gaze_inferer_manager.start_inference_thread()
+        else:
+            self._gaze_inferer_manager.stop_inference()

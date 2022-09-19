@@ -195,8 +195,9 @@ class EllipseAnnotationTool:
             altered_frame = frame.copy()
             altered_frame = self.adjust_gamma(altered_frame)
 
-            for point in self._points:
-                cv2.drawMarker(altered_frame, point, color=(0, 0, 255))
+            if self._display_ellipse:
+                for point in self._points:
+                    cv2.drawMarker(altered_frame, point, color=(0, 0, 255))
 
             if len(self._points) >= self._MIN_NB_POINTS_FOR_FIT:
                 ellipse = cv2.fitEllipse(np.array(self._points))
