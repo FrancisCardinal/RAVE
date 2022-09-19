@@ -17,9 +17,6 @@ from RAVE.eye_tracker.EyeTrackerDataset import (
 
 from RAVE.eye_tracker.EllipseAnnotationTool import EllipseAnnotationTool
 from RAVE.eye_tracker.EyeTrackerDatasetBuilder import EyeTrackerDatasetBuilder
-from RAVE.eye_tracker.EyeTrackerSyntheticDatasetBuilder import (
-    EyeTrackerSyntheticDatasetBuilder,
-)
 
 from RAVE.eye_tracker.EyeTrackerModel import EyeTrackerModel
 from RAVE.eye_tracker.ellipse_util import (
@@ -68,7 +65,9 @@ def main(
     if ANNOTATE:
         annotate(EyeTrackerDataset.EYE_TRACKER_DIR_PATH)
 
-    created_real_dataset = EyeTrackerDatasetBuilder.create_datasets("real_dataset")
+    created_real_dataset = EyeTrackerDatasetBuilder.create_datasets(
+        "real_dataset"
+    )
     if created_real_dataset:
         EyeTrackerDatasetBuilder.create_datasets("old_real_dataset", True)
 
@@ -140,13 +139,19 @@ def main(
         with torch.no_grad():
             test_loss, number_of_images = 0, 0
             for images, labels, visibilities in test_loader:
-                images, labels, visibilities = images.to(DEVICE), labels.to(DEVICE), labels.to(visibilities)
+                images, labels, visibilities = (
+                    images.to(DEVICE),
+                    labels.to(DEVICE),
+                    labels.to(visibilities),
+                )
 
                 # Forward Pass
                 predictions, predicted_visibilities = eye_tracker_model(images)
                 # Find the Loss
                 predicted_pupil_are_visibles = predicted_visibilities > 0.90
-                predictions = predictions * predicted_pupil_are_visibles.float()
+                predictions = (
+                    predictions * predicted_pupil_are_visibles.float()
+                )
                 loss = ellipse_loss_function(predictions, labels)
                 # Calculate Loss
                 test_loss += loss.item()
@@ -174,7 +179,19 @@ def visualize_predictions(model, data_loader, DEVICE):
         for images, labels, visibilities in data_loader:
             images, labels = images.to(DEVICE), labels.to(DEVICE)
             predictions, predicted_visibilities = model(images)
-            for image, prediction, label, visibility, predicted_visibility in zip(images, predictions, labels, visibilities, predicted_visibilities):
+            for (
+                image,
+                prediction,
+                label,
+                visibility,
+                predicted_visibility,
+            ) in zip(
+                images,
+                predictions,
+                labels,
+                visibilities,
+                predicted_visibilities,
+            ):
                 image = inverse_normalize(
                     image,
                     EyeTrackerDataset.TRAINING_MEAN,
@@ -183,9 +200,11 @@ def visualize_predictions(model, data_loader, DEVICE):
                 image = tensor_to_opencv_image(image)
                 image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-                if visibility : 
-                    image = draw_ellipse_on_image(image, label, color=(0, 255, 0))
-                if predicted_visibility > 0.90 : 
+                if visibility:
+                    image = draw_ellipse_on_image(
+                        image, label, color=(0, 255, 0)
+                    )
+                if predicted_visibility > 0.90:
                     image = draw_ellipse_on_image(
                         image, prediction, color=(255, 0, 0)
                     )
