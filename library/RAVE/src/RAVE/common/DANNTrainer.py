@@ -63,13 +63,15 @@ class DANNTrainer(Trainer):
 
         self.domain_classification_loss_function = torch.nn.BCEWithLogitsLoss()
 
-        self.training_regression_losses, self.validation_regression_losses = [], []
+        self.training_regression_losses, self.validation_regression_losses = (
+            [],
+            [],
+        )
         self.training_domain_losses, self.validation_domain_losses = [], []
 
         self.figure, (self.ax1, self.ax2) = plt.subplots(2, 1, sharey=False)
         plt.ion()
         self.figure.show()
-
 
     def train_with_validation(self, NB_EPOCHS):
         """
@@ -82,14 +84,26 @@ class DANNTrainer(Trainer):
 
         self.epoch = 0
         while (self.epoch < self.NB_EPOCHS) and (not self.terminate_training):
-            current_regression_training_loss, current_domain_training_loss = self.compute_training_loss()
-            current_regression_validation_loss, current_domain_validation_loss = self.compute_validation_loss()
+            (
+                current_regression_training_loss,
+                current_domain_training_loss,
+            ) = self.compute_training_loss()
+            (
+                current_regression_validation_loss,
+                current_domain_validation_loss,
+            ) = self.compute_validation_loss()
 
-            self.training_regression_losses.append(current_regression_training_loss)
-            self.validation_regression_losses.append(current_regression_validation_loss)
+            self.training_regression_losses.append(
+                current_regression_training_loss
+            )
+            self.validation_regression_losses.append(
+                current_regression_validation_loss
+            )
 
             self.training_domain_losses.append(current_domain_training_loss)
-            self.validation_domain_losses.append(current_domain_validation_loss)
+            self.validation_domain_losses.append(
+                current_domain_validation_loss
+            )
             self.update_plot()
 
             epoch_stats = (
@@ -102,7 +116,8 @@ class DANNTrainer(Trainer):
                 epoch_stats = epoch_stats + (
                     "  | Min validation loss decreased("
                     f"{self.min_validation_loss:.6f}--->"
-                    f"{current_regression_validation_loss:.6f}) : Saved the model"
+                    f"{current_regression_validation_loss:.6f})"
+                    f": Saved the model"
                 )
                 self.min_validation_loss = current_regression_validation_loss
 
@@ -134,7 +149,6 @@ class DANNTrainer(Trainer):
         )
         plt.close(None)
         return self.min_validation_loss
-
 
     def compute_training_loss(self):
         """
@@ -188,7 +202,10 @@ class DANNTrainer(Trainer):
             number_of_images += len(images)
             i += 1
 
-        return regression_training_loss / number_of_images, domain_training_loss / number_of_images
+        return (
+            regression_training_loss / number_of_images,
+            domain_training_loss / number_of_images,
+        )
 
     def compute_validation_loss(self):
         """
@@ -234,8 +251,10 @@ class DANNTrainer(Trainer):
                 number_of_images += len(images)
                 i += 1
 
-            return regression_validation_loss / number_of_images, domain_validation_loss / number_of_images
-
+            return (
+                regression_validation_loss / number_of_images,
+                domain_validation_loss / number_of_images,
+            )
 
     def update_plot(self):
         """

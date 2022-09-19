@@ -5,7 +5,6 @@ import torch
 from torchvision import transforms
 
 from PIL import Image
-import numpy as np
 
 from ..common.image_utils import apply_image_translation, apply_image_rotation
 from ..common.Dataset import Dataset
@@ -71,11 +70,11 @@ class EyeTrackerDataset(Dataset):
 
         image = self.NORMALIZE_TRANSFORM(image)
 
-        pupil_is_visible = label != None
+        pupil_is_visible = label is not None
 
-        if pupil_is_visible : 
+        if pupil_is_visible:
             label = torch.tensor(label)
-        else : 
+        else:
             label = torch.tensor([0.0, 0.0, 0.0, 0.0, 0.0])
 
         return image, label, pupil_is_visible
@@ -164,8 +163,8 @@ class EyeTrackerDatasetOnlineDataAugmentation(EyeTrackerDataset):
         output_image_tensor, x_offset, y_offset = apply_image_translation(
             output_image_tensor
         )
-        pupil_is_visible = label != None
-        if pupil_is_visible : 
+        pupil_is_visible = label is not None
+        if pupil_is_visible:
             current_ellipse = NormalizedEllipse.get_from_list(label)
             current_ellipse.rotate_around_image_center(phi)
             current_ellipse.h += x_offset
@@ -173,7 +172,7 @@ class EyeTrackerDatasetOnlineDataAugmentation(EyeTrackerDataset):
             label = current_ellipse.to_list()
             label = torch.tensor(label)
 
-        else : 
+        else:
             label = torch.tensor([0.0, 0.0, 0.0, 0.0, 0.0])
 
         image = self.NORMALIZE_TRANSFORM(output_image_tensor)

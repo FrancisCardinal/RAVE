@@ -50,7 +50,9 @@ class EyeTrackerDatasetBuilder(DatasetBuilder):
         This method checks if the dataset as already been built, and builds it
         otherwise.
         """
-        BUILDERS = EyeTrackerDatasetBuilder.get_builders(VIDEOS_DIR, IS_SECONDARY_DATASET)
+        BUILDERS = EyeTrackerDatasetBuilder.get_builders(
+            VIDEOS_DIR, IS_SECONDARY_DATASET
+        )
         if BUILDERS == -1:
             return False
 
@@ -105,7 +107,7 @@ class EyeTrackerDatasetBuilder(DatasetBuilder):
         print("dataset has NOT been found on disk, creating dataset")
 
         CROP_SIZE = EyeTrackerDataset.CROP_SIZE
-        if IS_SECONDARY_DATASET : 
+        if IS_SECONDARY_DATASET:
             CROP_SIZE = 150, 0, 450, 600
 
         VIDEO_UNPACKER = VideosUnpacker.get_builders(VIDEOS_DIR, CROP_SIZE)
@@ -120,7 +122,7 @@ class EyeTrackerDatasetBuilder(DatasetBuilder):
 
         train_size, val_size = 0.75, 0.15
 
-        if IS_SECONDARY_DATASET : 
+        if IS_SECONDARY_DATASET:
             train_size += 0.10
 
         train_index_end = int(len(images_files) * train_size)
@@ -146,7 +148,7 @@ class EyeTrackerDatasetBuilder(DatasetBuilder):
             ),
         ]
 
-        if not IS_SECONDARY_DATASET : 
+        if not IS_SECONDARY_DATASET:
             test_files = images_files[val_index_end:]
             BUILDERS.append(
                 EyeTrackerDatasetBuilder(
@@ -157,7 +159,7 @@ class EyeTrackerDatasetBuilder(DatasetBuilder):
                     SOURCE_DIR,
                 )
             )
-            
+
         return BUILDERS
 
     def __init__(
@@ -207,19 +209,21 @@ class EyeTrackerDatasetBuilder(DatasetBuilder):
                     "rb",
                 )
             )
-            if annotation is not None : 
-                self.current_ellipse = NormalizedEllipse.get_from_list(annotation)
-            else : 
+            if annotation is not None:
+                self.current_ellipse = NormalizedEllipse.get_from_list(
+                    annotation
+                )
+            else:
                 self.current_ellipse = None
 
             frame = cv2.imread(join(self.INPUT_IMAGES_PATH, file))
             processed_frame = self.process_frame(frame)
 
-            if self.current_ellipse is not None : 
+            if self.current_ellipse is not None:
                 label = self.current_ellipse.to_list()
             else:
                 label = None
-                
+
             self.save_image_label_pair(filename, processed_frame, label)
             self.video_frame_id += 1
 
@@ -273,13 +277,13 @@ class VideosUnpacker(DatasetBuilder):
         """
         To process the image and label from the target dataset
         """
-        if self.current_ellipse is not None : 
+        if self.current_ellipse is not None:
             self.current_ellipse.crop(
                 ORIGINAL_HEIGHT, ORIGINAL_WIDTH, EyeTrackerDataset.CROP_SIZE
             )
             label = self.current_ellipse.to_list()
-        else :
-            label = None 
+        else:
+            label = None
 
         self.save_image_label_pair(file_name, processed_frame, label)
 
@@ -298,13 +302,13 @@ class VideosUnpacker(DatasetBuilder):
         """
         annotation = annotations[str(self.annotation_line_index)]
         if annotation[0] == -2:
-            # The annotation files use '-2' when the frame was skipped (no annotation)
+            # '-2' means the frame was skipped (no annotation)
             return False
-        
+
         if annotation[0] == -1:
-            # No pupil is visible (the person is blinking / ...)
+            # -1 means no pupil is visible (the person is blinking / ...)
             self.current_ellipse = None
-        else : 
+        else:
             self.current_ellipse = NormalizedEllipse.get_from_list(annotation)
 
         return True
@@ -394,7 +398,7 @@ class EyeTrackerDatasetBuilderOfflineDataAugmentation(
         output_image_tensor, x_offset, y_offset = apply_image_translation(
             output_image_tensor
         )
-        if self.current_ellipse is not None : 
+        if self.current_ellipse is not None:
             self.current_ellipse.rotate_around_image_center(phi)
             self.current_ellipse.h += x_offset
             self.current_ellipse.k += y_offset

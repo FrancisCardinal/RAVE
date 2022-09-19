@@ -1,6 +1,5 @@
 import os
 import torch
-import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
@@ -73,18 +72,27 @@ class EyeTrackerTrainer(Trainer):
         ratio_of_visible_pupils = total_visible_pupils / total_nb_images
         ratio_of_visible_pupils = ratio_of_visible_pupils.item()
         self._weights = [ratio_of_visible_pupils, 1 - ratio_of_visible_pupils]
-        self.pupil_visibility_classification_loss_function = self._weighted_binary_cross_entropy
+        self.pupil_visibility_classification_loss_function = (
+            self._weighted_binary_cross_entropy
+        )
 
-        self.training_regression_losses, self.validation_regression_losses = [], []
-        self.training_visibility_losses, self.validation_visibility_losses = [], []
+        self.training_regression_losses, self.validation_regression_losses = (
+            [],
+            [],
+        )
+        self.training_visibility_losses, self.validation_visibility_losses = (
+            [],
+            [],
+        )
 
         self.figure, (self.ax1, self.ax2) = plt.subplots(2, 1, sharey=False)
         plt.ion()
         self.figure.show()
 
     def _weighted_binary_cross_entropy(self, predictions, targets):
-        loss = self._weights[1] * (targets * torch.log(predictions)) + \
-            self._weights[0] * ((1 - targets) * torch.log(1 - predictions))
+        loss = self._weights[1] * (
+            targets * torch.log(predictions)
+        ) + self._weights[0] * ((1 - targets) * torch.log(1 - predictions))
 
         return torch.neg(torch.sum(loss))
 
@@ -99,14 +107,28 @@ class EyeTrackerTrainer(Trainer):
 
         self.epoch = 0
         while (self.epoch < self.NB_EPOCHS) and (not self.terminate_training):
-            current_regression_training_loss, current_visibility_training_loss = self.compute_training_loss()
-            current_regression_validation_loss, current_visibility_validation_loss = self.compute_validation_loss()
+            (
+                current_regression_training_loss,
+                current_visibility_training_loss,
+            ) = self.compute_training_loss()
+            (
+                current_regression_validation_loss,
+                current_visibility_validation_loss,
+            ) = self.compute_validation_loss()
 
-            self.training_regression_losses.append(current_regression_training_loss)
-            self.validation_regression_losses.append(current_regression_validation_loss)
+            self.training_regression_losses.append(
+                current_regression_training_loss
+            )
+            self.validation_regression_losses.append(
+                current_regression_validation_loss
+            )
 
-            self.training_visibility_losses.append(current_visibility_training_loss)
-            self.validation_visibility_losses.append(current_visibility_validation_loss)
+            self.training_visibility_losses.append(
+                current_visibility_training_loss
+            )
+            self.validation_visibility_losses.append(
+                current_visibility_validation_loss
+            )
 
             self.update_plot()
 
@@ -120,7 +142,8 @@ class EyeTrackerTrainer(Trainer):
                 epoch_stats = epoch_stats + (
                     "  | Min validation loss decreased("
                     f"{self.min_validation_loss:.6f}--->"
-                    f"{current_regression_validation_loss:.6f}) : Saved the model"
+                    f"{current_regression_validation_loss:.6f})"
+                    f" : Saved the model"
                 )
                 self.min_validation_loss = current_regression_validation_loss
 
@@ -153,7 +176,6 @@ class EyeTrackerTrainer(Trainer):
         plt.close(None)
         return self.min_validation_loss
 
-
     def compute_training_loss(self):
         """
         Compute the training loss for the current epoch
@@ -171,7 +193,7 @@ class EyeTrackerTrainer(Trainer):
             images, labels, visibility = (
                 images.to(self.device),
                 labels.to(self.device),
-                visibility.to(self.device)
+                visibility.to(self.device),
             )
 
             # Clear the gradients
@@ -179,14 +201,20 @@ class EyeTrackerTrainer(Trainer):
             # Forward Pass
             predictions, visibility_classification = self.model(images)
             # Find the Loss
-            # If the pupil is not visible, we do not care what ellipse the 
+            # If the pupil is not visible, we do not care what ellipse the
             # network outputs, we do not want to constrain the network in
-            # that case, so we zero out the regression gradient if the 
-            # pupil is not visible (element wise multiplication with visibility_classification)
+            # that case, so we zero out the regression gradient if the
+            # pupil is not visible (element wise multiplication with
+            # visibility_classification)
             predictions = predictions * visibility_classification
             regression_loss = self.loss_function(predictions, labels)
 
-            visibility_loss = 3.0 * self.pupil_visibility_classification_loss_function(visibility_classification, visibility.unsqueeze(1).float())
+            visibility_loss = (
+                3.0
+                * self.pupil_visibility_classification_loss_function(
+                    visibility_classification, visibility.unsqueeze(1).float()
+                )
+            )
             loss = regression_loss + visibility_loss
             # Calculate gradients
             loss.backward()
@@ -198,7 +226,10 @@ class EyeTrackerTrainer(Trainer):
 
             number_of_images += len(images)
 
-        return regression_training_loss / number_of_images, visibility_training_loss / number_of_images
+        return (
+            regression_training_loss / number_of_images,
+            visibility_training_loss / number_of_images,
+        )
 
     def compute_validation_loss(self):
         """
@@ -218,7 +249,7 @@ class EyeTrackerTrainer(Trainer):
                 images, labels, visibility = (
                     images.to(self.device),
                     labels.to(self.device),
-                    visibility.to(self.device)
+                    visibility.to(self.device),
                 )
 
                 # Clear the gradients
@@ -226,14 +257,21 @@ class EyeTrackerTrainer(Trainer):
                 # Forward Pass
                 predictions, visibility_classification = self.model(images)
                 # Find the Loss
-                # If the pupil is not visible, we do not care what ellipse the 
+                # If the pupil is not visible, we do not care what ellipse the
                 # network outputs, we do not want to constrain the network in
-                # that case, so we zero out the regression gradient if the 
-                # pupil is not visible (element wise multiplication with visibility_classification)
+                # that case, so we zero out the regression gradient if the
+                # pupil is not visible (element wise multiplication with
+                # visibility_classification)
                 predictions = predictions * visibility_classification
                 regression_loss = self.loss_function(predictions, labels)
 
-                visibility_loss = 3.0 * self.pupil_visibility_classification_loss_function(visibility_classification, visibility.unsqueeze(1).float())
+                visibility_loss = (
+                    3.0
+                    * self.pupil_visibility_classification_loss_function(
+                        visibility_classification,
+                        visibility.unsqueeze(1).float(),
+                    )
+                )
 
                 # Calculate Loss
                 regression_validation_loss += regression_loss.item()
@@ -241,8 +279,10 @@ class EyeTrackerTrainer(Trainer):
 
                 number_of_images += len(images)
 
-            return regression_validation_loss / number_of_images, visibility_validation_loss / number_of_images
-
+            return (
+                regression_validation_loss / number_of_images,
+                visibility_validation_loss / number_of_images,
+            )
 
     def update_plot(self):
         """
@@ -273,7 +313,7 @@ class EyeTrackerTrainer(Trainer):
             self.validation_visibility_losses,
             label="validation visibility loss",
         )
-        
+
         self.ax1.legend(loc="upper left")
         self.ax2.legend(loc="upper left")
 

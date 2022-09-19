@@ -82,7 +82,7 @@ class EyeTrackerModel(nn.Module):
         represents the max pixel value of the corresponding axis of the
         parameter (or 2*pi radians for theta). For example, if the h
         parameter is 0.5 and the image width is 480, then the h value in
-        pixels is 240. 
+        pixels is 240.
 
         Args:
             x (pytorch tensor):
@@ -97,7 +97,9 @@ class EyeTrackerModel(nn.Module):
         ellipse = self.regression_head(bottleneck)
         ellipse = torch.sigmoid(ellipse)
 
-        visibility_classification = self.visibility_classification_head(bottleneck)
+        visibility_classification = self.visibility_classification_head(
+            bottleneck
+        )
         visibility_classification = torch.sigmoid(visibility_classification)
 
         return ellipse, visibility_classification
