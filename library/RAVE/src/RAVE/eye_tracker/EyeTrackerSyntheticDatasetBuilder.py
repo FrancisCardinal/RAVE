@@ -189,7 +189,9 @@ class EyeTrackerSyntheticDatasetBuilder(EyeTrackerDatasetBuilder):
                     "rb",
                 )
             )
-            self.current_ellipse = NormalizedEllipse.get_from_list(annotation["ellipse"])
+            self.current_ellipse = NormalizedEllipse.get_from_list(
+                annotation["ellipse"]
+            )
 
             frame = cv2.imread(os.path.join(self.INPUT_IMAGES_PATH, file))
             ORIGINAL_HEIGHT, ORIGINAL_WIDTH = frame.shape[0], frame.shape[1]
