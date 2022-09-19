@@ -207,14 +207,20 @@ class EyeTrackerDatasetBuilder(DatasetBuilder):
                     "rb",
                 )
             )
-            self.current_ellipse = NormalizedEllipse.get_from_list(annotation)
+            if annotation is not None : 
+                self.current_ellipse = NormalizedEllipse.get_from_list(annotation)
+            else : 
+                self.current_ellipse = None
 
             frame = cv2.imread(join(self.INPUT_IMAGES_PATH, file))
             processed_frame = self.process_frame(frame)
 
-            self.save_image_label_pair(
-                filename, processed_frame, self.current_ellipse.to_list()
-            )
+            if self.current_ellipse is not None : 
+                label = self.current_ellipse.to_list()
+            else:
+                label = None
+                
+            self.save_image_label_pair(filename, processed_frame, label)
             self.video_frame_id += 1
 
 
@@ -267,12 +273,15 @@ class VideosUnpacker(DatasetBuilder):
         """
         To process the image and label from the target dataset
         """
-        self.current_ellipse.crop(
-            ORIGINAL_HEIGHT, ORIGINAL_WIDTH, EyeTrackerDataset.CROP_SIZE
-        )
-        self.save_image_label_pair(
-            file_name, processed_frame, self.current_ellipse.to_list()
-        )
+        if self.current_ellipse is not None : 
+            self.current_ellipse.crop(
+                ORIGINAL_HEIGHT, ORIGINAL_WIDTH, EyeTrackerDataset.CROP_SIZE
+            )
+            label = self.current_ellipse.to_list()
+        else :
+            label = None 
+
+        self.save_image_label_pair(file_name, processed_frame, label)
 
     def parse_current_annotation(self, annotations):
         """
@@ -288,12 +297,16 @@ class VideosUnpacker(DatasetBuilder):
             bool: True if the parsing was a success, false if it wasn't.
         """
         annotation = annotations[str(self.annotation_line_index)]
-        if (annotation[0] == -1) or (annotation[0] == -2):
-            # The annotation files use '-1' and '-2' when the pupil is not
-            # visible on a frame.
+        if annotation[0] == -2:
+            # The annotation files use '-2' when the frame was skipped (no annotation)
             return False
+        
+        if annotation[0] == -1:
+            # No pupil is visible (the person is blinking / ...)
+            self.current_ellipse = None
+        else : 
+            self.current_ellipse = NormalizedEllipse.get_from_list(annotation)
 
-        self.current_ellipse = NormalizedEllipse.get_from_list(annotation)
         return True
 
 
@@ -381,9 +394,9 @@ class EyeTrackerDatasetBuilderOfflineDataAugmentation(
         output_image_tensor, x_offset, y_offset = apply_image_translation(
             output_image_tensor
         )
-
-        self.current_ellipse.rotate_around_image_center(phi)
-        self.current_ellipse.h += x_offset
-        self.current_ellipse.k += y_offset
+        if self.current_ellipse is not None : 
+            self.current_ellipse.rotate_around_image_center(phi)
+            self.current_ellipse.h += x_offset
+            self.current_ellipse.k += y_offset
 
         return output_image_tensor

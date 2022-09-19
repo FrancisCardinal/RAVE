@@ -7,7 +7,7 @@ import cv2
 import random
 import time
 
-from RAVE.common.DANNTrainer import DANNTrainer
+from RAVE.eye_tracker.EyeTrackerTrainer import EyeTrackerTrainer
 from RAVE.common.image_utils import tensor_to_opencv_image, inverse_normalize
 
 from RAVE.eye_tracker.EyeTrackerDataset import (
@@ -71,7 +71,6 @@ def main(
     created_real_dataset = EyeTrackerDatasetBuilder.create_datasets("real_dataset")
     if created_real_dataset:
         EyeTrackerDatasetBuilder.create_datasets("old_real_dataset", True)
-        EyeTrackerSyntheticDatasetBuilder.create_datasets(True)
 
     BATCH_SIZE = 128
     training_sub_dataset = EyeTrackerDataset.get_training_sub_dataset()
@@ -107,7 +106,7 @@ def main(
         )
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer)
 
-        trainer = DANNTrainer(
+        trainer = EyeTrackerTrainer(
             training_loader,
             validation_loader,
             ellipse_loss_function,
@@ -121,7 +120,7 @@ def main(
 
         min_validation_loss = trainer.train_with_validation(NB_EPOCHS)
 
-    DANNTrainer.load_best_model(
+    EyeTrackerTrainer.load_best_model(
         eye_tracker_model, EyeTrackerDataset.EYE_TRACKER_DIR_PATH, DEVICE
     )
 
@@ -140,12 +139,14 @@ def main(
         )
         with torch.no_grad():
             test_loss, number_of_images = 0, 0
-            for images, labels, _ in test_loader:
-                images, labels = images.to(DEVICE), labels.to(DEVICE)
+            for images, labels, visibilities in test_loader:
+                images, labels, visibilities = images.to(DEVICE), labels.to(DEVICE), labels.to(visibilities)
 
                 # Forward Pass
-                predictions, _ = eye_tracker_model(images)
+                predictions, predicted_visibilities = eye_tracker_model(images)
                 # Find the Loss
+                predicted_pupil_are_visibles = predicted_visibilities > 0.90
+                predictions = predictions * predicted_pupil_are_visibles.float()
                 loss = ellipse_loss_function(predictions, labels)
                 # Calculate Loss
                 test_loss += loss.item()
@@ -170,10 +171,10 @@ def visualize_predictions(model, data_loader, DEVICE):
         DEVICE (String): Device on which to perform the computations
     """
     with torch.no_grad():
-        for images, labels, _ in data_loader:
+        for images, labels, visibilities in data_loader:
             images, labels = images.to(DEVICE), labels.to(DEVICE)
-            predictions, _ = model(images)
-            for image, prediction, label in zip(images, predictions, labels):
+            predictions, predicted_visibilities = model(images)
+            for image, prediction, label, visibility, predicted_visibility in zip(images, predictions, labels, visibilities, predicted_visibilities):
                 image = inverse_normalize(
                     image,
                     EyeTrackerDataset.TRAINING_MEAN,
@@ -182,10 +183,12 @@ def visualize_predictions(model, data_loader, DEVICE):
                 image = tensor_to_opencv_image(image)
                 image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-                image = draw_ellipse_on_image(image, label, color=(0, 255, 0))
-                image = draw_ellipse_on_image(
-                    image, prediction, color=(255, 0, 0)
-                )
+                if visibility : 
+                    image = draw_ellipse_on_image(image, label, color=(0, 255, 0))
+                if predicted_visibility > 0.90 : 
+                    image = draw_ellipse_on_image(
+                        image, prediction, color=(255, 0, 0)
+                    )
 
                 cv2.imshow("validation", image)
                 cv2.waitKey(1500)

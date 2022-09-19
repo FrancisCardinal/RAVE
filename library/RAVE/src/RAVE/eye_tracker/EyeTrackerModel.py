@@ -60,20 +60,20 @@ class EyeTrackerModel(nn.Module):
             nn.Dropout(DROPOUT),
             nn.Linear(128, 5),
         )
-
-        self.domain_classification_head = nn.Sequential(
+        DROPOUT_VISIBILITY = 0.20
+        self.visibility_classification_head = nn.Sequential(
             nn.Linear(2048, 1024),
             nn.BatchNorm1d(num_features=1024),
             nn.ReLU(),
-            nn.Dropout(DROPOUT),
+            nn.Dropout(DROPOUT_VISIBILITY),
             nn.Linear(1024, 128),
             nn.BatchNorm1d(num_features=128),
             nn.ReLU(),
-            nn.Dropout(DROPOUT),
+            nn.Dropout(DROPOUT_VISIBILITY),
             nn.Linear(128, 1),
         )
 
-    def forward(self, x, alpha=None):
+    def forward(self, x):
         """
         Method of the Module class that must be overwritten by this class.
         Specifies how the forward pass should be executed
@@ -82,15 +82,11 @@ class EyeTrackerModel(nn.Module):
         represents the max pixel value of the corresponding axis of the
         parameter (or 2*pi radians for theta). For example, if the h
         parameter is 0.5 and the image width is 480, then the h value in
-        pixels is 240. The alpha parameter is used by the domain head.
+        pixels is 240. 
 
         Args:
             x (pytorch tensor):
                 The input of the network (images)
-            alpha (float):
-                Relative importance of the domain gradient with respect to the
-                regression gradient (how much is it important that the
-                network generalizes well ?).
 
         Returns:
             pytorch tensor:
@@ -101,54 +97,7 @@ class EyeTrackerModel(nn.Module):
         ellipse = self.regression_head(bottleneck)
         ellipse = torch.sigmoid(ellipse)
 
-        classification = None
-        if alpha is not None:
-            reverse_bottleneck = ReverseLayerF.apply(bottleneck, alpha)
-            classification = self.domain_classification_head(
-                reverse_bottleneck
-            )
-            classification = torch.sigmoid(classification)
+        visibility_classification = self.visibility_classification_head(bottleneck)
+        visibility_classification = torch.sigmoid(visibility_classification)
 
-        return ellipse, classification
-
-
-class ReverseLayerF(torch.autograd.Function):
-    """Class to reverse the gradient.
-    Taken from https://github.com/fungtion/DANN
-    """
-
-    @staticmethod
-    def forward(ctx, x, alpha):
-        """Method of the Function class that must be overwritten by this class.
-           Its only use is to note the alpha parameter for later use in the
-           backward propagation.
-
-        Args:
-            ctx (object): Memory used to stored useful information (alpha)
-            x (tensor): The input of the layer
-            alpha (float):
-                Relative importance of the domain gradient with respect to the
-                regression gradient (how much is it important that the
-                network generalizes well ?).
-
-        Returns:
-            tensor: the unmodified input tensor
-        """
-        ctx.alpha = alpha
-
-        return x.view_as(x)
-
-    @staticmethod
-    def backward(ctx, grad_output):
-        """Backward propagation
-
-        Args:
-            ctx (object): Memory used to stored useful information (alpha)
-            grad_output (tensor): Gradient up to this point
-
-        Returns:
-            tensor: The modified gradient
-        """
-        output = grad_output.neg() * ctx.alpha
-
-        return output, None
+        return ellipse, visibility_classification

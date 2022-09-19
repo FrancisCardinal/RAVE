@@ -25,8 +25,6 @@ class EyeTrackerDataset(Dataset):
     TRAINING_MEAN, TRAINING_STD = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
     IMAGE_DIMENSIONS = (3, 240, 320)
     CROP_SIZE = 50, 0, 390, 520
-    SYNTHETIC_DOMAIN = 0
-    REAL_DOMAIN = 1
 
     def __init__(self, sub_dataset_dir):
         """Constructor of the EyeTrackerDataset class
@@ -41,24 +39,6 @@ class EyeTrackerDataset(Dataset):
             sub_dataset_dir,
             EyeTrackerDataset.IMAGE_DIMENSIONS,
         )
-
-        self.real_images_paths, self.synthetic_images_paths = [], []
-        for image_path in self.images_paths:
-            if "synthetic" in image_path:
-                self.synthetic_images_paths.append(image_path)
-            else:
-                self.real_images_paths.append(image_path)
-
-        self.nb_synthetic_images = len(self.synthetic_images_paths)
-        self.nb_real_images = len(self.real_images_paths)
-
-        self.real_images_paths = np.array(
-            [str(i) for i in self.real_images_paths], dtype=np.str
-        )
-        self.synthetic_images_paths = np.array(
-            [str(i) for i in self.synthetic_images_paths], dtype=np.str
-        )
-
         self.random = random.Random(42)
 
     def __len__(self):
@@ -69,7 +49,7 @@ class EyeTrackerDataset(Dataset):
         Returns:
             int: The number of elements in the dataset
         """
-        return self.nb_synthetic_images + self.nb_real_images
+        return len(self.images_paths)
 
     def __getitem__(self, idx):
         """
@@ -83,40 +63,22 @@ class EyeTrackerDataset(Dataset):
             tuple: Image and label pair, and the domain of the image (is this
             image synthetic or real ?)
         """
-        image_path, domain = self.torch_index_to_image_path_and_domain(idx)
+        image_path = self.images_paths[idx]
 
         image, label = self.get_image_and_label_from_image_path(image_path)
 
         image = self.PRE_PROCESS_TRANSFORM(image)
 
         image = self.NORMALIZE_TRANSFORM(image)
-        label = torch.tensor(label)
-        domain = torch.tensor(domain).float()
 
-        return image, label, domain
+        pupil_is_visible = label != None
 
-    def torch_index_to_image_path_and_domain(self, idx):
-        """Determines if a given index corresponds to a synthetic or real image
-           (i.e its domain) and returns the image's path and domain
+        if pupil_is_visible : 
+            label = torch.tensor(label)
+        else : 
+            label = torch.tensor([0.0, 0.0, 0.0, 0.0, 0.0])
 
-        Args:
-            idx (int): Index of the image
-
-        Returns:
-            tuple: The image's path and domain
-        """
-        image_path, domain = None, None
-        if idx < self.nb_synthetic_images:
-            # idx is one of our self.nb_synthetic_images real imag
-            image_path = self.synthetic_images_paths[idx]
-            domain = EyeTrackerDataset.SYNTHETIC_DOMAIN
-
-        else:
-            # idx is one of our self.nb_real_images real image
-            image_path = self.real_images_paths[idx - self.nb_synthetic_images]
-            domain = EyeTrackerDataset.REAL_DOMAIN
-
-        return image_path, domain
+        return image, label, pupil_is_visible
 
     @staticmethod
     def get_training_sub_dataset():
@@ -191,7 +153,7 @@ class EyeTrackerDatasetOnlineDataAugmentation(EyeTrackerDataset):
             tuple: Image and label pair, and the domain of the image (is this
             image synthetic or real ?)
         """
-        image_path, domain = self.torch_index_to_image_path_and_domain(idx)
+        image_path = self.images_paths[idx]
 
         image, label = self.get_image_and_label_from_image_path(image_path)
 
@@ -202,18 +164,22 @@ class EyeTrackerDatasetOnlineDataAugmentation(EyeTrackerDataset):
         output_image_tensor, x_offset, y_offset = apply_image_translation(
             output_image_tensor
         )
+        pupil_is_visible = label != None
+        if pupil_is_visible : 
+            current_ellipse = NormalizedEllipse.get_from_list(label)
+            current_ellipse.rotate_around_image_center(phi)
+            current_ellipse.h += x_offset
+            current_ellipse.k += y_offset
+            label = current_ellipse.to_list()
+            label = torch.tensor(label)
 
-        current_ellipse = NormalizedEllipse.get_from_list(label)
-        current_ellipse.rotate_around_image_center(phi)
-        current_ellipse.h += x_offset
-        current_ellipse.k += y_offset
-        label = current_ellipse.to_list()
+        else : 
+            label = torch.tensor([0.0, 0.0, 0.0, 0.0, 0.0])
 
         image = self.NORMALIZE_TRANSFORM(output_image_tensor)
-        label = torch.tensor(label)
-        domain = torch.tensor(domain).float()
+        pupil_is_visible = torch.tensor(pupil_is_visible).float()
 
-        return image, label, domain
+        return image, label, pupil_is_visible
 
 
 class EyeTrackerInferenceDataset(EyeTrackerDataset):
