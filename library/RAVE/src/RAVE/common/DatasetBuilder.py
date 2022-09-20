@@ -63,6 +63,19 @@ class DatasetBuilder(ABC):
         SOURCE_DIR,
         CROP_SIZE=None,
     ):
+        """Constructor of the DatasetBuilder class
+
+        Args:
+            VIDEOS (List): Filenames of the videos of the dataset
+            OUTPUT_DIR_PATH (string): Directory where we should put the dataset
+            log_name (string): Name that sould be displayed in the logs to
+               represent this dataset while its being builded
+            IMAGE_DIMENSIONS (tuple): (Height, Width) Output image dimension
+            SOURCE_DIR (string): Directory where we can get the video
+            CROP_SIZE (tuple, optional): 4 values that correspond to a crop
+               operation : top (y coordinate), left (x coordinate),
+               height, width. Defaults to None. If None, do not perform a crop.
+        """
         self.VIDEOS = VIDEOS
         self.log_name = log_name
 
@@ -149,8 +162,8 @@ class DatasetBuilder(ABC):
             file_name (String): Name of the video
             video_path (String): Path to the video
             annotations (List of strings):
-                One string per frame. Each string represents the ellipse that
-                is present on the frame
+                One string per frame. Each string represents the annotation
+                that is present on the frame
         """
         cap = cv2.VideoCapture(video_path)
 
@@ -171,7 +184,10 @@ class DatasetBuilder(ABC):
             ORIGINAL_HEIGHT, ORIGINAL_WIDTH = frame.shape[0], frame.shape[1]
             processed_frame = self.process_frame(frame)
             self.process_image_label_pair(
-                processed_frame, file_name, ORIGINAL_HEIGHT, ORIGINAL_WIDTH,
+                processed_frame,
+                file_name,
+                ORIGINAL_HEIGHT,
+                ORIGINAL_WIDTH,
             )
 
         cap.release()
@@ -195,7 +211,10 @@ class DatasetBuilder(ABC):
 
     def process_image_label_pair(self, frame, file_name):
         """
-        To process the image and label from the specific dataset
+        Processes the image and label from the specific dataset
+        Args:
+            frame (numpy array): The frame that needs to be processed
+            file_name (str): The name of the frame's file
         """
         raise NotImplementedError
 

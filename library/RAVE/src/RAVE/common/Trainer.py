@@ -265,6 +265,7 @@ class Trainer:
 
         Args:
             model (Module): Model on which to update the weights
+            device (string): Torch device (most likely 'cpu' or 'cuda')
         """
         checkpoint = torch.load(
             os.path.join(MODEL_DIR_PATH, Trainer.MODEL_INFO_FILE_NAME),
