@@ -3,7 +3,8 @@ import time
 import os
 import tqdm
 import pathlib
-
+from deepface import DeepFace
+from moc_tracking_client import image_detect
 import numpy as np
 
 from RAVE.face_detection.face_detectors import DetectorFactory
@@ -12,9 +13,6 @@ from RAVE.face_detection.verifiers.Encoding import Encoding
 
 
 def saveImagesTest(freq):
-    import os
-    from deepface import DeepFace
-
     cap = cv2.VideoCapture(0)
 
     last_detect = 0
@@ -28,15 +26,28 @@ def saveImagesTest(freq):
             last_detect = now
 
             last_image_id += 1
-            image_path = os.path.join("imagesTest", f"image_capture{last_image_id}.jpg")
+            image_path = os.path.join(
+                "imagesTest", f"image_capture{last_image_id}.jpg"
+            )
             cv2.imwrite(image_path, frame)
             # time.sleep(1)
 
             if last_image_id > 0:
-                image_path1 = os.path.join("imagesTest", f"image_capture{last_image_id-1}.jpg")
-                image_path2 = os.path.join("imagesTest", f"image_capture{last_image_id}.jpg")
+                image_path1 = os.path.join(
+                    "imagesTest", f"image_capture{last_image_id-1}.jpg"
+                )
+                image_path2 = os.path.join(
+                    "imagesTest", f"image_capture{last_image_id}.jpg"
+                )
 
-                result = DeepFace.verify(img1_path=image_path1, img2_path=image_path2, model_name="Facenet", detector_backend="dlib", enforce_detection=False, distance_metric="euclidean")
+                result = DeepFace.verify(
+                    img1_path=image_path1,
+                    img2_path=image_path2,
+                    model_name="Facenet",
+                    detector_backend="dlib",
+                    enforce_detection=False,
+                    distance_metric="euclidean",
+                )
                 print(result)
 
                 # Display face images
@@ -62,13 +73,26 @@ def photoshoot(start_ind=0):
             print("Taking picture!")
             _, img = cap.read()
             last_image_id += 1
-            image_path = os.path.join("FaceTestRave", f"image_capture{last_image_id}.jpg")
+            image_path = os.path.join(
+                "FaceTestRave", f"image_capture{last_image_id}.jpg"
+            )
             cv2.imwrite(image_path, img)
             print("Saved picture as:", image_path)
 
-def deepFaceTests(model_name="Facenet", metric="default", threshold="default", verbose=False):
+
+def deepFaceTests(
+    model_name="Facenet", metric="default", threshold="default", verbose=False
+):
     model = None
-    if model_name not in ["VGG-Face", "Facenet", "OpenFace", "DeepFace", "DeepID", "Dlib", "ArcFace"]:
+    if model_name not in [
+        "VGG-Face",
+        "Facenet",
+        "OpenFace",
+        "DeepFace",
+        "DeepID",
+        "Dlib",
+        "ArcFace",
+    ]:
         model = VerifierFactory.create(model_name, device="cuda")
 
     curr_path = pathlib.Path(__file__).parent.resolve()
@@ -96,16 +120,32 @@ def deepFaceTests(model_name="Facenet", metric="default", threshold="default", v
     total_match_delta, total_match = 0, 0
     total_diff_delta, total_diff = 0, 0
     TP, TN, FP, FN = 0, 0, 0, 0
-    for pair in tqdm.tqdm(photo_pairs, desc=f"{model_name} model with {metric} metric"):
+    for pair in tqdm.tqdm(
+        photo_pairs, desc=f"{model_name} model with {metric} metric"
+    ):
         id1, id2 = pair
         image_path1 = os.path.join(dir_name, f"cropped_image_capture{id1}.jpg")
         image_path2 = os.path.join(dir_name, f"cropped_image_capture{id2}.jpg")
 
         score = None
         distance = None
-        if model_name in ["VGG-Face", "Facenet", "OpenFace", "DeepFace", "DeepID", "Dlib", "ArcFace"]:
-            result = DeepFace.verify(img1_path=image_path1, img2_path=image_path2, model_name=model_name,
-                                     detector_backend="skip", enforce_detection=False, distance_metric=metric)
+        if model_name in [
+            "VGG-Face",
+            "Facenet",
+            "OpenFace",
+            "DeepFace",
+            "DeepID",
+            "Dlib",
+            "ArcFace",
+        ]:
+            result = DeepFace.verify(
+                img1_path=image_path1,
+                img2_path=image_path2,
+                model_name=model_name,
+                detector_backend="skip",
+                enforce_detection=False,
+                distance_metric=metric,
+            )
 
             distance = result["distance"]
             verified = result["verified"]
@@ -142,7 +182,7 @@ def deepFaceTests(model_name="Facenet", metric="default", threshold="default", v
             else:
                 print(verified, "Distance:", distance)
 
-        is_match = (identities[id1] == identities[id2])
+        is_match = identities[id1] == identities[id2]
         if is_match:
             total_match_delta += distance
             total_match += 1
@@ -179,17 +219,25 @@ def deepFaceTests(model_name="Facenet", metric="default", threshold="default", v
 
     end_time = time.time()
     print("-----")
-    print("Score: {}/{} ({:.2%})".format(correct, len(photo_pairs), correct/len(photo_pairs)))
+    print(
+        "Score: {}/{} ({:.2%})".format(
+            correct, len(photo_pairs), correct / len(photo_pairs)
+        )
+    )
     print(f"Time: {end_time-start_time}s")
     print(f"Distance with {metric} metric:")
-    print("Match: {:.4}".format(total_match_delta/total_match))
-    print("Different: {:.4}".format(total_diff_delta/total_diff))
+    print("Match: {:.4}".format(total_match_delta / total_match))
+    print("Different: {:.4}".format(total_diff_delta / total_diff))
 
     precision = TP / (TP + FP)
     recall = TP / (TP + FN)
     accuracy = (TP + TN) / (TP + TN + FP + FN)
     print(f"TP: {TP}, FP: {FP}, TN: {TN}, FN: {FN}")
-    print("Accuracy: {:.3%}, Precision: {:.3%}, Recall: {:.3%}".format(accuracy, precision, recall))
+    print(
+        "Accuracy: {:.3%}, Precision: {:.3%}, Recall: {:.3%}".format(
+            accuracy, precision, recall
+        )
+    )
 
 
 def crop_images_to_face():
@@ -206,9 +254,10 @@ def crop_images_to_face():
         bbox = detection.bbox
 
         x, y, w, h = bbox
-        cropped_image = image[y:y+h, x:x+w]
-        out_file = os.path.join(dir_name+"Cropped", "cropped_"+filename)
+        cropped_image = image[y : y + h, x : x + w]
+        out_file = os.path.join(dir_name + "Cropped", "cropped_" + filename)
         cv2.imwrite(out_file, cropped_image)
+
 
 if __name__ == "__main__":
     SEND_FREQ = 0.1  # How often to send data (seconds)
@@ -225,18 +274,29 @@ if __name__ == "__main__":
 
         verbose = False
         # deepFaceTests(model_name="dlib", threshold=0.32, verbose=verbose)
-        deepFaceTests(model_name="resnet_face_18", threshold=0.25, verbose=verbose)
-        # deepFaceTests(model_name="resnet_face_34", threshold=0.32, verbose=verbose)
-        # deepFaceTests(model_name="resnet_face_50", threshold=0.32, verbose=verbose)
+        deepFaceTests(
+            model_name="resnet_face_18", threshold=0.25, verbose=verbose
+        )
+        # deepFaceTests(model_name="resnet_face_34", threshold=0.32,
+        # verbose=verbose)
+        # deepFaceTests(model_name="resnet_face_50", threshold=0.32,
+        # verbose=verbose)
         # deepFaceTests(model_name="dlib", threshold=0.4, verbose=verbose)
-        # deepFaceTests(model_name="resnet_face_18", threshold=0.4, verbose=verbose)
-        # deepFaceTests(model_name="resnet_face_34", threshold=0.4, verbose=verbose)
-        # deepFaceTests(model_name="resnet_face_50", threshold=0.4, verbose=verbose)
-        # deepFaceTests(model_name="Facenet", metric="euclidean", verbose=verbose)
-        # deepFaceTests(model_name="VGG-Face", metric="cosine", verbose=verbose)
-        # deepFaceTests(model_name="OpenFace", metric="euclidean", verbose=verbose)
+        # deepFaceTests(model_name="resnet_face_18", threshold=0.4,
+        # verbose=verbose)
+        # deepFaceTests(model_name="resnet_face_34", threshold=0.4,
+        # verbose=verbose)
+        # deepFaceTests(model_name="resnet_face_50", threshold=0.4,
+        # verbose=verbose)
+        # deepFaceTests(model_name="Facenet", metric="euclidean",
+        # verbose=verbose)
+        # deepFaceTests(model_name="VGG-Face", metric="cosine",
+        # verbose=verbose)
+        # deepFaceTests(model_name="OpenFace", metric="euclidean",
+        # verbose=verbose)
         # deepFaceTests(model_name="ArcFace", metric="cosine", verbose=verbose)
-        # deepFaceTests(model_name="DeepFace", metric="cosine", verbose=verbose)
+        # deepFaceTests(model_name="DeepFace", metric="cosine",
+        # verbose=verbose)
 
         # deepFaceTests(model_name="arcface", threshold=0.32, verbose=verbose)
     else:

@@ -47,7 +47,8 @@ class ArcFace(Verifier):
             #  both implementations
             if platform.release().split("-")[-1] == "tegra":
                 # image = image.squeeze(0)
-                # # TODO: No need to convert to tensor on cuda before bringing it back to numpy
+                # # TODO: No need to convert to tensor on cuda
+                #  before bringing it back to numpy
                 # tensor = ArcFace.opencv_image_to_tensor(
                 #     image.copy(), self.device
                 # )

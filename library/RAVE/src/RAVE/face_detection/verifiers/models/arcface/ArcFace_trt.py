@@ -29,11 +29,11 @@ def convert_model():
     project_path = os.getcwd()
     model_path = os.path.join(
         project_path,
-        #"RAVE",
-        #"face_detection",
-        #"verifiers",
-        #"models", 
-        #"arcface",
+        # "RAVE",
+        # "face_detection",
+        # "verifiers",
+        # "models",
+        # "arcface",
         "arcface.onnx",
     )
 
