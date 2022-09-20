@@ -22,9 +22,11 @@
 #         self.context = None
 
 #     def build(self):
-#         with open(self.engine_file, 'rb') as f, trt.Runtime(TRT_LOGGER) as runtime:
+#         with open(self.engine_file, 'rb') as f,
+#           trt.Runtime(TRT_LOGGER) as runtime:
 #             self.engine = runtime.deserialize_cuda_engine(f.read())
-#         self.inputs, self.outputs, self.bindings, self.stream = allocate_buffers(
+#         self.inputs, self.outputs, self.bindings,
+#               self.stream = allocate_buffers(
 #             self.engine)
 #         self.context = self.engine.create_execution_context()
 
@@ -34,21 +36,23 @@
 #             self.build()
 #         batch_size = objects_frame.shape[0]
 #         allocate_place = np.prod(objects_frame.shape)
-#         self.inputs[0].host[:allocate_place] = objects_frame.flatten(order='C').astype(np.float32)
+#         self.inputs[0].host[:allocate_place] =
+#           objects_frame.flatten(order='C').astype(np.float32)
 #         trt_outputs = do_inference(
 #             self.context, bindings=self.bindings,
-#             inputs=self.inputs, outputs=self.outputs, stream=self.stream, batch_size=batch_size)
+#             inputs=self.inputs, outputs=self.outputs,
+#           stream=self.stream, batch_size=batch_size)
 #         embeddings = trt_outputs[0].reshape(-1, 512)
 #         embeddings = embeddings[:batch_size]
 #         # embeddings = preprocessing.normalize(embeddings)
 #         return embeddings
 
 
-
 # # TODO: Combine with trt model used for YOLO detector?
 
 import pycuda.driver as cuda
-import pycuda.autoinit
+
+# import pycuda.autoinit
 import tensorrt as trt
 import numpy as np
 
