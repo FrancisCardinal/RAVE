@@ -3,7 +3,6 @@ import tensorflow
 from tensorflow import keras
 
 import os
-from pathlib import Path
 import gdown
 
 
