@@ -20,6 +20,8 @@ git clone https://github.com/FrancisCardinal/RAVE.git
 cd RAVE
 # Install the dependencies
 pip install -r requirements.txt
+# Install other dependencies
+pip install -i https://test.pypi.org/simple/ --no-deps pyodas-JacobKealey
 # Add pre-commit hooks to .git
 pre-commit install                                                         
 ```

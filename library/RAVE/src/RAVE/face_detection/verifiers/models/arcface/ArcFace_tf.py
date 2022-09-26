@@ -7,13 +7,6 @@ from pathlib import Path
 import gdown
 
 
-def get_deepface_home():
-    """
-    ...
-    """
-    return str(os.getenv("DEEPFACE_HOME", default=Path.home()))
-
-
 def load_model(
     url="https://github.com/serengil/deepface_models"
     + "/releases/download/v1.0/arcface_weights.h5",
@@ -40,10 +33,12 @@ def load_model(
     # ---------------------------------------
     # check the availability of pre-trained weights
 
-    home = get_deepface_home()
-
     file_name = "arcface_weights.h5"
-    output = home + "/.deepface/weights/" + file_name
+    output_dir = os.path.join(os.path.dirname(__file__), "deepface", "weights")
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    output = os.path.join(file_name)
 
     if os.path.isfile(output) is not True:
 

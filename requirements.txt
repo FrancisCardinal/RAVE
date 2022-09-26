@@ -2,12 +2,13 @@ matplotlib
 numpy
 opencv-contrib-python
 tqdm
-torch
-torchaudio
-torchvision
+torch==1.10.0
+torchaudio==0.10.2
+torchvision==0.11.1
 pre-commit
 jsonschema
 python-socketio
 pyaudio
 Sphinx
 sphinx_rtd_theme
+deepface
