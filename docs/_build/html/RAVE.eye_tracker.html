@@ -16,6 +16,7 @@
         <script src="_static/underscore.js"></script>
         <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -42,11 +43,33 @@
 <li class="toctree-l1 current"><a class="reference internal" href="RAVE.html">RAVE</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="RAVE.common.html">common</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">eye_tracker</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#module-RAVE.eye_tracker.EyeTrackerDataset">EyeTrackerDataset</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-RAVE.eye_tracker.EyeTrackerDatasetBuilder">EyeTrackerDatasetBuilder</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-RAVE.eye_tracker.EyeTrackerModel">EyeTrackerModel</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-RAVE.eye_tracker.NormalizedEllipse">NormalizedEllipse</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-RAVE.eye_tracker.ellipse_util">ellipse_util</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-RAVE.eye_tracker.EyeTrackerDataset">EyeTrackerDataset</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerDataset"><code class="docutils literal notranslate"><span class="pre">EyeTrackerDataset</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerDatasetOnlineDataAugmentation"><code class="docutils literal notranslate"><span class="pre">EyeTrackerDatasetOnlineDataAugmentation</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerFilm"><code class="docutils literal notranslate"><span class="pre">EyeTrackerFilm</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerInferenceDataset"><code class="docutils literal notranslate"><span class="pre">EyeTrackerInferenceDataset</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-RAVE.eye_tracker.EyeTrackerDatasetBuilder">EyeTrackerDatasetBuilder</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#RAVE.eye_tracker.EyeTrackerDatasetBuilder.EyeTrackerDatasetBuilder"><code class="docutils literal notranslate"><span class="pre">EyeTrackerDatasetBuilder</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#RAVE.eye_tracker.EyeTrackerDatasetBuilder.EyeTrackerDatasetBuilderOfflineDataAugmentation"><code class="docutils literal notranslate"><span class="pre">EyeTrackerDatasetBuilderOfflineDataAugmentation</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#RAVE.eye_tracker.EyeTrackerDatasetBuilder.VideosUnpacker"><code class="docutils literal notranslate"><span class="pre">VideosUnpacker</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-RAVE.eye_tracker.EyeTrackerModel">EyeTrackerModel</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#RAVE.eye_tracker.EyeTrackerModel.EyeTrackerModel"><code class="docutils literal notranslate"><span class="pre">EyeTrackerModel</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-RAVE.eye_tracker.NormalizedEllipse">NormalizedEllipse</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#RAVE.eye_tracker.NormalizedEllipse.NormalizedEllipse"><code class="docutils literal notranslate"><span class="pre">NormalizedEllipse</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-RAVE.eye_tracker.ellipse_util">ellipse_util</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#RAVE.eye_tracker.ellipse_util.draw_ellipse_on_image"><code class="docutils literal notranslate"><span class="pre">draw_ellipse_on_image()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#RAVE.eye_tracker.ellipse_util.ellipse_loss_function"><code class="docutils literal notranslate"><span class="pre">ellipse_loss_function()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#RAVE.eye_tracker.ellipse_util.get_points_of_ellipses"><code class="docutils literal notranslate"><span class="pre">get_points_of_ellipses()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="RAVE.facial_detection.html">facial_detection</a></li>
@@ -273,7 +296,7 @@ otherwise.</p>
 (one for each sub-dataset)</p>
 </dd>
 <dt class="field-even">Return type</dt>
-<dd class="field-even"><p>List of EyeTrackerDatasetBuilder</p>
+<dd class="field-even"><p>List of <a class="reference internal" href="#RAVE.eye_tracker.EyeTrackerDatasetBuilder.EyeTrackerDatasetBuilder" title="RAVE.eye_tracker.EyeTrackerDatasetBuilder.EyeTrackerDatasetBuilder">EyeTrackerDatasetBuilder</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -360,7 +383,7 @@ the ellipse as defined by the annotation tool</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>annotations</strong> (<em>List of strings</em>) – All the annotations</p></li>
+<li><p><strong>annotations</strong> (<em>List</em><em> of </em><em>strings</em>) – All the annotations</p></li>
 <li><p><strong>INPUT_IMAGE_WIDTH</strong> (<em>int</em>) – </p></li>
 <li><p><strong>INPUT_IMAGE_HEIGHT</strong> (<em>int</em>) – </p></li>
 </ul>

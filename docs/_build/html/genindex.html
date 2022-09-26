@@ -15,6 +15,7 @@
         <script src="_static/underscore.js"></script>
         <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="#" />
     <link rel="search" title="Search" href="search.html" /> 
@@ -157,12 +158,10 @@
 </li>
       <li><a href="RAVE.common.html#RAVE.common.Trainer.Trainer.compute_validation_loss">compute_validation_loss() (Trainer method)</a>
 </li>
-      <li><a href="RAVE.facial_detection.html#RAVE.face_detection.FaceDetectionModel.FaceDetectionModel.CONFIDENCE_THRESHOLD">CONFIDENCE_THRESHOLD (FaceDetectionModel attribute)</a>
+      <li><a href="RAVE.eye_tracker.html#RAVE.eye_tracker.EyeTrackerDatasetBuilder.EyeTrackerDatasetBuilder.create_datasets">create_datasets() (EyeTrackerDatasetBuilder static method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="RAVE.eye_tracker.html#RAVE.eye_tracker.EyeTrackerDatasetBuilder.EyeTrackerDatasetBuilder.create_datasets">create_datasets() (EyeTrackerDatasetBuilder static method)</a>
-</li>
       <li><a href="RAVE.common.html#RAVE.common.DatasetBuilder.DatasetBuilder.create_directory_if_does_not_exist">create_directory_if_does_not_exist() (DatasetBuilder static method)</a>
 </li>
       <li><a href="RAVE.common.html#RAVE.common.DatasetBuilder.DatasetBuilder.create_images_dataset_with_one_video">create_images_dataset_with_one_video() (DatasetBuilder method)</a>
@@ -233,16 +232,10 @@
 </li>
       <li><a href="RAVE.facial_detection.html#RAVE.face_detection.FaceDetectionDataset.FaceDetectionDataset">FaceDetectionDataset (class in RAVE.face_detection.FaceDetectionDataset)</a>
 </li>
-      <li><a href="RAVE.facial_detection.html#RAVE.face_detection.FaceDetectionModel.FaceDetectionModel">FaceDetectionModel (class in RAVE.face_detection.FaceDetectionModel)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="RAVE.eye_tracker.html#RAVE.eye_tracker.EyeTrackerModel.EyeTrackerModel.forward">forward() (EyeTrackerModel method)</a>
-
-      <ul>
-        <li><a href="RAVE.facial_detection.html#RAVE.face_detection.FaceDetectionModel.FaceDetectionModel.forward">(FaceDetectionModel method)</a>
 </li>
-      </ul></li>
       <li><a href="RAVE.facial_detection.html#RAVE.face_detection.fpsHelper.FPS">FPS (class in RAVE.face_detection.fpsHelper)</a>
 </li>
   </ul></td>
@@ -321,8 +314,6 @@
 </li>
       <li><a href="RAVE.common.html#RAVE.common.image_utils.intersection">intersection() (in module RAVE.common.image_utils)</a>
 </li>
-      <li><a href="RAVE.facial_detection.html#RAVE.face_detection.FaceDetectionModel.FaceDetectionModel.INTERSECTION_OVER_UNION_THRESHOLD">INTERSECTION_OVER_UNION_THRESHOLD (FaceDetectionModel attribute)</a>
-</li>
       <li><a href="RAVE.common.html#RAVE.common.image_utils.inverse_normalize">inverse_normalize() (in module RAVE.common.image_utils)</a>
 </li>
   </ul></td>
@@ -370,8 +361,6 @@
         <li><a href="RAVE.eye_tracker.html#module-RAVE.eye_tracker.NormalizedEllipse">RAVE.eye_tracker.NormalizedEllipse</a>
 </li>
         <li><a href="RAVE.facial_detection.html#module-RAVE.face_detection.FaceDetectionDataset">RAVE.face_detection.FaceDetectionDataset</a>
-</li>
-        <li><a href="RAVE.facial_detection.html#module-RAVE.face_detection.FaceDetectionModel">RAVE.face_detection.FaceDetectionModel</a>
 </li>
         <li><a href="RAVE.facial_detection.html#module-RAVE.face_detection.fpsHelper">RAVE.face_detection.fpsHelper</a>
 </li>
@@ -466,6 +455,8 @@
         <li><a href="RAVE.eye_tracker.html#module-RAVE.eye_tracker.EyeTrackerDataset">module</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     RAVE.eye_tracker.EyeTrackerDatasetBuilder
 
@@ -473,8 +464,6 @@
         <li><a href="RAVE.eye_tracker.html#module-RAVE.eye_tracker.EyeTrackerDatasetBuilder">module</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     RAVE.eye_tracker.EyeTrackerModel
 
@@ -494,13 +483,6 @@
 
       <ul>
         <li><a href="RAVE.facial_detection.html#module-RAVE.face_detection.FaceDetectionDataset">module</a>
-</li>
-      </ul></li>
-      <li>
-    RAVE.face_detection.FaceDetectionModel
-
-      <ul>
-        <li><a href="RAVE.facial_detection.html#module-RAVE.face_detection.FaceDetectionModel">module</a>
 </li>
       </ul></li>
       <li>
@@ -557,11 +539,7 @@
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="RAVE.eye_tracker.html#RAVE.eye_tracker.EyeTrackerModel.EyeTrackerModel.training">training (EyeTrackerModel attribute)</a>
-
-      <ul>
-        <li><a href="RAVE.facial_detection.html#RAVE.face_detection.FaceDetectionModel.FaceDetectionModel.training">(FaceDetectionModel attribute)</a>
 </li>
-      </ul></li>
       <li><a href="RAVE.common.html#RAVE.common.Dataset.Dataset.TRAINING_DIR">TRAINING_DIR (Dataset attribute)</a>
 </li>
       <li><a href="RAVE.eye_tracker.html#RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerDataset.TRAINING_MEAN">TRAINING_MEAN (EyeTrackerDataset attribute)</a>

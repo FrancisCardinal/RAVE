@@ -16,6 +16,7 @@
         <script src="_static/underscore.js"></script>
         <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -41,10 +42,36 @@
               <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="RAVE.html">RAVE</a><ul class="current">
 <li class="toctree-l2 current"><a class="current reference internal" href="#">common</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#module-RAVE.common.Dataset">Dataset</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-RAVE.common.DatasetBuilder">DatasetBuilder</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-RAVE.common.Trainer">Trainer</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-RAVE.common.image_utils">image_utils</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-RAVE.common.Dataset">Dataset</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#RAVE.common.Dataset.Dataset"><code class="docutils literal notranslate"><span class="pre">Dataset</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-RAVE.common.DatasetBuilder">DatasetBuilder</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#RAVE.common.DatasetBuilder.DatasetBuilder"><code class="docutils literal notranslate"><span class="pre">DatasetBuilder</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-RAVE.common.Trainer">Trainer</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#RAVE.common.Trainer.Trainer"><code class="docutils literal notranslate"><span class="pre">Trainer</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-RAVE.common.image_utils">image_utils</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#RAVE.common.image_utils.apply_image_rotation"><code class="docutils literal notranslate"><span class="pre">apply_image_rotation()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#RAVE.common.image_utils.apply_image_translation"><code class="docutils literal notranslate"><span class="pre">apply_image_translation()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#RAVE.common.image_utils.apply_image_translation_and_rotation"><code class="docutils literal notranslate"><span class="pre">apply_image_translation_and_rotation()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#RAVE.common.image_utils.box_iou"><code class="docutils literal notranslate"><span class="pre">box_iou()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#RAVE.common.image_utils.check_frontal_face"><code class="docutils literal notranslate"><span class="pre">check_frontal_face()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#RAVE.common.image_utils.clip_coords"><code class="docutils literal notranslate"><span class="pre">clip_coords()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#RAVE.common.image_utils.do_affine_grid_operation"><code class="docutils literal notranslate"><span class="pre">do_affine_grid_operation()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#RAVE.common.image_utils.intersection"><code class="docutils literal notranslate"><span class="pre">intersection()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#RAVE.common.image_utils.inverse_normalize"><code class="docutils literal notranslate"><span class="pre">inverse_normalize()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#RAVE.common.image_utils.opencv_image_to_tensor"><code class="docutils literal notranslate"><span class="pre">opencv_image_to_tensor()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#RAVE.common.image_utils.scale_coords"><code class="docutils literal notranslate"><span class="pre">scale_coords()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#RAVE.common.image_utils.scale_coords_landmarks"><code class="docutils literal notranslate"><span class="pre">scale_coords_landmarks()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#RAVE.common.image_utils.tensor_to_opencv_image"><code class="docutils literal notranslate"><span class="pre">tensor_to_opencv_image()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#RAVE.common.image_utils.xywh2xyxy"><code class="docutils literal notranslate"><span class="pre">xywh2xyxy()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#RAVE.common.image_utils.xyxy2xywh"><code class="docutils literal notranslate"><span class="pre">xyxy2xywh()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="RAVE.eye_tracker.html">eye_tracker</a></li>
@@ -308,7 +335,7 @@ It also applies data augmentation transforms to the training sub-dataset</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>VIDEOS</strong> (<em>List of strings</em>) – The names of the videos that belong to this sub-dataset</p></li>
+<li><p><strong>VIDEOS</strong> (<em>List</em><em> of </em><em>strings</em>) – The names of the videos that belong to this sub-dataset</p></li>
 <li><p><strong>OUTPUT_DIR_PATH</strong> (<em>String</em>) – Path of the directory that will contain the images and labels
 pairs</p></li>
 <li><p><strong>log_name</strong> (<em>String</em>) – Name to be displayed alongside the progress bar in the terminal</p></li>
@@ -351,7 +378,7 @@ them to disk</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>file_name</strong> (<em>String</em>) – Name of the video</p></li>
 <li><p><strong>video_path</strong> (<em>String</em>) – Path to the video</p></li>
-<li><p><strong>annotations</strong> (<em>List of strings</em>) – One string per frame. Each string represents the annotation
+<li><p><strong>annotations</strong> (<em>List</em><em> of </em><em>strings</em>) – One string per frame. Each string represents the annotation
 that is present on the frame</p></li>
 </ul>
 </dd>
@@ -375,7 +402,7 @@ of the video and save them to disk</p>
 each sub-dataset)</p>
 </dd>
 <dt class="field-even">Return type</dt>
-<dd class="field-even"><p>List of DatasetBuilder</p>
+<dd class="field-even"><p>List of <a class="reference internal" href="#RAVE.common.DatasetBuilder.DatasetBuilder" title="RAVE.common.DatasetBuilder.DatasetBuilder">DatasetBuilder</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -388,7 +415,7 @@ the ellipse as defined by opencv</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>annotations</strong> (<em>List of strings</em>) – All the annotations</p></li>
+<li><p><strong>annotations</strong> (<em>List</em><em> of </em><em>strings</em>) – All the annotations</p></li>
 <li><p><strong>INPUT_IMAGE_WIDTH</strong> (<em>int</em>) – </p></li>
 <li><p><strong>INPUT_IMAGE_HEIGHT</strong> (<em>int</em>) – </p></li>
 </ul>

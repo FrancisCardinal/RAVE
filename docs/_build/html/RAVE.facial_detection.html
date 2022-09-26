@@ -16,6 +16,7 @@
         <script src="_static/underscore.js"></script>
         <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -43,9 +44,15 @@
 <li class="toctree-l2"><a class="reference internal" href="RAVE.common.html">common</a></li>
 <li class="toctree-l2"><a class="reference internal" href="RAVE.eye_tracker.html">eye_tracker</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">facial_detection</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#module-RAVE.face_detection.FaceDetectionDataset">FaceDetectionDataset</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-RAVE.face_detection.FaceDetectionModel">FaceDetectionModel</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-RAVE.face_detection.fpsHelper">FpsHelper</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-RAVE.face_detection.FaceDetectionDataset">FaceDetectionDataset</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#RAVE.face_detection.FaceDetectionDataset.FaceDetectionDataset"><code class="docutils literal notranslate"><span class="pre">FaceDetectionDataset</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#facedetectionmodel">FaceDetectionModel</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-RAVE.face_detection.fpsHelper">FpsHelper</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#RAVE.face_detection.fpsHelper.FPS"><code class="docutils literal notranslate"><span class="pre">FPS</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -156,52 +163,8 @@
 </dd></dl>
 
 </section>
-<section id="module-RAVE.face_detection.FaceDetectionModel">
-<span id="facedetectionmodel"></span><h2>FaceDetectionModel<a class="headerlink" href="#module-RAVE.face_detection.FaceDetectionModel" title="Permalink to this heading"></a></h2>
-<dl class="py class">
-<dt class="sig sig-object py" id="RAVE.face_detection.FaceDetectionModel.FaceDetectionModel">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">FaceDetectionModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">DEVICE</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.face_detection.FaceDetectionModel.FaceDetectionModel" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code></p>
-<p>Model of the neural network that detects faces for facial detection</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>DEVICE</strong> (<em>string</em>) – Pytorch device</p>
-</dd>
-</dl>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="RAVE.face_detection.FaceDetectionModel.FaceDetectionModel.CONFIDENCE_THRESHOLD">
-<span class="sig-name descname"><span class="pre">CONFIDENCE_THRESHOLD</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.5</span></em><a class="headerlink" href="#RAVE.face_detection.FaceDetectionModel.FaceDetectionModel.CONFIDENCE_THRESHOLD" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="RAVE.face_detection.FaceDetectionModel.FaceDetectionModel.INTERSECTION_OVER_UNION_THRESHOLD">
-<span class="sig-name descname"><span class="pre">INTERSECTION_OVER_UNION_THRESHOLD</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.5</span></em><a class="headerlink" href="#RAVE.face_detection.FaceDetectionModel.FaceDetectionModel.INTERSECTION_OVER_UNION_THRESHOLD" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="RAVE.face_detection.FaceDetectionModel.FaceDetectionModel.forward">
-<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.face_detection.FaceDetectionModel.FaceDetectionModel.forward" title="Permalink to this definition"></a></dt>
-<dd><p>Forward pass of the model</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>x</strong> (<em>pytorch tensor</em>) – The input of the network (images)</p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>The predictions of the network</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>pytorch tensor</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="RAVE.face_detection.FaceDetectionModel.FaceDetectionModel.training">
-<span class="sig-name descname"><span class="pre">training</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><a class="headerlink" href="#RAVE.face_detection.FaceDetectionModel.FaceDetectionModel.training" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
+<section id="facedetectionmodel">
+<h2>FaceDetectionModel<a class="headerlink" href="#facedetectionmodel" title="Permalink to this heading"></a></h2>
 </section>
 <section id="module-RAVE.face_detection.fpsHelper">
 <span id="fpshelper"></span><h2>FpsHelper<a class="headerlink" href="#module-RAVE.face_detection.fpsHelper" title="Permalink to this heading"></a></h2>

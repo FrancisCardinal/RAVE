@@ -16,6 +16,7 @@
         <script src="_static/underscore.js"></script>
         <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -76,24 +77,184 @@
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="RAVE.common.html">common</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="RAVE.common.html#module-RAVE.common.Dataset">Dataset</a></li>
-<li class="toctree-l2"><a class="reference internal" href="RAVE.common.html#module-RAVE.common.DatasetBuilder">DatasetBuilder</a></li>
-<li class="toctree-l2"><a class="reference internal" href="RAVE.common.html#module-RAVE.common.Trainer">Trainer</a></li>
-<li class="toctree-l2"><a class="reference internal" href="RAVE.common.html#module-RAVE.common.image_utils">image_utils</a></li>
+<li class="toctree-l2"><a class="reference internal" href="RAVE.common.html#module-RAVE.common.Dataset">Dataset</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="RAVE.common.html#RAVE.common.Dataset.Dataset"><code class="docutils literal notranslate"><span class="pre">Dataset</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.common.html#RAVE.common.Dataset.Dataset.DATASET_DIR"><code class="docutils literal notranslate"><span class="pre">Dataset.DATASET_DIR</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.common.html#RAVE.common.Dataset.Dataset.IMAGES_DIR"><code class="docutils literal notranslate"><span class="pre">Dataset.IMAGES_DIR</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.common.html#RAVE.common.Dataset.Dataset.IMAGES_FILE_EXTENSION"><code class="docutils literal notranslate"><span class="pre">Dataset.IMAGES_FILE_EXTENSION</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.common.html#RAVE.common.Dataset.Dataset.LABELS_DIR"><code class="docutils literal notranslate"><span class="pre">Dataset.LABELS_DIR</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.common.html#RAVE.common.Dataset.Dataset.TEST_DIR"><code class="docutils literal notranslate"><span class="pre">Dataset.TEST_DIR</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.common.html#RAVE.common.Dataset.Dataset.TRAINING_DIR"><code class="docutils literal notranslate"><span class="pre">Dataset.TRAINING_DIR</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.common.html#RAVE.common.Dataset.Dataset.VALIDATION_DIR"><code class="docutils literal notranslate"><span class="pre">Dataset.VALIDATION_DIR</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.common.html#RAVE.common.Dataset.Dataset.__getitem__"><code class="docutils literal notranslate"><span class="pre">Dataset.__getitem__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.common.html#RAVE.common.Dataset.Dataset.__init__"><code class="docutils literal notranslate"><span class="pre">Dataset.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.common.html#RAVE.common.Dataset.Dataset.__len__"><code class="docutils literal notranslate"><span class="pre">Dataset.__len__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.common.html#RAVE.common.Dataset.Dataset.__module__"><code class="docutils literal notranslate"><span class="pre">Dataset.__module__</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.common.html#RAVE.common.Dataset.Dataset.__parameters__"><code class="docutils literal notranslate"><span class="pre">Dataset.__parameters__</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.common.html#RAVE.common.Dataset.Dataset.get_image_and_label_from_image_path"><code class="docutils literal notranslate"><span class="pre">Dataset.get_image_and_label_from_image_path()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.common.html#RAVE.common.Dataset.Dataset.get_image_and_label_on_disk"><code class="docutils literal notranslate"><span class="pre">Dataset.get_image_and_label_on_disk()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.common.html#RAVE.common.Dataset.Dataset.get_multiple_workers_safe_list_of_paths"><code class="docutils literal notranslate"><span class="pre">Dataset.get_multiple_workers_safe_list_of_paths()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.common.html#RAVE.common.Dataset.Dataset.get_test_sub_dataset"><code class="docutils literal notranslate"><span class="pre">Dataset.get_test_sub_dataset()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.common.html#RAVE.common.Dataset.Dataset.get_training_sub_dataset"><code class="docutils literal notranslate"><span class="pre">Dataset.get_training_sub_dataset()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.common.html#RAVE.common.Dataset.Dataset.get_validation_sub_dataset"><code class="docutils literal notranslate"><span class="pre">Dataset.get_validation_sub_dataset()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="RAVE.common.html#module-RAVE.common.DatasetBuilder">DatasetBuilder</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="RAVE.common.html#RAVE.common.DatasetBuilder.DatasetBuilder"><code class="docutils literal notranslate"><span class="pre">DatasetBuilder</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.common.html#RAVE.common.DatasetBuilder.DatasetBuilder.ANNOTATIONS_DIR"><code class="docutils literal notranslate"><span class="pre">DatasetBuilder.ANNOTATIONS_DIR</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.common.html#RAVE.common.DatasetBuilder.DatasetBuilder.ROOT_PATH"><code class="docutils literal notranslate"><span class="pre">DatasetBuilder.ROOT_PATH</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.common.html#RAVE.common.DatasetBuilder.DatasetBuilder.VIDEOS_DIR"><code class="docutils literal notranslate"><span class="pre">DatasetBuilder.VIDEOS_DIR</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.common.html#RAVE.common.DatasetBuilder.DatasetBuilder.create_directory_if_does_not_exist"><code class="docutils literal notranslate"><span class="pre">DatasetBuilder.create_directory_if_does_not_exist()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.common.html#RAVE.common.DatasetBuilder.DatasetBuilder.create_images_dataset_with_one_video"><code class="docutils literal notranslate"><span class="pre">DatasetBuilder.create_images_dataset_with_one_video()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.common.html#RAVE.common.DatasetBuilder.DatasetBuilder.create_images_of_one_video_group"><code class="docutils literal notranslate"><span class="pre">DatasetBuilder.create_images_of_one_video_group()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.common.html#RAVE.common.DatasetBuilder.DatasetBuilder.get_builders"><code class="docutils literal notranslate"><span class="pre">DatasetBuilder.get_builders()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.common.html#RAVE.common.DatasetBuilder.DatasetBuilder.parse_current_annotation"><code class="docutils literal notranslate"><span class="pre">DatasetBuilder.parse_current_annotation()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.common.html#RAVE.common.DatasetBuilder.DatasetBuilder.process_frame"><code class="docutils literal notranslate"><span class="pre">DatasetBuilder.process_frame()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.common.html#RAVE.common.DatasetBuilder.DatasetBuilder.process_image_label_pair"><code class="docutils literal notranslate"><span class="pre">DatasetBuilder.process_image_label_pair()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.common.html#RAVE.common.DatasetBuilder.DatasetBuilder.save_image_label_pair"><code class="docutils literal notranslate"><span class="pre">DatasetBuilder.save_image_label_pair()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="RAVE.common.html#module-RAVE.common.Trainer">Trainer</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="RAVE.common.html#RAVE.common.Trainer.Trainer"><code class="docutils literal notranslate"><span class="pre">Trainer</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.common.html#RAVE.common.Trainer.Trainer.MODEL_INFO_FILE_NAME"><code class="docutils literal notranslate"><span class="pre">Trainer.MODEL_INFO_FILE_NAME</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.common.html#RAVE.common.Trainer.Trainer.TRAINING_SESSIONS_DIR"><code class="docutils literal notranslate"><span class="pre">Trainer.TRAINING_SESSIONS_DIR</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.common.html#RAVE.common.Trainer.Trainer.compute_training_loss"><code class="docutils literal notranslate"><span class="pre">Trainer.compute_training_loss()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.common.html#RAVE.common.Trainer.Trainer.compute_validation_loss"><code class="docutils literal notranslate"><span class="pre">Trainer.compute_validation_loss()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.common.html#RAVE.common.Trainer.Trainer.load_best_model"><code class="docutils literal notranslate"><span class="pre">Trainer.load_best_model()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.common.html#RAVE.common.Trainer.Trainer.load_model_and_training_info"><code class="docutils literal notranslate"><span class="pre">Trainer.load_model_and_training_info()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.common.html#RAVE.common.Trainer.Trainer.save_model_and_training_info"><code class="docutils literal notranslate"><span class="pre">Trainer.save_model_and_training_info()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.common.html#RAVE.common.Trainer.Trainer.terminate_training_thread"><code class="docutils literal notranslate"><span class="pre">Trainer.terminate_training_thread()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.common.html#RAVE.common.Trainer.Trainer.train_with_validation"><code class="docutils literal notranslate"><span class="pre">Trainer.train_with_validation()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.common.html#RAVE.common.Trainer.Trainer.update_plot"><code class="docutils literal notranslate"><span class="pre">Trainer.update_plot()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="RAVE.common.html#module-RAVE.common.image_utils">image_utils</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="RAVE.common.html#RAVE.common.image_utils.apply_image_rotation"><code class="docutils literal notranslate"><span class="pre">apply_image_rotation()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="RAVE.common.html#RAVE.common.image_utils.apply_image_translation"><code class="docutils literal notranslate"><span class="pre">apply_image_translation()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="RAVE.common.html#RAVE.common.image_utils.apply_image_translation_and_rotation"><code class="docutils literal notranslate"><span class="pre">apply_image_translation_and_rotation()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="RAVE.common.html#RAVE.common.image_utils.box_iou"><code class="docutils literal notranslate"><span class="pre">box_iou()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="RAVE.common.html#RAVE.common.image_utils.check_frontal_face"><code class="docutils literal notranslate"><span class="pre">check_frontal_face()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="RAVE.common.html#RAVE.common.image_utils.clip_coords"><code class="docutils literal notranslate"><span class="pre">clip_coords()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="RAVE.common.html#RAVE.common.image_utils.do_affine_grid_operation"><code class="docutils literal notranslate"><span class="pre">do_affine_grid_operation()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="RAVE.common.html#RAVE.common.image_utils.intersection"><code class="docutils literal notranslate"><span class="pre">intersection()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="RAVE.common.html#RAVE.common.image_utils.inverse_normalize"><code class="docutils literal notranslate"><span class="pre">inverse_normalize()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="RAVE.common.html#RAVE.common.image_utils.opencv_image_to_tensor"><code class="docutils literal notranslate"><span class="pre">opencv_image_to_tensor()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="RAVE.common.html#RAVE.common.image_utils.scale_coords"><code class="docutils literal notranslate"><span class="pre">scale_coords()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="RAVE.common.html#RAVE.common.image_utils.scale_coords_landmarks"><code class="docutils literal notranslate"><span class="pre">scale_coords_landmarks()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="RAVE.common.html#RAVE.common.image_utils.tensor_to_opencv_image"><code class="docutils literal notranslate"><span class="pre">tensor_to_opencv_image()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="RAVE.common.html#RAVE.common.image_utils.xywh2xyxy"><code class="docutils literal notranslate"><span class="pre">xywh2xyxy()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="RAVE.common.html#RAVE.common.image_utils.xyxy2xywh"><code class="docutils literal notranslate"><span class="pre">xyxy2xywh()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="RAVE.eye_tracker.html">eye_tracker</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="RAVE.eye_tracker.html#module-RAVE.eye_tracker.EyeTrackerDataset">EyeTrackerDataset</a></li>
-<li class="toctree-l2"><a class="reference internal" href="RAVE.eye_tracker.html#module-RAVE.eye_tracker.EyeTrackerDatasetBuilder">EyeTrackerDatasetBuilder</a></li>
-<li class="toctree-l2"><a class="reference internal" href="RAVE.eye_tracker.html#module-RAVE.eye_tracker.EyeTrackerModel">EyeTrackerModel</a></li>
-<li class="toctree-l2"><a class="reference internal" href="RAVE.eye_tracker.html#module-RAVE.eye_tracker.NormalizedEllipse">NormalizedEllipse</a></li>
-<li class="toctree-l2"><a class="reference internal" href="RAVE.eye_tracker.html#module-RAVE.eye_tracker.ellipse_util">ellipse_util</a></li>
+<li class="toctree-l2"><a class="reference internal" href="RAVE.eye_tracker.html#module-RAVE.eye_tracker.EyeTrackerDataset">EyeTrackerDataset</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="RAVE.eye_tracker.html#RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerDataset"><code class="docutils literal notranslate"><span class="pre">EyeTrackerDataset</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.eye_tracker.html#RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerDataset.CROP_SIZE"><code class="docutils literal notranslate"><span class="pre">EyeTrackerDataset.CROP_SIZE</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.eye_tracker.html#RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerDataset.EYE_TRACKER_DIR_PATH"><code class="docutils literal notranslate"><span class="pre">EyeTrackerDataset.EYE_TRACKER_DIR_PATH</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.eye_tracker.html#RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerDataset.IMAGE_DIMENSIONS"><code class="docutils literal notranslate"><span class="pre">EyeTrackerDataset.IMAGE_DIMENSIONS</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.eye_tracker.html#RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerDataset.TRAINING_MEAN"><code class="docutils literal notranslate"><span class="pre">EyeTrackerDataset.TRAINING_MEAN</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.eye_tracker.html#RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerDataset.TRAINING_STD"><code class="docutils literal notranslate"><span class="pre">EyeTrackerDataset.TRAINING_STD</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.eye_tracker.html#RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerDataset.get_test_sub_dataset"><code class="docutils literal notranslate"><span class="pre">EyeTrackerDataset.get_test_sub_dataset()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.eye_tracker.html#RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerDataset.get_training_sub_dataset"><code class="docutils literal notranslate"><span class="pre">EyeTrackerDataset.get_training_sub_dataset()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.eye_tracker.html#RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerDataset.get_validation_sub_dataset"><code class="docutils literal notranslate"><span class="pre">EyeTrackerDataset.get_validation_sub_dataset()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="RAVE.eye_tracker.html#RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerDatasetOnlineDataAugmentation"><code class="docutils literal notranslate"><span class="pre">EyeTrackerDatasetOnlineDataAugmentation</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="RAVE.eye_tracker.html#RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerFilm"><code class="docutils literal notranslate"><span class="pre">EyeTrackerFilm</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.eye_tracker.html#RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerFilm.ACQUISITION_HEIGHT"><code class="docutils literal notranslate"><span class="pre">EyeTrackerFilm.ACQUISITION_HEIGHT</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.eye_tracker.html#RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerFilm.ACQUISITION_WIDTH"><code class="docutils literal notranslate"><span class="pre">EyeTrackerFilm.ACQUISITION_WIDTH</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.eye_tracker.html#RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerFilm.end"><code class="docutils literal notranslate"><span class="pre">EyeTrackerFilm.end()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="RAVE.eye_tracker.html#RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerInferenceDataset"><code class="docutils literal notranslate"><span class="pre">EyeTrackerInferenceDataset</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.eye_tracker.html#RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerInferenceDataset.ACQUISITION_HEIGHT"><code class="docutils literal notranslate"><span class="pre">EyeTrackerInferenceDataset.ACQUISITION_HEIGHT</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.eye_tracker.html#RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerInferenceDataset.ACQUISITION_WIDTH"><code class="docutils literal notranslate"><span class="pre">EyeTrackerInferenceDataset.ACQUISITION_WIDTH</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.eye_tracker.html#RAVE.eye_tracker.EyeTrackerDataset.EyeTrackerInferenceDataset.end"><code class="docutils literal notranslate"><span class="pre">EyeTrackerInferenceDataset.end()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="RAVE.eye_tracker.html#module-RAVE.eye_tracker.EyeTrackerDatasetBuilder">EyeTrackerDatasetBuilder</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="RAVE.eye_tracker.html#RAVE.eye_tracker.EyeTrackerDatasetBuilder.EyeTrackerDatasetBuilder"><code class="docutils literal notranslate"><span class="pre">EyeTrackerDatasetBuilder</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.eye_tracker.html#RAVE.eye_tracker.EyeTrackerDatasetBuilder.EyeTrackerDatasetBuilder.create_datasets"><code class="docutils literal notranslate"><span class="pre">EyeTrackerDatasetBuilder.create_datasets()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.eye_tracker.html#RAVE.eye_tracker.EyeTrackerDatasetBuilder.EyeTrackerDatasetBuilder.generate_dataset"><code class="docutils literal notranslate"><span class="pre">EyeTrackerDatasetBuilder.generate_dataset()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.eye_tracker.html#RAVE.eye_tracker.EyeTrackerDatasetBuilder.EyeTrackerDatasetBuilder.get_builders"><code class="docutils literal notranslate"><span class="pre">EyeTrackerDatasetBuilder.get_builders()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="RAVE.eye_tracker.html#RAVE.eye_tracker.EyeTrackerDatasetBuilder.EyeTrackerDatasetBuilderOfflineDataAugmentation"><code class="docutils literal notranslate"><span class="pre">EyeTrackerDatasetBuilderOfflineDataAugmentation</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.eye_tracker.html#RAVE.eye_tracker.EyeTrackerDatasetBuilder.EyeTrackerDatasetBuilderOfflineDataAugmentation.apply_translation_and_rotation"><code class="docutils literal notranslate"><span class="pre">EyeTrackerDatasetBuilderOfflineDataAugmentation.apply_translation_and_rotation()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.eye_tracker.html#RAVE.eye_tracker.EyeTrackerDatasetBuilder.EyeTrackerDatasetBuilderOfflineDataAugmentation.process_frame"><code class="docutils literal notranslate"><span class="pre">EyeTrackerDatasetBuilderOfflineDataAugmentation.process_frame()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="RAVE.eye_tracker.html#RAVE.eye_tracker.EyeTrackerDatasetBuilder.VideosUnpacker"><code class="docutils literal notranslate"><span class="pre">VideosUnpacker</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.eye_tracker.html#RAVE.eye_tracker.EyeTrackerDatasetBuilder.VideosUnpacker.TMP_PATH"><code class="docutils literal notranslate"><span class="pre">VideosUnpacker.TMP_PATH</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.eye_tracker.html#RAVE.eye_tracker.EyeTrackerDatasetBuilder.VideosUnpacker.get_builders"><code class="docutils literal notranslate"><span class="pre">VideosUnpacker.get_builders()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.eye_tracker.html#RAVE.eye_tracker.EyeTrackerDatasetBuilder.VideosUnpacker.parse_current_annotation"><code class="docutils literal notranslate"><span class="pre">VideosUnpacker.parse_current_annotation()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.eye_tracker.html#RAVE.eye_tracker.EyeTrackerDatasetBuilder.VideosUnpacker.process_image_label_pair"><code class="docutils literal notranslate"><span class="pre">VideosUnpacker.process_image_label_pair()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="RAVE.eye_tracker.html#module-RAVE.eye_tracker.EyeTrackerModel">EyeTrackerModel</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="RAVE.eye_tracker.html#RAVE.eye_tracker.EyeTrackerModel.EyeTrackerModel"><code class="docutils literal notranslate"><span class="pre">EyeTrackerModel</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.eye_tracker.html#RAVE.eye_tracker.EyeTrackerModel.EyeTrackerModel.forward"><code class="docutils literal notranslate"><span class="pre">EyeTrackerModel.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.eye_tracker.html#RAVE.eye_tracker.EyeTrackerModel.EyeTrackerModel.training"><code class="docutils literal notranslate"><span class="pre">EyeTrackerModel.training</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="RAVE.eye_tracker.html#module-RAVE.eye_tracker.NormalizedEllipse">NormalizedEllipse</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="RAVE.eye_tracker.html#RAVE.eye_tracker.NormalizedEllipse.NormalizedEllipse"><code class="docutils literal notranslate"><span class="pre">NormalizedEllipse</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.eye_tracker.html#RAVE.eye_tracker.NormalizedEllipse.NormalizedEllipse.crop"><code class="docutils literal notranslate"><span class="pre">NormalizedEllipse.crop()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.eye_tracker.html#RAVE.eye_tracker.NormalizedEllipse.NormalizedEllipse.get_from_list"><code class="docutils literal notranslate"><span class="pre">NormalizedEllipse.get_from_list()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.eye_tracker.html#RAVE.eye_tracker.NormalizedEllipse.NormalizedEllipse.get_from_opencv_ellipse"><code class="docutils literal notranslate"><span class="pre">NormalizedEllipse.get_from_opencv_ellipse()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.eye_tracker.html#RAVE.eye_tracker.NormalizedEllipse.NormalizedEllipse.rotate_around_image_center"><code class="docutils literal notranslate"><span class="pre">NormalizedEllipse.rotate_around_image_center()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.eye_tracker.html#RAVE.eye_tracker.NormalizedEllipse.NormalizedEllipse.to_list"><code class="docutils literal notranslate"><span class="pre">NormalizedEllipse.to_list()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="RAVE.eye_tracker.html#module-RAVE.eye_tracker.ellipse_util">ellipse_util</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="RAVE.eye_tracker.html#RAVE.eye_tracker.ellipse_util.draw_ellipse_on_image"><code class="docutils literal notranslate"><span class="pre">draw_ellipse_on_image()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="RAVE.eye_tracker.html#RAVE.eye_tracker.ellipse_util.ellipse_loss_function"><code class="docutils literal notranslate"><span class="pre">ellipse_loss_function()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="RAVE.eye_tracker.html#RAVE.eye_tracker.ellipse_util.get_points_of_ellipses"><code class="docutils literal notranslate"><span class="pre">get_points_of_ellipses()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="RAVE.facial_detection.html">facial_detection</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="RAVE.facial_detection.html#module-RAVE.face_detection.FaceDetectionDataset">FaceDetectionDataset</a></li>
-<li class="toctree-l2"><a class="reference internal" href="RAVE.facial_detection.html#module-RAVE.face_detection.FaceDetectionModel">FaceDetectionModel</a></li>
-<li class="toctree-l2"><a class="reference internal" href="RAVE.facial_detection.html#module-RAVE.face_detection.fpsHelper">FpsHelper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="RAVE.facial_detection.html#module-RAVE.face_detection.FaceDetectionDataset">FaceDetectionDataset</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="RAVE.facial_detection.html#RAVE.face_detection.FaceDetectionDataset.FaceDetectionDataset"><code class="docutils literal notranslate"><span class="pre">FaceDetectionDataset</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.facial_detection.html#RAVE.face_detection.FaceDetectionDataset.FaceDetectionDataset.FACE_DETECTION_DIR_PATH"><code class="docutils literal notranslate"><span class="pre">FaceDetectionDataset.FACE_DETECTION_DIR_PATH</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.facial_detection.html#RAVE.face_detection.FaceDetectionDataset.FaceDetectionDataset.IMAGE_DIMENSIONS"><code class="docutils literal notranslate"><span class="pre">FaceDetectionDataset.IMAGE_DIMENSIONS</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.facial_detection.html#RAVE.face_detection.FaceDetectionDataset.FaceDetectionDataset.TRAINING_MEAN"><code class="docutils literal notranslate"><span class="pre">FaceDetectionDataset.TRAINING_MEAN</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.facial_detection.html#RAVE.face_detection.FaceDetectionDataset.FaceDetectionDataset.TRAINING_STD"><code class="docutils literal notranslate"><span class="pre">FaceDetectionDataset.TRAINING_STD</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.facial_detection.html#RAVE.face_detection.FaceDetectionDataset.FaceDetectionDataset.get_test_sub_dataset"><code class="docutils literal notranslate"><span class="pre">FaceDetectionDataset.get_test_sub_dataset()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.facial_detection.html#RAVE.face_detection.FaceDetectionDataset.FaceDetectionDataset.get_training_sub_dataset"><code class="docutils literal notranslate"><span class="pre">FaceDetectionDataset.get_training_sub_dataset()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.facial_detection.html#RAVE.face_detection.FaceDetectionDataset.FaceDetectionDataset.get_validation_sub_dataset"><code class="docutils literal notranslate"><span class="pre">FaceDetectionDataset.get_validation_sub_dataset()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="RAVE.facial_detection.html#facedetectionmodel">FaceDetectionModel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="RAVE.facial_detection.html#module-RAVE.face_detection.fpsHelper">FpsHelper</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="RAVE.facial_detection.html#RAVE.face_detection.fpsHelper.FPS"><code class="docutils literal notranslate"><span class="pre">FPS</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.facial_detection.html#RAVE.face_detection.fpsHelper.FPS.getFps"><code class="docutils literal notranslate"><span class="pre">FPS.getFps()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.facial_detection.html#RAVE.face_detection.fpsHelper.FPS.setFps"><code class="docutils literal notranslate"><span class="pre">FPS.setFps()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.facial_detection.html#RAVE.face_detection.fpsHelper.FPS.start"><code class="docutils literal notranslate"><span class="pre">FPS.start()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="RAVE.facial_detection.html#RAVE.face_detection.fpsHelper.FPS.writeFpsToFrame"><code class="docutils literal notranslate"><span class="pre">FPS.writeFpsToFrame()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
