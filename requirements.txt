@@ -3,7 +3,7 @@ numpy
 opencv-contrib-python
 tqdm
 torch==1.10.0
-torchaudio==0.10.2
+torchaudio==0.10.0
 torchvision==0.11.1
 pre-commit
 jsonschema
@@ -12,3 +12,4 @@ pyaudio
 Sphinx
 sphinx_rtd_theme
 deepface
+scipy

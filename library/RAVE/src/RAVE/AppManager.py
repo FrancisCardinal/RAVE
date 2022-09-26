@@ -101,7 +101,7 @@ class AppManager:
         self._selected_face = None
         self._vision_mode = "mute"
 
-        self._gaze_inferer_manager = GazeInfererManager(2, "cpu")
+        self._gaze_inferer_manager = GazeInfererManager(args.eye_video_source, "cpu")
 
         sio.on("targetSelect", self._update_selected_face)
         sio.on("changeVisionMode", self._change_mode)

@@ -26,6 +26,9 @@ pip install -i https://test.pypi.org/simple/ --no-deps pyodas-JacobKealey
 pre-commit install                                                         
 ```
 
+# Import models (TODO: Explain how to add eye tracker model)
+Add saved_model.pth to RAVE/library/RAVE/src/RAVE/eye_tracker
+
 ## Documentation
 
 * [See here](TODO)

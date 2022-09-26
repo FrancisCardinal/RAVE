@@ -38,7 +38,7 @@ def load_model(
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    output = os.path.join(file_name)
+    output = os.path.join(output_dir, file_name)
 
     if os.path.isfile(output) is not True:
 
