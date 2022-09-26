@@ -1,4 +1,58 @@
+# import os
+
+# import numpy as np
+# import tensorrt as trt
+# import pycuda.driver as cuda  # noqa, must be imported
+# import pycuda.autoinit  # noqa, must be imported
+# # from sklearn import preprocessing
+
+# from .common import allocate_buffers
+# from .common import do_inference
+
+# TRT_LOGGER = trt.Logger()
+
+# class TrtModel(object):
+#     def __init__(self, trt_path):
+#         self.engine_file = trt_path
+#         self.engine = None
+#         self.inputs = None
+#         self.outputs = None
+#         self.bindings = None
+#         self.stream = None
+#         self.context = None
+
+#     def build(self):
+#         with open(self.engine_file, 'rb') as f,
+#           trt.Runtime(TRT_LOGGER) as runtime:
+#             self.engine = runtime.deserialize_cuda_engine(f.read())
+#         self.inputs, self.outputs, self.bindings,
+#               self.stream = allocate_buffers(
+#             self.engine)
+#         self.context = self.engine.create_execution_context()
+
+#     def __call__(self, objects_frame):
+#         # lazy load implementation
+#         if self.engine is None:
+#             self.build()
+#         batch_size = objects_frame.shape[0]
+#         allocate_place = np.prod(objects_frame.shape)
+#         self.inputs[0].host[:allocate_place] =
+#           objects_frame.flatten(order='C').astype(np.float32)
+#         trt_outputs = do_inference(
+#             self.context, bindings=self.bindings,
+#             inputs=self.inputs, outputs=self.outputs,
+#           stream=self.stream, batch_size=batch_size)
+#         embeddings = trt_outputs[0].reshape(-1, 512)
+#         embeddings = embeddings[:batch_size]
+#         # embeddings = preprocessing.normalize(embeddings)
+#         return embeddings
+
+
+# # TODO: Combine with trt model used for YOLO detector?
+
 import pycuda.driver as cuda
+
+# import pycuda.autoinit
 import tensorrt as trt
 import numpy as np
 
@@ -7,6 +61,9 @@ TRT_LOGGER = trt.Logger(trt.Logger.WARNING)
 
 
 def GiB(val):
+    """
+    ...
+    """
     return val * 1 << 30
 
 
@@ -25,6 +82,7 @@ def ONNX_to_TRT(onnx_model_path=None, trt_engine_path=None, fp16_mode=False):
 
     config = builder.create_builder_config()
     config.max_workspace_size = GiB(1)
+    # config.max_batch_size = 1
     if fp16_mode:
         config.set_flag(trt.BuilderFlag.FP16)
     with open(onnx_model_path, "rb") as model:
@@ -126,6 +184,8 @@ class TrtModel:
         self.destroy()
 
     def destroy(self):
-        # Remove any context from the top of the context stack,
-        # deactivating it.
+        """
+        Remove any context from the top of the context stack,
+        deactivating it.
+        """
         self.ctx.pop()

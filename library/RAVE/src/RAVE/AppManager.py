@@ -6,9 +6,9 @@ import threading
 
 # from tqdm import tqdm
 
-from RAVE.face_detection.TrackingManager import TrackingManager
-from RAVE.face_detection.Pixel2Delay import Pixel2Delay
-from RAVE.eye_tracker.GazeInferer.GazeInfererManager import GazeInfererManager
+from .face_detection.TrackingManager import TrackingManager
+from .face_detection.Pixel2Delay import Pixel2Delay
+from .eye_tracker.GazeInferer.GazeInfererManager import GazeInfererManager
 
 # from RAVE.face_detection.Direction2Pixel import Direction2Pixel
 
@@ -22,6 +22,7 @@ def connect():
     """
     print("connection established to server")
     # Emit the socket id to the server to "authenticate yourself"
+
     emit("pythonSocketAuth", "server", {"socketId": sio.get_sid()})
 
 
@@ -86,10 +87,11 @@ class AppManager:
         self._tracking_manager = TrackingManager(
             tracker_type="kcf",
             detector_type="yolo",
-            verifier_type="resnet_face_34",
+            verifier_type="arcface",
             frequency=args.freq,
             visualize=args.visualize,
         )
+        self._object_manager = self._tracking_manager.object_manager
         self._pixel_to_delay = Pixel2Delay(
             (args.height, args.width), "./calibration.json"
         )
@@ -170,9 +172,9 @@ class AppManager:
         """
         Function to send the frame to the server
         """
-        if self._tracking_manager.last_frame is not None:
+        if self._object_manager.get_last_frame() is not None:
             boundingBoxes = []
-            for obj in self._tracking_manager.tracked_objects.values():
+            for obj in self._object_manager.tracked_objects.values():
                 boundingBoxes.append(
                     {
                         "id": obj.id,
@@ -184,14 +186,14 @@ class AppManager:
                 )
 
             frame_string = base64.b64encode(
-                cv2.imencode(".jpg", self._tracking_manager.last_frame)[1]
+                cv2.imencode(".jpg", self._object_manager.get_last_frame())[1]
             ).decode()
             emit(
                 "newFrameAvailable",
                 "client",
                 {
                     "base64Frame": frame_string,
-                    "dimensions": self._tracking_manager.last_frame.shape,
+                    "dimensions": self._object_manager.get_last_frame().shape,
                     "boundingBoxes": boundingBoxes,
                 },
             )
@@ -220,7 +222,7 @@ class AppManager:
         """
         Function to send the audio section the target delay
         """
-        if self._selected_face in self._tracking_manager.tracked_objects:
+        if self._selected_face in self._object_manager.tracked_objects:
             pass
             # print(
             #     self._pixel_to_delay.get_delay(
