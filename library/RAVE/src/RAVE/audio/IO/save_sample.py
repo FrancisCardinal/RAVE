@@ -4,6 +4,7 @@ from pyodas.utils import CONST, load_mic_array_from_ressources
 import os
 import time
 import argparse
+import yaml
 from tkinter import filedialog
 
 CHANNELS = 4
@@ -18,17 +19,35 @@ OUTPUT_FOLDER = '/home/rave/RAVE/audio/dataset'
 
 
 # Storing hierarchy: Location -> Speech/Noise -> Name.wav
-def generate_output_path(run_args):
+def generate_output(run_args):
 
+    # Get output path
     loc = run_args.location
-    speech_noise = "speech" if run_args.name.startswith("clsnp") else "noise"
+    is_speech = run_args.name.startswith("clsnp") or run_args.name.startswith("p2") or run_args.name.startswith("p3")
+    speech_noise = "speech" if is_speech else "noise"
     name = run_args.name
-    output_file_path = os.path.join(loc, speech_noise, name)
+    output_folder_path = os.path.join(loc, speech_noise, name)
+    output_file_path = os.path.join(output_folder_path, 'audio.wav')
+
+    # Save file information
+    room_name = os.path.split(loc)[0]
+    direction = os.path.split(loc)[1]
+    output_config_path = os.path.join(output_folder_path, 'configs.yaml')
+    config_dict = dict(
+        path=output_folder_path,
+        room=room_name,
+        location=direction,
+        is_speech=is_speech,
+        sound=name
+    )
+    with open(output_config_path, "w") as outfile:
+        yaml.dump(config_dict, outfile, default_flow_style=None)
 
     return output_file_path
 
 
 def main(run_args):
+
     file_params = (
         4,
         2,
@@ -38,7 +57,7 @@ def main(run_args):
         "not compressed",
     )
 
-    output_path = generate_output_path(run_args)
+    output_path = generate_output(run_args)
 
     source = MicSource(channels=CHANNELS, mic_arr=MIC_ARRAY, chunk_size=CHUNK_SIZE, mic_index=run_args.mic_idx)
     sink = WavSink(file=output_path, wav_params=file_params, chunk_size=CHUNK_SIZE)
@@ -101,6 +120,7 @@ if __name__ == "__main__":
         type=str,
         default='tkinter',
         help="Room and location used in the room (in the format room/location)."
+             "Location format is side, depth, height in cm (x_y_z)."
     )
     parser.add_argument(
         "-n",
@@ -109,6 +129,14 @@ if __name__ == "__main__":
         type=str,
         help="Filename to be used for saving."
     )
+    # parser.add_argument(
+    #     "-d",
+    #     "--direction",
+    #     action="store",
+    #     type=str,
+    #     default='0,0,0',
+    #     help="Direction of the sound compared to the microphone array (side, depth, height in m)."
+    # )
 
     parser.add_argument(
         "-t",
