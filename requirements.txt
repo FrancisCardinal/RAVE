@@ -11,5 +11,6 @@ python-socketio
 pyaudio
 Sphinx
 sphinx_rtd_theme
-deepface
 scipy
+tensorflow
+gdown

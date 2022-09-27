@@ -65,7 +65,7 @@ class TrackingUpdater:
         self.verifier = VerifierFactory.create(
             verifier_type, threshold=verifier_threshold, device=device
         )
-        print("Got verifier from factory")
+
         self.object_manager = object_manager
         self.frequency = frequency
         self.intersection_threshold = intersection_threshold
