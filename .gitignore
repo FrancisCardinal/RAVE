@@ -134,3 +134,6 @@ dmypy.json
 # rave web
 /rave-server/node_modules/
 /rave-web/node_modules/
+
+# VS Code
+.vscode

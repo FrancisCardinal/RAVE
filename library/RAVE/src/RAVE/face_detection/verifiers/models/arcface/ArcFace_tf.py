@@ -3,15 +3,7 @@ import tensorflow
 from tensorflow import keras
 
 import os
-from pathlib import Path
 import gdown
-
-
-def get_deepface_home():
-    """
-    ...
-    """
-    return str(os.getenv("DEEPFACE_HOME", default=Path.home()))
 
 
 def load_model(
@@ -40,10 +32,12 @@ def load_model(
     # ---------------------------------------
     # check the availability of pre-trained weights
 
-    home = get_deepface_home()
-
     file_name = "arcface_weights.h5"
-    output = home + "/.deepface/weights/" + file_name
+    output_dir = os.path.join(os.path.dirname(__file__), "deepface", "weights")
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    output = os.path.join(output_dir, file_name)
 
     if os.path.isfile(output) is not True:
 
