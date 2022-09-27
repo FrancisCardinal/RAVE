@@ -396,4 +396,4 @@ class TrackingUpdater:
             if time.time() - self.last_detect >= self.frequency:
                 self.detector_update(frame_object, pre_frame, pre_detections)
 
-            time.sleep(0.05)
+            time.sleep(1 / 60)

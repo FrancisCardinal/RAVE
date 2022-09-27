@@ -222,8 +222,7 @@ class TrackingManager:
                 if terminate or not monitor.window_is_alive():
                     self.kill_threads()
                     break
-
-            time.sleep(0.002)
+            time.sleep(1 / 60)
 
     def start(self, args):
         """
