@@ -1,7 +1,10 @@
-from .trackers import TrackerFactory
+import cv2
 
-NB_FRAMES_TO_CONFIRMED = 10
-CONFIRMATION_THRESHOLD = 8
+from .face_trackers import TrackerFactory
+from .verifiers.Encoding import Encoding
+
+NB_FRAMES_TO_CONFIRMED = 8
+CONFIRMATION_THRESHOLD = 5
 NB_FRAMES_TO_REJECT = 10
 REJECTION_THRESHOLD = 2
 
@@ -52,12 +55,13 @@ class TrackedObject:
 
     """
 
-    def __init__(self, tracker_type, frame, bbox, mouth, identifier):
+    def __init__(self, tracker_type, frame_object, bbox, mouth, identifier):
         self.tracker = TrackerFactory.create(tracker_type)
         self._tracker_type = tracker_type
         self._id = identifier
         self.bbox = bbox
-        self._encoding = None
+        self._encoding = Encoding()
+        self.current_frame = frame_object
 
         # Validation
         self._evaluation_frames = 0
@@ -77,8 +81,12 @@ class TrackedObject:
         self._relative_landmark = None
         self.update_landmark(mouth)
 
-        self.tracker.start(frame, bbox)
+        self.tracker.start(frame_object.frame, bbox)
         self.tracker_started = True
+
+        # Flags used by TrackedObjectManager
+        self.updating_missed_frames = False
+        self.missed_frames_update_pending = False
 
     @property
     def id(self):
@@ -141,6 +149,12 @@ class TrackedObject:
         """
         return self._rejected
 
+    def update_id(self, new_id):
+        """
+        Setter for id property
+        """
+        self._id = new_id
+
     def update_bbox(self, bbox):
         """
         Update the bounding box
@@ -151,12 +165,18 @@ class TrackedObject:
         """
         self.bbox = bbox
 
-    def update_encoding(self, encoding):
+    def update_encoding(self, feature, frame=None, bbox=None):
         """
         Args:
-            encoding (list): New feature vector representing the object
+            feature (list): New feature vector representing the object
         """
-        self._encoding = encoding
+        face_image = None
+        if frame is not None and bbox is not None:
+            x0, y0 = bbox[0], bbox[1]
+            x1, y1 = x0 + bbox[2], y0 + bbox[3]
+            face_image = frame[y0:y1, x0:x1]
+
+        self._encoding.update(feature, face_image)
 
     def confirm(self):
         """Used to confirm a bbox in pre-processing"""
@@ -202,6 +222,8 @@ class TrackedObject:
         self._rejected_frames = 0
         self._rejected = False
         self.bbox = pre_tracked_object.bbox
+        self.current_frame = pre_tracked_object.current_frame
+        self.encoding.restore(pre_tracked_object)
         self._relative_landmark = pre_tracked_object._relative_landmark
 
     def increment_evaluation_frames(self):
@@ -223,7 +245,7 @@ class TrackedObject:
         y_rel = (y - y_b) / h_b
         self._relative_landmark = (x_rel, y_rel)
 
-    def reset(self, frame, bbox, landmark):
+    def reset(self, frame_object, bbox, landmark):
         """
         Used to refresh (reset) the bounding box and landmarks with new
         information
@@ -235,11 +257,37 @@ class TrackedObject:
             landmark (tuple (int, int)): x & y coordinates for the landmark
         """
         self.tracker_started = False  # Tracker is not ready to use
-        if self._tracker_type == "sort":
-            self.tracker.update_tracker(bbox)
-        else:
-            self.tracker = TrackerFactory.create(self._tracker_type)
-            self.tracker.start(frame, bbox)
+        self.tracker = TrackerFactory.create(self._tracker_type)
+        self.tracker.start(frame_object.frame, bbox)
         self.bbox = bbox
+        self.current_frame = frame_object
         self.update_landmark(landmark)
+
+        # Request missing frames update
+        self.missed_frames_update_pending = True
         self.tracker_started = True  # Tracker is ready to use
+        self._confirmed = True  # Useful when recovering from pre-processing
+
+    def draw_prediction_on_frame(self, frame):
+        """
+        Draw the tracker prediction on the frame
+
+        Args:
+            frame (ndarray): current frame with shape HxWx3
+        """
+
+        x, y, w, h = self.bbox
+        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+        if self.id is not None:
+            cv2.putText(
+                frame,
+                self.id,
+                (x, y - 2),
+                0,
+                1,
+                [0, 0, 255],
+                thickness=2,
+                lineType=cv2.LINE_AA,
+            )
+
+        return frame

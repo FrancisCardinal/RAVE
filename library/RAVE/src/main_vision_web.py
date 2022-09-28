@@ -11,15 +11,27 @@ if __name__ == "__main__":
         "--video_source",
         dest="video_source",
         type=int,
-        help="Video input source identifier",
+        help="Video input source identifier for face tracking camera",
         default=0,
+    )
+    parser.add_argument(
+        "--eye_video_source",
+        dest="eye_video_source",
+        type=int,
+        help="Video input source identifier for eye tracker camera",
+        default=1,
     )
     parser.add_argument(
         "--flip_display_dim",
         dest="flip_display_dim",
-        type=bool,
         help="If true, will flip window dimensions to (width, height)",
-        default=False,
+        action="store_true",
+    )
+    parser.add_argument(
+        "--flip",
+        dest="flip",
+        help="Flip display orientation by 180 degrees on horizontal axis",
+        action="store_true",
     )
     parser.add_argument(
         "--freq",

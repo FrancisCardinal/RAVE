@@ -1,5 +1,4 @@
 import cv2
-import dlib
 from abc import ABC, abstractmethod
 
 
@@ -119,6 +118,7 @@ class CorrelationTracker(Tracker):
     """
 
     def __init__(self):
+        import dlib
         self.tracker = dlib.correlation_tracker()
 
     def start(self, frame, bbox):
@@ -136,6 +136,7 @@ class CorrelationTracker(Tracker):
 
         # Convert (x0, y0, w, h) format to
         # (x0, y0, x1, x2) format for dlib rectangle
+        import dlib
         rect_dlib = dlib.rectangle(
             bbox[0], bbox[1], bbox[0] + bbox[2], bbox[1] + bbox[3]
         )

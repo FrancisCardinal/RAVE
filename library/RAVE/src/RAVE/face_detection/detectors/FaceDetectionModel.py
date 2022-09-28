@@ -5,8 +5,8 @@ import sys
 from torch import nn
 
 if platform.release().split("-")[-1] == "tegra":
-    from .detectors.models.yolov5.models.trt_model import TrtModel
-    from .detectors.models.yolov5.utils.general import non_max_suppression_face
+    from .models.yolov5.models.trt_model import TrtModel
+    from .models.yolov5.utils.general import non_max_suppression_face
 
 
 class FaceDetectionModel(nn.Module):
