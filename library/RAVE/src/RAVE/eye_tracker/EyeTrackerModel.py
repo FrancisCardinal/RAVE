@@ -20,9 +20,9 @@ class EyeTrackerModel(nn.Module):
         head is only useful / used during the training process.
         """
         super(EyeTrackerModel, self).__init__()
-        self.model = torch.hub.load(
-            "pytorch/vision:v0.9.0", "resnet34", pretrained=True
-        )
+        SRC = "pytorch/vision:v0.9.0"
+        MODEL = "resnet34"
+        self.model = torch.hub.load(SRC, MODEL, pretrained=True)
         for param in self.model.parameters():
             param.requires_grad = False
 
