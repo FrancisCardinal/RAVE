@@ -89,7 +89,9 @@ class EyeTrackerTrainer(Trainer):
     def _weighted_binary_cross_entropy(self, predictions, targets):
         loss = self._weights[1] * (
             targets * torch.log(predictions + 1e-5)
-        ) + self._weights[0] * ((1 - targets) * torch.log(1 - predictions + 1e-5))
+        ) + self._weights[0] * (
+            (1 - targets) * torch.log(1 - predictions + 1e-5)
+        )
 
         return torch.neg(torch.sum(loss))
 
