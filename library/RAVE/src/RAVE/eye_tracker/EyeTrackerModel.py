@@ -36,13 +36,13 @@ class EyeTrackerModel(nn.Module):
 
         DROPOUT = 0.02
         self.model.fc = nn.Sequential(
-            nn.Linear(n_inputs, 2048),
-            nn.BatchNorm1d(num_features=2048),
+            nn.Linear(n_inputs, 128),
+            nn.BatchNorm1d(num_features=128),
             nn.ReLU(),
             nn.Dropout(DROPOUT),
         )
         self.regression_head = nn.Sequential(
-            nn.Linear(2048, 1024),
+            nn.Linear(128, 1024),
             nn.BatchNorm1d(num_features=1024),
             nn.ReLU(),
             nn.Dropout(DROPOUT),
@@ -62,15 +62,15 @@ class EyeTrackerModel(nn.Module):
         )
         DROPOUT_VISIBILITY = 0.20
         self.visibility_classification_head = nn.Sequential(
-            nn.Linear(2048, 1024),
-            nn.BatchNorm1d(num_features=1024),
+            nn.Linear(128, 16),
+            nn.BatchNorm1d(num_features=16),
             nn.ReLU(),
             nn.Dropout(DROPOUT_VISIBILITY),
-            nn.Linear(1024, 128),
-            nn.BatchNorm1d(num_features=128),
+            nn.Linear(16, 8),
+            nn.BatchNorm1d(num_features=8),
             nn.ReLU(),
             nn.Dropout(DROPOUT_VISIBILITY),
-            nn.Linear(128, 1),
+            nn.Linear(8, 1),
         )
 
     def forward(self, x):
