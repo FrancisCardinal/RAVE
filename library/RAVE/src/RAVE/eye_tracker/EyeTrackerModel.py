@@ -20,6 +20,9 @@ class EyeTrackerModel(nn.Module):
         head is only useful / used during the training process.
         """
         super(EyeTrackerModel, self).__init__()
+
+        torch.hub._validate_not_a_forked_repo = lambda a, b, c: True
+
         SRC = "pytorch/vision:v0.9.0"
         MODEL = "resnet34"
         self.model = torch.hub.load(SRC, MODEL, pretrained=True)
