@@ -53,7 +53,7 @@ class TrackingManager:
         verifier_type,
         frequency,
         intersection_threshold=0.2,
-        verifier_threshold=0.25,
+        verifier_threshold=0.5,
         visualize=True,
     ):
         self.object_manager = TrackedObjectManager(tracker_type)
