@@ -1,4 +1,3 @@
-import time
 import cv2
 import threading
 import numpy as np
@@ -222,7 +221,6 @@ class TrackingManager:
                 if terminate or not monitor.window_is_alive():
                     self.kill_threads()
                     break
-            time.sleep(1 / 60)
 
     def start(self, args):
         """

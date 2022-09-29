@@ -56,7 +56,7 @@ if __name__ == "__main__":
         tracker_type="kcf",
         detector_type="yolo",
         verifier_type="arcface",
-        verifier_threshold=0.32,
+        verifier_threshold=0.5,
         frequency=frequency,
         visualize=not args.headless,
     )
