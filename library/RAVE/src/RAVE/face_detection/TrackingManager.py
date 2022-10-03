@@ -52,7 +52,7 @@ class TrackingManager:
         detector_type,
         verifier_type,
         frequency,
-        intersection_threshold=0.2,
+        intersection_threshold=-0.5,
         verifier_threshold=0.5,
         visualize=True,
     ):
@@ -85,25 +85,13 @@ class TrackingManager:
         q or escape exits
         x removes the last tracked object
         f shows history of faces captured for each tracked object
-        s lets you defined an object to track
 
         Args:
             frame (ndarray): current frame with shape HxWx3
             key_pressed (int): key pressed on the opencv window
         """
         key = key_pressed & 0xFF
-        if key == ord("s"):
-            # Select object to track manually
-            selected_roi = cv2.selectROI(
-                "Frame",
-                frame_object.frame,
-                fromCenter=False,
-                showCrosshair=True,
-            )
-            self.object_manager.add_pre_tracked_object(
-                frame_object, selected_roi, None
-            )
-        elif key == ord("x"):
+        if key == ord("x"):
             # Remove last tracked object
             if len(self.object_manager.tracked_objects) > 0:
                 self.object_manager.tracked_objects.popitem()
@@ -262,4 +250,6 @@ class TrackingManager:
 
         # Start capture & display loop
         self.main_loop(monitor, cap, fps, args.flip)
+
+        update_loop.is_alive = False
         self.object_manager.stop_tracking()

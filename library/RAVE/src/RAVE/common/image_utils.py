@@ -364,6 +364,48 @@ def intersection(bbox1, bbox2):
     return inter_area / smallest_area
 
 
+def giou(bbox1, bbox2):
+    """
+    Generalized intersection over union (which returns a score
+    even when there is no overlap, based on distance)
+    paper: https://arxiv.org/pdf/1911.08287.pdf
+
+    Args:
+        bbox1 (np.ndarray): xywh coords
+        bbox2 (np.ndarray): xywh coords
+
+    Returns:
+        Generalized IOU
+    """
+
+    x1, y1, w1, h1 = bbox1
+    x2, y2, w2, h2 = bbox2
+
+    x0_inter = max(x1, x2)
+    y0_inter = max(y1, y2)
+    x1_inter = min(x1 + w1, x2 + w2)
+    y1_inter = min(y1 + h1, y2 + h2)
+
+    width_inter = max(0, x1_inter - x0_inter)
+    height_inter = max(0, y1_inter - y0_inter)
+
+    # compute the area of intersection rectangle
+    inter = width_inter * height_inter
+    union = (w1 * h1) + (w2 * h2) - inter
+
+    iou = inter / union
+
+    # area of the smallest enclosing box
+    width_c = max(x1 + w1, x2 + w2) - min(x1, x2)
+    height_c = max(y1 + h1, y2 + h2) - min(y1, y2)
+    area_c = width_c * height_c
+
+    eps = 1e-7
+    giou = iou - ((area_c - union) / (area_c + eps))
+
+    return giou
+
+
 def check_frontal_face(
     facial_landmarks,
     thresh_dist_low=0.7,

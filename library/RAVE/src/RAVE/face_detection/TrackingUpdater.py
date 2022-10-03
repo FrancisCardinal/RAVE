@@ -4,7 +4,7 @@ from collections import defaultdict
 
 from .face_detectors import DetectorFactory
 from .face_verifiers import VerifierFactory
-from ..common.image_utils import intersection
+from ..common.image_utils import giou
 from .verifiers.Encoding import Encoding
 
 
@@ -105,9 +105,8 @@ class TrackingUpdater:
             intersection_scores = defaultdict(lambda: 0)
 
             for tracker_id, trackable_object in unmatched_objects.items():
-                intersection_scores[tracker_id] = intersection(
-                    detection.bbox, trackable_object.bbox
-                )
+                int_score = giou(detection.bbox, trackable_object.bbox)
+                intersection_scores[tracker_id] = int_score
 
             max_id = None
             if intersection_scores:
@@ -160,16 +159,31 @@ class TrackingUpdater:
                 matched_object.increment_evaluation_frames()
 
                 # Also extract new feature vector
-                # TODO: Could set verifier on its own update freq
-                #  (larger than detector update)
                 feature = self.verifier.get_features(
                     frame_object.frame, [detection.bbox]
                 )[0]
 
-                # TODO: Verify that the new face actually matches (verifier)
-                matched_object.update_encoding(
-                    feature, frame_object.frame, detection.bbox
-                )
+                # Verify that the new face actually matches
+                similarity_score = self.verifier.get_scores(
+                    [obj.encoding],
+                    Encoding(feature),
+                )[0]
+
+                if similarity_score >= self.verifier_threshold:
+                    matched_object.update_encoding(
+                        feature, frame_object.frame, detection.bbox
+                    )
+                else:
+                    # Match refuse since the appearances are too different
+                    print(
+                        "Refusing IOU match, due to similarity score:",
+                        similarity_score,
+                        "<",
+                        self.verifier_threshold,
+                    )
+                    # Moving to unmatched
+                    unmatched_detections.append(detection)
+                    unmatched_objects[obj.id] = obj
 
         # Handle unmatched detections
         for new_detection in unmatched_detections:
@@ -179,7 +193,7 @@ class TrackingUpdater:
             )
 
         # Reject unmatched tracked objects
-        for obj_id, obj in unmatched_objects.items():
+        for _, obj in unmatched_objects.items():
             if obj.id in tracked_objects.keys():
                 tracked_object = tracked_objects[obj.id]
                 tracked_object.reject()
@@ -260,7 +274,7 @@ class TrackingUpdater:
                 pre_tracked_object.confirm()
 
         # Handle unmatched objects
-        for obj_id, obj in unmatched_objects.items():
+        for _, obj in unmatched_objects.items():
             obj.increment_evaluation_frames()
 
         # TODO: Could possibly split this function here ----------------
@@ -377,16 +391,14 @@ class TrackingUpdater:
             fps (FPS): To obtain the frames per second
         """
 
-        # Wait for first frame to be available
-        while self.last_frame is None:
-            time.sleep(0.1)
-
+        last_frame_id = -1
         while self.is_alive:
             frame_object = self.last_frame
 
-            if frame_object is None:
-                print("No frame received, exiting")
-                break
+            if frame_object is None or frame_object.id == last_frame_id:
+                time.sleep(0.01)
+                continue  # No new frame
+            last_frame_id = frame_object.id
 
             # Do pre-processing of faces
             pre_frame, pre_detections = None, None
@@ -395,5 +407,3 @@ class TrackingUpdater:
                 pre_frame, pre_detections = self.preprocess_faces(frame_object)
             if time.time() - self.last_detect >= self.frequency:
                 self.detector_update(frame_object, pre_frame, pre_detections)
-
-            time.sleep(1 / 60)

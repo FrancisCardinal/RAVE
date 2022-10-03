@@ -224,20 +224,21 @@ class TrackedObjectManager:
             tracked_object (TrackedObject): The object to track
         """
 
+        last_frame_id = -1
         while (
             tracked_object in self.tracked_objects.values()
             or tracked_object in self.pre_tracked_objects.values()
         ):
-            time.sleep(1 / 60)
 
             frame_object = self.last_frame
-
-            if frame_object is None:
-                print("No frame received")
-                continue
+            if frame_object is None or last_frame_id == frame_object.id:
+                time.sleep(0.01)
+                continue  # No new frame
+            last_frame_id = frame_object.id
 
             # Make sure tracker is ready to use
             if not tracked_object.tracker_started:
+                time.sleep(0.01)
                 continue
 
             # Start updating missed frames if required by object
@@ -246,6 +247,7 @@ class TrackedObjectManager:
 
             # Make sure missed frame update is not in progress
             if tracked_object.updating_missed_frames:
+                time.sleep(0.01)
                 continue
 
             self.update_tracked_object(tracked_object, frame_object)
