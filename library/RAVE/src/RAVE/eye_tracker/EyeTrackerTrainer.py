@@ -65,13 +65,10 @@ class EyeTrackerTrainer(Trainer):
             total_visible_pupils += visibility.sum()
             total_nb_images += visibility.shape[0]
 
-        for _, _, visibility in self.validation_loader:
-            total_visible_pupils += visibility.sum()
-            total_nb_images += visibility.shape[0]
-
         ratio_of_visible_pupils = total_visible_pupils / total_nb_images
         ratio_of_visible_pupils = ratio_of_visible_pupils.item()
-        self._weights = [ratio_of_visible_pupils, 1 - ratio_of_visible_pupils]
+        print("RATIO OF VISIBLE PUPILS =  " + str(ratio_of_visible_pupils))
+        self._weights = [1 - ratio_of_visible_pupils, ratio_of_visible_pupils]
         self.pupil_visibility_classification_loss_function = (
             self._weighted_binary_cross_entropy
         )
@@ -91,8 +88,10 @@ class EyeTrackerTrainer(Trainer):
 
     def _weighted_binary_cross_entropy(self, predictions, targets):
         loss = self._weights[1] * (
-            targets * torch.log(predictions)
-        ) + self._weights[0] * ((1 - targets) * torch.log(1 - predictions))
+            targets * torch.log(predictions + 1e-5)
+        ) + self._weights[0] * (
+            (1 - targets) * torch.log(1 - predictions + 1e-5)
+        )
 
         return torch.neg(torch.sum(loss))
 
@@ -144,6 +143,8 @@ class EyeTrackerTrainer(Trainer):
                     f"{self.min_validation_loss:.6f}--->"
                     f"{current_regression_validation_loss:.6f})"
                     f" : Saved the model"
+                    f" Validation visibility loss : "
+                    f"{current_visibility_validation_loss:.6f}"
                 )
                 self.min_validation_loss = current_regression_validation_loss
 
