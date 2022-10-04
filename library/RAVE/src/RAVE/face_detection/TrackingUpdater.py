@@ -220,27 +220,10 @@ class TrackingUpdater:
 
         return None
 
-    def preprocess_faces(self, frame_object):
+    def handle_matches(self, frame_object, matched_pairs, unmatched_objects):
         """
-        Associate predictions to objects currently being pre-tracked to confirm
-        that they are faces.
-
-        Args:
-            frame (ndarray): current frame with shape HxWx3
+        Handle successful redetections and unmatched objects during update phase
         """
-        pre_tracked_objects = self.object_manager.pre_tracked_objects
-        if len(pre_tracked_objects) == 0:
-            return
-
-        annotated_frame, detections = self.detector.predict(
-            frame_object.frame.copy(), draw_on_frame=True
-        )
-
-        pre_tracked_objects_copy = pre_tracked_objects.copy()
-        matched_pairs, unmatched_objects, _ = self.match_faces_by_iou(
-            pre_tracked_objects_copy, detections
-        )
-
         # Handle successful re-detections
         for pair in matched_pairs:
             pre_tracked_object, detection = pair
@@ -277,9 +260,11 @@ class TrackingUpdater:
         for _, obj in unmatched_objects.items():
             obj.increment_evaluation_frames()
 
-        # TODO: Could possibly split this function here ----------------
-
-        # Perform operations on all pre-tracked objects
+    def update_pretracked_objects(self, frame_object, matched_pairs):
+        """
+        Perform operations on all pre-tracked objects
+        """
+        pre_tracked_objects = self.object_manager.pre_tracked_objects
         finished_trackers_id = set()
         pre_tracker_frame = frame_object.frame.copy()
         rejected_objects = self.object_manager.rejected_objects
@@ -356,6 +341,31 @@ class TrackingUpdater:
             self.object_manager.remove_pre_tracked_object(pre_id)
 
         self.pre_process_frame = pre_tracker_frame
+
+    def preprocess_faces(self, frame_object):
+        """
+        Associate predictions to objects currently being pre-tracked to confirm
+        that they are faces.
+
+        Args:
+            frame (ndarray): current frame with shape HxWx3
+        """
+        pre_tracked_objects = self.object_manager.pre_tracked_objects
+        if len(pre_tracked_objects) == 0:
+            return
+
+        annotated_frame, detections = self.detector.predict(
+            frame_object.frame.copy(), draw_on_frame=True
+        )
+
+        pre_tracked_objects_copy = pre_tracked_objects.copy()
+        matched_pairs, unmatched_objects, _ = self.match_faces_by_iou(
+            pre_tracked_objects_copy, detections
+        )
+
+        self.handle_matches(frame_object, matched_pairs, unmatched_objects)
+        self.update_pretracked_objects(frame_object, matched_pairs)
+
         return annotated_frame, detections
 
     def detector_update(self, frame_object, pre_frame, pre_detections):
