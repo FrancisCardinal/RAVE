@@ -228,7 +228,7 @@ class TrackedObjectManager:
             tracked_object in self.tracked_objects.values()
             or tracked_object in self.pre_tracked_objects.values()
         ):
-            time.sleep(0.05)
+            time.sleep(1 / 60)
 
             frame_object = self.last_frame
 

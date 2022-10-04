@@ -1,4 +1,3 @@
-import time
 import cv2
 import threading
 import numpy as np
@@ -54,7 +53,7 @@ class TrackingManager:
         verifier_type,
         frequency,
         intersection_threshold=0.2,
-        verifier_threshold=0.25,
+        verifier_threshold=0.5,
         visualize=True,
     ):
         self.object_manager = TrackedObjectManager(tracker_type)
@@ -222,8 +221,6 @@ class TrackingManager:
                 if terminate or not monitor.window_is_alive():
                     self.kill_threads()
                     break
-
-            time.sleep(0.002)
 
     def start(self, args):
         """

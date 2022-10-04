@@ -65,7 +65,7 @@ class TrackingUpdater:
         self.verifier = VerifierFactory.create(
             verifier_type, threshold=verifier_threshold, device=device
         )
-        print("Got verifier from factory")
+
         self.object_manager = object_manager
         self.frequency = frequency
         self.intersection_threshold = intersection_threshold
@@ -396,4 +396,4 @@ class TrackingUpdater:
             if time.time() - self.last_detect >= self.frequency:
                 self.detector_update(frame_object, pre_frame, pre_detections)
 
-            time.sleep(0.05)
+            time.sleep(1 / 60)

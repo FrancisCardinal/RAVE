@@ -3,9 +3,9 @@ import cv2
 from .face_trackers import TrackerFactory
 from .verifiers.Encoding import Encoding
 
-NB_FRAMES_TO_CONFIRMED = 8
-CONFIRMATION_THRESHOLD = 5
-NB_FRAMES_TO_REJECT = 10
+NB_FRAMES_TO_CONFIRMED = 6
+CONFIRMATION_THRESHOLD = 4
+NB_FRAMES_TO_REJECT = 6
 REJECTION_THRESHOLD = 2
 
 
