@@ -279,7 +279,7 @@ class VideosUnpacker(DatasetBuilder):
         """
         if self.current_ellipse is not None:
             self.current_ellipse.crop(
-                ORIGINAL_HEIGHT, ORIGINAL_WIDTH, EyeTrackerDataset.CROP_SIZE
+                ORIGINAL_HEIGHT, ORIGINAL_WIDTH, self._CROP_SIZE
             )
             label = self.current_ellipse.to_list()
         else:
