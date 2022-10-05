@@ -299,7 +299,7 @@ def inference(device):
 
     wait_for_enter("set offset")
     gaze_inferer_manager.set_offset()
-    gaze_inferer_manager.save_new_calibration("tmp.json")
+    gaze_inferer_manager.save_new_calibration("tmp")
 
     wait_for_enter("start inference")
     gaze_inferer_manager.set_selected_calibration_path("tmp")

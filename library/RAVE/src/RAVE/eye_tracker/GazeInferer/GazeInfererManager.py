@@ -152,6 +152,8 @@ class GazeInfererManager:
             file_path (string): The calibration file's path.
         """
         self.log("Select calibration called")
+        self.list_available_calibrations()
+
         self.selected_calibration_path = [
             d["name"] + ".json"
             for d in self.list_calibration
