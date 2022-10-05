@@ -6,8 +6,7 @@ import numpy as np
 from .TrackingUpdater import TrackingUpdater
 from .TrackedObjectManager import TrackedObjectManager
 
-from .fpsHelper import FPS
-from pyodas.visualize import VideoSource, Monitor
+from pyodas.visualize import Monitor
 
 
 class FrameObject:
@@ -49,6 +48,7 @@ class TrackingManager:
 
     def __init__(
         self,
+        cap,
         tracker_type,
         detector_type,
         verifier_type,
@@ -56,6 +56,7 @@ class TrackingManager:
         intersection_threshold=0.2,
         verifier_threshold=0.25,
         visualize=True,
+        tracking_or_calib=lambda: True,
     ):
         self.object_manager = TrackedObjectManager(tracker_type)
         self.updater = TrackingUpdater(
@@ -67,9 +68,11 @@ class TrackingManager:
             verifier_threshold,
         )
 
+        self._cap = cap
         self.is_alive = False
         self._visualize = visualize
         self.frame_count = 0
+        self._tracking_or_calib = tracking_or_calib
 
     def kill_threads(self):
         """
@@ -168,7 +171,7 @@ class TrackingManager:
 
         return tracking_frame
 
-    def main_loop(self, monitor, cap, fps, flip):
+    def main_loop(self, monitor, flip):
         """
         Loop to be called on separate thread that handles retrieving new image
         frames from video input and displaying output in windows
@@ -176,52 +179,50 @@ class TrackingManager:
         Args:
             monitor (Monitor):
                 pyodas monitor to display the frame
-            cap (VideoSource):
-                pyodas video source object to obtain video feed from camera
         """
 
         while self.is_alive:
+            if self._tracking_or_calib():
+                # Capture image and pass to classes that need it
+                frame = self._cap()
+                if flip:
+                    frame = cv2.flip(frame, 0)
 
-            # Capture image and pass to classes that need it
-            frame = cap()
-            if flip:
-                frame = cv2.flip(frame, 0)
+                frame_object = FrameObject(frame, self.frame_count)
+                self.frame_count += 1
 
-            frame_object = FrameObject(frame, self.frame_count)
-            self.frame_count += 1
+                self.updater.last_frame = frame_object
+                self.object_manager.on_new_frame(frame_object)
 
-            self.updater.last_frame = frame_object
-            self.object_manager.on_new_frame(frame_object)
+                if monitor is not None:
+                    # Draw detections from tracked objects
+                    tracking_frame = frame.copy()
+                    self.draw_all_predictions_on_frame(tracking_frame)
 
-            if monitor is not None:
-                # Draw detections from tracked objects
-                tracking_frame = frame.copy()
-                self.draw_all_predictions_on_frame(tracking_frame)
+                    # fps.setFps()
+                    # fps.writeFpsToFrame(tracking_frame)
 
-                # fps.setFps()
-                # fps.writeFpsToFrame(tracking_frame)
+                    monitor.update("Tracking", tracking_frame)
 
-                monitor.update("Tracking", tracking_frame)
+                    # Draw most recent pre-processing frame
+                    pre_process_frame = self.updater.pre_process_frame
+                    if pre_process_frame is not None:
+                        monitor.update("Pre-process", pre_process_frame)
+                        self.updater.pre_process_frame = None
 
-                # Draw most recent pre-processing frame
-                pre_process_frame = self.updater.pre_process_frame
-                if pre_process_frame is not None:
-                    monitor.update("Pre-process", pre_process_frame)
-                    self.updater.pre_process_frame = None
+                    # Draw most recent detector frame
+                    detector_frame = self.updater.detector_frame
+                    if detector_frame is not None:
+                        monitor.update("Detection", detector_frame)
+                        self.updater.detector_frame = None
 
-                # Draw most recent detector frame
-                detector_frame = self.updater.detector_frame
-                if detector_frame is not None:
-                    monitor.update("Detection", detector_frame)
-                    self.updater.detector_frame = None
-
-                # Keyboard input controls
-                terminate = self.listen_keyboard_input(
-                    frame_object, monitor.key_pressed
-                )
-                if terminate or not monitor.window_is_alive():
-                    self.kill_threads()
-                    break
+                    # Keyboard input controls
+                    terminate = self.listen_keyboard_input(
+                        frame_object, monitor.key_pressed
+                    )
+                    if terminate or not monitor.window_is_alive():
+                        self.kill_threads()
+                        break
 
             time.sleep(0.002)
 
@@ -233,13 +234,11 @@ class TrackingManager:
                 Arguments from argument parser, see main_tracking for more
                 information
         """
-        # cap = None
-        # shape = (1422, 948)
-        cap = VideoSource(args.video_source, args.width, args.height)
+
         shape = (
-            (cap.shape[1], cap.shape[0])
+            (self._cap.shape[1], self._cap.shape[0])
             if args.flip_display_dim
-            else cap.shape
+            else self._cap.shape
         )
         self.is_alive = True
         if self._visualize:
@@ -254,8 +253,6 @@ class TrackingManager:
             )
         else:
             monitor = None
-        cap.set(cv2.CAP_PROP_FPS, 60)
-        fps = FPS()
 
         # Start update loop
         update_loop = threading.Thread(
@@ -264,5 +261,5 @@ class TrackingManager:
         update_loop.start()
 
         # Start capture & display loop
-        self.main_loop(monitor, cap, fps, args.flip)
+        self.main_loop(monitor, args.flip)
         self.object_manager.stop_tracking()
