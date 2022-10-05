@@ -264,6 +264,9 @@ class GazeInferer:
 
                     x, y = self.get_angles_from_image(images)
 
+                    if (x is None) or (y is None):
+                        continue
+
                     self._past_xs = np.roll(self._past_xs, -1)
                     self._past_ys = np.roll(self._past_ys, -1)
                     self._past_xs[-1] = x
@@ -311,18 +314,16 @@ class GazeInferer:
         """
         images = images.to(self._device)
 
-        predictions, _ = self._ellipse_dnn(images)
+        predictions, predicted_visibilities = self._ellipse_dnn(images)
+        prediction, visibility = predictions[0], predicted_visibilities[0]
 
-        prediction = predictions[0]
+        if visibility.item() < 0.90:
+            return None, None
+
         self._eyefitter.unproject_single_observation(
             self.torch_prediction_to_deepvog_format(prediction)
         )
-        (
-            _,
-            n_list,
-            _,
-            _,
-        ) = self._eyefitter.gen_consistent_pupil()
+        _, n_list, _, _ = self._eyefitter.gen_consistent_pupil()
         x, y = self._eyefitter.convert_vec2angle31(n_list[0])
 
         if save_video_feed:

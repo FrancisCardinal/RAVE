@@ -3,7 +3,7 @@ import os
 from threading import Thread
 from datetime import datetime
 
-from RAVE.common.DANNTrainer import DANNTrainer
+from RAVE.eye_tracker.EyeTrackerTrainer import EyeTrackerTrainer
 
 from RAVE.eye_tracker.EyeTrackerModel import EyeTrackerModel
 from RAVE.eye_tracker.EyeTrackerDataset import (
@@ -37,7 +37,7 @@ class GazeInfererManager:
 
         self.model = EyeTrackerModel()
         self.model.to(self.DEVICE)
-        DANNTrainer.load_best_model(
+        EyeTrackerTrainer.load_best_model(
             self.model,
             EyeTrackerDataset.EYE_TRACKER_DIR_PATH,
             self.DEVICE,
