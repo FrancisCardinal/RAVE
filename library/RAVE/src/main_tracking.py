@@ -1,4 +1,6 @@
 import argparse
+import cv2
+from pyodas.visualize import VideoSource
 from RAVE.face_detection.TrackingManager import TrackingManager
 
 if __name__ == "__main__":
@@ -51,8 +53,12 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
+    cap = VideoSource(args.video_source, args.width, args.height)
+    cap.set(cv2.CAP_PROP_FPS, 60)
+
     frequency = args.freq
     tracking_manager = TrackingManager(
+        cap=cap,
         tracker_type="kcf",
         detector_type="yolo",
         verifier_type="arcface",

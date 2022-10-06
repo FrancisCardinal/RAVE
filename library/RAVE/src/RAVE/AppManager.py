@@ -3,11 +3,14 @@ import time
 import socketio
 import base64
 import threading
+from pyodas.visualize import VideoSource
+from pyodas.io import MicSource
 
 # from tqdm import tqdm
 
 from .face_detection.TrackingManager import TrackingManager
 from .face_detection.Pixel2Delay import Pixel2Delay
+from .face_detection.Calibration_audio_vision import CalibrationAudioVision
 from .eye_tracker.GazeInferer.GazeInfererManager import GazeInfererManager
 
 # from RAVE.face_detection.Direction2Pixel import Direction2Pixel
@@ -84,12 +87,18 @@ class AppManager:
     """
 
     def __init__(self, args):
+        self._cap = VideoSource(args.video_source, args.width, args.height)
+        self._cap.set(cv2.CAP_PROP_FPS, 60)
+        self._mic_source = MicSource(4, chunk_size=256)
+        self._tracking = True
         self._tracking_manager = TrackingManager(
+            cap=self._cap,
             tracker_type="kcf",
             detector_type="yolo",
             verifier_type="arcface",
             frequency=args.freq,
             visualize=args.visualize,
+            tracking_or_calib=self.is_tracking,
         )
         self._object_manager = self._tracking_manager.object_manager
         self._pixel_to_delay = Pixel2Delay(
@@ -100,6 +109,9 @@ class AppManager:
         self._delay_update_frequency = 0.25
         self._selected_face = None
         self._vision_mode = "mute"
+        self._calibrationAudioVision = CalibrationAudioVision(
+            self._cap, self._mic_source, emit
+        )
 
         self._gaze_inferer_manager = GazeInfererManager(
             args.eye_video_source, "cpu"
@@ -131,6 +143,14 @@ class AppManager:
         sio.on("selectEyeTrackingCalib", self._select_eye_tracking_calibration)
         sio.on("deleteEyeTrackingCalib", self._delete_eye_tracking_calibration)
         sio.on("activateEyeTracking", self.control_eye_tracking)
+
+        # Audio-vision calib
+        sio.on("nextCalibTarget", self._calibrationAudioVision.go_next_target)
+        sio.on(
+            "changeCalibParams", self._calibrationAudioVision.change_nb_points
+        )
+        sio.on("goToVisionCalibration", self.start_calib_audio_vision)
+        sio.on("quitVisionCalibration", self.stop_calib_audio_vision)
 
     def emit_calibration_list(self):
         """
@@ -170,6 +190,9 @@ class AppManager:
             daemon=True,
         ).start()
 
+    def is_tracking(self):
+        return self._tracking
+
     def send_to_server(self):
         """
         Function to send the frame to the server
@@ -199,6 +222,16 @@ class AppManager:
                     "boundingBoxes": boundingBoxes,
                 },
             )
+
+    def start_calib_audio_vision(self):
+        print("Start calibration")
+        self._tracking = False
+        self._calibrationAudioVision.start_calib()
+
+    def stop_calib_audio_vision(self):
+        print("Stop Calibration")
+        self._calibrationAudioVision.stop_calib()
+        self._tracking = True
 
     def _update_selected_face(self, payload):
         """
