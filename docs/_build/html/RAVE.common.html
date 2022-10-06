@@ -62,6 +62,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#RAVE.common.image_utils.check_frontal_face"><code class="docutils literal notranslate"><span class="pre">check_frontal_face()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#RAVE.common.image_utils.clip_coords"><code class="docutils literal notranslate"><span class="pre">clip_coords()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#RAVE.common.image_utils.do_affine_grid_operation"><code class="docutils literal notranslate"><span class="pre">do_affine_grid_operation()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#RAVE.common.image_utils.giou"><code class="docutils literal notranslate"><span class="pre">giou()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#RAVE.common.image_utils.intersection"><code class="docutils literal notranslate"><span class="pre">intersection()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#RAVE.common.image_utils.inverse_normalize"><code class="docutils literal notranslate"><span class="pre">inverse_normalize()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#RAVE.common.image_utils.opencv_image_to_tensor"><code class="docutils literal notranslate"><span class="pre">opencv_image_to_tensor()</span></code></a></li>
@@ -744,6 +745,25 @@ IEEE, 2021</p>
 </dd>
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>pytorch tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="RAVE.common.image_utils.giou">
+<span class="sig-name descname"><span class="pre">giou</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bbox1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bbox2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.image_utils.giou" title="Permalink to this definition"></a></dt>
+<dd><p>Generalized intersection over union (which returns a score
+even when there is no overlap, based on distance)
+paper: <a class="reference external" href="https://arxiv.org/pdf/1911.08287.pdf">https://arxiv.org/pdf/1911.08287.pdf</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>bbox1</strong> (<em>np.ndarray</em>) – xywh coords</p></li>
+<li><p><strong>bbox2</strong> (<em>np.ndarray</em>) – xywh coords</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Generalized IOU</p>
 </dd>
 </dl>
 </dd></dl>
