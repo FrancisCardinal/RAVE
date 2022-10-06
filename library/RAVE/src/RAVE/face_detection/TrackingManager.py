@@ -52,7 +52,7 @@ class TrackingManager:
         detector_type,
         verifier_type,
         frequency,
-        intersection_threshold=0.2,
+        intersection_threshold=-0.5,
         verifier_threshold=0.5,
         visualize=True,
         tracking_or_calib=lambda: True,
@@ -88,38 +88,22 @@ class TrackingManager:
         q or escape exits
         x removes the last tracked object
         f shows history of faces captured for each tracked object
-        s lets you defined an object to track
 
         Args:
             frame (ndarray): current frame with shape HxWx3
             key_pressed (int): key pressed on the opencv window
         """
         key = key_pressed & 0xFF
-        if key == ord("s"):
-            # Select object to track manually
-            selected_roi = cv2.selectROI(
-                "Frame",
-                frame_object.frame,
-                fromCenter=False,
-                showCrosshair=True,
-            )
-            self.object_manager.add_pre_tracked_object(
-                frame_object, selected_roi, None
-            )
-        elif key == ord("x"):
+        if key == ord("x"):
             # Remove last tracked object
             if len(self.object_manager.tracked_objects) > 0:
                 self.object_manager.tracked_objects.popitem()
         elif key == ord("f"):
             # Show memory of faces for each tracked object
-            tracked_objects = list(
-                self.object_manager.tracked_objects.values()
-            )
+            tracked_objects = list(self.object_manager.tracked_objects.values())
             if len(tracked_objects) == 0:
                 return
-            slot_count = max(
-                [len(obj.encoding.all_faces) for obj in tracked_objects]
-            )
+            slot_count = max([len(obj.encoding.all_faces) for obj in tracked_objects])
             output = []
             for obj in tracked_objects:
                 face_images = []
@@ -148,9 +132,7 @@ class TrackingManager:
             frame (ndarray): current frame with shape HxWx3
         """
 
-        all_tracked_objects = list(
-            self.object_manager.tracked_objects.values()
-        )
+        all_tracked_objects = list(self.object_manager.tracked_objects.values())
         for i in range(len(all_tracked_objects)):
             if len(all_tracked_objects) <= i:
                 break
@@ -164,9 +146,7 @@ class TrackingManager:
             mouth = tracked_object.landmark
             if mouth is not None:
                 x_mouth, y_mouth = mouth
-                cv2.circle(
-                    tracking_frame, (x_mouth, y_mouth), 5, [0, 0, 255], -1
-                )
+                cv2.circle(tracking_frame, (x_mouth, y_mouth), 5, [0, 0, 255], -1)
 
         return tracking_frame
 
@@ -216,9 +196,7 @@ class TrackingManager:
                         self.updater.detector_frame = None
 
                     # Keyboard input controls
-                    terminate = self.listen_keyboard_input(
-                        frame_object, monitor.key_pressed
-                    )
+                    terminate = self.listen_keyboard_input(frame_object, monitor.key_pressed)
                     if terminate or not monitor.window_is_alive():
                         self.kill_threads()
                         break
@@ -232,11 +210,7 @@ class TrackingManager:
                 information
         """
 
-        shape = (
-            (self._cap.shape[1], self._cap.shape[0])
-            if args.flip_display_dim
-            else self._cap.shape
-        )
+        shape = (self._cap.shape[1], self._cap.shape[0]) if args.flip_display_dim else self._cap.shape
         self.is_alive = True
         if self._visualize:
             monitor = Monitor(
@@ -252,11 +226,10 @@ class TrackingManager:
             monitor = None
 
         # Start update loop
-        update_loop = threading.Thread(
-            target=self.updater.update_loop, daemon=True
-        )
+        update_loop = threading.Thread(target=self.updater.update_loop, daemon=True)
         update_loop.start()
 
         # Start capture & display loop
         self.main_loop(monitor, args.flip)
+        update_loop.is_alive = False
         self.object_manager.stop_tracking()
