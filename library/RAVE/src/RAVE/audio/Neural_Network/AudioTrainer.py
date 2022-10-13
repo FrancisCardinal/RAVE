@@ -32,8 +32,8 @@ class AudioTrainer(Trainer):
                 Whether to continue the training from the checkpoint
                 on disk or not
         """
-    def __init__(self, training_loader, validation_loader, loss_function, device, model, optimizer, scheduler, ROOT_DIR_PATH, CONTINUE_TRAINING):
-        super().__init__(training_loader, validation_loader, loss_function, device, model, optimizer, scheduler, ROOT_DIR_PATH, CONTINUE_TRAINING)
+    def __init__(self, training_loader, validation_loader, loss_function, device, model, optimizer, scheduler, ROOT_DIR_PATH, CONTINUE_TRAINING, MODEL_INFO_FILE_NAME):
+        super().__init__(training_loader, validation_loader, loss_function, device, model, optimizer, scheduler, ROOT_DIR_PATH, CONTINUE_TRAINING, MODEL_INFO_FILE_NAME)
         self.sdr = SignalDistortionRatio().to(device)
 
     def compute_training_loss(self):
@@ -115,3 +115,4 @@ class AudioTrainer(Trainer):
             print(sdr)
 
             return validation_loss / (number_of_images * labels.shape[1] * labels.shape[2])
+
