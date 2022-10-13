@@ -3,9 +3,9 @@ import cv2
 from .face_trackers import TrackerFactory
 from .verifiers.Encoding import Encoding
 
-NB_FRAMES_TO_CONFIRMED = 8
-CONFIRMATION_THRESHOLD = 5
-NB_FRAMES_TO_REJECT = 10
+NB_FRAMES_TO_CONFIRMED = 6
+CONFIRMATION_THRESHOLD = 4
+NB_FRAMES_TO_REJECT = 6
 REJECTION_THRESHOLD = 2
 
 
@@ -183,6 +183,12 @@ class TrackedObject:
         if self.pending:
             self._confirmed_frames += 1
             self._evaluation_frames += 1
+            print(
+                "Confirming:",
+                self._confirmed_frames,
+                " / ",
+                self._confirmation_threshold,
+            )
             if self._confirmed_frames >= self._confirmation_threshold:
                 self._confirmed = True
                 self._evaluation_frames = 0
@@ -190,10 +196,15 @@ class TrackedObject:
     def reject(self):
         """Used to reject a bbox in post-processing"""
         if self._confirmed:
+
+            if self._rejected_frames == 0:
+                # Restart count on first reject frame
+                self._evaluation_frames = 0
+
             self._rejected_frames += 1
             self._evaluation_frames += 1
             print(
-                "Reject call:",
+                "Rejecting:",
                 self._rejected_frames,
                 " / ",
                 self._rejection_threshold,
@@ -202,8 +213,8 @@ class TrackedObject:
             if self._evaluation_frames > self._nb_of_frames_to_reject:
                 self._evaluation_frames = 0
                 self._rejected_frames = 0
-                # print(f"Resetting evaluation frames for {self.id}")
             elif self._rejected_frames >= self._rejection_threshold:
+                self._evaluation_frames = 0
                 self._rejected = True
 
     def restore(self, pre_tracked_object):

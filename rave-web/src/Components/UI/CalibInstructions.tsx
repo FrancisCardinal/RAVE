@@ -33,9 +33,9 @@ const CalibInstructions : FC<CalibInstructionsProps> = ({setInstructionModalOpen
   const emit = useEmit();
 
   const gifs = [
-    "https://giphy.com/embed/GJi6ZBzgkWNmU",
-    "https://giphy.com/embed/l41YdAa3Yll5NHfwI",
-    "https://giphy.com/embed/65QZtTQC06Ot08sf50",
+    "./gifs/calib_1.gif",
+    "./gifs/calib_2.gif",
+    "./gifs/calib_3.gif",
   ]
   const [t] = useTranslation('common');
   const [step, setStep] = useState(0);
@@ -85,7 +85,7 @@ const CalibInstructions : FC<CalibInstructionsProps> = ({setInstructionModalOpen
       return (
         <div className="flex flex-col items-center justify-center h-full pb-8">
         <p className="bg-grey w-fit rounded p-2 shadow">{t('eyeTrackerCalibrationPage.instruction')}</p>
-        <iframe className="p-2 justify-center" width="100%" height="100%" title="moving-eye" src={gifs[step]}></iframe>
+        <img className="p-2 justify-center" width="50%" height="50%" src={gifs[step]}/>
         <div className="flex flex-row">
           <Button sx={{ margin: '2px' }} onClick={handleResume} variant="contained" color="success" size="small">
             <PlayIcon className={"w-5 h-5"} />

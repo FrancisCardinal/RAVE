@@ -56,7 +56,7 @@ class ArcFace(Verifier):
                 image = np.transpose(image, (0, 3, 1, 2))
                 feature = self.model(image)
             else:
-                feature = self.model.predict(image)[0].tolist()
+                feature = self.model(image)[0].numpy().tolist()
 
             features.append(feature)
 
