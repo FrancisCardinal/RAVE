@@ -107,6 +107,7 @@ class AudioDatasetBuilder:
 
         self.receiver_abs = None
         self.dir_noise_count = self.dir_noise_count_range[0]
+        self.speech_noise_start = 0
         self.max_source_distance = 5
         self.n_channels = len(self.receiver_rel)
 
@@ -690,14 +691,15 @@ class AudioDatasetBuilder:
 
         return -1
 
-    def get_random_noise(self, number_noises=None, diffuse_noise=False, source_path=None):
+    def get_random_noise(self, number_noises=None, diffuse_noise=False, source_path=None, sn_count=-1):
         """
         Gets random noises to be added to audio clip.
 
         Args:
             number_noises (int): Number of noises to use (if specified, overrides self.noise_count).
             diffuse_noise (bool): Bool to use diffuse or directional noise.
-
+            source_path (str): String of speech path.
+            sn_count (int): Speech_noise count in last try (-1 if nothing to force).
         Returns:
             List of paths to noises (and/or speech) to use.
         """
@@ -705,25 +707,40 @@ class AudioDatasetBuilder:
         if diffuse_noise:
             random_indices = np.random.randint(0, len(self.dif_noise_paths), self.max_diffuse_noises)
             noise_path_list = [self.dif_noise_paths[i] for i in random_indices]
+            speech_noise_count = None
         else:
             # Set noise count for this round
             if number_noises:
                 self.dir_noise_count = number_noises
             else:
-                self.dir_noise_count -= self.dir_noise_count_range[0]
-                self.dir_noise_count += 1
-                dir_count_range = self.dir_noise_count_range
-                self.dir_noise_count = self.dir_noise_count % (dir_count_range[1] - dir_count_range[0])
-                self.dir_noise_count += self.dir_noise_count_range[0]
+                if sn_count == -1:      # Only increase number of noises if not having to restart the last run
+                    self.dir_noise_count -= self.dir_noise_count_range[0]
+                    self.dir_noise_count += 1
+                    dir_count_range = self.dir_noise_count_range
+                    self.dir_noise_count = self.dir_noise_count % (dir_count_range[1] - dir_count_range[0])
+                    self.dir_noise_count += self.dir_noise_count_range[0]
 
             # Get random indices and return items in new list
             temp_noise_paths = self.dir_noise_paths.copy()
             if source_path in temp_noise_paths:
                 temp_noise_paths.remove(source_path)
-            random_indices = np.random.randint(0, len(temp_noise_paths), self.dir_noise_count)
+
+            # If previous run breaks, remake run with same quantity of speech noise
+            if sn_count != -1 and self.speech_as_noise:
+                random_speech_indices = np.random.randint(self.speech_noise_start, len(temp_noise_paths), sn_count)
+                random_noise_indices = np.random.randint(0, self.speech_noise_start, self.dir_noise_count - sn_count)
+                random_indices = np.concatenate((random_speech_indices, random_noise_indices))
+            else:
+                random_indices = np.random.randint(0, len(temp_noise_paths), self.dir_noise_count)
+
+            noise_path_list = []
+            speech_noise_count = 0
+            for i in random_indices:
+                selected_noise = temp_noise_paths[i]
+                if 'clean' in selected_noise: speech_noise_count += 1
             noise_path_list = [temp_noise_paths[int(i)] for i in random_indices]
 
-        return noise_path_list
+        return noise_path_list, speech_noise_count
 
     def save_files(self, audio_dict, save_spec=False):
         """
@@ -1020,6 +1037,7 @@ class AudioDatasetBuilder:
 
         # Add speech to directional if in arguments
         if self.speech_as_noise:
+            self.speech_noise_start = len(self.dir_noise_paths)
             speeches = glob.glob(os.path.join(sources_path, "*.wav"))
             for i in range(len(self.dir_noise_paths)):
                 self.dir_noise_paths.append(speeches[i])
@@ -1048,6 +1066,8 @@ class AudioDatasetBuilder:
         source_name = os.path.split(source_path)[1].split(".")[0]  # Get filename for source (before extension)
         source_audio_base = self.read_audio_file(source_path)
 
+        speech_noise_count = -1         # If run breaks, generates the same amount of speech noises as before
+
         # Run SAMPLES_PER_SPEECH samples per speech clip
         samples_created = 0
         while samples_created < self.sample_per_speech:
@@ -1056,20 +1076,21 @@ class AudioDatasetBuilder:
             self.generate_random_room()
             self.generate_user()
             if self.user_pos == -1:
-                print(f"User position could not be made with {MAX_POS_TRIES}. Restarting new room.")
+                if self.is_debug: print(f"User position could not be made with {MAX_POS_TRIES}. Restarting new room.")
                 continue
 
             # Generate source position and copy source_audio
             source_pos = self.get_random_position()
             if source_pos == -1:
-                if self.debug: print(f"Source position could not be made with {MAX_POS_TRIES}. Restarting new room.")
+                if self.is_debug: print(f"Source position could not be made with {MAX_POS_TRIES}. Restarting new room.")
                 continue
             source_audio = source_audio_base.copy()
             audio_source_dict["speech"] = [{"name": source_name, "signal": source_audio, "position": source_pos}]
 
             # Add varying number of directional noise sources
             audio_source_dict["dir_noise"] = []
-            dir_noise_source_paths = self.get_random_noise(source_path=source_path)
+            dir_noise_source_paths, speech_noise_count = self.get_random_noise(source_path=source_path,
+                                                                               sn_count=speech_noise_count)
             for noise_source_path in dir_noise_source_paths:
                 dir_noise = dict()
                 dir_noise["name"] = os.path.split(noise_source_path)[1].split(".")[0]
@@ -1077,9 +1098,9 @@ class AudioDatasetBuilder:
                 dir_noise["position"] = self.get_random_position(source_pos)
                 audio_source_dict["dir_noise"].append(dir_noise)
 
-            # Add varying number of directional noise sources
+            # Add varying number of diffuse noise sources
             audio_source_dict["dif_noise"] = []
-            dif_noise_source_paths = self.get_random_noise(diffuse_noise=True)
+            dif_noise_source_paths, _ = self.get_random_noise(diffuse_noise=True)
             for noise_source_path in dif_noise_source_paths:
                 dif_noise = dict()
                 dif_noise["name"] = os.path.split(noise_source_path)[1].split(".")[0]
@@ -1100,8 +1121,10 @@ class AudioDatasetBuilder:
 
             rir_success = self.generate_and_apply_rirs(audio_source_dict)
             if rir_success == -1:
-                print("RIR returned false, problem with one channel. Restarting sample.")
+                if self.is_debug: print("RIR returned false, problem with one channel. Restarting sample.")
                 continue
+            else:
+                speech_noise_count = -1
 
             # Combine noises
             self.combine_sources(audio_source_dict, ["dir_noise", "dif_noise"], "combined_noise",
