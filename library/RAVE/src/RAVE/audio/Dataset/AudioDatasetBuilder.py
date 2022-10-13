@@ -721,7 +721,7 @@ class AudioDatasetBuilder:
             if source_path in temp_noise_paths:
                 temp_noise_paths.remove(source_path)
             random_indices = np.random.randint(0, len(temp_noise_paths), self.dir_noise_count)
-            noise_path_list = [temp_noise_paths[i] for i in random_indices]
+            noise_path_list = [temp_noise_paths[int(i)] for i in random_indices]
 
         return noise_path_list
 
@@ -1021,12 +1021,12 @@ class AudioDatasetBuilder:
         # Add speech to directional if in arguments
         if self.speech_as_noise:
             speeches = glob.glob(os.path.join(sources_path, "*.wav"))
-            for i in range(120):
+            for i in range(len(self.dir_noise_paths)):
                 self.dir_noise_paths.append(speeches[i])
-
-        # Add speech to directional if in arguments
-        if self.speech_as_noise:
-            self.dir_noise_paths.extend(sources_path)
+        #
+        # # Add speech to directional if in arguments
+        # if self.speech_as_noise:
+        #     self.dir_noise_paths.extend(sources_path)
 
     def generate_sim_dataset(self, source_path, save_run):
         """
@@ -1062,7 +1062,7 @@ class AudioDatasetBuilder:
             # Generate source position and copy source_audio
             source_pos = self.get_random_position()
             if source_pos == -1:
-                print(f"Source position could not be made with {MAX_POS_TRIES}. Restarting new room.")
+                if self.debug: print(f"Source position could not be made with {MAX_POS_TRIES}. Restarting new room.")
                 continue
             source_audio = source_audio_base.copy()
             audio_source_dict["speech"] = [{"name": source_name, "signal": source_audio, "position": source_pos}]
