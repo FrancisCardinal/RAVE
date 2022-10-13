@@ -110,24 +110,12 @@ class AudioDatasetBuilder:
         self.max_source_distance = 5
         self.n_channels = len(self.receiver_rel)
 
-        # If use reverb add rooms, if not fix rir max order to 0 and wall absorption to 1
-        if self.is_reverb:
-            self.room_shapes.extend(self.reverb_room_shapes)
-        else:
-            self.rir_reflexion_order = 0
-            self.wall_absorption_limits = [1, 1]
-
         self.is_reverb = None
         self.noise_paths = None
         self.dif_noise_paths = []
         self.dir_noise_paths = []
         self.room = None
 
-        # Add speech to directional if in arguments
-        if self.speech_as_noise:
-            speeches = glob.glob(os.path.join(sources_path, "*.wav"))
-            for i in range(120):
-                self.dir_noise_paths.append(speeches[i])
         # Dict strings to vary between real and sim datasets
         self.audio_dict_out_signal_str = ''
 
@@ -307,7 +295,6 @@ class AudioDatasetBuilder:
                     source_count += 1
             audio_dict[output_name][0]["name"] = audio_dict[output_name][0]["name"][:-1]
             audio_dict[output_name][0][dict_str] /= source_count
-
 
     @staticmethod
     def rotate_coords(coords, angle, inverse=False):
@@ -1012,6 +999,13 @@ class AudioDatasetBuilder:
         """
         self.is_reverb = reverb
 
+        # If use reverb add rooms, if not fix rir max order to 0 and wall absorption to 1
+        if self.is_reverb:
+            self.room_shapes.extend(self.reverb_room_shapes)
+        else:
+            self.rir_reflexion_order = 0
+            self.wall_absorption_limits = [1, 1]
+
         # Load input noise paths
         self.noise_paths = glob.glob(os.path.join(noises_path, "*.wav"))
 
@@ -1023,6 +1017,12 @@ class AudioDatasetBuilder:
                 self.dif_noise_paths.append(noise)
             else:
                 self.dir_noise_paths.append(noise)
+
+        # Add speech to directional if in arguments
+        if self.speech_as_noise:
+            speeches = glob.glob(os.path.join(sources_path, "*.wav"))
+            for i in range(120):
+                self.dir_noise_paths.append(speeches[i])
 
         # Add speech to directional if in arguments
         if self.speech_as_noise:
@@ -1104,13 +1104,15 @@ class AudioDatasetBuilder:
                 continue
 
             # Combine noises
-            self.combine_sources(audio_source_dict, ["dir_noise", "dif_noise"], "combined_noise", noise=True)
+            self.combine_sources(audio_source_dict, ["dir_noise", "dif_noise"], "combined_noise",
+                                 self.audio_dict_out_signal_str, noise=True)
 
             # Combine source with noises at a random SNR between limits
             # TODO: CHECK SNR IF IT WORKS CORRECTLY
             snr = np.random.rand() * (self.snr_limits[1] - self.snr_limits[0]) + self.snr_limits[0]
             self.snr = 20 * np.log10(snr)
-            self.combine_sources(audio_source_dict, ["speech", "combined_noise"], "combined_audio", snr=self.snr)
+            self.combine_sources(audio_source_dict, ["speech", "combined_noise"], "combined_audio",
+                                 self.audio_dict_out_signal_str, snr=self.snr)
             self.snr = float(10 ** (snr / 20))
 
             # Save elements
