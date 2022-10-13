@@ -208,7 +208,7 @@ class AudioManager:
             sink: WavSink object created.
         """
         # Get output subfolder
-        if not self.out_subfolder_path:
+        if self.out_subfolder_path is None:
             if path:
                 self.out_subfolder_path = path
             else:

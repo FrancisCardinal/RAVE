@@ -239,7 +239,7 @@ class AudioDataset(torch.utils.data.Dataset):
 
         # If didn't exit or find dataset, create dataset
         print(f"DATASET: No dataset found at '{dataset_path}', generating new one.")
-        file_count, dataset_list = self.dataset_builder.generate_dataset(save_run=True)
+        file_count, dataset_list = self.dataset_builder.generate_sim_dataset(save_run=True)
         print(f"DATASET: Dataset generated at '{dataset_path}'. {file_count} files generated")
         dataset_list = np.array([str(i) for i in dataset_list], dtype=np.str)
         self.data = dataset_list
