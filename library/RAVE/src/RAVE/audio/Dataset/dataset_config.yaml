@@ -65,7 +65,7 @@ diffuse_noises:
 max_diffuse_noises: 0
 
 # Range of noises count to add to audio file
-dir_noise_count_range: [1, 1]
+dir_noise_count_range: [2, 4]
 
 # Number of samples to get per speech source
 sample_per_speech: 2
@@ -74,7 +74,7 @@ sample_per_speech: 2
 speech_as_noise: False
 
 # SNR limit values
-snr_limits: [0.75, 5]
+snr_limits: [0.25, 0.75]
 
 # RIR parameters
 wall_absorption_limits: [0.75, 1]
