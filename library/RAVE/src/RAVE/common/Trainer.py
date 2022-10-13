@@ -127,7 +127,7 @@ class Trainer:
             print(epoch_stats)
             if self.scheduler:
                 self.scheduler.step(current_validation_loss)
-            epoch += 1
+            self.epoch += 1
 
         self.terminate_training = True
         min_training_loss = min(self.training_losses)
