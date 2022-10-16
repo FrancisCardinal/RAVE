@@ -128,6 +128,7 @@ class GazeInfererManager:
 
     def _inference(self):
         """Creates the relevant objects, then calls GazeInferer.infer()"""
+        self.log("Start inference")
         if self._current_state == GazeInfererManager.CALIBRATION_STATE:
             self.end_calibration_thread()
 
@@ -183,11 +184,11 @@ class GazeInfererManager:
             file_name (string): The name of the new calibration file
         """
         if self.gaze_inferer is not None:
+            file_name = file_name + datetime.now().strftime("-%d-%m-%Y-%H-%M-%S")
             self.gaze_inferer.save_eyeball_model(file_name)
             self.list_calibration.append(
                 {
                     "name": file_name
-                    + datetime.now().strftime("-%d-%m-%Y %H:%M:%S")
                 }
             )
 

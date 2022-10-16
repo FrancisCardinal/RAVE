@@ -119,10 +119,12 @@ class AppManager:
 
         sio.on("targetSelect", self._update_selected_face)
         sio.on("changeVisionMode", self._change_mode)
+
+        # Eye-tracker
         sio.on("goToEyeTrackingCalibration", self.emit_calibration_list)
         sio.on(
             "startEyeTrackingCalibration",
-            self._gaze_inferer_manager.start_calibration_thread,
+            self.start_eye_tracking_calibration,
         )
         sio.on(
             "resumeEyeTrackingCalib",
@@ -134,7 +136,7 @@ class AppManager:
         )
         sio.on(
             "endEyeTrackingCalib",
-            self._gaze_inferer_manager.end_calibration_thread,
+            self.end_eye_tracking_calibration,
         )
         sio.on(
             "setOffsetEyeTrackingCalib", self._gaze_inferer_manager.set_offset
@@ -316,3 +318,11 @@ class AppManager:
             self._gaze_inferer_manager.start_inference_thread()
         else:
             self._gaze_inferer_manager.stop_inference()
+
+    def start_eye_tracking_calibration(self):
+        self._tracking = False
+        self._gaze_inferer_manager.start_calibration_thread()
+
+    def end_eye_tracking_calibration(self):
+        self._gaze_inferer_manager.end_calibration_thread()
+        self._tracking = True

@@ -106,7 +106,6 @@ class GazeInferer:
             np.zeros((self._median_size + self._box_size - 1)),
         )
 
-        self.out = None
         self.calibration_is_paused = False
 
         self._gaze_lock = Lock()
@@ -311,7 +310,7 @@ class GazeInferer:
 
                     self._gaze_lock.release()
 
-    def get_angles_from_image(self, images, save_video_feed=True):
+    def get_angles_from_image(self, images):
         """Takes an image, predicts the ellipse that corresponds to the
            pupil using the neural network, then uses the eye model to
            convert this ellipse to a gave vector (pair of x and y angles)
@@ -337,27 +336,6 @@ class GazeInferer:
         )
         _, n_list, _, _ = self._eyefitter.gen_consistent_pupil()
         x, y = self._eyefitter.convert_vec2angle31(n_list[0])
-
-        if save_video_feed:
-            if self.out is None:
-                self.out = cv2.VideoWriter(
-                    "eye_tracker.avi",
-                    cv2.VideoWriter_fourcc("M", "J", "P", "G"),
-                    30,
-                    (320, 240),
-                )
-
-            image = inverse_normalize(
-                images[0],
-                EyeTrackerDataset.TRAINING_MEAN,
-                EyeTrackerDataset.TRAINING_STD,
-            )
-            image = tensor_to_opencv_image(image)
-
-            image = draw_ellipse_on_image(
-                image, predictions[0], color=(255, 0, 0)
-            )
-            self.out.write(image)
 
         return x, y
 
