@@ -95,6 +95,9 @@ function handleServerMessage(event : SERVER_EVENTS, payload : AnyObject | undefi
     case SERVER_EVENTS.PYTHON_SOCKET_AUTH:
       authenticatePythonSocket(payload);
       break;
+    case SERVER_EVENTS.GET_PYTHON_CONNECTION_STATUS:
+      io.emit(CLIENT_EVENTS.CONNECTION_STATUS, {status : connectionStatus});
+      break;
   }
 }
 
