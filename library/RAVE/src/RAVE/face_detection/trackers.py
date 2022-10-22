@@ -1,11 +1,13 @@
 import cv2
-from abc import ABC, abstractmethod
+from abc import ABCMeta, abstractmethod
 
 
-class Tracker(ABC):
+class Tracker:
     """
     Abstract class for trackers
     """
+
+    __metaclass__ = ABCMeta
 
     @abstractmethod
     def start(self, frame, initial_bbox):
@@ -119,6 +121,7 @@ class CorrelationTracker(Tracker):
 
     def __init__(self):
         import dlib
+
         self.tracker = dlib.correlation_tracker()
 
     def start(self, frame, bbox):
@@ -137,9 +140,8 @@ class CorrelationTracker(Tracker):
         # Convert (x0, y0, w, h) format to
         # (x0, y0, x1, x2) format for dlib rectangle
         import dlib
-        rect_dlib = dlib.rectangle(
-            bbox[0], bbox[1], bbox[0] + bbox[2], bbox[1] + bbox[3]
-        )
+
+        rect_dlib = dlib.rectangle(bbox[0], bbox[1], bbox[0] + bbox[2], bbox[1] + bbox[3])
         self.tracker.start_track(frame_rgb, rect_dlib)
 
     def update(self, frame):

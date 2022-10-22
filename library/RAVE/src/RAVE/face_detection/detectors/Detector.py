@@ -1,10 +1,12 @@
-from abc import ABC, abstractmethod
+from abc import ABCMeta, abstractmethod
 
 
-class Detector(ABC):
+class Detector:
     """
     Abstract class for detectors.
     """
+
+    __metaclass__ = ABCMeta
 
     @abstractmethod
     def predict(self, frame, draw_on_frame):

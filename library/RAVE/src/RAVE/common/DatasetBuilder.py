@@ -1,6 +1,6 @@
 import os
 import cv2
-from abc import ABC, abstractmethod
+from abc import ABCMeta, abstractmethod
 from PIL import Image
 import pickle
 from tqdm import tqdm
@@ -14,15 +14,7 @@ from .Dataset import Dataset
 from .image_utils import tensor_to_opencv_image
 
 
-(
-    DATASET_DIR,
-    IMAGES_DIR,
-    LABELS_DIR,
-    TRAINING_DIR,
-    VALIDATION_DIR,
-    TEST_DIR,
-    IMAGES_FILE_EXTENSION,
-) = (
+(DATASET_DIR, IMAGES_DIR, LABELS_DIR, TRAINING_DIR, VALIDATION_DIR, TEST_DIR, IMAGES_FILE_EXTENSION,) = (
     Dataset.DATASET_DIR,
     Dataset.IMAGES_DIR,
     Dataset.LABELS_DIR,
@@ -33,7 +25,7 @@ from .image_utils import tensor_to_opencv_image
 )
 
 
-class DatasetBuilder(ABC):
+class DatasetBuilder:
     """
     This class builds the sub-datasets. It takes videos, extracts the frames
     and saves them on the disk, with the corresponding labels.
@@ -48,6 +40,8 @@ class DatasetBuilder(ABC):
         log_name (String):
             Name to be displayed alongside the progress bar in the terminal
     """
+
+    __metaclass__ = ABCMeta
 
     VIDEOS_DIR = "videos"
     ANNOTATIONS_DIR = "annotations"
@@ -79,9 +73,7 @@ class DatasetBuilder(ABC):
         self.VIDEOS = VIDEOS
         self.log_name = log_name
 
-        self.VIDEOS_PATH = os.path.join(
-            DatasetBuilder.ROOT_PATH, SOURCE_DIR, DatasetBuilder.VIDEOS_DIR
-        )
+        self.VIDEOS_PATH = os.path.join(DatasetBuilder.ROOT_PATH, SOURCE_DIR, DatasetBuilder.VIDEOS_DIR)
         self.ANNOTATIONS_PATH = os.path.join(
             DatasetBuilder.ROOT_PATH,
             SOURCE_DIR,
@@ -91,17 +83,11 @@ class DatasetBuilder(ABC):
         self.OUTPUT_IMAGES_PATH = os.path.join(OUTPUT_DIR_PATH, IMAGES_DIR)
         self.OUTPUT_LABELS_PATH = os.path.join(OUTPUT_DIR_PATH, LABELS_DIR)
         DatasetBuilder.create_directory_if_does_not_exist(OUTPUT_DIR_PATH)
-        DatasetBuilder.create_directory_if_does_not_exist(
-            self.OUTPUT_IMAGES_PATH
-        )
-        DatasetBuilder.create_directory_if_does_not_exist(
-            self.OUTPUT_LABELS_PATH
-        )
+        DatasetBuilder.create_directory_if_does_not_exist(self.OUTPUT_IMAGES_PATH)
+        DatasetBuilder.create_directory_if_does_not_exist(self.OUTPUT_LABELS_PATH)
         self._CROP_SIZE = CROP_SIZE
 
-        self.RESIZE_TRANSFORM = transforms.Compose(
-            [transforms.Resize(IMAGE_DIMENSIONS), transforms.ToTensor()]
-        )
+        self.RESIZE_TRANSFORM = transforms.Compose([transforms.Resize(IMAGE_DIMENSIONS), transforms.ToTensor()])
 
     @staticmethod
     @abstractmethod
@@ -131,29 +117,21 @@ class DatasetBuilder(ABC):
         Gets the info of one video, then creates the images and labels pair
         of the video and save them to disk
         """
-        for video_file_name in tqdm(
-            self.VIDEOS, leave=False, desc=self.log_name
-        ):
+        for video_file_name in tqdm(self.VIDEOS, leave=False, desc=self.log_name):
             video_path = os.path.join(self.VIDEOS_PATH, video_file_name)
 
             if not os.path.isfile(video_path):
                 return
 
             file_name = os.path.splitext(os.path.basename(video_file_name))[0]
-            annotations_file = os.path.join(
-                self.ANNOTATIONS_PATH, file_name + ".json"
-            )
+            annotations_file = os.path.join(self.ANNOTATIONS_PATH, file_name + ".json")
 
             with open(annotations_file, "r") as file:
                 annotations = json.load(file)
 
-            self.create_images_dataset_with_one_video(
-                file_name, video_path, annotations
-            )
+            self.create_images_dataset_with_one_video(file_name, video_path, annotations)
 
-    def create_images_dataset_with_one_video(
-        self, file_name, video_path, annotations
-    ):
+    def create_images_dataset_with_one_video(self, file_name, video_path, annotations):
         """
         Creates the images and labels pair of the video and saves
         them to disk
@@ -192,9 +170,7 @@ class DatasetBuilder(ABC):
 
         cap.release()
 
-    def parse_current_annotation(
-        self, annotations, INPUT_IMAGE_WIDTH, INPUT_IMAGE_HEIGHT
-    ):
+    def parse_current_annotation(self, annotations, INPUT_IMAGE_WIDTH, INPUT_IMAGE_HEIGHT):
         """
         Parses the current annotation to extract the parameters of
         the ellipse as defined by opencv
@@ -238,9 +214,7 @@ class DatasetBuilder(ABC):
                 self._CROP_SIZE[2],
                 self._CROP_SIZE[3],
             )
-            im_pil = transforms.functional.crop(
-                im_pil, top, left, height, width
-            )
+            im_pil = transforms.functional.crop(im_pil, top, left, height, width)
 
         output_image_tensor = self.RESIZE_TRANSFORM(im_pil)
 
@@ -267,7 +241,5 @@ class DatasetBuilder(ABC):
         )
         cv2.imwrite(video_output_file_path, output_frame)
 
-        label_output_file_path = os.path.join(
-            self.OUTPUT_LABELS_PATH, output_file_name + ".bin"
-        )
+        label_output_file_path = os.path.join(self.OUTPUT_LABELS_PATH, output_file_name + ".bin")
         pickle.dump(label, open(label_output_file_path, "wb"))

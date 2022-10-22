@@ -1,10 +1,12 @@
-from abc import ABC, abstractmethod
+from abc import ABCMeta, abstractmethod
 
 
-class Verifier(ABC):
+class Verifier:
     """
     Abstract class for verifiers
     """
+
+    __metaclass__ = ABCMeta
 
     @abstractmethod
     def get_features(self, frame, face_locations):

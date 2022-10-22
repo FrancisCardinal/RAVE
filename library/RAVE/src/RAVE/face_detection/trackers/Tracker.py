@@ -1,10 +1,12 @@
-from abc import ABC, abstractmethod
+from abc import ABCMeta, abstractmethod
 
 
-class Tracker(ABC):
+class Tracker:
     """
     Abstract class for trackers
     """
+
+    __metaclass__ = ABCMeta
 
     @abstractmethod
     def start(self, frame, initial_bbox):
