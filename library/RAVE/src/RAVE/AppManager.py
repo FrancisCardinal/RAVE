@@ -26,7 +26,17 @@ def connect():
     print("connection established to server")
     # Emit the socket id to the server to "authenticate yourself"
 
+    while not sio.connected:
+        emit("pythonSocketAuth", "server", {"socketId": sio.get_sid()})
     emit("pythonSocketAuth", "server", {"socketId": sio.get_sid()})
+
+
+@sio.event
+def disconnect():
+    """
+    Disconnects the socket to the web.
+    """
+    print("Socket is disconnected")
 
 
 def emit(event_name, destination, payload):
@@ -38,7 +48,8 @@ def emit(event_name, destination, payload):
             The destination to emit the event ("client" or "server").
         payload (dict): The information needed to be passed to the destination.
     """
-    sio.emit(event_name, {"destination": destination, "payload": payload})
+    if sio.connected:
+        sio.emit(event_name, {"destination": destination, "payload": payload})
 
 
 def timed_callback(period, f, *args):
@@ -101,21 +112,15 @@ class AppManager:
             tracking_or_calib=self.is_tracking,
         )
         self._object_manager = self._tracking_manager.object_manager
-        self._pixel_to_delay = Pixel2Delay(
-            (args.height, args.width), "./calibration.json"
-        )
+        self._pixel_to_delay = Pixel2Delay((args.height, args.width), "./calibration.json")
         self._args = args
-        self._frame_output_frequency = 0.05
+        self._frame_output_frequency = 1
         self._delay_update_frequency = 0.25
         self._selected_face = None
         self._vision_mode = "mute"
-        self._calibrationAudioVision = CalibrationAudioVision(
-            self._cap, self._mic_source, emit
-        )
+        self._calibrationAudioVision = CalibrationAudioVision(self._cap, self._mic_source, emit)
 
-        self._gaze_inferer_manager = GazeInfererManager(
-            args.eye_video_source, "cpu"
-        )
+        self._gaze_inferer_manager = GazeInfererManager(args.eye_video_source, "cpu")
 
         sio.on("targetSelect", self._update_selected_face)
         sio.on("changeVisionMode", self._change_mode)
@@ -138,9 +143,7 @@ class AppManager:
             "endEyeTrackingCalib",
             self.end_eye_tracking_calibration,
         )
-        sio.on(
-            "setOffsetEyeTrackingCalib", self._gaze_inferer_manager.set_offset
-        )
+        sio.on("setOffsetEyeTrackingCalib", self._gaze_inferer_manager.set_offset)
         sio.on("addEyeTrackingCalib", self._save_eye_calibration)
         sio.on("selectEyeTrackingCalib", self._select_eye_tracking_calibration)
         sio.on("deleteEyeTrackingCalib", self._delete_eye_tracking_calibration)
@@ -148,9 +151,7 @@ class AppManager:
 
         # Audio-vision calib
         sio.on("nextCalibTarget", self._calibrationAudioVision.go_next_target)
-        sio.on(
-            "changeCalibParams", self._calibrationAudioVision.change_nb_points
-        )
+        sio.on("changeCalibParams", self._calibrationAudioVision.change_nb_points)
         sio.on("goToVisionCalibration", self.start_calib_audio_vision)
         sio.on("quitVisionCalibration", self.stop_calib_audio_vision)
 
@@ -212,9 +213,7 @@ class AppManager:
                     }
                 )
 
-            frame_string = base64.b64encode(
-                cv2.imencode(".jpg", self._object_manager.get_last_frame())[1]
-            ).decode()
+            frame_string = base64.b64encode(cv2.imencode(".jpg", self._object_manager.get_last_frame())[1]).decode()
             emit(
                 "newFrameAvailable",
                 "client",
@@ -296,9 +295,7 @@ class AppManager:
         Args:
             payload(dict): Containing the calibration filename to use.
         """
-        self._gaze_inferer_manager.set_selected_calibration_path(
-            payload["name"]
-        )
+        self._gaze_inferer_manager.set_selected_calibration_path(payload["name"])
 
     def _delete_eye_tracking_calibration(self, payload):
         """
