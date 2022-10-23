@@ -11,9 +11,6 @@ from RAVE.eye_tracker.EyeTrackerDataset import (
 )
 from RAVE.eye_tracker.GazeInferer.deepvog.eyefitter import SingleEyeFitter
 
-import cv2
-from RAVE.common.image_utils import tensor_to_opencv_image, inverse_normalize
-from RAVE.eye_tracker.ellipse_util import draw_ellipse_on_image
 from RAVE.common.Filters import box_smooth
 
 
@@ -158,9 +155,7 @@ class GazeInferer:
         self._eyefitter.estimate_eye_sphere()
 
         # Issue error if eyeball model still does not exist after fitting.
-        if (self._eyefitter.eye_centre is None) or (
-            self._eyefitter.aver_eye_radius is None
-        ):
+        if (self._eyefitter.eye_centre is None) or (self._eyefitter.aver_eye_radius is None):
             raise TypeError("Eyeball model was not fitted.")
 
     def torch_prediction_to_deepvog_format(self, prediction):
@@ -279,34 +274,22 @@ class GazeInferer:
                     self._past_xs[-1] = x
                     self._past_ys[-1] = y
 
-                    median_filtered_x = median_filter(
-                        self._past_xs, self._median_size
-                    )
-                    median_filtered_y = median_filter(
-                        self._past_ys, self._median_size
-                    )
+                    median_filtered_x = median_filter(self._past_xs, self._median_size)
+                    median_filtered_y = median_filter(self._past_ys, self._median_size)
 
                     box_filtered_x = box_smooth(
-                        median_filtered_x[
-                            self._box_size - 1 : 2 * self._box_size - 1
-                        ],
+                        median_filtered_x[self._box_size - 1 : 2 * self._box_size - 1],
                         self._box_size,
                     )
                     box_filtered_y = box_smooth(
-                        median_filtered_y[
-                            self._box_size - 1 : 2 * self._box_size - 1
-                        ],
+                        median_filtered_y[self._box_size - 1 : 2 * self._box_size - 1],
                         self._box_size,
                     )
 
                     self._gaze_lock.acquire()
 
-                    self.x = (
-                        box_filtered_x[self._box_size // 2] - self._x_offset
-                    )
-                    self.y = (
-                        box_filtered_y[self._box_size // 2] - self._y_offset
-                    )
+                    self.x = box_filtered_x[self._box_size // 2] - self._x_offset
+                    self.y = box_filtered_y[self._box_size // 2] - self._y_offset
 
                     self._gaze_lock.release()
 
@@ -331,9 +314,7 @@ class GazeInferer:
         if visibility.item() < 0.90:
             return None, None
 
-        self._eyefitter.unproject_single_observation(
-            self.torch_prediction_to_deepvog_format(prediction)
-        )
+        self._eyefitter.unproject_single_observation(self.torch_prediction_to_deepvog_format(prediction))
         _, n_list, _, _ = self._eyefitter.gen_consistent_pupil()
         x, y = self._eyefitter.convert_vec2angle31(n_list[0])
 
