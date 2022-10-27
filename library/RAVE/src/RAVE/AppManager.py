@@ -25,8 +25,17 @@ def connect():
     """
     print("connection established to server")
     # Emit the socket id to the server to "authenticate yourself"
-
+    while not sio.connected:
+        emit("pythonSocketAuth", "server", {"socketId": sio.get_sid()})
     emit("pythonSocketAuth", "server", {"socketId": sio.get_sid()})
+
+
+@sio.event
+def disconnect():
+    """
+    Disconnects the socket to the web.
+    """
+    print("Disconnect to server")
 
 
 def emit(event_name, destination, payload):
@@ -38,7 +47,8 @@ def emit(event_name, destination, payload):
             The destination to emit the event ("client" or "server").
         payload (dict): The information needed to be passed to the destination.
     """
-    sio.emit(event_name, {"destination": destination, "payload": payload})
+    if sio.connected:
+        sio.emit(event_name, {"destination": destination, "payload": payload})
 
 
 class AppManager:
@@ -79,7 +89,7 @@ class AppManager:
         self._object_manager = self._tracking_manager.object_manager
         self._pixel_to_delay = Pixel2Delay((args.height, args.width), "./calibration.json")
         self._args = args
-        self._frame_output_frequency = 0.05
+        self._frame_output_frequency = 1
         self._delay_update_frequency = 0.25
         self._selected_face = None
         self._vision_mode = "mute"
@@ -183,15 +193,10 @@ class AppManager:
         )
         send_to_server_thread.start()
 
-        # # Anthony: Test to stop all after 10 seconds
-        # time.sleep(10)
-        # self.stop()
-
     def stop(self):
         """
         Stop the tracking loop and the connection to server.
         """
-
         # Stop tracking manager
         self._tracking_manager.stop()
 

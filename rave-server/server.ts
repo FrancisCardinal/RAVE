@@ -28,6 +28,16 @@ io.on("connection", (socket) => {
 
   console.log("New socket connection : ", socket.id);
 
+  socket.on("disconnect", (reason) => {
+    if (socket.id === pythonSocketId) {
+      console.log("Python socket disconnected because ", reason);
+      connectionStatus = 0;
+      io.emit(CLIENT_EVENTS.CONNECTION_STATUS, {status : connectionStatus});
+    } else {
+      console.log("Web client socket closed : ", socket.id);
+    }
+  });
+
   socket.onAny((event : WS_EVENTS, { destination, payload } : { destination : MESSAGE_DESTINATIONS, payload : AnyObject | undefined} ) => {
     switch(destination){
       case MESSAGE_DESTINATIONS.CLIENT:
@@ -45,16 +55,6 @@ io.on("connection", (socket) => {
     }
   });
 
-});
-
-io.on("disconnect", (socket) => {
-  if (socket.id === pythonSocketId) {
-    console.log("Python socket disconnected");
-    connectionStatus = 0;
-    io.emit(CLIENT_EVENTS.CONNECTION_STATUS, {status : connectionStatus});
-  } else {
-    console.log("Web client socket closed : ", socket.id);
-  }
 });
 
 server.listen(9000, () => {
