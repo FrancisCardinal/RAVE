@@ -42,7 +42,6 @@ class Trainer:
 
     TRAINING_SESSIONS_DIR = "training_sessions"
     MODEL_INFO_FILE_NAME = "saved_model.pth"
-
     def __init__(
         self,
         training_loader,
@@ -54,6 +53,7 @@ class Trainer:
         scheduler,
         ROOT_DIR_PATH,
         CONTINUE_TRAINING,
+        MODEL_INFO_FILE_NAME = None
     ):
         self.training_loader = training_loader
         self.validation_loader = validation_loader
@@ -63,8 +63,11 @@ class Trainer:
         self.optimizer = optimizer
         self.scheduler = scheduler
         self.ROOT_DIR_PATH = ROOT_DIR_PATH
+
+        if MODEL_INFO_FILE_NAME is not None:
+            Trainer.MODEL_INFO_FILE_NAME = MODEL_INFO_FILE_NAME
         self.MODEL_PATH = os.path.join(
-            ROOT_DIR_PATH, Trainer.MODEL_INFO_FILE_NAME
+            ROOT_DIR_PATH, MODEL_INFO_FILE_NAME
         )
         self.min_validation_loss = np.inf
 
@@ -127,7 +130,7 @@ class Trainer:
             print(epoch_stats)
             if self.scheduler:
                 self.scheduler.step(current_validation_loss)
-            epoch += 1
+            self.epoch += 1
 
         self.terminate_training = True
         min_training_loss = min(self.training_losses)

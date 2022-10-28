@@ -781,7 +781,7 @@ class AudioManager:
         if self.mask:
             self.masks = KissMask(self.mic_array, buffer_size=30)
         else:
-            self.model = AudioModel(input_size=1026, hidden_size=128, num_layers=2)
+            self.model = AudioModel(input_size=1026, hidden_size=512, num_layers=2)
             self.model.to(self.device)
             if self.debug:
                 print(self.model)

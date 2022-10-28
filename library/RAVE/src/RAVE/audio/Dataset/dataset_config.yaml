@@ -29,20 +29,22 @@ room_sizes: [[10, 100], [10, 100], [3, 20]]
 # Non authorized noises
 banned_noises:
     [
-        'Bus_1',
-        'Car_1',
-        'Hallway_1',
-        'Office_1',
-        'Washing_1',
-        'Munching',
-        'Neighbor',
-        'ShuttingDoor',
-        'Typing',
-        'SqueakyChair',
-        'WasherDryer',
+#        'Bus_1',
+#        'Car_1',
+#        'Hallway_1',
+#        'Office_1',
+#        'Kitchen_1',
+#        'Washing_1',
+#        'LivingRoom',
+#        'Munching',
+#        'Neighbor',
+#        'ShuttingDoor',
+#        'Typing',
+#        'SqueakyChair',
+#        'WasherDryer',
 #        'CopyMachine',
-        'AirConditioner',
-        'VacuumCleaner'
+#        'AirConditioner',
+#        'VacuumCleaner'
     ]
 
 # Diffuse noises
@@ -71,7 +73,7 @@ dir_noise_count_range: [2, 4]
 sample_per_speech: 2
 
 # Whether to use speech as noise sources
-speech_as_noise: False
+speech_as_noise: True
 
 # SNR limit values
 snr_limits: [0.25, 0.75]

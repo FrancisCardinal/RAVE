@@ -80,18 +80,18 @@ class AudioDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         item_path = self.data[idx]
-        audio_signal, audio_sr, noise_target, noise_sr, speech_target, speech_sr, config_dict = self.load_item_from_disk(
+        original_audio_signal, audio_sr, original_noise_target, noise_sr, orginal_speech_target, speech_sr, config_dict = self.load_item_from_disk(
             item_path)
 
-        min_val = min(audio_signal.shape[1], noise_target.shape[1], speech_target.shape[1])
+        min_val = min(original_audio_signal.shape[1], original_noise_target.shape[1], orginal_speech_target.shape[1])
         begin = random.randint(0, (min_val - self.num_samples)) if min_val > self.num_samples + 1 else 0
 
-        signal1 = self.signal1(audio_signal, audio_sr, begin)
-        signal2 = self._delaySum(audio_signal, audio_sr, config_dict, begin)
+        signal1 = self.signal1(original_audio_signal, audio_sr, begin)
+        signal2 = self._delaySum(original_audio_signal, audio_sr, config_dict, begin)
         signal = torch.cat([signal1, signal2], dim=1)
 
-        noise_target = self.targets(noise_target, noise_sr, begin)
-        speech_target = self.targets(speech_target, speech_sr, begin)
+        noise_target = self.targets(original_noise_target, noise_sr, begin)
+        speech_target = self.targets(orginal_speech_target, speech_sr, begin)
         #noise_target -= torch.min(noise_target)
         #speech_target -= torch.min(speech_target)
 
@@ -101,7 +101,13 @@ class AudioDataset(torch.utils.data.Dataset):
         total_energy = noise_target + speech_target
 
 
-        return signal, torch.squeeze(target), total_energy
+        return signal, torch.squeeze(target), total_energy, self.reformat(orginal_speech_target, speech_sr, begin), self._set_mono(self.transformation(self.reformat(original_audio_signal, audio_sr, begin)))
+
+    def reformat(self, raw_signal, sr, begin):
+        signal = self._resample(raw_signal, sr)
+        signal = self._cut(signal, begin)
+        signal = self._right_pad(signal)
+        return signal
 
     def signal1(self, raw_signal, sr, begin):
         """
@@ -114,9 +120,7 @@ class AudioDataset(torch.utils.data.Dataset):
         Returns: The logarithmic energy mask calculated
 
         """
-        signal = self._resample(raw_signal, sr)
-        signal = self._cut(signal, begin)
-        signal = self._right_pad(signal)
+        signal = self.reformat(raw_signal, sr, begin)
         freq_signal = self.transformation(signal)
         #freq_signal = freq_signal ** 2
         freq_signal = self._set_mono(freq_signal)

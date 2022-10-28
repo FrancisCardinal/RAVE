@@ -13,7 +13,7 @@ from RAVE.audio.Neural_Network.AudioTrainer import AudioTrainer
 from RAVE.audio.Dataset.AudioDataset import AudioDataset
 
 
-def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
+def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST, GPU, DATASET_PATH):
     """main function of the module
 
     Args:
@@ -28,12 +28,14 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
             Whether to display the predictions on the validation dataset or not
         TEST (bool):
             Whether to display the predictions on the test dataset or not
+        GPU (int):
+            Which GPU number to use for training (0 or 1)
     """
     DEVICE = "cpu"
     if torch.cuda.is_available():
-        DEVICE = "cuda:1"
+        DEVICE = "cuda:" + str(GPU)
 
-    dataset = AudioDataset(dataset_path='/home/rave/audiodataset/dataset/no_reverb')
+    dataset = AudioDataset(dataset_path=DATASET_PATH)
 
     BATCH_SIZE = 32
     lenght_dataset = len(dataset)
@@ -45,7 +47,7 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
         training_sub_dataset,
         batch_size=BATCH_SIZE,
         shuffle=True,
-        num_workers=32,
+        num_workers=25,
         pin_memory=True,
         persistent_workers=True
     )
@@ -55,7 +57,7 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
         validation_sub_dataset,
         batch_size=BATCH_SIZE,
         shuffle=False,
-        num_workers=32,
+        num_workers=25,
         pin_memory=True,
         persistent_workers=True
     )
@@ -82,7 +84,8 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST):
             optimizer,
             scheduler,
             directory,
-            CONTINUE_TRAINING
+            CONTINUE_TRAINING,
+            MODEL_INFO_FILE_NAME= "saved_model_gpu0.pth" if GPU == 0 else "saved_model_gpu1.pth"
         )
         trainer.train_with_validation(NB_EPOCHS)
 
@@ -211,6 +214,24 @@ if __name__ == "__main__":
             "dataset"
         ),
     )
+
+    parser.add_argument(
+        "-g",
+        "--gpu",
+        action="store",
+        type=int,
+        default=0,
+        help="Which GPu to use (0 or 1)",
+    )
+
+    parser.add_argument(
+        "-d",
+        "--dataset",
+        action="store",
+        type=str,
+        help="Path to the dataset Directory to train on",
+    )
+
     args = parser.parse_args()
 
     main(
@@ -219,4 +240,6 @@ if __name__ == "__main__":
         args.continue_training_from_checkpoint,
         args.display_validation,
         args.predict,
+        args.gpu,
+        args.dataset,
     )
