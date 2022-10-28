@@ -1,11 +1,10 @@
 import argparse
+from time import sleep
 
 from RAVE.AppManager import AppManager
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Web interface for face tracking"
-    )
+    parser = argparse.ArgumentParser(description="Web interface for face tracking")
 
     parser.add_argument(
         "--video_source",
@@ -63,5 +62,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     manager = AppManager(args)
-
-    manager.start()
+    try:
+        manager.start()
+        while True:
+            sleep(1)
+    except KeyboardInterrupt:
+        manager.stop()
+        quit()
