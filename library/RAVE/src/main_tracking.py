@@ -36,7 +36,7 @@ if __name__ == "__main__":
         dest="width",
         type=int,
         help="Width of the image to be captured by the camera",
-        default=600,
+        default=640,
     )
     parser.add_argument(
         "--freq",
@@ -53,8 +53,9 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    cap = VideoSource(args.video_source, args.width, args.height)
-    cap.set(cv2.CAP_PROP_FPS, 60)
+    Gstreamer_pipeline = 'v4l2src device=/dev/video0 ! video/x-raw, format=UYVY, width=640, heigth=480, framerate=60/1 ! nvvidconv ! video/x-raw(memory:NVMM) ! nvvidconv ! video/x-raw, format=BGRx ! videoconvert ! video/x-raw, format=BGR ! appsink'
+    cap = VideoSource(Gstreamer_pipeline, args.width, args.height)
+    # cap.set(cv2.CAP_PROP_FPS, 60)
 
     frequency = args.freq
     tracking_manager = TrackingManager(

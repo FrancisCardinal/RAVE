@@ -5,10 +5,10 @@ import torch
 
 from .Verifier import Verifier
 
-if platform.release().split("-")[-1] == "tegra":
-    from .models.arcface import ArcFace_trt as arcface_model
-else:
-    from .models.arcface import ArcFace_tf as arcface_model
+# if platform.release().split("-")[-1] == "tegra":
+#     from .models.arcface import ArcFace_trt as arcface_model
+# else:
+from .models.arcface import ArcFace_tf as arcface_model
 
 
 class ArcFace(Verifier):
@@ -45,18 +45,18 @@ class ArcFace(Verifier):
 
             # TODO: Change inference call here.. could make predict() func in
             #  both implementations
-            if platform.release().split("-")[-1] == "tegra":
-                # image = image.squeeze(0)
-                # # TODO: No need to convert to tensor on cuda
-                #  before bringing it back to numpy
-                # tensor = ArcFace.opencv_image_to_tensor(
-                #     image.copy(), self.device
-                # )
-                # tensor = torch.unsqueeze(tensor, 0)
-                image = np.transpose(image, (0, 3, 1, 2))
-                feature = self.model(image)
-            else:
-                feature = self.model(image)[0].numpy().tolist()
+            # if platform.release().split("-")[-1] == "tegra":
+            #     # image = image.squeeze(0)
+            #     # # TODO: No need to convert to tensor on cuda
+            #     #  before bringing it back to numpy
+            #     # tensor = ArcFace.opencv_image_to_tensor(
+            #     #     image.copy(), self.device
+            #     # )
+            #     # tensor = torch.unsqueeze(tensor, 0)
+            #     image = np.transpose(image, (0, 3, 1, 2))
+            #     feature = self.model(image)
+            # else:
+            feature = self.model(image)[0].numpy().tolist()
 
             features.append(feature)
 
