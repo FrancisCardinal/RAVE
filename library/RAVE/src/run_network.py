@@ -84,7 +84,8 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST, GPU, DAT
             optimizer,
             scheduler,
             directory,
-            CONTINUE_TRAINING
+            CONTINUE_TRAINING,
+            MODEL_INFO_FILE_NAME= "saved_model_gpu0.pth" if GPU == 0 else "saved_model_gpu1.pth"
         )
         trainer.train_with_validation(NB_EPOCHS)
 
