@@ -29,6 +29,9 @@ def save_data(data, run_args): #, global_mean):
         # Save upsampled normalized
         norm_data_path = os.path.join(output_dir, 'normalized.wav')
         data['normalized_data'].export(norm_data_path, format="wav")
+        # Save low_passed
+        lowpass_data_path = os.path.join(output_dir, 'lowpass.wav')
+        data['lowpassed_data'].export(lowpass_data_path, format="wav")
 
     # Save configs
     configs = data['configs']
@@ -44,8 +47,6 @@ def main(run_args):
     dir_path_list = [os.path.dirname(i) for i in wav_file_paths]
 
     # Get audio path, data, downsample, get mean amplitude
-    wav_data_list = []
-    global_mean = 0
     for dir_path in dir_path_list:
         wav_dict = dict()
 
@@ -61,8 +62,11 @@ def main(run_args):
         # Get audio
         audio_segment = AudioSegment.from_wav(os.path.join(dir_path, 'audio.wav'))
         wav_dict['data'] = audio_segment
+        # Lowpass
+        lowpassed_audio_segment = audio_segment.low_pass_filter(2000)
+        wav_dict['lowpassed_data'] = lowpassed_audio_segment
         # Normalize
-        normalized_audio_segment = effects.normalize(audio_segment)
+        normalized_audio_segment = effects.normalize(lowpassed_audio_segment)
         wav_dict['normalized_data'] = normalized_audio_segment
         # Downsample
         downsampled_audio_segment = normalized_audio_segment.set_frame_rate(run_args.rate)
