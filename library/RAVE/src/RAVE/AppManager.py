@@ -75,7 +75,7 @@ class AppManager:
         self._is_alive = True
         self._cap = VideoSource(args.video_source, args.width, args.height)
         self._cap.set(cv2.CAP_PROP_FPS, 60)
-        self._mic_source = MicSource(4, chunk_size=256)
+        self._mic_source = MicSource(args.nb_mic_channels, chunk_size=256)
         self._tracking = True
         self._tracking_manager = TrackingManager(
             cap=self._cap,

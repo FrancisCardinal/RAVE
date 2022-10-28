@@ -33,6 +33,19 @@ if __name__ == "__main__":
         action="store_true",
     )
     parser.add_argument(
+        "--undistort",
+        dest="undistort",
+        help="If true, will correct fish-eye distortion from camera according to hardcoded K & D matrices",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--nb_mic_channels",
+        dest="nb_mic_channels",
+        type=int,
+        help="Set the number of microphone channels",
+        default=2,
+    )
+    parser.add_argument(
         "--freq",
         dest="freq",
         type=float,
