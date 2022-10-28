@@ -89,7 +89,7 @@ class AppManager:
         self._object_manager = self._tracking_manager.object_manager
         self._pixel_to_delay = Pixel2Delay((args.height, args.width), "./calibration.json")
         self._args = args
-        self._frame_output_frequency = 0.05
+        self._frame_output_frequency = 1
         self._delay_update_frequency = 0.25
         self._selected_face = None
         self._vision_mode = "mute"
