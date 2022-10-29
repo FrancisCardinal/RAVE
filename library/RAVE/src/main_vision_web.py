@@ -24,8 +24,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--flip_display_dim",
         dest="flip_display_dim",
-        help="If true, will flip window dimensions to (width, height)",
-        action="store_true",
+        help="If true, will flip window dimensions to (height, width)",
+        action="store_false",
     )
     parser.add_argument(
         "--flip",

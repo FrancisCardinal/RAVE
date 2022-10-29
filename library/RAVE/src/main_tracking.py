@@ -2,15 +2,16 @@ import argparse
 import cv2
 from pyodas.visualize import VideoSource
 from RAVE.face_detection.TrackingManager import TrackingManager
+from RAVE.common.jetson_utils import is_jetson, process_video_source
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Face tracking")
     parser.add_argument(
         "--video_source",
         dest="video_source",
-        type=int,
+        type=str,
         help="Video input source identifier",
-        default=0,
+        default= "0" if not is_jetson() else "v4l2src device=/dev/video0 ! video/x-raw, format=UYVY, width=640, heigth=480, framerate=60/1 ! nvvidconv ! video/x-raw(memory:NVMM) ! nvvidconv ! video/x-raw, format=BGRx ! videoconvert ! video/x-raw, format=BGR ! appsink" ,
     )
     parser.add_argument(
         "--flip",
@@ -21,8 +22,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--flip_display_dim",
         dest="flip_display_dim",
-        help="If true, will flip window dimensions to (width, height)",
-        action="store_true",
+        help="If true, will flip window dimensions to (height, width)",
+        action="store_false",
     )
     parser.add_argument(
         "--height",
@@ -53,10 +54,7 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    Gstreamer_pipeline = 'v4l2src device=/dev/video0 ! video/x-raw, format=UYVY, width=640, heigth=480, framerate=60/1 ! nvvidconv ! video/x-raw(memory:NVMM) ! nvvidconv ! video/x-raw, format=BGRx ! videoconvert ! video/x-raw, format=BGR ! appsink'
-    cap = VideoSource(Gstreamer_pipeline, args.width, args.height)
-    # cap.set(cv2.CAP_PROP_FPS, 60)
-
+    cap = VideoSource(process_video_source(args.video_source), args.width, args.height)
     frequency = args.freq
     tracking_manager = TrackingManager(
         cap=cap,

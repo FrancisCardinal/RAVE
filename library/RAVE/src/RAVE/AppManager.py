@@ -12,6 +12,7 @@ from .face_detection.TrackingManager import TrackingManager
 from .face_detection.Pixel2Delay import Pixel2Delay
 from .face_detection.Calibration_audio_vision import CalibrationAudioVision
 from .eye_tracker.GazeInferer.GazeInfererManager import GazeInfererManager
+from RAVE.common.jetson_utils import process_video_source
 
 # from RAVE.face_detection.Direction2Pixel import Direction2Pixel
 
@@ -87,9 +88,7 @@ class AppManager:
     """
 
     def __init__(self, args):
-        Gstreamer_pipeline = 'v4l2src device=/dev/video0 ! video/x-raw, format=UYVY, width=640, heigth=480, framerate=60/1 ! nvvidconv ! video/x-raw(memory:NVMM) ! nvvidconv ! video/x-raw, format=BGRx ! videoconvert ! video/x-raw, format=BGR ! appsink'
-        self._cap = VideoSource(Gstreamer_pipeline, args.width, args.height)
-        # self._cap.set(cv2.CAP_PROP_FPS, 60)
+        self._cap = VideoSource(process_video_source(args.video_source), args.width, args.height)
         self._mic_source = MicSource(4, chunk_size=256)
         self._tracking = True
         self._tracking_manager = TrackingManager(
