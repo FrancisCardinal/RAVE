@@ -90,7 +90,7 @@ class AppManager:
         Gstreamer_pipeline = 'v4l2src device=/dev/video0 ! video/x-raw, format=UYVY, width=640, heigth=480, framerate=60/1 ! nvvidconv ! video/x-raw(memory:NVMM) ! nvvidconv ! video/x-raw, format=BGRx ! videoconvert ! video/x-raw, format=BGR ! appsink'
         self._cap = VideoSource(Gstreamer_pipeline, args.width, args.height)
         # self._cap.set(cv2.CAP_PROP_FPS, 60)
-        self._mic_source = MicSource(4, chunk_size=256)
+        self._mic_source = MicSource(8, chunk_size=256, mic_index=4)
         self._tracking = True
         self._tracking_manager = TrackingManager(
             cap=self._cap,
@@ -103,7 +103,7 @@ class AppManager:
         )
         self._object_manager = self._tracking_manager.object_manager
         self._pixel_to_delay = Pixel2Delay(
-            (args.height, args.width), "./calibration.json"
+            (args.height, args.width), "./calibration_8mics.json"
         )
         self._args = args
         self._frame_output_frequency = 0.05
@@ -262,7 +262,7 @@ class AppManager:
             pass
             # print(
             #     self._pixel_to_delay.get_delay(
-            #         self._tracking_manager.tracked_objects[
+            #         self._object_manager.tracked_objects[
             #             self._selected_face
             #         ].landmark
             #     )
