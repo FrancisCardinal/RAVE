@@ -432,21 +432,3 @@ def check_frontal_face(
         return False
     return True
 
-
-def undistort(frame):
-    K = np.array([[340.60994606, 0.0, 325.7756748], [0.0, 341.93970667, 242.46219777], [0.0, 0.0, 1.0]])
-
-    D = np.array([[-3.07926877e-01, 9.16280959e-02, 9.46074597e-04, 3.07906550e-04, -1.17169354e-02]])
-
-    original_height, original_width = frame.shape[:2]
-    newcameramtx, roi = cv2.getOptimalNewCameraMatrix(
-        K, D, (original_width, original_height), 1, (original_width, original_height)
-    )
-
-    # Undistort
-    frame = cv2.undistort(frame, K, D, None, newcameramtx)
-    x, y, w, h = roi
-    frame = frame[y : y + h, x : x + w]
-    frame = cv2.resize(frame, (original_width, original_height))
-
-    return frame

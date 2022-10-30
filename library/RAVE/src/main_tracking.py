@@ -23,7 +23,7 @@ if __name__ == "__main__":
         "--flip_display_dim",
         dest="flip_display_dim",
         help="If true, will flip window dimensions to (height, width)",
-        action="store_false",
+        action="store_true",
     )
     parser.add_argument(
         "--undistort",
