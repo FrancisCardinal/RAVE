@@ -6,6 +6,7 @@ interface AbstractServerMessage extends AbstractMessage {
 
 export enum SERVER_EVENTS {
   PYTHON_SOCKET_AUTH = 'pythonSocketAuth',
+  GET_PYTHON_CONNECTION_STATUS = 'getPythonConnectionStatus',
 }
 
 interface PythonSocketPayload {
@@ -19,5 +20,13 @@ export function PythonSocketEvent(socketId : number) {
     payload : {
       socketId
     } as PythonSocketPayload
+  }
+};
+
+export function GetPythonConnectionStatus() {
+  return {
+    destination : MESSAGE_DESTINATIONS.SERVER,
+    event: SERVER_EVENTS.GET_PYTHON_CONNECTION_STATUS,
+    payload : {}
   }
 };

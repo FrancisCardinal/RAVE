@@ -2,6 +2,7 @@ import torch
 from torch.nn import functional as F
 
 import numpy as np
+import cv2
 
 import random
 
@@ -62,9 +63,7 @@ def inverse_normalize(tensor, mean, std):
     return tensor
 
 
-def apply_image_translation(
-    image_tensor, x_extremums=[-0.2, 0.2], y_extremums=[-0.2, 0.2]
-):
+def apply_image_translation(image_tensor, x_extremums=[-0.2, 0.2], y_extremums=[-0.2, 0.2]):
     """
     A data augmentation operation, translates the frame randomly, by
     selecting an x and y value in the x_extremums and y_extremums ranges,
@@ -88,9 +87,7 @@ def apply_image_translation(
     x_offset = random.uniform(x_extremums[0], x_extremums[1])
     y_offset = random.uniform(y_extremums[0], y_extremums[1])
 
-    output_image_tensor = do_affine_grid_operation(
-        image_tensor, translation=(x_offset, y_offset)
-    )
+    output_image_tensor = do_affine_grid_operation(image_tensor, translation=(x_offset, y_offset))
 
     return output_image_tensor, x_offset, y_offset
 
@@ -111,9 +108,7 @@ def apply_image_rotation(image_tensor, rotation_angle_extremums=[-0.1, 0.1]):
     Returns:
         Tuple:The rotated frame (pytorch tensor) and the rotation angle (float)
     """
-    phi = random.uniform(
-        rotation_angle_extremums[0], rotation_angle_extremums[1]
-    )
+    phi = random.uniform(rotation_angle_extremums[0], rotation_angle_extremums[1])
 
     output_image_tensor = do_affine_grid_operation(image_tensor, phi=phi)
 
@@ -152,13 +147,9 @@ def apply_image_translation_and_rotation(
 
     x_offset = random.uniform(x_extremums[0], x_extremums[1])
     y_offset = random.uniform(y_extremums[0], y_extremums[1])
-    phi = random.uniform(
-        rotation_angle_extremums[0], rotation_angle_extremums[1]
-    )
+    phi = random.uniform(rotation_angle_extremums[0], rotation_angle_extremums[1])
 
-    output_image_tensor = do_affine_grid_operation(
-        image_tensor, (x_offset, y_offset), phi
-    )
+    output_image_tensor = do_affine_grid_operation(image_tensor, (x_offset, y_offset), phi)
 
     return output_image_tensor, x_offset, y_offset, phi
 
@@ -199,9 +190,7 @@ def do_affine_grid_operation(image_tensor, translation=(0, 0), phi=0):
     # as [-1, -1] and the bottom right one as [1, 1] (as opposed to the
     # convention of this module where the top left corner is [0, 0])
 
-    grid = F.affine_grid(
-        transformation_matrix.unsqueeze(0), image_tensor.unsqueeze(0).size()
-    )
+    grid = F.affine_grid(transformation_matrix.unsqueeze(0), image_tensor.unsqueeze(0).size())
     image_tensor = F.grid_sample(image_tensor.unsqueeze(0), grid)
     image_tensor = image_tensor.squeeze(0)
 
@@ -257,14 +246,7 @@ def box_iou(box1, box2):
     area2 = box_area(box2.T)
 
     # inter(N,M) = (rb(N,M,2) - lt(N,M,2)).clamp(0).prod(2)
-    inter = (
-        (
-            torch.min(box1[:, None, 2:], box2[:, 2:])
-            - torch.max(box1[:, None, :2], box2[:, :2])
-        )
-        .clamp(0)
-        .prod(2)
-    )
+    inter = (torch.min(box1[:, None, 2:], box2[:, 2:]) - torch.max(box1[:, None, :2], box2[:, :2])).clamp(0).prod(2)
     # iou = inter / (area1 + area2 - inter)
     return inter / (area1[:, None] + area2 - inter)
 
@@ -274,12 +256,8 @@ def scale_coords(img1_shape, coords, img0_shape, ratio_pad=None):
     Rescale coords (xyxy) from img1_shape to img0_shape
     """
     if ratio_pad is None:  # calculate from img0_shape
-        gain = min(
-            img1_shape[0] / img0_shape[0], img1_shape[1] / img0_shape[1]
-        )  # gain  = old / new
-        pad = (img1_shape[1] - img0_shape[1] * gain) / 2, (
-            img1_shape[0] - img0_shape[0] * gain
-        ) / 2  # wh padding
+        gain = min(img1_shape[0] / img0_shape[0], img1_shape[1] / img0_shape[1])  # gain  = old / new
+        pad = (img1_shape[1] - img0_shape[1] * gain) / 2, (img1_shape[0] - img0_shape[0] * gain) / 2  # wh padding
     else:
         gain = ratio_pad[0][0]
         pad = ratio_pad[1]
@@ -304,12 +282,8 @@ def clip_coords(boxes, img_shape):
 def scale_coords_landmarks(img1_shape, coords, img0_shape, ratio_pad=None):
     """Rescale coords (xyxy) from img1_shape to img0_shape"""
     if ratio_pad is None:  # calculate from img0_shape
-        gain = min(
-            img1_shape[0] / img0_shape[0], img1_shape[1] / img0_shape[1]
-        )  # gain  = old / new
-        pad = (img1_shape[1] - img0_shape[1] * gain) / 2, (
-            img1_shape[0] - img0_shape[0] * gain
-        ) / 2  # wh padding
+        gain = min(img1_shape[0] / img0_shape[0], img1_shape[1] / img0_shape[1])  # gain  = old / new
+        pad = (img1_shape[1] - img0_shape[1] * gain) / 2, (img1_shape[0] - img0_shape[0] * gain) / 2  # wh padding
     else:
         gain = ratio_pad[0][0]
         pad = ratio_pad[1]
@@ -440,12 +414,8 @@ def check_frontal_face(
     ):
         return False
 
-    wide_dist = np.linalg.norm(
-        np.array(facial_landmarks[0:2]) - np.array(facial_landmarks[2:4])
-    )
-    high_dist = np.linalg.norm(
-        np.array(facial_landmarks[0:2]) - np.array(facial_landmarks[6:8])
-    )
+    wide_dist = np.linalg.norm(np.array(facial_landmarks[0:2]) - np.array(facial_landmarks[2:4]))
+    high_dist = np.linalg.norm(np.array(facial_landmarks[0:2]) - np.array(facial_landmarks[6:8]))
     dist_rate = high_dist / wide_dist
 
     # cal std
@@ -458,10 +428,25 @@ def check_frontal_face(
     high_rate = dist_A / dist_C
     high_ratio_std = np.fabs(high_rate - 1.1)  # smaller is better
 
-    if (
-        dist_rate < thresh_dist_low
-        or dist_rate > thresh_dist_high
-        or high_ratio_std > thresh_high_std
-    ):
+    if dist_rate < thresh_dist_low or dist_rate > thresh_dist_high or high_ratio_std > thresh_high_std:
         return False
     return True
+
+
+def undistort(frame):
+    K = np.array([[340.60994606, 0.0, 325.7756748], [0.0, 341.93970667, 242.46219777], [0.0, 0.0, 1.0]])
+
+    D = np.array([[-3.07926877e-01, 9.16280959e-02, 9.46074597e-04, 3.07906550e-04, -1.17169354e-02]])
+
+    original_height, original_width = frame.shape[:2]
+    newcameramtx, roi = cv2.getOptimalNewCameraMatrix(
+        K, D, (original_width, original_height), 1, (original_width, original_height)
+    )
+
+    # Undistort
+    frame = cv2.undistort(frame, K, D, None, newcameramtx)
+    x, y, w, h = roi
+    frame = frame[y : y + h, x : x + w]
+    frame = cv2.resize(frame, (original_width, original_height))
+
+    return frame

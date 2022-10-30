@@ -4,6 +4,7 @@ import numpy as np
 
 from .TrackingUpdater import TrackingUpdater
 from .TrackedObjectManager import TrackedObjectManager
+from ..common.image_utils import undistort
 
 from pyodas.visualize import Monitor
 
@@ -150,7 +151,16 @@ class TrackingManager:
 
         return tracking_frame
 
-    def main_loop(self, monitor, flip):
+    def process_frame(self, frame):
+        if self.flip_frame:
+            frame = cv2.flip(frame, 0)
+
+        if self.undistort_frame:
+            frame = undistort(frame)
+
+        return frame
+
+    def main_loop(self, monitor):
         """
         Loop to be called on separate thread that handles retrieving new image
         frames from video input and displaying output in windows
@@ -164,8 +174,7 @@ class TrackingManager:
             if self._tracking_or_calib():
                 # Capture image and pass to classes that need it
                 frame = self._cap()
-                if flip:
-                    frame = cv2.flip(frame, 0)
+                frame = self.process_frame(frame)
 
                 frame_object = FrameObject(frame, self.frame_count)
                 self.frame_count += 1
@@ -212,6 +221,8 @@ class TrackingManager:
 
         shape = (self._cap.shape[1], self._cap.shape[0]) if args.flip_display_dim else self._cap.shape
         self.is_alive = True
+        self.flip_frame = args.flip
+        self.undistort_frame = args.undistort
         if self._visualize:
             monitor = Monitor(
                 "Detection",
@@ -230,6 +241,12 @@ class TrackingManager:
         update_loop.start()
 
         # Start capture & display loop
-        self.main_loop(monitor, args.flip)
-        update_loop.is_alive = False
+        self.main_loop(monitor)
+        self.stop()
+
+    def stop(self):
+        """
+        Stop tracking loop and all related threads
+        """
+        self.kill_threads()
         self.object_manager.stop_tracking()
