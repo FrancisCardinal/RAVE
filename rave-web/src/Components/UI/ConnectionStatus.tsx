@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { WifiCheckedIcon, NoWifiConnectionIcon } from '../../Ressources/icons';
-import { useEventListener } from '../../Hooks';
-import { CLIENT_EVENTS, ConnectionStatusPayload } from 'rave-protocol';
+import { useEventListener, useEmit } from '../../Hooks';
+import { CLIENT_EVENTS, GetPythonConnectionStatus, ConnectionStatusPayload } from 'rave-protocol';
 
 /**
  * This component displays the current connection with the prototype.
  */
+
 function ConnectionStatus() {
+  const emit = useEmit();
   const [t] = useTranslation('common');
   const [connectionStatus, setConnectionStatus] = useState(0);
 
@@ -15,6 +17,10 @@ function ConnectionStatus() {
     console.log('Status changing');
     setConnectionStatus(payload.status);
   });
+
+  useEffect(() => {
+    emit(GetPythonConnectionStatus());
+  }, [emit])
 
   // TODO : Query connection status on create with useEffect
 

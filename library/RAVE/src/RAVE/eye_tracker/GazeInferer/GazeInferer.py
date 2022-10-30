@@ -1,6 +1,7 @@
 import os
 import torch
 import numpy as np
+from scipy.ndimage import median_filter
 import json
 
 from RAVE.eye_tracker.EyeTrackerDataset import (
@@ -8,18 +9,29 @@ from RAVE.eye_tracker.EyeTrackerDataset import (
     EyeTrackerInferenceDataset,
 )
 from RAVE.eye_tracker.GazeInferer.deepvog.eyefitter import SingleEyeFitter
-from RAVE.eye_tracker.GazeInferer.deepvog.LSqEllipse import LSqEllipse
-from RAVE.eye_tracker.ellipse_util import get_points_of_ellipses
 
-"""
-This file is a combination of multiple files of deepvog. It regroups the
-elements that are specific to our use case only, and uses pytorch instead of TF
-for predictions. As such, this is mostly copy and pasted (and adapted) code
-from deepvog.
-"""
+import cv2
+from RAVE.common.image_utils import tensor_to_opencv_image, inverse_normalize
+from RAVE.eye_tracker.ellipse_util import draw_ellipse_on_image
+from RAVE.common.Filters import box_smooth
 
 
 class GazeInferer:
+    """This class is a combination of multiple files of deepvog. It regroups
+    the elements that are specific to our use case only, and uses pytorch
+    instead of TF for predictions. As such, this is mostly copy and pasted
+    (and adapted) code from deepvog. Its goal is to convert an ellipse
+    prediction into a gaze prediction. In order to do this, you must first
+    run a calibration, in order to compute some metrics about the user's
+    eye, and then you can run the inference.
+    """
+
+    CALIBRATION_MEMORY_PATH = os.path.join(
+        EyeTrackerDataset.EYE_TRACKER_DIR_PATH,
+        "GazeInferer",
+        "CalibrationMemory",
+    )
+
     def __init__(
         self,
         ellipse_dnn,
@@ -28,7 +40,6 @@ class GazeInferer:
         eyeball_model_path="model_01.json",
         pupil_radius=4,
         initial_eye_z=52.271,
-        x_angle=22.5,
         flen=3.37,
         sensor_size=(2.7216, 3.6288),
         original_image_size_pre_crop=(
@@ -36,6 +47,35 @@ class GazeInferer:
             EyeTrackerInferenceDataset.ACQUISITION_WIDTH,
         ),
     ):
+        """Constructor of the GazeInferer class
+
+        Args:
+            ellipse_dnn (pytorch model): The eye tracker's neural network
+            dataloader (Dataloader): Pytorch's dataloader that enables us to
+                get the images of the camera
+            device (string): Pytorch device (i.e, should we use cpu or gpu ?)
+            eyeball_model_path (str, optional): The name of the files that
+                contains the caracteristics of the eye on which we want to run
+                this code (information on its size and position that is
+                obtained through calibration and the fit method). Defaults to
+                "model_01.json".
+            pupil_radius (int, optional): Approximation of the radius of the
+                observed pupil. Defaults to 4, as this is the median value
+                (pupil size is typically between 2-8 mm, if you know your
+                observations will be exclusively in a dark or bright room,
+                you can change this accordingly, otherwise we suggest using
+                the default (median) value)
+            initial_eye_z (float, optional): Distance between the camera and
+                the surface of the eye (mm). Defaults to 52.271.
+            flen (float, optional): Focal length of the camera (mm). Defaults
+                to 3.37.
+            sensor_size (tuple, optional): Size (Height, Width) of the camera
+                sensor (mm). Defaults to (2.7216, 3.6288).
+            original_image_size_pre_crop (tuple, optional): Original image
+                size, before any crop or resize (i.e, the acquisition size).
+                Defaults to ( EyeTrackerInferenceDataset.ACQUISITION_HEIGHT,
+                EyeTrackerInferenceDataset.ACQUISITION_WIDTH, ).
+        """
         self._ellipse_dnn = ellipse_dnn
         self._dataloader = dataloader
         self._device = device
@@ -44,29 +84,41 @@ class GazeInferer:
             "GazeInferer",
             eyeball_model_path,
         )
-
-        image, _ = next(iter(self._dataloader))
+        self._selected_calibration_path = ""
+        image = next(iter(self._dataloader))
         self.shape = image.shape[2], image.shape[3]
 
         self._eyefitter = SingleEyeFitter(
             focal_length=flen,
             pupil_radius=pupil_radius,
             initial_eye_z=initial_eye_z,
-            x_angle=x_angle,
             image_shape=self.shape,
             original_image_size_pre_crop=original_image_size_pre_crop,
             sensor_size=sensor_size,
         )
         self.x, self.y = None, None
+        self._median_size, self._box_size = 5, 3
+        self._past_xs, self._past_ys = (
+            np.zeros((self._median_size + self._box_size - 1)),
+            np.zeros((self._median_size + self._box_size - 1)),
+        )
+        self.out = None
+        self.calibration_is_paused = False
 
     def add_to_fit(self):
-        self.should_add_to_fit = True
+        """Acquires and add images to an internal array, so that they can be
+        used to compute a calibration file when the fit() method will be
+        called. Adds images while the self.should_add_to_fit flag is True.
+        The loop can also be paused momentarily using the
+        self.calibration_is_paused flag.
+        """
+        self.should_add_to_fit, self.calibration_is_paused = True, False
         print("Adding to fitting")
         with torch.no_grad():
             while self.should_add_to_fit:
-                for images, success in self._dataloader:
-                    if not success:
-                        continue
+                if self.calibration_is_paused:
+                    continue
+                for images in self._dataloader:
                     images = images.to(self._device)
 
                     # Forward Pass
@@ -79,15 +131,24 @@ class GazeInferer:
                         self._eyefitter.add_to_fitting()
 
     def stop_adding_to_fit(self):
+        """Sets the self.should_add_to_fit flag to False so that the add_to_fit
+        loop stops. Should be called after a call to add_to_fit and before
+        a call to fit().
+        """
         self.should_add_to_fit = False
 
     def fit(self):
-        # Fit eyeball models. Parameters are stored as internal attributes of
-        # Eyefitter instance.
+        """Fit eyeball model with the acquired images. Parameters are stored as
+            internal attributes of self._eyefitter
+
+        Raises:
+            TypeError: Raised if the eyeball model could not be fitted (we
+            received too few or garbage predictions) TODO FC :Recover from this
+        """
         self._eyefitter.fit_projected_eye_centre(
             ransac=False,
-            max_iters=5000,
-            min_distance=10 * len(self._dataloader.dataset),
+            max_iters=250,
+            min_distance=np.inf,
         )
         self._eyefitter.estimate_eye_sphere()
 
@@ -97,83 +158,209 @@ class GazeInferer:
         ):
             raise TypeError("Eyeball model was not fitted.")
 
-        self.save_eyeball_model()
-
     def torch_prediction_to_deepvog_format(self, prediction):
+        """Takes one output of the neural network and converts it to the
+           format that deepvog expects. Notably, the predicted ellipse is
+           denormalized (i.e, we multiply the predicted values by the
+           height and width of the image), the 'a' and 'b' axis may need to be
+           switched and a mapping is done between the rotation angle convention
+           of the neural network (clockwise angle between the X axis and the
+           horizontal axis of the ellipse) and the deepvog convention (which
+           we have no clue what it is, we just determined the relationship
+           experimentally)
+
+        Args:
+            prediction (torch tensor): The prediction
+
+        Returns:
+            Tuple: The converted prediction
+        """
         HEIGHT, WIDTH = self.shape[0], self.shape[1]
 
         h, k, a, b, theta = prediction
-        h, k, a, b = h * WIDTH, k * HEIGHT, a * WIDTH, b * HEIGHT
-        x, y = get_points_of_ellipses(
-            torch.tensor([h, k, a, b, theta]).unsqueeze(0), 360
+        h, k, a, b, theta = (
+            h * WIDTH,
+            k * HEIGHT,
+            a * WIDTH,
+            b * HEIGHT,
+            2 * np.pi * theta - np.pi,
         )
-        x, y = x.squeeze().cpu().numpy(), y.squeeze().cpu().numpy()
 
-        lsq_ellipse = LSqEllipse()
-        lsq_ellipse.fit(x, y)
-        center, width, height, radians = lsq_ellipse.parameters()
+        if (theta > np.pi / 4) and (theta < 3 * np.pi / 4):
+            theta -= np.pi / 2
+            a, b = b, a
 
-        return center, width, height, radians
+        elif theta > 3 * np.pi / 4:
+            theta -= np.pi
 
-    def save_eyeball_model(self):
+        elif (theta < -np.pi / 4) and (theta > -3 * np.pi / 4):
+            theta += np.pi / 2
+            a, b = b, a
+
+        elif theta < -3 * np.pi / 4:
+            theta += np.pi
+
+        h, k, a, b, theta = (
+            h.cpu().numpy(),
+            k.cpu().numpy(),
+            a.cpu().numpy(),
+            b.cpu().numpy(),
+            theta.cpu().numpy(),
+        )
+
+        return [h, k], a, b, theta
+
+    def set_offset(self):
+        """The GazeInferer needs to set an x and y offset explicitely.
+        There is no way for the system to know what the "rest position"
+        of the eye is (i.e, how the eye is when its at (0 deg, 0 deg)).
+        This method should be called when the user is looking straight
+        ahead (ideally, for more precision, this should be called with
+        a protractor that ensures that the user is looking straight
+        ahead (horizontally and vertically) (or using trigonometry
+        to ensure a physical calibration point is placed at (0,0) ))
+        """
+        with torch.no_grad():
+            for images in self._dataloader:
+                self._x_offset, self._y_offset = self.get_angles_from_image(
+                    images
+                )
+                break
+
+    def save_eyeball_model(self, file_name):
+        """Saves the fitted model (and the offset pair) to the disk.
+            This file can now be loaded and used to infer the gaze.
+
+        Args:
+            file_name (string): name of the calibration file
+        """
+        full_path = os.path.join(
+            self.CALIBRATION_MEMORY_PATH,
+            file_name + ".json",
+        )
         save_dict = {
             "eye_centre": self._eyefitter.eye_centre.tolist(),
             "aver_eye_radius": self._eyefitter.aver_eye_radius,
+            "x_offset": self._x_offset,
+            "y_offset": self._y_offset,
         }
         json_str = json.dumps(save_dict, indent=4)
-        with open(self._eyeball_model_path, "w") as fh:
+        with open(full_path, "w") as fh:
             fh.write(json_str)
 
-    def infer(self):
-        self.load_eyeball_model()
-        x_offset, y_offset = None, None
+    def infer(self, file_name):
+        """Loads a calibration file, then infers the gaze in real time from
+           the video feed. Runs while the self.should_infer is set to True
+
+        Args:
+            file_name (string): name of the calibration file
+        """
+        self.load_eyeball_model(file_name)
 
         self.should_infer = True
         with torch.no_grad():
             while self.should_infer:
-                for images, success in self._dataloader:
-                    if not success:
-                        continue
-                    images = images.to(self._device)
+                for images in self._dataloader:
 
-                    predictions, _ = self._ellipse_dnn(images)
+                    x, y = self.get_angles_from_image(images)
 
-                    for prediction in predictions:
-                        self._eyefitter.unproject_single_observation(
-                            self.torch_prediction_to_deepvog_format(prediction)
-                        )
-                        (
-                            _,
-                            n_list,
-                            _,
-                            _,
-                        ) = self._eyefitter.gen_consistent_pupil()
-                        self.x, self.y = self._eyefitter.convert_vec2angle31(
-                            n_list[0]
-                        )
+                    self._past_xs = np.roll(self._past_xs, -1)
+                    self._past_ys = np.roll(self._past_ys, -1)
+                    self._past_xs[-1] = x
+                    self._past_ys[-1] = y
 
-                        if x_offset is None:
-                            # TODO FC : The code assumes that the user will
-                            #        be looking straight forward on the first
-                            #        frame. Might need to had a calibration
-                            #        step for this.
-                            x_offset = self.x
-                            y_offset = self.y
+                    median_filtered_x = median_filter(
+                        self._past_xs, self._median_size
+                    )
+                    median_filtered_y = median_filter(
+                        self._past_ys, self._median_size
+                    )
 
-                        self.x -= x_offset
-                        self.y -= y_offset
+                    box_filtered_x = box_smooth(
+                        median_filtered_x[
+                            self._box_size - 1 : 2 * self._box_size - 1
+                        ],
+                        self._box_size,
+                    )
+                    box_filtered_y = box_smooth(
+                        median_filtered_y[
+                            self._box_size - 1 : 2 * self._box_size - 1
+                        ],
+                        self._box_size,
+                    )
+
+                    self.x = (
+                        box_filtered_x[self._box_size // 2] - self._x_offset
+                    )
+                    self.y = (
+                        box_filtered_y[self._box_size // 2] - self._y_offset
+                    )
+
+    def get_angles_from_image(self, images, save_video_feed=False):
+        """Takes an image, predicts the ellipse that corresponds to the
+           pupil using the neural network, then uses the eye model to
+           convert this ellipse to a gave vector (pair of x and y angles)
+
+        Args:
+            images (torch tensor): The image on which to run the network
+            save_video_feed (bool, optional): Should we save the video feed to
+               disk or not ? (used for debug). Defaults to False.
+
+        Returns:
+            tuple: pair of x and y angles
+        """
+        images = images.to(self._device)
+
+        predictions, _ = self._ellipse_dnn(images)
+
+        prediction = predictions[0]
+        self._eyefitter.unproject_single_observation(
+            self.torch_prediction_to_deepvog_format(prediction)
+        )
+        (
+            _,
+            n_list,
+            _,
+            _,
+        ) = self._eyefitter.gen_consistent_pupil()
+        x, y = self._eyefitter.convert_vec2angle31(n_list[0])
+
+        if save_video_feed:
+            if self.out is None:
+                self.out = cv2.VideoWriter(
+                    "eye_tracker.avi",
+                    cv2.VideoWriter_fourcc("M", "J", "P", "G"),
+                    30,
+                    (320, 240),
+                )
+
+            image = inverse_normalize(
+                images[0],
+                EyeTrackerDataset.TRAINING_MEAN,
+                EyeTrackerDataset.TRAINING_STD,
+            )
+            image = tensor_to_opencv_image(image)
+
+            image = draw_ellipse_on_image(
+                image, predictions[0], color=(255, 0, 0)
+            )
+            self.out.write(image)
+
+        return x, y
 
     def stop_inference(self):
+        """Sets the inference flag to False"""
         self.should_infer = False
 
-    def load_eyeball_model(self):
+    def load_eyeball_model(self, file_name):
         """
         Load eyeball model parameters of json format from path.
 
         Args:
-            path (str): path of the eyeball model file.
+            file_name (string): name of the calibration file
         """
-        with open(self._eyeball_model_path, "r+") as fh:
+        full_path = os.path.join(self.CALIBRATION_MEMORY_PATH, file_name)
+        with open(full_path, "r+") as fh:
             json_str = fh.read()
 
         loaded_dict = json.loads(json_str)
@@ -181,5 +368,13 @@ class GazeInferer:
         self._eyefitter.eye_centre = np.array(loaded_dict["eye_centre"])
         self._eyefitter.aver_eye_radius = loaded_dict["aver_eye_radius"]
 
+        self._x_offset = loaded_dict["x_offset"]
+        self._y_offset = loaded_dict["y_offset"]
+
     def get_current_gaze(self):
+        """Returns the latest prediction
+
+        Returns:
+            tuple: Pair of x and y angles
+        """
         return self.x, self.y

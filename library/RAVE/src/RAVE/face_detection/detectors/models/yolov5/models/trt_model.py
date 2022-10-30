@@ -50,6 +50,7 @@ class TrtModel:
         runtime = trt.Runtime(TRT_LOGGER)
 
         # Deserialize the engine from file
+        print("Reading trt file:", trt_path)
         with open(trt_path, "rb") as f:
             engine = runtime.deserialize_cuda_engine(f.read())
         context = engine.create_execution_context()
