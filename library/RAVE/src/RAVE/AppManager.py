@@ -278,7 +278,7 @@ class AppManager:
             pass
             # print(
             #     self._pixel_to_delay.get_delay(
-            #         self._tracking_manager.tracked_objects[
+            #         self._object_manager.tracked_objects[
             #             self._selected_face
             #         ].landmark
             #     )
