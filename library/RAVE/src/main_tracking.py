@@ -25,6 +25,12 @@ if __name__ == "__main__":
         action="store_true",
     )
     parser.add_argument(
+        "--undistort",
+        dest="undistort",
+        help="If true, will correct fish-eye distortion from camera according to hardcoded K & D matrices",
+        action="store_true",
+    )
+    parser.add_argument(
         "--height",
         dest="height",
         type=int,
@@ -36,7 +42,7 @@ if __name__ == "__main__":
         dest="width",
         type=int,
         help="Width of the image to be captured by the camera",
-        default=600,
+        default=640,
     )
     parser.add_argument(
         "--freq",
