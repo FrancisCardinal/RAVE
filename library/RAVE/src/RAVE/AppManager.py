@@ -4,14 +4,14 @@ import socketio
 import base64
 import threading
 from pyodas.visualize import VideoSource
-from pyodas.io import MicSource
 
 # from tqdm import tqdm
 
 from .face_detection.TrackingManager import TrackingManager
 from .face_detection.Pixel2Delay import Pixel2Delay
 from .face_detection.Calibration_audio_vision import CalibrationAudioVision
-from .eye_tracker.GazeInferer.GazeInfererManager import GazeInfererManager
+
+# from .eye_tracker.GazeInferer.GazeInfererManager import GazeInfererManager
 from .common.jetson_utils import process_video_source
 from .audio.AudioManager import AudioManager
 
@@ -88,7 +88,7 @@ class AppManager:
             tracking_or_calib=self.is_tracking,
         )
         self._object_manager = self._tracking_manager.object_manager
-        self._pixel_to_delay = Pixel2Delay((args.height, args.width), "./calibration.json")
+        self._pixel_to_delay = Pixel2Delay((args.height, args.width), "./calibration_8mics.json")
         self._args = args
         self._frame_output_frequency = 1
         self._delay_update_frequency = 0.25
@@ -98,10 +98,10 @@ class AppManager:
         # self._gaze_inferer_manager = GazeInfererManager(
         #     args.eye_video_source, "cpu"
         # )
-        
+
         self._audio_manager = AudioManager()
         self._mic_source = self._audio_manager.init_app(
-            save_input=True, save_output=True, passthrough_mode=False, output_path='.'
+            save_input=True, save_output=True, passthrough_mode=False, output_path="~/RAVE/library/RAVE/src/audio_files"
         )
         self._calibrationAudioVision = CalibrationAudioVision(self._cap, self._mic_source, emit)
 
