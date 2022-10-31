@@ -84,7 +84,7 @@ class AppManager:
             detector_type="yolo",
             verifier_type="arcface",
             frequency=args.freq,
-            visualize=args.visualize,
+            visualize=not args.headless,
             tracking_or_calib=self.is_tracking,
         )
         self._object_manager = self._tracking_manager.object_manager
@@ -95,9 +95,7 @@ class AppManager:
         self._selected_face = None
         self._vision_mode = "mute"
 
-        # self._gaze_inferer_manager = GazeInfererManager(
-        #     args.eye_video_source, "cpu"
-        # )
+        self._gaze_inferer_manager = GazeInfererManager(args.eye_video_source, "cpu")
 
         self._audio_manager = AudioManager()
         self._mic_source = self._audio_manager.init_app(
@@ -107,30 +105,28 @@ class AppManager:
 
         sio.on("targetSelect", self._update_selected_face)
         sio.on("changeVisionMode", self._change_mode)
-        # sio.on("goToEyeTrackingCalibration", self.emit_calibration_list)
-        # sio.on(
-        #     "startEyeTrackingCalibration",
-        #     self._gaze_inferer_manager.start_calibration_thread,
-        # )
-        # sio.on(
-        #     "resumeEyeTrackingCalib",
-        #     self._gaze_inferer_manager.resume_calibration_thread,
-        # )
-        # sio.on(
-        #     "pauseEyeTrackingCalib",
-        #     self._gaze_inferer_manager.pause_calibration_thread,
-        # )
-        # sio.on(
-        #     "endEyeTrackingCalib",
-        #     self._gaze_inferer_manager.end_calibration_thread,
-        # )
-        # sio.on(
-        #     "setOffsetEyeTrackingCalib", self._gaze_inferer_manager.set_offset
-        # )
-        # sio.on("addEyeTrackingCalib", self._save_eye_calibration)
-        # sio.on("selectEyeTrackingCalib", self._select_eye_tracking_calibration)
-        # sio.on("deleteEyeTrackingCalib", self._delete_eye_tracking_calibration)
-        # sio.on("activateEyeTracking", self.control_eye_tracking)
+        sio.on("goToEyeTrackingCalibration", self.emit_calibration_list)
+        sio.on(
+            "startEyeTrackingCalibration",
+            self._gaze_inferer_manager.start_calibration_thread,
+        )
+        sio.on(
+            "resumeEyeTrackingCalib",
+            self._gaze_inferer_manager.resume_calibration_thread,
+        )
+        sio.on(
+            "pauseEyeTrackingCalib",
+            self._gaze_inferer_manager.pause_calibration_thread,
+        )
+        sio.on(
+            "endEyeTrackingCalib",
+            self._gaze_inferer_manager.end_calibration_thread,
+        )
+        sio.on("setOffsetEyeTrackingCalib", self._gaze_inferer_manager.set_offset)
+        sio.on("addEyeTrackingCalib", self._save_eye_calibration)
+        sio.on("selectEyeTrackingCalib", self._select_eye_tracking_calibration)
+        sio.on("deleteEyeTrackingCalib", self._delete_eye_tracking_calibration)
+        sio.on("activateEyeTracking", self.control_eye_tracking)
 
         # Audio-vision calib
         sio.on("nextCalibTarget", self._calibrationAudioVision.go_next_target)
@@ -292,7 +288,7 @@ class AppManager:
             pass
             # print(
             #     self._pixel_to_delay.get_delay(
-            #         self._object_manager.tracked_objects[
+            #         self._tracking_manager.tracked_objects[
             #             self._selected_face
             #         ].landmark
             #     )

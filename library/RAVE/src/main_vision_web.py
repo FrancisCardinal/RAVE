@@ -2,41 +2,17 @@ import argparse
 from time import sleep
 
 from RAVE.AppManager import AppManager
+from RAVE.common.jetson_utils import is_jetson
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Web interface for face tracking")
 
-    parser.add_argument(
-        "--video_source",
-        dest="video_source",
-        type=int,
-        help="Video input source identifier for face tracking camera",
-        default=0,
-    )
     parser.add_argument(
         "--eye_video_source",
         dest="eye_video_source",
         type=int,
         help="Video input source identifier for eye tracker camera",
         default=1,
-    )
-    parser.add_argument(
-        "--flip_display_dim",
-        dest="flip_display_dim",
-        help="If true, will flip window dimensions to (height, width)",
-        action="store_false",
-    )
-    parser.add_argument(
-        "--flip",
-        dest="flip",
-        help="Flip display orientation by 180 degrees on horizontal axis",
-        action="store_true",
-    )
-    parser.add_argument(
-        "--undistort",
-        dest="undistort",
-        help="If true, will correct fish-eye distortion from camera according to hardcoded K & D matrices",
-        action="store_true",
     )
     parser.add_argument(
         "--nb_mic_channels",
@@ -46,11 +22,33 @@ if __name__ == "__main__":
         default=2,
     )
     parser.add_argument(
-        "--freq",
-        dest="freq",
-        type=float,
-        help="Update frequency for the face detector (for adaptive scaling)",
-        default=1,
+        "--video_source",
+        dest="video_source",
+        type=str,
+        help="Video input source identifier",
+        default="0"
+        if not is_jetson()
+        else """v4l2src device=/dev/video0 ! video/x-raw, format=UYVY, width=640, heigth=480,
+         framerate=60/1 ! nvvidconv ! video/x-raw(memory:NVMM) ! nvvidconv ! video/x-raw, format=BGRx
+          ! videoconvert ! video/x-raw, format=BGR ! appsink""",
+    )
+    parser.add_argument(
+        "--flip",
+        dest="flip",
+        help="Flip display orientation by 180 degrees on horizontal axis",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--flip_display_dim",
+        dest="flip_display_dim",
+        help="If true, will flip window dimensions to (height, width)",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--undistort",
+        dest="undistort",
+        help="If true, will correct fish-eye distortion from camera according to hardcoded K & D matrices",
+        action="store_true",
     )
     parser.add_argument(
         "--height",
@@ -67,10 +65,17 @@ if __name__ == "__main__":
         default=640,
     )
     parser.add_argument(
-        "--dont-visualize",
-        dest="visualize",
+        "--freq",
+        dest="freq",
+        type=float,
+        help="Update frequency for the face detector (for adaptive scaling)",
+        default=1,
+    )
+    parser.add_argument(
+        "--headless",
+        dest="headless",
         help="If true, will show the different tracking frames",
-        action="store_false",
+        action="store_true",
     )
     args = parser.parse_args()
 
