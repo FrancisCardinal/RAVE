@@ -84,11 +84,11 @@ class AppManager:
             detector_type="yolo",
             verifier_type="arcface",
             frequency=args.freq,
-            visualize=args.visualize,
+            visualize=not args.headless,
             tracking_or_calib=self.is_tracking,
         )
         self._object_manager = self._tracking_manager.object_manager
-        self._pixel_to_delay = Pixel2Delay((args.height, args.width), "./calibration.json")
+        self._pixel_to_delay = Pixel2Delay((args.height, args.width), "./calibration_8mics.json")
         self._args = args
         self._frame_output_frequency = 1
         self._delay_update_frequency = 0.25
