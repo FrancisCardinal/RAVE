@@ -293,6 +293,10 @@ class GazeInferer:
 
                     self._gaze_lock.release()
 
+        self._gaze_lock.acquire()
+        self.x, self.y = None, None
+        self._gaze_lock.release()
+
     def get_angles_from_image(self, images):
         """Takes an image, predicts the ellipse that corresponds to the
            pupil using the neural network, then uses the eye model to

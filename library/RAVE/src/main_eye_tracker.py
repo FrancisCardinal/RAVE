@@ -291,6 +291,7 @@ def inference(device):
         30,
         (640, 480),
     )
+
     wait_for_enter("start calibration")
     gaze_inferer_manager.start_calibration_thread()
 
@@ -305,25 +306,48 @@ def inference(device):
     gaze_inferer_manager.set_selected_calibration_path("tmp")
     gaze_inferer_manager.start_inference_thread()
 
+    original_height, original_width = None, None  # TODO : Get from elsewhere
+    newcameramtx, roi = None, None  # TODO : Get from elsewhere
     FPS = 30.0
-    direction_2_pixel = Direction2Pixel(np.array([0.13, 0.092, 0]))
-    for i in range(int(60 * FPS)):
+    direction_2_pixel = Direction2Pixel(
+        newcameramtx,
+        roi,
+        np.array([-0.08, 0.05, -0.10]),
+        original_height,
+        original_width,
+    )
+    for _ in range(int(60 * FPS)):
         ret, frame = head_camera.read()
         time.sleep(1 / FPS)
-        angle_x, angle_y = gaze_inferer_manager.get_current_gaze()
+        angle_x, _ = gaze_inferer_manager.get_current_gaze()
 
         point1 = (-10, -10)
         point2 = (-10, -10)
 
         if angle_x is not None:
-            print("angle_x = {} | angle_y = {}".format(angle_x, angle_y))
-            point1 = direction_2_pixel.get_pixel(angle_x, angle_y, 1)
-            point2 = direction_2_pixel.get_pixel(angle_x, angle_y, 5)
+            print("angle_x = {}".format(angle_x))
+
+            point1 = direction_2_pixel.get_pixel(angle_x, 0, 1)
+            x_1 = point1[0]
+
+            point2 = direction_2_pixel.get_pixel(angle_x, 0, 5)
+            x_2 = point2[0]
 
         if ret:
-            cv2.line(frame, point1, point2, color=(0, 0, 255), thickness=2)
-            cv2.drawMarker(frame, point1, color=(255, 0, 0), thickness=2)
-            cv2.drawMarker(frame, point2, color=(0, 255, 0), thickness=2)
+            cv2.line(
+                frame,
+                (x_1, 0),
+                (x_1, original_height),
+                color=(0, 0, 0),
+                thickness=2,
+            )
+            cv2.line(
+                frame,
+                (x_2, 0),
+                (x_2, original_height),
+                color=(255, 255, 255),
+                thickness=2,
+            )
 
             out.write(frame)
 
@@ -334,7 +358,6 @@ def inference(device):
 
     gaze_inferer_manager.stop_inference()
     gaze_inferer_manager.end()
-    out.release()
 
 
 def wait_for_enter(msg=""):

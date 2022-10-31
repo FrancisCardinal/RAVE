@@ -1,5 +1,6 @@
 import cv2
 import time
+import numpy as np
 import socketio
 import base64
 import threading
@@ -13,7 +14,8 @@ from .face_detection.Pixel2Delay import Pixel2Delay
 from .face_detection.Calibration_audio_vision import CalibrationAudioVision
 from .eye_tracker.GazeInferer.GazeInfererManager import GazeInfererManager
 
-# from RAVE.face_detection.Direction2Pixel import Direction2Pixel
+from RAVE.face_detection.Direction2Pixel import Direction2Pixel
+from common.image_utils import bounding_boxes_are_overlapping, box_pair_iou
 
 sio = socketio.Client()
 
@@ -96,6 +98,14 @@ class AppManager:
         self._calibrationAudioVision = CalibrationAudioVision(self._cap, self._mic_source, emit)
 
         self._gaze_inferer_manager = GazeInfererManager(args.eye_video_source, "cpu")
+
+        self._direction_2_pixel = Direction2Pixel(
+            self._tracking_manager.newcameramtx,
+            self._tracking_manager.roi,
+            np.array([-0.08, 0.05, -0.10]),
+            args.height,
+            args.width,
+        )
 
         sio.on("targetSelect", self._update_selected_face)
         sio.on("changeVisionMode", self._change_mode)
@@ -210,6 +220,17 @@ class AppManager:
     def is_tracking(self):
         return self._tracking
 
+        # Start a thread that selects a face with the GazeInferer if
+        # the GazeInferer's inference is running
+        threading.Thread(
+            target=timed_callback,
+            args=(
+                self._frame_output_frequency,
+                self._update_selected_face_from_gaze_inferer,
+            ),
+            daemon=True,
+        ).start()
+
     def send_to_server(self):
         """
         Function to send the frame to the server
@@ -257,6 +278,27 @@ class AppManager:
         """
         self._selected_face = payload["targetId"]
         emit("selectedTarget", "client", {"targetId": self._selected_face})
+
+    def _update_selected_face_from_gaze_inferer(self):
+        angle_x, _ = self.gaze_inferer_manager.get_current_gaze()
+        if angle_x is not None:
+            x_1_m, _ = self.direction_2_pixel.get_pixel(angle_x, 0, 1)
+            x_5_m, _ = self.direction_2_pixel.get_pixel(angle_x, 0, 5)
+
+            x_1, x_2 = min(x_1_m, x_5_m), max(x_1_m, x_5_m)
+
+            gaze_bbox = [x_1, 0, x_2 - x_1, self._args.height]
+            id, best_iou = None, -1
+
+            for obj in self._object_manager.tracked_objects.values():
+                if bounding_boxes_are_overlapping(obj.bbox, gaze_bbox):
+                    iou = box_pair_iou(obj.bbox, gaze_bbox)
+                    if iou > best_iou:
+                        best_iou = iou
+                        id = obj.id
+
+            if id is not None:
+                self._update_selected_face({"targetId": id})
 
     def _change_mode(self, payload):
         """
