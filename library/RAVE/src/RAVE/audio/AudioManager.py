@@ -105,7 +105,7 @@ class AudioManager:
         self.jetson_sink = self.general_configs["jetson_sink"]
 
         self.file_params_multi = (
-            4,
+            8,
             2,
             CONST.SAMPLING_RATE,
             0,
