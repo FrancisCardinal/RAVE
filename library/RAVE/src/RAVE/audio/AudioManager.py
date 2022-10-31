@@ -835,6 +835,17 @@ class AudioManager:
                 "sink": self.init_sim_output(name="output", path=output_path, wav_params=self.file_params_output)
             }
 
+        # Model
+        if self.mask:
+            self.masks = KissMask(self.mic_array, buffer_size=30)
+        else:
+            self.model = AudioModel(input_size=1026, hidden_size=512, num_layers=2)
+            self.model.to(self.device)
+            if self.debug:
+                print(self.model)
+            self.model.load_best_model(self.model_path, self.device)
+            self.delay_and_sum = DelaySum(self.frame_size)
+
         return mic_source
 
     def start_app(self):
