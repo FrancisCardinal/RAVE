@@ -12,6 +12,7 @@ from .face_detection.TrackingManager import TrackingManager
 from .face_detection.Pixel2Delay import Pixel2Delay
 from .face_detection.Calibration_audio_vision import CalibrationAudioVision
 from .eye_tracker.GazeInferer.GazeInfererManager import GazeInfererManager
+from .audio.AudioManager import AudioManager
 
 # from RAVE.face_detection.Direction2Pixel import Direction2Pixel
 
@@ -97,6 +98,9 @@ class AppManager:
         self._calibrationAudioVision = CalibrationAudioVision(self._cap, self._mic_source, emit)
 
         self._gaze_inferer_manager = GazeInfererManager(args.eye_video_source, "cpu")
+        
+        self._audio_manager = AudioManager()
+        self._audio_manager.init_app(save_input=True, save_output=True, passthrough_mode=False, output_path='.')
 
         sio.on("targetSelect", self._update_selected_face)
         sio.on("changeVisionMode", self._change_mode)
@@ -177,6 +181,14 @@ class AppManager:
             daemon=True,
         )
         tracking_thread.start()
+
+        # Start audio thread
+        audio_thread = threading.Thread(
+            target=self._audio_manager.start_app,
+            # args=(),
+            daemon=True,
+        )
+        audio_thread.start()
 
         # Start the thread that updates the audio target delay
         target_delays_thread = threading.Thread(
