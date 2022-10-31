@@ -231,5 +231,11 @@ class TrackingManager:
 
         # Start capture & display loop
         self.main_loop(monitor, args.flip)
-        update_loop.is_alive = False
+        self.stop()
+
+    def stop(self):
+        """
+        Stop tracking loop and all related threads
+        """
+        self.kill_threads()
         self.object_manager.stop_tracking()
