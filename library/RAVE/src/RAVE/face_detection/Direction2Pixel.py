@@ -68,16 +68,17 @@ class Direction2Pixel:
         pixel_y = self._clamp_pixel(p_eye[1], self._img_height)
 
         # Undistort adjustements
-        origin_x, origin_y, cropped_width, cropped_height = self._roi
+        if self._roi is not None:
+            origin_x, origin_y, cropped_width, cropped_height = self._roi
 
-        pixel_x -= origin_x
-        pixel_y -= origin_y
+            pixel_x -= origin_x
+            pixel_y -= origin_y
 
-        pixel_x *= self._img_width / cropped_width
-        pixel_y *= self._img_height / cropped_height
+            pixel_x *= self._img_width / cropped_width
+            pixel_y *= self._img_height / cropped_height
 
-        pixel_x = self._clamp_pixel(pixel_x, self._img_width)
-        pixel_y = self._clamp_pixel(pixel_y, self._img_height)
+            pixel_x = self._clamp_pixel(pixel_x, self._img_width)
+            pixel_y = self._clamp_pixel(pixel_y, self._img_height)
 
         return (
             int(pixel_x),
@@ -93,9 +94,7 @@ class Direction2Pixel:
 
         return pixel_out
 
-    def is_line_segment_in_rectangle(
-        self, point1, point2, top_left_corner, bottom_right_corner
-    ):
+    def is_line_segment_in_rectangle(self, point1, point2, top_left_corner, bottom_right_corner):
         """
         Args:
             point1 (Tuple of int): First point of the line in pixels (x, y)
@@ -117,9 +116,7 @@ class Direction2Pixel:
 
         points_on_line = np.vstack((x_range, y_range))
 
-        return self.are_points_in_rectangle(
-            points_on_line, top_left_corner, bottom_right_corner
-        )
+        return self.are_points_in_rectangle(points_on_line, top_left_corner, bottom_right_corner)
 
     @staticmethod
     def are_points_in_rectangle(
@@ -146,11 +143,7 @@ class Direction2Pixel:
         condition2 = points[0] < bottom_right_corner[0]
         condition3 = points[1] > top_left_corner[1]
         condition4 = points[1] < bottom_right_corner[1]
-        answer = sum(
-            np.logical_and.reduce(
-                (condition1, condition2, condition3, condition4)
-            )
-        )
+        answer = sum(np.logical_and.reduce((condition1, condition2, condition3, condition4)))
 
         return answer >= 1
 
@@ -168,9 +161,7 @@ class Direction2Pixel:
         # TODO - JKealey: handle when line is vertical or horizontal
         #  if necessary because it seems our lines will never be.
         a = (point1[1] - point2[1]) / (point1[0] - point2[0])
-        b = (point1[0] * point2[1] - point2[0] * point1[1]) / (
-            point1[0] - point2[0]
-        )
+        b = (point1[0] * point2[1] - point2[0] * point1[1]) / (point1[0] - point2[0])
 
         return a, b
 

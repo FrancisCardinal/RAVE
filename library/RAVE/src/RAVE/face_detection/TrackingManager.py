@@ -73,18 +73,18 @@ class TrackingManager:
         self._visualize = visualize
         self.frame_count = 0
         self._tracking_or_calib = tracking_or_calib
+        self.K = np.array([[340.60994606, 0.0, 325.7756748], [0.0, 341.93970667, 242.46219777], [0.0, 0.0, 1.0]])
 
     def precompute_undistort(self):
         """
         Pre-calculations for undistortion of images
         """
 
-        K = np.array([[340.60994606, 0.0, 325.7756748], [0.0, 341.93970667, 242.46219777], [0.0, 0.0, 1.0]])
         D = np.array([[-3.07926877e-01, 9.16280959e-02, 9.46074597e-04, 3.07906550e-04, -1.17169354e-02]])
 
         corrected_shape = (self._cap.shape[1], self._cap.shape[0])
-        self.newcameramtx, self.roi = cv2.getOptimalNewCameraMatrix(K, D, corrected_shape, 1, corrected_shape)
-        self.mapx, self.mapy = cv2.initUndistortRectifyMap(K, D, None, self.newcameramtx, corrected_shape, 5)
+        self.newcameramtx, self.roi = cv2.getOptimalNewCameraMatrix(self.K, D, corrected_shape, 1, corrected_shape)
+        self.mapx, self.mapy = cv2.initUndistortRectifyMap(self.K, D, None, self.newcameramtx, corrected_shape, 5)
 
     def undistort(self, frame):
         """

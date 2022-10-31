@@ -97,15 +97,7 @@ class AppManager:
         self._vision_mode = "mute"
         self._calibrationAudioVision = CalibrationAudioVision(self._cap, self._mic_source, emit)
 
-        self._gaze_inferer_manager = GazeInfererManager(args.eye_video_source, "cpu")
-
-        self._direction_2_pixel = Direction2Pixel(
-            self._tracking_manager.newcameramtx,
-            self._tracking_manager.roi,
-            np.array([-0.08, 0.05, -0.10]),
-            args.height,
-            args.width,
-        )
+        self._gaze_inferer_manager = None
 
         sio.on("targetSelect", self._update_selected_face)
         sio.on("changeVisionMode", self._change_mode)
@@ -118,17 +110,17 @@ class AppManager:
         )
         sio.on(
             "resumeEyeTrackingCalib",
-            self._gaze_inferer_manager.resume_calibration_thread,
+            self.resume_eye_tracker_calibration_thread,
         )
         sio.on(
             "pauseEyeTrackingCalib",
-            self._gaze_inferer_manager.pause_calibration_thread,
+            self.pause_eye_trackercalibration_thread,
         )
         sio.on(
             "endEyeTrackingCalib",
             self.end_eye_tracking_calibration,
         )
-        sio.on("setOffsetEyeTrackingCalib", self._gaze_inferer_manager.set_offset)
+        sio.on("setOffsetEyeTrackingCalib", self.set_eye_tracker_offset)
         sio.on("addEyeTrackingCalib", self._save_eye_calibration)
         sio.on("selectEyeTrackingCalib", self._select_eye_tracking_calibration)
         sio.on("deleteEyeTrackingCalib", self._delete_eye_tracking_calibration)
@@ -139,6 +131,40 @@ class AppManager:
         sio.on("changeCalibParams", self._calibrationAudioVision.change_nb_points)
         sio.on("goToVisionCalibration", self.start_calib_audio_vision)
         sio.on("quitVisionCalibration", self.stop_calib_audio_vision)
+
+    def _init_eye_tracker(self):
+        import torch
+
+        DEVICE = "cpu"
+        if torch.cuda.is_available():
+            DEVICE = "cuda"
+
+        self._gaze_inferer_manager = GazeInfererManager(self._args.eye_video_source, DEVICE)
+
+        K = self._tracking_manager.K
+        roi = None
+        if self._args.undistort:
+            K = self._tracking_manager.newcameramtx
+            roi = self._tracking_manager.roi
+
+        self._direction_2_pixel = Direction2Pixel(
+            K,
+            roi,
+            np.array([-0.08, 0.05, -0.10]),
+            self._args.height,
+            self._args.width,
+        )
+
+        # Start a thread that selects a face with the GazeInferer if
+        # the GazeInferer's inference is running
+        threading.Thread(
+            target=self.timed_callback,
+            args=(
+                self._frame_output_frequency,
+                self._update_selected_face_from_gaze_inferer,
+            ),
+            daemon=True,
+        ).start()
 
     def timed_callback(self, period, f, *args):
         """
@@ -168,6 +194,8 @@ class AppManager:
         """
         Sends the updated eye tracker calibration list to the server.
         """
+        if self._gaze_inferer_manager is None:
+            self._init_eye_tracker()
         emit(
             "configList",
             "client",
@@ -220,17 +248,6 @@ class AppManager:
     def is_tracking(self):
         return self._tracking
 
-        # Start a thread that selects a face with the GazeInferer if
-        # the GazeInferer's inference is running
-        threading.Thread(
-            target=timed_callback,
-            args=(
-                self._frame_output_frequency,
-                self._update_selected_face_from_gaze_inferer,
-            ),
-            daemon=True,
-        ).start()
-
     def send_to_server(self):
         """
         Function to send the frame to the server
@@ -280,6 +297,9 @@ class AppManager:
         emit("selectedTarget", "client", {"targetId": self._selected_face})
 
     def _update_selected_face_from_gaze_inferer(self):
+        if self._gaze_inferer_manager is None:
+            self._init_eye_tracker()
+
         angle_x, _ = self.gaze_inferer_manager.get_current_gaze()
         if angle_x is not None:
             x_1_m, _ = self.direction_2_pixel.get_pixel(angle_x, 0, 1)
@@ -342,6 +362,9 @@ class AppManager:
         Args:
             payload(dict): Contains the filename to use
         """
+        if self._gaze_inferer_manager is None:
+            self._init_eye_tracker()
+
         self._gaze_inferer_manager.save_new_calibration(payload["configName"])
         self.emit_calibration_list()
 
@@ -351,12 +374,18 @@ class AppManager:
         Args:
             payload(dict): Containing the calibration filename to use.
         """
+        if self._gaze_inferer_manager is None:
+            self._init_eye_tracker()
+
         self._gaze_inferer_manager.set_selected_calibration_path(payload["name"])
 
     def _delete_eye_tracking_calibration(self, payload):
         """
         Deletes the selected eye tracking calibration file.
         """
+        if self._gaze_inferer_manager is None:
+            self._init_eye_tracker()
+
         self._gaze_inferer_manager.delete_calibration(payload["id"])
         self.emit_calibration_list()
 
@@ -367,15 +396,42 @@ class AppManager:
             payload (dict): Key onStatus is a boolean True to
              activate or false to stop
         """
+        if self._gaze_inferer_manager is None:
+            self._init_eye_tracker()
+
         if payload["onStatus"]:
             self._gaze_inferer_manager.start_inference_thread()
         else:
             self._gaze_inferer_manager.stop_inference()
 
     def start_eye_tracking_calibration(self):
+        if self._gaze_inferer_manager is None:
+            self._init_eye_tracker()
+
         self._tracking = False
         self._gaze_inferer_manager.start_calibration_thread()
 
     def end_eye_tracking_calibration(self):
+        if self._gaze_inferer_manager is None:
+            self._init_eye_tracker()
+
         self._gaze_inferer_manager.end_calibration_thread()
         self._tracking = True
+
+    def set_eye_tracker_offset(self):
+        if self._gaze_inferer_manager is None:
+            self._init_eye_tracker()
+
+        self._gaze_inferer_manager.set_offset
+
+    def resume_eye_tracker_calibration_thread(self):
+        if self._gaze_inferer_manager is None:
+            self._init_eye_tracker()
+
+        self._gaze_inferer_manager.resume_calibration_thread
+
+    def pause_eye_trackercalibration_thread(self):
+        if self._gaze_inferer_manager is None:
+            self._init_eye_tracker()
+
+        self._gaze_inferer_manager.pause_calibration_thread
