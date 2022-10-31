@@ -811,8 +811,9 @@ class AudioManager:
         self.passthrough_mode = passthrough_mode
 
         # Init source
+        mic_source = self.init_mic_input(name=self.jetson_source["name"], src_index=self.jetson_source["idx"])
         self.source_dict[self.jetson_source["name"]] = {
-            "src": self.init_mic_input(name=self.jetson_source["name"], src_index=self.jetson_source["idx"]),
+            "src": mic_source,
             "stft": Stft(self.channels, self.frame_size, self.window),
         }
 
@@ -833,6 +834,8 @@ class AudioManager:
             self.sink_dict["output"] = {
                 "sink": self.init_sim_output(name="output", path=output_path, wav_params=self.file_params_output)
             }
+
+        return mic_source
 
     def start_app(self):
         """

@@ -12,7 +12,7 @@ from .face_detection.TrackingManager import TrackingManager
 from .face_detection.Pixel2Delay import Pixel2Delay
 from .face_detection.Calibration_audio_vision import CalibrationAudioVision
 from .eye_tracker.GazeInferer.GazeInfererManager import GazeInfererManager
-from RAVE.common.jetson_utils import process_video_source
+from .common.jetson_utils import process_video_source
 from .audio.AudioManager import AudioManager
 
 # from RAVE.face_detection.Direction2Pixel import Direction2Pixel
@@ -77,7 +77,6 @@ class AppManager:
     def __init__(self, args):
         self._cap = VideoSource(process_video_source(args.video_source), args.width, args.height)
         self._is_alive = True
-        self._mic_source = MicSource(args.nb_mic_channels, chunk_size=256)
         self._tracking = True
         self._tracking_manager = TrackingManager(
             cap=self._cap,
@@ -95,14 +94,16 @@ class AppManager:
         self._delay_update_frequency = 0.25
         self._selected_face = None
         self._vision_mode = "mute"
-        self._calibrationAudioVision = CalibrationAudioVision(self._cap, self._mic_source, emit)
 
         # self._gaze_inferer_manager = GazeInfererManager(
         #     args.eye_video_source, "cpu"
         # )
         
         self._audio_manager = AudioManager()
-        self._audio_manager.init_app(save_input=True, save_output=True, passthrough_mode=False, output_path='.')
+        self._mic_source = self._audio_manager.init_app(
+            save_input=True, save_output=True, passthrough_mode=False, output_path='.'
+        )
+        self._calibrationAudioVision = CalibrationAudioVision(self._cap, self._mic_source, emit)
 
         sio.on("targetSelect", self._update_selected_face)
         sio.on("changeVisionMode", self._change_mode)
