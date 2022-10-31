@@ -12,6 +12,7 @@ from .face_detection.TrackingManager import TrackingManager
 from .face_detection.Pixel2Delay import Pixel2Delay
 from .face_detection.Calibration_audio_vision import CalibrationAudioVision
 from .eye_tracker.GazeInferer.GazeInfererManager import GazeInfererManager
+from RAVE.common.jetson_utils import process_video_source
 from .audio.AudioManager import AudioManager
 
 # from RAVE.face_detection.Direction2Pixel import Direction2Pixel
@@ -74,10 +75,9 @@ class AppManager:
     """
 
     def __init__(self, args):
+        self._cap = VideoSource(process_video_source(args.video_source), args.width, args.height)
         self._is_alive = True
-        self._cap = VideoSource(args.video_source, args.width, args.height)
-        self._cap.set(cv2.CAP_PROP_FPS, 60)
-        self._mic_source = MicSource(4, chunk_size=256)
+        self._mic_source = MicSource(args.nb_mic_channels, chunk_size=256)
         self._tracking = True
         self._tracking_manager = TrackingManager(
             cap=self._cap,
@@ -97,35 +97,39 @@ class AppManager:
         self._vision_mode = "mute"
         self._calibrationAudioVision = CalibrationAudioVision(self._cap, self._mic_source, emit)
 
-        self._gaze_inferer_manager = GazeInfererManager(args.eye_video_source, "cpu")
+        # self._gaze_inferer_manager = GazeInfererManager(
+        #     args.eye_video_source, "cpu"
+        # )
         
         self._audio_manager = AudioManager()
         self._audio_manager.init_app(save_input=True, save_output=True, passthrough_mode=False, output_path='.')
 
         sio.on("targetSelect", self._update_selected_face)
         sio.on("changeVisionMode", self._change_mode)
-        sio.on("goToEyeTrackingCalibration", self.emit_calibration_list)
-        sio.on(
-            "startEyeTrackingCalibration",
-            self._gaze_inferer_manager.start_calibration_thread,
-        )
-        sio.on(
-            "resumeEyeTrackingCalib",
-            self._gaze_inferer_manager.resume_calibration_thread,
-        )
-        sio.on(
-            "pauseEyeTrackingCalib",
-            self._gaze_inferer_manager.pause_calibration_thread,
-        )
-        sio.on(
-            "endEyeTrackingCalib",
-            self._gaze_inferer_manager.end_calibration_thread,
-        )
-        sio.on("setOffsetEyeTrackingCalib", self._gaze_inferer_manager.set_offset)
-        sio.on("addEyeTrackingCalib", self._save_eye_calibration)
-        sio.on("selectEyeTrackingCalib", self._select_eye_tracking_calibration)
-        sio.on("deleteEyeTrackingCalib", self._delete_eye_tracking_calibration)
-        sio.on("activateEyeTracking", self.control_eye_tracking)
+        # sio.on("goToEyeTrackingCalibration", self.emit_calibration_list)
+        # sio.on(
+        #     "startEyeTrackingCalibration",
+        #     self._gaze_inferer_manager.start_calibration_thread,
+        # )
+        # sio.on(
+        #     "resumeEyeTrackingCalib",
+        #     self._gaze_inferer_manager.resume_calibration_thread,
+        # )
+        # sio.on(
+        #     "pauseEyeTrackingCalib",
+        #     self._gaze_inferer_manager.pause_calibration_thread,
+        # )
+        # sio.on(
+        #     "endEyeTrackingCalib",
+        #     self._gaze_inferer_manager.end_calibration_thread,
+        # )
+        # sio.on(
+        #     "setOffsetEyeTrackingCalib", self._gaze_inferer_manager.set_offset
+        # )
+        # sio.on("addEyeTrackingCalib", self._save_eye_calibration)
+        # sio.on("selectEyeTrackingCalib", self._select_eye_tracking_calibration)
+        # sio.on("deleteEyeTrackingCalib", self._delete_eye_tracking_calibration)
+        # sio.on("activateEyeTracking", self.control_eye_tracking)
 
         # Audio-vision calib
         sio.on("nextCalibTarget", self._calibrationAudioVision.go_next_target)
@@ -287,7 +291,7 @@ class AppManager:
             pass
             # print(
             #     self._pixel_to_delay.get_delay(
-            #         self._tracking_manager.tracked_objects[
+            #         self._object_manager.tracked_objects[
             #             self._selected_face
             #         ].landmark
             #     )

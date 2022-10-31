@@ -23,14 +23,27 @@ if __name__ == "__main__":
     parser.add_argument(
         "--flip_display_dim",
         dest="flip_display_dim",
-        help="If true, will flip window dimensions to (width, height)",
-        action="store_true",
+        help="If true, will flip window dimensions to (height, width)",
+        action="store_false",
     )
     parser.add_argument(
         "--flip",
         dest="flip",
         help="Flip display orientation by 180 degrees on horizontal axis",
         action="store_true",
+    )
+    parser.add_argument(
+        "--undistort",
+        dest="undistort",
+        help="If true, will correct fish-eye distortion from camera according to hardcoded K & D matrices",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--nb_mic_channels",
+        dest="nb_mic_channels",
+        type=int,
+        help="Set the number of microphone channels",
+        default=2,
     )
     parser.add_argument(
         "--freq",
@@ -51,7 +64,7 @@ if __name__ == "__main__":
         dest="width",
         type=int,
         help="Width of the image to be captured by the camera",
-        default=600,
+        default=640,
     )
     parser.add_argument(
         "--dont-visualize",
