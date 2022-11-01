@@ -15,7 +15,7 @@ from .Neural_Network.AudioModel import AudioModel
 from .Beamformer.Beamformer import Beamformer
 
 TIME = float("inf")
-# TIME = 30
+# TIME = 5
 FILE_PARAMS_MONO = (
     1,
     2,
@@ -253,6 +253,7 @@ class AudioManager:
             channels=self.channels,
             mic_arr=self.mic_dict,
             chunk_size=self.chunk_size,
+            queue_size=50,
         )
         return source
 
@@ -362,9 +363,6 @@ class AudioManager:
 
         if name not in self.timers:
             self.timers[name] = {"unit": unit, "total": 0, "call_cnt": 0}
-            # self.timers[name]['unit'] = unit
-            # self.timers[name]['total'] = 0
-            # self.timers[name]['call_cnt'] = 0
 
         current_time = time.perf_counter() * unit_factor
         if is_start:
@@ -472,7 +470,7 @@ class AudioManager:
                 axs[noise_torch_idx].pcolormesh(self.torch_noise_mask_np, shading="gouraud", vmin=0, vmax=1)
 
         # Save and display
-        save_name = os.path.join(self.out_subfolder_path, "out_spec_plots.jpg")
+        save_name = os.path.join(self.out_subfolder_path, "out_spec_plots.png")
         plt.savefig(fname=save_name)
         if SHOW_GRAPHS:
             plt.show(block=True)
@@ -497,11 +495,11 @@ class AudioManager:
             self.check_time(name="data", is_start=True)
             # Delay and sum
             if self.is_delays:
-                delay = self.target
+                delay = self.current_delay
             else:
                 target_np = np.array([self.target])
-                delay = get_delays_based_on_mic_array(target_np, self.mic_array, self.frame_size)
-            sum = self.delay_and_sum(signal, delay[0])
+                delay = get_delays_based_on_mic_array(target_np, self.mic_array, self.frame_size)[0]
+            sum = self.delay_and_sum(signal, delay)
             sum_tensor = torch.tensor(sum).to(self.device)
             sum_db = 20 * torch.log10(torch.abs(sum_tensor) + EPSILON)
 
@@ -591,106 +589,6 @@ class AudioManager:
         # ISTFT and save
         y_gt = self.sink_dict["output_gt"]["istft"](Y_gt)
         self.output_sink(data=y_gt, sink_name="output_gt")
-
-    def torch_init(self):
-        """
-        Executes torch load from simulated source to sanity check files and procedures.
-
-        Returns:
-            Returns the speech and noise spectrograms (if self.speech_and_noise).
-        """
-
-        # Audio
-        audio_data_t, _ = torchaudio.load(self.source_dict["audio"]["file"])
-        audio_data = self.transformation(audio_data_t)
-        audio_data = torch.abs(audio_data) ** 2
-        audio_data = torch.mean(audio_data, dim=0, keepdim=False)
-        speech_data = None
-        noise_data = None
-        if self.speech_and_noise:
-            # Speech
-            speech_data_t, _ = torchaudio.load(self.speech_file)
-            speech_data_f = self.transformation(speech_data_t)
-            speech_data = torch.abs(speech_data_f) ** 2
-            speech_data = torch.mean(speech_data, dim=0, keepdim=False)
-            # Noise
-            noise_data_t, _ = torchaudio.load(self.noise_file)
-            noise_data_f = self.transformation(noise_data_t)
-            noise_data = torch.abs(noise_data_f) ** 2
-            noise_data = torch.mean(noise_data, dim=0, keepdim=False)
-            # Show
-            # TODO: FIX TORCH SPECTROGRAMS
-            if self.print_specs:
-                fig, axs = plt.subplots(3)
-                fig.suptitle("Spectrogrammes")
-                axs[0].pcolormesh(audio_data.cpu().numpy(), shading="gouraud", vmin=0, vmax=1)
-                axs[1].pcolormesh(speech_data.cpu().numpy(), shading="gouraud", vmin=0, vmax=1)
-                axs[2].pcolormesh(noise_data.cpu().numpy(), shading="gouraud", vmin=0, vmax=1)
-                axs[2].set_xlabel("Temps(s)")
-                axs[0].set_ylabel("Audio")
-                axs[1].set_ylabel("Speech")
-                axs[2].set_ylabel("Noise")
-        else:
-            if self.print_specs:
-                fig, axs = plt.subplots(1)
-                fig.suptitle("Spectrogrammes")
-                axs[0].pcolormesh(audio_data, shading="gouraud", vmin=0, vmax=1)
-                axs[0].set_xlabel("Temps(s)")
-                axs[0].set_ylabel("Audio")
-        save_name = os.path.join(self.out_subfolder_path, "torch_plots.jpg")
-        plt.savefig(fname=save_name)
-        if SHOW_GRAPHS:
-            plt.show(block=True)
-        plt.close()
-
-        return speech_data, noise_data
-
-    def torch_run_loop(self, audio_signal, loop_idx, speech_data, noise_data):
-        """
-        Runs torch loop for sanity check and debugging purposes (if sim input).
-
-        Args:
-            audio_signal (ndarray): Audio signal loaded from main source (PyODAS)
-            loop_idx (int): Counter indicating at which chunk the program is.
-            speech_data (ndarray): Obtained from torch_init, spectrogram of speech signal.
-            noise_data (ndarray): Obtained from torch_init, spectrogram of noise signal.
-        """
-        # Get sample from torch loaded
-        torch_S = speech_data[:, loop_idx].numpy()
-        torch_N = noise_data[:, loop_idx].numpy()
-
-        # Energy ratio
-        torch_speech_mask_gt = torch_S / (torch_N + torch_S + EPSILON)
-        torch_noise_mask_gt = torch_N / (torch_N + torch_S + EPSILON)
-
-        # Save for spectrograms
-        if self.print_specs:
-            torch_speech_mask_gt_exp = np.expand_dims(torch_speech_mask_gt, axis=1)
-            torch_noise_mask_gt_exp = np.expand_dims(torch_noise_mask_gt, axis=1)
-            if self.torch_speech_mask_np is not None and self.torch_noise_mask_np is not None:
-                self.torch_speech_mask_np = np.append(self.torch_speech_mask_np, torch_speech_mask_gt_exp, axis=1)
-                self.torch_noise_mask_np = np.append(self.torch_noise_mask_np, torch_noise_mask_gt_exp, axis=1)
-            else:
-                self.torch_speech_mask_np = torch_speech_mask_gt_exp
-                self.torch_noise_mask_np = torch_noise_mask_gt_exp
-
-        # SCM
-        if self.use_beamformer:
-            torch_target_scm_gt = self.sink_dict["torch_gt"]["scm_target"](audio_signal, torch_S)
-            torch_noise_scm_gt = self.sink_dict["torch_gt"]["scm_noise"](audio_signal, torch_N)
-
-        # Beamform
-        if self.use_beamformer:
-            torch_Y = self.beamformer(
-                signal=audio_signal, target_scm=torch_target_scm_gt, noise_scm=torch_noise_scm_gt
-            )
-        else:
-            torch_Y = audio_signal * torch_speech_mask_gt
-            torch_Y = np.mean(torch_Y, axis=0)
-
-        # ISTFT and save
-        torch_y = self.sink_dict["torch_gt"]["istft"](torch_Y)
-        self.output_sink(data=torch_y, sink_name="torch_gt")
 
     def initialise_audio(self, source=None, sinks=None, overwrite_sinks=False, save_path=None):
         """
@@ -797,7 +695,7 @@ class AudioManager:
 
         # self.check_time(name='init_audio', is_start=False)
 
-    def init_app(self, save_input, save_output, passthrough_mode, output_path=""):
+    def init_app(self, save_input, save_output, passthrough_mode, output_path="", gain=1):
         """
         Function used to init jetson application.
 
@@ -809,6 +707,19 @@ class AudioManager:
         """
         self.is_delays = True
         self.passthrough_mode = passthrough_mode
+        self.target = None
+        self.gain = gain
+
+        # Model
+        if self.mask:
+            self.masks = KissMask(self.mic_array, buffer_size=30)
+        else:
+            self.model = AudioModel(input_size=1026, hidden_size=512, num_layers=2)
+            self.model.to(self.device)
+            if self.debug:
+                print(self.model)
+            self.model.load_best_model(self.model_path, self.device)
+            self.delay_and_sum = DelaySum(self.frame_size)
 
         # Init source
         mic_source = self.init_mic_input(name=self.jetson_source["name"], src_index=self.jetson_source["idx"])
@@ -835,17 +746,6 @@ class AudioManager:
                 "sink": self.init_sim_output(name="output", path=output_path, wav_params=self.file_params_output)
             }
 
-        # Model
-        if self.mask:
-            self.masks = KissMask(self.mic_array, buffer_size=30)
-        else:
-            self.model = AudioModel(input_size=1026, hidden_size=512, num_layers=2)
-            self.model.to(self.device)
-            if self.debug:
-                print(self.model)
-            self.model.load_best_model(self.model_path, self.device)
-            self.delay_and_sum = DelaySum(self.frame_size)
-
         return mic_source
 
     def start_app(self):
@@ -854,9 +754,11 @@ class AudioManager:
         """
         samples = 0
         max_time = 0
-        loop_i = 0
+        self.loop_i = 0
         while samples / CONST.SAMPLING_RATE < TIME:
             self.check_time(name="loop", is_start=True)
+
+            self.current_delay = self.target
 
             # Record from microphone
             x = self.source_dict[self.jetson_source["name"]]["src"]()
@@ -867,11 +769,12 @@ class AudioManager:
             self.output_sink(data=x, sink_name="original")
 
             # Check if no target selected
-            if self.target is None:
+            if self.current_delay is None:
                 if self.passthrough_mode:
-                    out = x[0]
+                    out = x[0][None, ...]
                 else:
                     out = np.zeros((1, self.chunk_size))
+                out *= self.gain
                 self.output_sink(data=out, sink_name=self.jetson_sink["name"])
                 self.output_sink(data=out, sink_name="output")
                 continue
@@ -916,11 +819,12 @@ class AudioManager:
             self.check_time(name="istft", is_start=False)
 
             # Output enhanced speech
+            y *= self.gain
             self.output_sink(data=y, sink_name=self.jetson_sink["name"])
             self.output_sink(data=y, sink_name="output")
 
             loop_time = self.check_time(name="loop", is_start=False)
-            if self.get_timers:
+            if self.get_timers and loop_time is not None:
                 max_time = loop_time if loop_time > max_time else max_time
 
             if self.debug and samples % (self.chunk_size * 50) == 0:
@@ -929,7 +833,7 @@ class AudioManager:
                     print(f"Time for loop: {loop_time} ms.")
 
             samples += self.chunk_size
-            loop_i += 1
+            self.loop_i = samples / self.chunk_size
 
         # Plot target + prediction spectrograms
         if self.print_specs:
