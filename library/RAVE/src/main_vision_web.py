@@ -3,6 +3,10 @@ from time import sleep
 
 from RAVE.AppManager import AppManager
 
+import os
+
+os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Web interface for face tracking")
 

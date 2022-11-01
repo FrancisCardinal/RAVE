@@ -15,7 +15,7 @@ from .face_detection.Calibration_audio_vision import CalibrationAudioVision
 from .eye_tracker.GazeInferer.GazeInfererManager import GazeInfererManager
 
 from RAVE.face_detection.Direction2Pixel import Direction2Pixel
-from common.image_utils import bounding_boxes_are_overlapping, box_pair_iou
+from RAVE.common.image_utils import bounding_boxes_are_overlapping, box_pair_iou
 
 sio = socketio.Client()
 
@@ -91,7 +91,7 @@ class AppManager:
         self._object_manager = self._tracking_manager.object_manager
         self._pixel_to_delay = Pixel2Delay((args.height, args.width), "./calibration.json")
         self._args = args
-        self._frame_output_frequency = 1
+        self._frame_output_frequency = 0.1
         self._delay_update_frequency = 0.25
         self._selected_face = None
         self._vision_mode = "mute"
@@ -300,7 +300,7 @@ class AppManager:
         if self._gaze_inferer_manager is None:
             self._init_eye_tracker()
 
-        angle_x, _ = self.gaze_inferer_manager.get_current_gaze()
+        angle_x, _ = self._gaze_inferer_manager.get_current_gaze()
         if angle_x is not None:
             x_1_m, _ = self.direction_2_pixel.get_pixel(angle_x, 0, 1)
             x_5_m, _ = self.direction_2_pixel.get_pixel(angle_x, 0, 5)
@@ -421,17 +421,16 @@ class AppManager:
     def set_eye_tracker_offset(self):
         if self._gaze_inferer_manager is None:
             self._init_eye_tracker()
-
-        self._gaze_inferer_manager.set_offset
+        self._gaze_inferer_manager.set_offset()
 
     def resume_eye_tracker_calibration_thread(self):
         if self._gaze_inferer_manager is None:
             self._init_eye_tracker()
 
-        self._gaze_inferer_manager.resume_calibration_thread
+        self._gaze_inferer_manager.resume_calibration_thread()
 
     def pause_eye_trackercalibration_thread(self):
         if self._gaze_inferer_manager is None:
             self._init_eye_tracker()
 
-        self._gaze_inferer_manager.pause_calibration_thread
+        self._gaze_inferer_manager.pause_calibration_thread()
