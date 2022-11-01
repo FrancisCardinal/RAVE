@@ -97,6 +97,7 @@ class AppManager:
 
         self._gaze_inferer_manager = GazeInfererManager(args.eye_video_source, "cpu")
 
+        sio.on("getTarget", self.get_target)
         sio.on("targetSelect", self._update_selected_face)
         sio.on("changeVisionMode", self._change_mode)
         sio.on("goToEyeTrackingCalibration", self.emit_calibration_list)
@@ -127,6 +128,9 @@ class AppManager:
         sio.on("changeCalibParams", self._calibrationAudioVision.change_nb_points)
         sio.on("goToVisionCalibration", self.start_calib_audio_vision)
         sio.on("quitVisionCalibration", self.stop_calib_audio_vision)
+
+    def get_target(self):
+        emit("selectedTarget", "client", {"targetId": self._selected_face})
 
     def timed_callback(self, period, f, *args):
         """
