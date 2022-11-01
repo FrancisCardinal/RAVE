@@ -5,6 +5,8 @@ import torch
 
 from .Verifier import Verifier
 
+from arcface import ArcFace as ArcFacePackage
+
 if platform.release().split("-")[-1] == "tegra":
     from .models.arcface import ArcFace_trt as arcface_model
 else:
@@ -19,6 +21,7 @@ class ArcFace(Verifier):
     def __init__(self, score_threshold):
         self.score_threshold = score_threshold
         self.model = arcface_model.load_model()
+        self.face_rec = ArcFacePackage.ArcFace()
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
     def get_features(self, frame, face_locations):
@@ -41,7 +44,8 @@ class ArcFace(Verifier):
                 int(bbox[1]) : int(bbox[1] + bbox[3]),
                 int(bbox[0]) : int(bbox[0] + bbox[2]),
             ]
-            image = ArcFace.preprocess_image(roi)
+            # image = ArcFace.preprocess_image(roi)
+            image = roi
 
             # TODO: Change inference call here.. could make predict() func in
             #  both implementations
@@ -56,7 +60,7 @@ class ArcFace(Verifier):
                 image = np.transpose(image, (0, 3, 1, 2))
                 feature = self.model(image)
             else:
-                feature = self.model(image)[0].numpy().tolist()
+                feature = self.face_rec.calc_emb(image)  # self.model(image)[0].numpy().tolist()
 
             features.append(feature)
 
@@ -83,10 +87,14 @@ class ArcFace(Verifier):
             reference_feature = reference_encoding.get_average
             target_feature = face_encoding.get_average
 
-            cosine_dist = ArcFace.find_cosine_distance(
-                reference_feature, target_feature
-            )
-            dist.append(cosine_dist)
+            # cosine_dist = ArcFace.find_cosine_distance(
+            #     reference_feature, target_feature
+            # )
+
+            # dist.append(cosine_dist)
+
+            distance = self.face_rec.get_distance_embeddings(reference_feature, target_feature)
+            dist.append(distance)
 
         scores = [1 - d for d in dist]
         return np.array(scores)

@@ -210,7 +210,7 @@ class TrackingManager:
                 information
         """
 
-        shape = (self._cap.shape[1], self._cap.shape[0]) if args.flip_display_dim else self._cap.shape
+        shape = self._cap.shape if args.flip_display_dim else (self._cap.shape[1], self._cap.shape[0])
         self.is_alive = True
         if self._visualize:
             monitor = Monitor(
