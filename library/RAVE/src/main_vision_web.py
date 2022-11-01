@@ -18,7 +18,11 @@ if __name__ == "__main__":
         dest="eye_video_source",
         type=int,
         help="Video input source identifier for eye tracker camera",
-        default=1,
+        default="1"
+        if not is_jetson()
+        else """v4l2src device=/dev/video1 ! video/x-raw, format=UYVY, width=640, heigth=480,
+         framerate=60/1 ! nvvidconv ! video/x-raw(memory:NVMM) ! nvvidconv ! video/x-raw, format=BGRx
+          ! videoconvert ! video/x-raw, format=BGR ! appsink""",
     )
     parser.add_argument(
         "--flip_display_dim",

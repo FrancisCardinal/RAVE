@@ -4,7 +4,6 @@ import numpy as np
 
 from .TrackingUpdater import TrackingUpdater
 from .TrackedObjectManager import TrackedObjectManager
-from ..common.image_utils import undistort
 
 from pyodas.visualize import Monitor
 
