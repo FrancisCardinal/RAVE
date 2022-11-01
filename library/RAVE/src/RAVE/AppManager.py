@@ -302,8 +302,8 @@ class AppManager:
 
         angle_x, _ = self._gaze_inferer_manager.get_current_gaze()
         if angle_x is not None:
-            x_1_m, _ = self.direction_2_pixel.get_pixel(angle_x, 0, 1)
-            x_5_m, _ = self.direction_2_pixel.get_pixel(angle_x, 0, 5)
+            x_1_m, _ = self._direction_2_pixel.get_pixel(angle_x, 0, 1)
+            x_5_m, _ = self._direction_2_pixel.get_pixel(angle_x, 0, 5)
 
             x_1, x_2 = min(x_1_m, x_5_m), max(x_1_m, x_5_m)
 

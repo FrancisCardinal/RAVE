@@ -62,9 +62,7 @@ def inverse_normalize(tensor, mean, std):
     return tensor
 
 
-def apply_image_translation(
-    image_tensor, x_extremums=[-0.2, 0.2], y_extremums=[-0.2, 0.2]
-):
+def apply_image_translation(image_tensor, x_extremums=[-0.2, 0.2], y_extremums=[-0.2, 0.2]):
     """
     A data augmentation operation, translates the frame randomly, by
     selecting an x and y value in the x_extremums and y_extremums ranges,
@@ -88,9 +86,7 @@ def apply_image_translation(
     x_offset = random.uniform(x_extremums[0], x_extremums[1])
     y_offset = random.uniform(y_extremums[0], y_extremums[1])
 
-    output_image_tensor = do_affine_grid_operation(
-        image_tensor, translation=(x_offset, y_offset)
-    )
+    output_image_tensor = do_affine_grid_operation(image_tensor, translation=(x_offset, y_offset))
 
     return output_image_tensor, x_offset, y_offset
 
@@ -111,9 +107,7 @@ def apply_image_rotation(image_tensor, rotation_angle_extremums=[-0.1, 0.1]):
     Returns:
         Tuple:The rotated frame (pytorch tensor) and the rotation angle (float)
     """
-    phi = random.uniform(
-        rotation_angle_extremums[0], rotation_angle_extremums[1]
-    )
+    phi = random.uniform(rotation_angle_extremums[0], rotation_angle_extremums[1])
 
     output_image_tensor = do_affine_grid_operation(image_tensor, phi=phi)
 
@@ -152,13 +146,9 @@ def apply_image_translation_and_rotation(
 
     x_offset = random.uniform(x_extremums[0], x_extremums[1])
     y_offset = random.uniform(y_extremums[0], y_extremums[1])
-    phi = random.uniform(
-        rotation_angle_extremums[0], rotation_angle_extremums[1]
-    )
+    phi = random.uniform(rotation_angle_extremums[0], rotation_angle_extremums[1])
 
-    output_image_tensor = do_affine_grid_operation(
-        image_tensor, (x_offset, y_offset), phi
-    )
+    output_image_tensor = do_affine_grid_operation(image_tensor, (x_offset, y_offset), phi)
 
     return output_image_tensor, x_offset, y_offset, phi
 
@@ -199,9 +189,7 @@ def do_affine_grid_operation(image_tensor, translation=(0, 0), phi=0):
     # as [-1, -1] and the bottom right one as [1, 1] (as opposed to the
     # convention of this module where the top left corner is [0, 0])
 
-    grid = F.affine_grid(
-        transformation_matrix.unsqueeze(0), image_tensor.unsqueeze(0).size()
-    )
+    grid = F.affine_grid(transformation_matrix.unsqueeze(0), image_tensor.unsqueeze(0).size())
     image_tensor = F.grid_sample(image_tensor.unsqueeze(0), grid)
     image_tensor = image_tensor.squeeze(0)
 
@@ -235,52 +223,36 @@ def xyxy2xywh(x):
 
 
 def bounding_boxes_are_overlapping(first, other):
-    first_upper_left_corner_X = int(first.bbox[0])
-    first_upper_left_corner_Y = int(first.bbox[1])
-    first_bottom_right_corner_X = first_upper_left_corner_X + int(
-        first.bbox[2]
-    )
-    first_bottom_right_corner_Y = first_upper_left_corner_Y + int(
-        first.bbox[3]
-    )
+    first_upper_left_corner_X = int(first[0])
+    first_upper_left_corner_Y = int(first[1])
+    first_bottom_right_corner_X = first_upper_left_corner_X + int(first[2])
+    first_bottom_right_corner_Y = first_upper_left_corner_Y + int(first[3])
 
-    other_upper_left_corner_X = int(other.bbox[0])
-    other_upper_left_corner_Y = int(other.bbox[1])
-    other_bottom_right_corner_X = first_upper_left_corner_X + int(
-        other.bbox[2]
-    )
-    other_bottom_right_corner_Y = first_upper_left_corner_Y + int(
-        other.bbox[3]
-    )
+    other_upper_left_corner_X = int(other[0])
+    other_upper_left_corner_Y = int(other[1])
+    other_bottom_right_corner_X = first_upper_left_corner_X + int(other[2])
+    other_bottom_right_corner_Y = first_upper_left_corner_Y + int(other[3])
 
-    xCondition = (
-        first_upper_left_corner_X < other_bottom_right_corner_X
-    ) and (first_bottom_right_corner_X > other_upper_left_corner_X)
-    yCondition = (
-        first_upper_left_corner_Y < other_bottom_right_corner_Y
-    ) and (first_bottom_right_corner_Y > other_upper_left_corner_Y)
+    xCondition = (first_upper_left_corner_X < other_bottom_right_corner_X) and (
+        first_bottom_right_corner_X > other_upper_left_corner_X
+    )
+    yCondition = (first_upper_left_corner_Y < other_bottom_right_corner_Y) and (
+        first_bottom_right_corner_Y > other_upper_left_corner_Y
+    )
 
     return xCondition and yCondition
 
 
 def box_pair_iou(first, other):
-    first_upper_left_corner_X = int(first.bbox[0])
-    first_upper_left_corner_Y = int(first.bbox[1])
-    first_bottom_right_corner_X = first_upper_left_corner_X + int(
-        first.bbox[2]
-    )
-    first_bottom_right_corner_Y = first_upper_left_corner_Y + int(
-        first.bbox[3]
-    )
+    first_upper_left_corner_X = int(first[0])
+    first_upper_left_corner_Y = int(first[1])
+    first_bottom_right_corner_X = first_upper_left_corner_X + int(first[2])
+    first_bottom_right_corner_Y = first_upper_left_corner_Y + int(first[3])
 
-    other_upper_left_corner_X = int(other.bbox[0])
-    other_upper_left_corner_Y = int(other.bbox[1])
-    other_bottom_right_corner_X = first_upper_left_corner_X + int(
-        other.bbox[2]
-    )
-    other_bottom_right_corner_Y = first_upper_left_corner_Y + int(
-        other.bbox[3]
-    )
+    other_upper_left_corner_X = int(other[0])
+    other_upper_left_corner_Y = int(other[1])
+    other_bottom_right_corner_X = first_upper_left_corner_X + int(other[2])
+    other_bottom_right_corner_Y = first_upper_left_corner_Y + int(other[3])
 
     bbox_1 = torch.tensor(
         [
@@ -326,14 +298,7 @@ def box_iou(box1, box2):
     area2 = box_area(box2.T)
 
     # inter(N,M) = (rb(N,M,2) - lt(N,M,2)).clamp(0).prod(2)
-    inter = (
-        (
-            torch.min(box1[:, None, 2:], box2[:, 2:])
-            - torch.max(box1[:, None, :2], box2[:, :2])
-        )
-        .clamp(0)
-        .prod(2)
-    )
+    inter = (torch.min(box1[:, None, 2:], box2[:, 2:]) - torch.max(box1[:, None, :2], box2[:, :2])).clamp(0).prod(2)
     # iou = inter / (area1 + area2 - inter)
     return inter / (area1[:, None] + area2 - inter)
 
@@ -343,12 +308,8 @@ def scale_coords(img1_shape, coords, img0_shape, ratio_pad=None):
     Rescale coords (xyxy) from img1_shape to img0_shape
     """
     if ratio_pad is None:  # calculate from img0_shape
-        gain = min(
-            img1_shape[0] / img0_shape[0], img1_shape[1] / img0_shape[1]
-        )  # gain  = old / new
-        pad = (img1_shape[1] - img0_shape[1] * gain) / 2, (
-            img1_shape[0] - img0_shape[0] * gain
-        ) / 2  # wh padding
+        gain = min(img1_shape[0] / img0_shape[0], img1_shape[1] / img0_shape[1])  # gain  = old / new
+        pad = (img1_shape[1] - img0_shape[1] * gain) / 2, (img1_shape[0] - img0_shape[0] * gain) / 2  # wh padding
     else:
         gain = ratio_pad[0][0]
         pad = ratio_pad[1]
@@ -373,12 +334,8 @@ def clip_coords(boxes, img_shape):
 def scale_coords_landmarks(img1_shape, coords, img0_shape, ratio_pad=None):
     """Rescale coords (xyxy) from img1_shape to img0_shape"""
     if ratio_pad is None:  # calculate from img0_shape
-        gain = min(
-            img1_shape[0] / img0_shape[0], img1_shape[1] / img0_shape[1]
-        )  # gain  = old / new
-        pad = (img1_shape[1] - img0_shape[1] * gain) / 2, (
-            img1_shape[0] - img0_shape[0] * gain
-        ) / 2  # wh padding
+        gain = min(img1_shape[0] / img0_shape[0], img1_shape[1] / img0_shape[1])  # gain  = old / new
+        pad = (img1_shape[1] - img0_shape[1] * gain) / 2, (img1_shape[0] - img0_shape[0] * gain) / 2  # wh padding
     else:
         gain = ratio_pad[0][0]
         pad = ratio_pad[1]
@@ -509,12 +466,8 @@ def check_frontal_face(
     ):
         return False
 
-    wide_dist = np.linalg.norm(
-        np.array(facial_landmarks[0:2]) - np.array(facial_landmarks[2:4])
-    )
-    high_dist = np.linalg.norm(
-        np.array(facial_landmarks[0:2]) - np.array(facial_landmarks[6:8])
-    )
+    wide_dist = np.linalg.norm(np.array(facial_landmarks[0:2]) - np.array(facial_landmarks[2:4]))
+    high_dist = np.linalg.norm(np.array(facial_landmarks[0:2]) - np.array(facial_landmarks[6:8]))
     dist_rate = high_dist / wide_dist
 
     # cal std
@@ -527,10 +480,6 @@ def check_frontal_face(
     high_rate = dist_A / dist_C
     high_ratio_std = np.fabs(high_rate - 1.1)  # smaller is better
 
-    if (
-        dist_rate < thresh_dist_low
-        or dist_rate > thresh_dist_high
-        or high_ratio_std > thresh_high_std
-    ):
+    if dist_rate < thresh_dist_low or dist_rate > thresh_dist_high or high_ratio_std > thresh_high_std:
         return False
     return True
