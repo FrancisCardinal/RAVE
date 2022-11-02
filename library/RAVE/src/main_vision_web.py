@@ -29,7 +29,7 @@ if __name__ == "__main__":
         default="0"
         if not is_jetson()
         else """v4l2src device=/dev/video0 ! video/x-raw, format=UYVY, width=640, heigth=480,
-         framerate=60/1 ! nvvidconv ! video/x-raw(memory:NVMM) ! nvvidconv ! video/x-raw, format=BGRx
+         framerate=30/1 ! nvvidconv ! video/x-raw(memory:NVMM) ! nvvidconv ! video/x-raw, format=BGRx
           ! videoconvert ! video/x-raw, format=BGR ! appsink""",
     )
     parser.add_argument(

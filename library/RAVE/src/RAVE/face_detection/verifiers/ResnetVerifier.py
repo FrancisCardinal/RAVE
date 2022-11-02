@@ -3,8 +3,8 @@ import cv2
 import numpy as np
 import torch
 
-from .models.arcface.trt_model import TrtModel
-import platform
+# from .models.arcface.trt_model import TrtModel
+# import platform
 
 from .Verifier import Verifier
 
@@ -21,9 +21,7 @@ class ResNetVerifier(Verifier):
     """
 
     PROJECT_PATH = os.getcwd()
-    MODEL_PATH = os.path.join(
-        PROJECT_PATH, "RAVE", "face_detection", "verifiers", "models"
-    )
+    MODEL_PATH = os.path.join(PROJECT_PATH, "RAVE", "face_detection", "verifiers", "models")
 
     def __init__(self, score_threshold, device="cpu", architecture=18):
         self.device = device
@@ -105,10 +103,7 @@ class ResNetVerifier(Verifier):
 
             dist.append(
                 np.dot(target_feature, reference_feature)
-                / (
-                    np.linalg.norm(target_feature)
-                    * np.linalg.norm(reference_feature)
-                )
+                / (np.linalg.norm(target_feature) * np.linalg.norm(reference_feature))
             )
 
         # TODO: is this really a score or a dist?
@@ -169,21 +164,19 @@ class ResNetVerifier(Verifier):
 
         if architecture == 18:
             # Load ResNet18
-            if platform.release().split("-")[-1] == "tegra":
-                # TODO: Note: to be modified for use on the Jetson
-                model = TrtModel()
-                model_path = os.path.join(
-                    ResNetVerifier.MODEL_PATH, "resnet18", "resnet18_trt.pth"
-                )
-                pretrained_dict = torch.load(model_path)
-            else:
-                model = resnet_face18(pretrained=False)
-                pretrained_dict = torch.load(
-                    os.path.join(
-                        ResNetVerifier.MODEL_PATH, "resnet18", "resnet18.pth"
-                    ),
-                    map_location=map_fct,
-                )
+            # if platform.release().split("-")[-1] == "tegra":
+            #     # TODO: Note: to be modified for use on the Jetson
+            #     model = TrtModel()
+            #     model_path = os.path.join(
+            #         ResNetVerifier.MODEL_PATH, "resnet18", "resnet18_trt.pth"
+            #     )
+            #     pretrained_dict = torch.load(model_path)
+            # else:
+            model = resnet_face18(pretrained=False)
+            pretrained_dict = torch.load(
+                os.path.join(ResNetVerifier.MODEL_PATH, "resnet18", "resnet18.pth"),
+                map_location=map_fct,
+            )
         elif architecture == 34:
             # Load ResNet34
             model = resnet_face34(pretrained=False)

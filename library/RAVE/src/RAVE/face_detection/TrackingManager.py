@@ -52,8 +52,8 @@ class TrackingManager:
         detector_type,
         verifier_type,
         frequency,
-        intersection_threshold=-0.5,
-        verifier_threshold=0.5,
+        intersection_threshold=-0.25,
+        verifier_threshold=0.25,
         visualize=True,
         tracking_or_calib=lambda: True,
     ):
