@@ -74,6 +74,7 @@ class TrackingManager:
         self.frame_count = 0
         self._tracking_or_calib = tracking_or_calib
         self.K = np.array([[340.60994606, 0.0, 325.7756748], [0.0, 341.93970667, 242.46219777], [0.0, 0.0, 1.0]])
+        self.drawing_callbacks = list()
 
     def precompute_undistort(self):
         """
@@ -215,6 +216,9 @@ class TrackingManager:
                     # Draw detections from tracked objects
                     tracking_frame = frame.copy()
                     self.draw_all_predictions_on_frame(tracking_frame)
+
+                    for callback in self.drawing_callbacks:
+                        callback(tracking_frame)
 
                     # fps.setFps()
                     # fps.writeFpsToFrame(tracking_frame)

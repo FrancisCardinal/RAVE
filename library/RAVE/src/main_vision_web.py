@@ -76,6 +76,12 @@ if __name__ == "__main__":
         help="If true, will show the different tracking frames",
         action="store_false",
     )
+    parser.add_argument(
+        "--debug",
+        dest="debug",
+        help="Display some debugging information",
+        action="store_true",
+    )
     args = parser.parse_args()
 
     manager = AppManager(args)

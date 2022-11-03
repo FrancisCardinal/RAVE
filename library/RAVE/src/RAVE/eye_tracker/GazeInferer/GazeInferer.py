@@ -1,7 +1,6 @@
 import os
 import torch
 import numpy as np
-from scipy.ndimage import median_filter
 import json
 from threading import Lock
 
@@ -35,7 +34,7 @@ class GazeInferer:
         ellipse_dnn,
         dataloader,
         device,
-        eyeball_model_path="model_01.json",
+        DEBUG,
         pupil_radius=4,
         initial_eye_z=52.271,
         flen=3.37,
@@ -52,11 +51,7 @@ class GazeInferer:
             dataloader (Dataloader): Pytorch's dataloader that enables us to
                 get the images of the camera
             device (string): Pytorch device (i.e, should we use cpu or gpu ?)
-            eyeball_model_path (str, optional): The name of the files that
-                contains the caracteristics of the eye on which we want to run
-                this code (information on its size and position that is
-                obtained through calibration and the fit method). Defaults to
-                "model_01.json".
+            DEBUG (bool): Whether to display the debug feed or not.
             pupil_radius (int, optional): Approximation of the radius of the
                 observed pupil. Defaults to 4, as this is the median value
                 (pupil size is typically between 2-8 mm, if you know your
@@ -77,11 +72,8 @@ class GazeInferer:
         self._ellipse_dnn = ellipse_dnn
         self._dataloader = dataloader
         self._device = device
-        self._eyeball_model_path = os.path.join(
-            EyeTrackerDataset.EYE_TRACKER_DIR_PATH,
-            "GazeInferer",
-            eyeball_model_path,
-        )
+        self.DEBUG = DEBUG
+
         self._selected_calibration_path = ""
         image = next(iter(self._dataloader))
         self.shape = image.shape[2], image.shape[3]
@@ -267,6 +259,8 @@ class GazeInferer:
                     x, y = self.get_angles_from_image(images)
 
                     if (x is None) or (y is None):
+                        self.x = None
+                        self.y = None
                         continue
 
                     self._past_xs = np.roll(self._past_xs, -1)
@@ -274,15 +268,12 @@ class GazeInferer:
                     self._past_xs[-1] = x
                     self._past_ys[-1] = y
 
-                    median_filtered_x = median_filter(self._past_xs, self._median_size)
-                    median_filtered_y = median_filter(self._past_ys, self._median_size)
-
                     box_filtered_x = box_smooth(
-                        median_filtered_x[self._box_size - 1 : 2 * self._box_size - 1],
+                        self._past_xs[self._box_size - 1 : 2 * self._box_size - 1],
                         self._box_size,
                     )
                     box_filtered_y = box_smooth(
-                        median_filtered_y[self._box_size - 1 : 2 * self._box_size - 1],
+                        self._past_ys[self._box_size - 1 : 2 * self._box_size - 1],
                         self._box_size,
                     )
 

@@ -98,6 +98,10 @@ class AppManager:
         self._calibrationAudioVision = CalibrationAudioVision(self._cap, self._mic_source, emit)
 
         self._gaze_inferer_manager = None
+        self._x_1, self._x_2 = None, None
+
+        if args.debug:
+            self._tracking_manager.drawing_callbacks.append(self.eye_tracker_debug_drawings)
 
         sio.on("targetSelect", self._update_selected_face)
         sio.on("changeVisionMode", self._change_mode)
@@ -139,7 +143,7 @@ class AppManager:
         if torch.cuda.is_available():
             DEVICE = "cuda"
 
-        self._gaze_inferer_manager = GazeInfererManager(self._args.eye_video_source, DEVICE)
+        self._gaze_inferer_manager = GazeInfererManager(self._args.eye_video_source, DEVICE, self._args.debug)
 
         K = self._tracking_manager.K
         roi = None
@@ -305,9 +309,9 @@ class AppManager:
             x_1_m, _ = self._direction_2_pixel.get_pixel(angle_x, 0, 1)
             x_5_m, _ = self._direction_2_pixel.get_pixel(angle_x, 0, 5)
 
-            x_1, x_2 = min(x_1_m, x_5_m), max(x_1_m, x_5_m)
+            self._x_1, self._x_2 = min(x_1_m, x_5_m), max(x_1_m, x_5_m)
 
-            gaze_bbox = [x_1, 0, x_2 - x_1, self._args.height]
+            gaze_bbox = [self._x_1, 0, self._x_2 - self._x_1, self._args.height]
             id, best_iou = None, -1
 
             for obj in self._object_manager.tracked_objects.values():
@@ -319,6 +323,26 @@ class AppManager:
 
             if id is not None:
                 self._update_selected_face({"targetId": id})
+
+        else:
+            self._x_1, self._x_2 = None, None
+
+    def eye_tracker_debug_drawings(self, frame):
+        if self._x_1 is not None:
+            cv2.line(
+                frame,
+                (self._x_1, 0),
+                (self._x_1, self._args.height),
+                color=(255, 0, 0),
+                thickness=2,
+            )
+            cv2.line(
+                frame,
+                (self._x_2, 0),
+                (self._x_2, self._args.height),
+                color=(0, 0, 255),
+                thickness=2,
+            )
 
     def _change_mode(self, payload):
         """
