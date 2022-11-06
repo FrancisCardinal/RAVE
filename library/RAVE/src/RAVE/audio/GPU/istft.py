@@ -45,19 +45,20 @@ class IStft(Module):
             >>> time_sig = istft(freq_sig)
     """
 
-    def __init__(self, channels, frame_size, hop_size, window):
+    def __init__(self, channels, frame_size, hop_size, window, device):
         if frame_size % 2 != 0:
             frame_size += 1
         self._frame_size = frame_size
         self._channels = channels
-        self._xs = torch.zeros((self._channels, frame_size), dtype=torch.float32)
+        self._xs = torch.zeros((self._channels, frame_size), device=device, dtype=torch.float32)
         self._hop_size = hop_size
+        self.device = device
 
         # Get the window
         if isinstance(window, str):
             try:
                 window_func = windows[window]
-                self._ws = torch.tile(window_func(frame_size), (self._channels, 1))
+                self._ws = torch.tile(window_func(frame_size, device), (self._channels, 1))
             except KeyError:
                 raise ValueError(f"The window {window} is not in the list" f" of supported windows")
         elif isinstance(window, torch.Tensor):
@@ -98,4 +99,4 @@ class IStft(Module):
         This resets the memory of the istft. This can be used in a
         context where you are using this recursively.
         """
-        self._xs = torch.zeros((self._channels, self._frame_size), dtype=torch.float32)
+        self._xs = torch.zeros((self._channels, self._frame_size), device=self.device, dtype=torch.float32)

@@ -43,9 +43,9 @@ class DelaySum(Module):
             [[1. 2. 3. 4. 5. 6.]]
     """
 
-    def __init__(self, frame_size):
+    def __init__(self, frame_size, device="cpu"):
         nb_of_bins = int(frame_size / 2) + 1
-        self._bins = torch.arange(nb_of_bins, dtype=int).reshape(nb_of_bins, 1)
+        self._bins = torch.arange(nb_of_bins, device=device, dtype=int).reshape(nb_of_bins, 1)
         self._frame_size = frame_size
 
     def __call__(self, freq_signal, delay):

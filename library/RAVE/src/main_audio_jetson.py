@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 import argparse
 
 from pyodas.utils import get_delays_based_on_mic_array
@@ -17,8 +18,14 @@ def main(DEBUG, MASK, TIMER):
     if MASK:
         audio_man.set_target(np.array(TARGET))
     else:
+        device = "cpu"
+        if torch.cuda.is_available():
+            device = "cuda"
+
         target = np.array([TARGET])
         delay = get_delays_based_on_mic_array(target, frame_size=audio_man.frame_size, mic_array=audio_man.mic_array)[0]
+
+        delay = torch.tensor(delay, dtype=torch.float32).to(device)
         audio_man.set_target(delay)
 
     audio_man.start_app()

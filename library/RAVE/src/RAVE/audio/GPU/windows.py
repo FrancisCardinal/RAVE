@@ -3,7 +3,7 @@ import torch
 from pyodas.utils import StaticDict
 
 
-def hann(size):
+def hann(size, device="cpu"):
     """
     Helper method for creating Hann windows
 
@@ -15,10 +15,10 @@ def hann(size):
             Hann window in an array of float 32 the length of the given size.
 
     """
-    return torch.hann_window(size, dtype=torch.float32)
+    return torch.hann_window(size, device=device, dtype=torch.float32)
 
 
-def sqrt_hann(size):
+def sqrt_hann(size, device="cpu"):
     """
     Helper method for creating square root Hann windows
 
@@ -31,7 +31,7 @@ def sqrt_hann(size):
             the given size.
 
     """
-    return torch.sqrt(torch.hann_window(size, dtype=torch.float32))
+    return torch.sqrt(torch.hann_window(size, device=device, dtype=torch.float32))
 
 
 windows = StaticDict(

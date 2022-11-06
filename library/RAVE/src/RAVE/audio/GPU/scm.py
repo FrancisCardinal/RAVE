@@ -66,13 +66,14 @@ class SpatialCov(Module):
               [ 14. +8.j  20. +0.j]]]
     """
 
-    def __init__(self, channels, frame_size, weight=0.3, buffer_size=-1):
+    def __init__(self, channels, frame_size, weight=0.3, buffer_size=-1, device="cpu"):
         self._buffer_size = buffer_size
-        self._weight = torch.tensor(weight)
+        self._weight = torch.tensor(weight, device=device)
         self._channels = channels
         self._frame_size = frame_size
         self._scm = torch.zeros(
             (self._frame_size // 2 + 1, self._channels, self._channels),
+            device=device,
             dtype=torch.cfloat,
         )
         self._mask = torch.ones(self._frame_size // 2 + 1, dtype=torch.float32)
@@ -85,6 +86,7 @@ class SpatialCov(Module):
                     self._channels,
                     self._channels,
                 ),
+                device=device,
                 dtype=torch.cfloat,
             )
 

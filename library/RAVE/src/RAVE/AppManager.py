@@ -3,6 +3,7 @@ import time
 import socketio
 import base64
 import threading
+import torch
 from pyodas.visualize import VideoSource
 
 # from tqdm import tqdm
@@ -88,7 +89,10 @@ class AppManager:
             tracking_or_calib=self.is_tracking,
         )
         self._object_manager = self._tracking_manager.object_manager
-        self._pixel_to_delay = Pixel2Delay((args.height, args.width), "./calibration_8mics.json")
+        device = "cpu"
+        if torch.cuda.is_available():
+            device = "cuda"
+        self._pixel_to_delay = Pixel2Delay((args.height, args.width), "./calibration_8mics.json", device=device)
         self._args = args
         self._frame_output_frequency = 1
         self._delay_update_frequency = 0.25
@@ -103,7 +107,7 @@ class AppManager:
             save_output=True,
             passthrough_mode=True,
             output_path="/home/rave/RAVE/library/RAVE/src/audio_files",
-            gain=2,
+            gain=3,
         )
         self._calibrationAudioVision = CalibrationAudioVision(self._cap, self._mic_source, emit)
 

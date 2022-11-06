@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 from itertools import combinations, repeat
 from pyodas.utils import CONST
 
@@ -25,17 +26,11 @@ def get_delays_based_on_mic_array(directions, mic_array, frame_size, sound_vel=3
             The theoretical delays between each microphone pairs for each
             point with shape (nb_of_directions, channels, channels)
     """
-    mic_array = torch.tensor(list(mic_array.mics.values())).to(device)
+    mic_array = torch.tensor(np.array(list(mic_array.mics.values())), dtype=torch.float32).to(device)
 
     delays = torch.tensor(
-        list(
-            map(
-                _get_delay_based_on_mic_array,
-                directions,
-                repeat(mic_array),
-            )
-        )
-    )
+        np.array(list(map(_get_delay_based_on_mic_array, directions, repeat(mic_array), repeat(device))))
+    ).to(device)
 
     delays *= CONST.SAMPLING_RATE / sound_vel
 
@@ -48,7 +43,7 @@ def get_delays_based_on_mic_array(directions, mic_array, frame_size, sound_vel=3
     return delays
 
 
-def _get_delay_based_on_mic_array(direction, mic_array):
+def _get_delay_based_on_mic_array(direction, mic_array, device):
     """
     Compute theoretical delay for a single direction.
 
@@ -65,12 +60,13 @@ def _get_delay_based_on_mic_array(direction, mic_array):
             (channels, channels)
 
     """
+    print(f"DEVICE: {device}")
     channels = mic_array.shape[0]
-    delay = torch.zeros((channels, channels), dtype=float)
+    delay = torch.zeros((channels, channels), dtype=torch.float32).to(device)
     for i, j in combinations(range(channels), 2):
         delay[i, j] = torch.dot(mic_array[j] - mic_array[i], direction)
 
     # Copy upper triangle in lower triangle
-    delay[torch.tril_indices(channels, -1)] = -1 * delay[torch.triu_indices(channels, 1)]
+    delay[torch.tril_indices(channels, channels, -1)] = -1 * delay[torch.triu_indices(channels, channels, 1)]
 
-    return delay
+    return delay.cpu()

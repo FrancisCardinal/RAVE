@@ -40,7 +40,7 @@ out_channels: 1
 jetson_source: {
     'name': 'JetsonMic',
     'type': 'mic',
-    'idx': '5'
+    'idx': '4'
 }
 # Jetson playback sink (default idx uses default device)
 jetson_sink: {

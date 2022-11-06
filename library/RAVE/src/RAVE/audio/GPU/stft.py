@@ -43,16 +43,16 @@ class Stft(Module):
             >>> freq_sig = stft(time_sig)
     """
 
-    def __init__(self, channels, frame_size, window):
+    def __init__(self, channels, frame_size, window, device):
         self._channels = channels
         self._frame_size = frame_size
-        self._xs = torch.zeros((self._channels, self._frame_size), dtype=torch.float32)
+        self._xs = torch.zeros((self._channels, self._frame_size), device=device, dtype=torch.float32)
 
         # Get the window
         if isinstance(window, str):
             try:
                 window_func = windows[window]
-                self._ws = torch.tile(window_func(frame_size), (channels, 1))
+                self._ws = torch.tile(window_func(frame_size, device), (channels, 1))
             except KeyError:
                 raise ValueError(f"The window {window} is not in the list" f" of supported windows")
         elif isinstance(window, torch.Tensor):
@@ -87,7 +87,7 @@ class Stft(Module):
             self._xs.shape[1] - new_xs.shape[1] : self._xs.shape[1],
         ] = new_xs
 
-        return torch.fft.rfft(self._xs * self._ws).to(dtype=torch.cfloat)
+        return torch.fft.rfft(self._xs * self._ws)
 
     def reset(self):
         """

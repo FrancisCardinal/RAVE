@@ -147,7 +147,7 @@ class Mvdr(Module):
 
     """
 
-    def __init__(self, channels, reference=0, type="ref_vector", epsilon=1e-6):
+    def __init__(self, channels, reference=0, type="ref_vector", epsilon=1e-6, device="cpu"):
         if reference >= channels:
             raise ValueError(
                 f"The reference {reference} needs to be smaller " f"than the number of channels {channels}"
@@ -156,9 +156,10 @@ class Mvdr(Module):
             "Unknown type provided. Must be one of " "[``ref_vector``, ``transfer_fct``]."
         )
         self.type = type
-        self._ref_vector = torch.zeros((channels, 1), dtype=torch.cfloat)
+        self._ref_vector = torch.zeros((channels, 1), device=device, dtype=torch.cfloat)
         self._ref_vector[reference] = 1
         self._epsilon = epsilon
+        self.device = device
 
     def __call__(self, *args):
         """
@@ -229,7 +230,7 @@ class Mvdr(Module):
                 with shape (1, bins)
         """
         # To make sure the noise matrix is not singular
-        noise_scm += self._epsilon * torch.eye(noise_scm.shape[1])
+        noise_scm += self._epsilon * torch.eye(noise_scm.shape[1], device=self.device)
 
         # noise_scm.inv() @ target_scm
         numerator = torch.linalg.solve(noise_scm, target_scm)
