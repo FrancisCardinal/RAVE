@@ -1,6 +1,9 @@
 
 soundfile
+librosa
+soxr
 scipy
 pyroomacoustics
+pydub
 
 -r requirements_base.txt

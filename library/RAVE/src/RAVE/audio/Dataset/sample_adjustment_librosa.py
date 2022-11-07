@@ -3,35 +3,29 @@ import argparse
 from tkinter import filedialog
 import os
 import glob
+
+import numpy as np
 import yaml
 
-# import numpy as np
-# import math
-# from scipy.io import wavfile
-# import scipy.signal as sps
-# import soundfile as sf
-
-from pydub import AudioSegment, effects
+import librosa
+import soundfile as sf
 
 
-def save_data(data, run_args): #, global_mean):
+def save_data(data, run_args, old_rate):
     # Create folder
     output_dir = os.path.normpath(os.path.join(run_args.output, data['configs']['path']))
     os.makedirs(output_dir, exist_ok=True)
 
     # Save data files
     data_path = os.path.join(output_dir, 'audio.wav')
-    data['downsampled_data'].export(data_path, format="wav")
+    sf.write(data_path,  data['downsampled_data'].T, run_args.rate, 'PCM_16')
     if run_args.debug:
         # Save original data
         og_data_path = os.path.join(output_dir, 'original.wav')
-        data['data'].export(og_data_path, format="wav")
+        sf.write(og_data_path, data['data'].T, old_rate, 'PCM_16')
         # Save upsampled normalized
         norm_data_path = os.path.join(output_dir, 'normalized.wav')
-        data['normalized_data'].export(norm_data_path, format="wav")
-        # Save low_passed
-        lowpass_data_path = os.path.join(output_dir, 'lowpass.wav')
-        data['lowpassed_data'].export(lowpass_data_path, format="wav")
+        sf.write(norm_data_path, data['normalized_data'].T, old_rate, 'PCM_16')
 
     # Save configs
     configs = data['configs']
@@ -60,19 +54,34 @@ def main(run_args):
         wav_dict['configs'] = configs
 
         # Get audio
-        audio_segment = AudioSegment.from_wav(os.path.join(dir_path, 'audio.wav'))
-        wav_dict['data'] = audio_segment
-        # Lowpass
-        lowpassed_audio_segment = audio_segment.low_pass_filter(2000)
-        wav_dict['lowpassed_data'] = lowpassed_audio_segment
-        # Normalize
-        normalized_audio_segment = effects.normalize(lowpassed_audio_segment)
-        wav_dict['normalized_data'] = normalized_audio_segment
-        # Downsample
-        downsampled_audio_segment = normalized_audio_segment.set_frame_rate(run_args.rate)
-        wav_dict['downsampled_data'] = downsampled_audio_segment
+        data, samplerate = sf.read(os.path.join(dir_path, 'audio.wav'), dtype='float32')
+        data = data.T
+        wav_dict['data'] = data
 
-        save_data(wav_dict, run_args)
+        # Normalize
+        # data_norm = librosa.util.normalize(data, axis=1)
+        max_val = np.amax(data)
+        min_val = np.abs(np.amin(data))
+        factor = max(max_val, min_val)
+        data_norm = data / factor
+        wav_dict['normalized_data'] = data_norm
+        # Check norm
+        if run_args.test:
+            data_min = []
+            data_max = []
+            norm_min = []
+            norm_max = []
+            for i in range(len(data)):
+                data_min.append(np.amin(data[i]))
+                data_max.append(np.amax(data[i]))
+                norm_min.append(np.amin(data_norm[i]))
+                norm_max.append(np.amax(data_norm[i]))
+
+        # Downsample
+        data_16k = librosa.resample(data_norm, orig_sr=samplerate, target_sr=run_args.rate, res_type="soxr_vhq")
+        wav_dict['downsampled_data'] = data_16k
+
+        save_data(wav_dict, run_args, samplerate)
 
         if run_args.debug:
             print(f'Finished processing sample at {dir_path}.')
@@ -82,6 +91,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-d", "--debug", action="store_true", help="Run the script in debug mode. Is more verbose."
+    )
+    parser.add_argument(
+        "-t", "--test", action="store_true", help="Run the script in debug mode. Is more verbose."
     )
     parser.add_argument(
         "-r",
