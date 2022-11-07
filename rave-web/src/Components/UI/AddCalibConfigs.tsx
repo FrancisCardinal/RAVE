@@ -5,8 +5,7 @@ import CalibInstructions from "./CalibInstructions";
 import { Modal } from "@mui/material";
 import { BrowserView, MobileView } from 'react-device-detect';
 import { useEmit } from "../../Hooks";
-import { StartEyeTrackerCalibrationEvent } from 'rave-protocol/pythonEvents';
-
+import { EndEyeTrackerCalibrationEvent } from "rave-protocol/pythonEvents";
 /**
  * This component is a button to create a new eye-tracking calibration configuration.
  * When it's clicked, a modal with the instructions to follow appear.
@@ -14,10 +13,12 @@ import { StartEyeTrackerCalibrationEvent } from 'rave-protocol/pythonEvents';
 const AddCalibConfigs = () => {
   const emit = useEmit();
   const [open, setOpen] = useState(false);
-  const handleClose = () => setOpen(false);
+  const handleClose = () => {
+    setOpen(false);
+    emit(EndEyeTrackerCalibrationEvent());
+  }
   const handleOpen = () => {
     setOpen(true);
-    emit(StartEyeTrackerCalibrationEvent());
   }
 
   return (

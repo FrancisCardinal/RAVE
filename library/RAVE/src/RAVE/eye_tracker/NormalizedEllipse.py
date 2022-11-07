@@ -15,22 +15,24 @@ class NormalizedEllipse:
     corresponding axis of the parameter (or 2*pi radians for theta).
     For example, if the h parameter was 240 and the image width is 480,
     then the new h value is 0.5
-
-    Args:
-        h (float):
-            x coordinate of the center of the ellipse (normalized)
-        k (float):
-            y coordinate of the center of the ellipse (normalized)
-        a (float):
-            length of the horizontal axis (normalized)
-        b (float):
-            length of the vertical axis (normalized)
-        theta (float):
-            rotation angle of the ellipse relative to the
-            x axis (normalized)
     """
 
     def __init__(self, h, k, a, b, theta):
+        """Constructor of the NormalizedEllipse class
+
+        Args:
+            h (float):
+                x coordinate of the center of the ellipse (normalized)
+            k (float):
+                y coordinate of the center of the ellipse (normalized)
+            a (float):
+                length of the horizontal axis (normalized)
+            b (float):
+                length of the vertical axis (normalized)
+            theta (float):
+                rotation angle of the ellipse relative to the
+                x axis (normalized)
+        """
         self.h = h
         self.k = k
         self.a = a
@@ -61,6 +63,14 @@ class NormalizedEllipse:
         self.theta += phi / (2 * np.pi)
 
     def crop(self, ORIGINAL_HEIGHT, ORIGINAL_WIDTH, crop_bbox):
+        """Applies a croping operation on the ellipse (i.e, how does the
+           ellipse change if its associated image has been cropped ?)
+
+        Args:
+            ORIGINAL_HEIGHT (int): Original height of the image (pre crop)
+            ORIGINAL_WIDTH (int): Original width of the image (pre crop)
+            crop_bbox (tuple): top, left, height, width values of the crop
+        """
         top, left, height, width = crop_bbox
         top, left = top / ORIGINAL_HEIGHT, left / ORIGINAL_WIDTH
 
