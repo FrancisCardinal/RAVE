@@ -85,6 +85,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     manager = AppManager(args)
+
     try:
         manager.start()
         while True:

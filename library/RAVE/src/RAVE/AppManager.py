@@ -76,7 +76,7 @@ class AppManager:
     def __init__(self, args):
         self._is_alive = True
         self._cap = VideoSource(args.video_source, args.width, args.height)
-        self._cap.set(cv2.CAP_PROP_FPS, 60)
+        self._cap.set(cv2.CAP_PROP_FPS, 30)
         self._mic_source = MicSource(args.nb_mic_channels, chunk_size=256)
         self._tracking = True
         self._tracking_manager = TrackingManager(
@@ -91,7 +91,7 @@ class AppManager:
         self._object_manager = self._tracking_manager.object_manager
         self._pixel_to_delay = Pixel2Delay((args.height, args.width), "./calibration.json")
         self._args = args
-        self._frame_output_frequency = 0.1
+        self._frame_output_frequency = 1
         self._delay_update_frequency = 0.25
         self._selected_face = None
         self._vision_mode = "mute"
@@ -103,6 +103,7 @@ class AppManager:
         if args.debug:
             self._tracking_manager.drawing_callbacks.append(self.eye_tracker_debug_drawings)
 
+        sio.on("getTarget", self.get_target)
         sio.on("targetSelect", self._update_selected_face)
         sio.on("changeVisionMode", self._change_mode)
 
@@ -135,6 +136,7 @@ class AppManager:
         sio.on("changeCalibParams", self._calibrationAudioVision.change_nb_points)
         sio.on("goToVisionCalibration", self.start_calib_audio_vision)
         sio.on("quitVisionCalibration", self.stop_calib_audio_vision)
+
 
     def _init_eye_tracker(self):
         import torch
@@ -169,6 +171,10 @@ class AppManager:
             ),
             daemon=True,
         ).start()
+
+    def get_target(self):
+        emit("selectedTarget", "client", {"targetId": self._selected_face})
+
 
     def timed_callback(self, period, f, *args):
         """
