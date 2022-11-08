@@ -137,7 +137,6 @@ class AppManager:
         sio.on("goToVisionCalibration", self.start_calib_audio_vision)
         sio.on("quitVisionCalibration", self.stop_calib_audio_vision)
 
-
     def _init_eye_tracker(self):
         import torch
 
@@ -174,7 +173,6 @@ class AppManager:
 
     def get_target(self):
         emit("selectedTarget", "client", {"targetId": self._selected_face})
-
 
     def timed_callback(self, period, f, *args):
         """
