@@ -76,6 +76,7 @@ class AppManager:
         self._cap = VideoSource(process_video_source(args.video_source), args.width, args.height)
         self._is_alive = True
         self._mic_source = MicSource(args.nb_mic_channels, chunk_size=256)
+        self._is_alive = True
         self._tracking = True
         self._tracking_manager = TrackingManager(
             cap=self._cap,
@@ -83,13 +84,13 @@ class AppManager:
             detector_type="yolo",
             verifier_type="arcface",
             frequency=args.freq,
-            visualize=args.visualize,
+            visualize=not args.headless,
             tracking_or_calib=self.is_tracking,
             debug_preprocess=args.show_preprocess,
             debug_detector=args.show_detector
         )
         self._object_manager = self._tracking_manager.object_manager
-        self._pixel_to_delay = Pixel2Delay((args.height, args.width), "./calibration.json")
+        self._pixel_to_delay = Pixel2Delay((args.height, args.width), "./calibration_8mics.json")
         self._args = args
         self._frame_output_frequency = 1
         self._delay_update_frequency = 0.25
@@ -97,36 +98,32 @@ class AppManager:
         self._vision_mode = "mute"
         self._calibrationAudioVision = CalibrationAudioVision(self._cap, self._mic_source, emit)
 
-        # self._gaze_inferer_manager = GazeInfererManager(
-        #     args.eye_video_source, "cpu"
-        # )
+        self._gaze_inferer_manager = GazeInfererManager(args.eye_video_source, "cpu")
 
         sio.on("targetSelect", self._update_selected_face)
         sio.on("changeVisionMode", self._change_mode)
-        # sio.on("goToEyeTrackingCalibration", self.emit_calibration_list)
-        # sio.on(
-        #     "startEyeTrackingCalibration",
-        #     self._gaze_inferer_manager.start_calibration_thread,
-        # )
-        # sio.on(
-        #     "resumeEyeTrackingCalib",
-        #     self._gaze_inferer_manager.resume_calibration_thread,
-        # )
-        # sio.on(
-        #     "pauseEyeTrackingCalib",
-        #     self._gaze_inferer_manager.pause_calibration_thread,
-        # )
-        # sio.on(
-        #     "endEyeTrackingCalib",
-        #     self._gaze_inferer_manager.end_calibration_thread,
-        # )
-        # sio.on(
-        #     "setOffsetEyeTrackingCalib", self._gaze_inferer_manager.set_offset
-        # )
-        # sio.on("addEyeTrackingCalib", self._save_eye_calibration)
-        # sio.on("selectEyeTrackingCalib", self._select_eye_tracking_calibration)
-        # sio.on("deleteEyeTrackingCalib", self._delete_eye_tracking_calibration)
-        # sio.on("activateEyeTracking", self.control_eye_tracking)
+        sio.on("goToEyeTrackingCalibration", self.emit_calibration_list)
+        sio.on(
+            "startEyeTrackingCalibration",
+            self._gaze_inferer_manager.start_calibration_thread,
+        )
+        sio.on(
+            "resumeEyeTrackingCalib",
+            self._gaze_inferer_manager.resume_calibration_thread,
+        )
+        sio.on(
+            "pauseEyeTrackingCalib",
+            self._gaze_inferer_manager.pause_calibration_thread,
+        )
+        sio.on(
+            "endEyeTrackingCalib",
+            self._gaze_inferer_manager.end_calibration_thread,
+        )
+        sio.on("setOffsetEyeTrackingCalib", self._gaze_inferer_manager.set_offset)
+        sio.on("addEyeTrackingCalib", self._save_eye_calibration)
+        sio.on("selectEyeTrackingCalib", self._select_eye_tracking_calibration)
+        sio.on("deleteEyeTrackingCalib", self._delete_eye_tracking_calibration)
+        sio.on("activateEyeTracking", self.control_eye_tracking)
 
         # Audio-vision calib
         sio.on("nextCalibTarget", self._calibrationAudioVision.go_next_target)
@@ -280,7 +277,7 @@ class AppManager:
             pass
             # print(
             #     self._pixel_to_delay.get_delay(
-            #         self._object_manager.tracked_objects[
+            #         self._tracking_manager.tracked_objects[
             #             self._selected_face
             #         ].landmark
             #     )

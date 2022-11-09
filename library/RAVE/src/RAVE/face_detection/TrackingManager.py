@@ -87,6 +87,8 @@ class TrackingManager:
         if torch.cuda.is_available():
             self._device = 'cuda'
 
+        self.precompute_undistort()
+
     def precompute_undistort(self):
         """
         Pre-calculations for undistortion of images
@@ -95,29 +97,9 @@ class TrackingManager:
         K = np.array([[340.60994606, 0.0, 325.7756748], [0.0, 341.93970667, 242.46219777], [0.0, 0.0, 1.0]])
         D = np.array([[-3.07926877e-01, 9.16280959e-02, 9.46074597e-04, 3.07906550e-04, -1.17169354e-02]])
 
-        corrected_shape = (self._cap.shape[1], self._cap.shape[0]) 
-        newcameramtx, self.roi = cv2.getOptimalNewCameraMatrix(
-            K, D, corrected_shape, 1, corrected_shape
-        )
-        self.mapx, self.mapy = cv2.initUndistortRectifyMap(K, D, None, newcameramtx, corrected_shape, 5)
-
-    def undistort(self, frame):
-        """
-        Remove fish-eye distortion from frame
-        """
-
-        if self.roi is None or self.mapx is None or self.mapy is None:
-            self.precompute_undistort()
-
-        # Undistort
-        frame = cv2.remap(frame, self.mapx, self.mapy, cv2.INTER_LINEAR)
-        x, y, w, h = self.roi
-        frame = frame[y : y + h, x : x + w]
-        corrected_shape = (self._cap.shape[1], self._cap.shape[0]) 
-        frame = cv2.resize(frame, corrected_shape)
-
-        return frame
-
+        corrected_shape = (self._cap.shape[1], self._cap.shape[0])
+        newcameramtx, self.roi = cv2.getOptimalNewCameraMatrix(K, D, corrected_shape, 1, corrected_shape)
+        
     def kill_threads(self):
         """
         Call to kill loops in all threads
@@ -199,9 +181,6 @@ class TrackingManager:
         if self.flip_frame:
             frame = cv2.flip(frame, 0)
 
-        if self.undistort_frame:
-            frame = self.undistort(frame)
-
         return frame
 
     def main_loop(self, monitor):
@@ -264,10 +243,6 @@ class TrackingManager:
         shape = self._cap.shape if args.flip_display_dim else (self._cap.shape[1], self._cap.shape[0])
         self.is_alive = True
         self.flip_frame = args.flip
-
-        self.undistort_frame = args.undistort
-        if self.undistort_frame:
-            self.precompute_undistort()
 
         if self._visualize:
             debug_args = ["Tracking", shape]
