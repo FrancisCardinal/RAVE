@@ -63,7 +63,7 @@ def main(run_args):
         audio_segment = AudioSegment.from_wav(os.path.join(dir_path, 'audio.wav'))
         wav_dict['data'] = audio_segment
         # Lowpass
-        lowpassed_audio_segment = audio_segment.low_pass_filter(2000)
+        lowpassed_audio_segment = audio_segment.low_pass_filter(8000)
         wav_dict['lowpassed_data'] = lowpassed_audio_segment
         # Normalize
         normalized_audio_segment = effects.normalize(lowpassed_audio_segment)

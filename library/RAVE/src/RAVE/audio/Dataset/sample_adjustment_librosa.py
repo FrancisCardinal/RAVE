@@ -24,8 +24,9 @@ def save_data(data, run_args, old_rate):
         og_data_path = os.path.join(output_dir, 'original.wav')
         sf.write(og_data_path, data['data'].T, old_rate, 'PCM_16')
         # Save upsampled normalized
-        norm_data_path = os.path.join(output_dir, 'normalized.wav')
-        sf.write(norm_data_path, data['normalized_data'].T, old_rate, 'PCM_16')
+        if run_args.normalize:
+            norm_data_path = os.path.join(output_dir, 'normalized.wav')
+            sf.write(norm_data_path, data['normalized_data'].T, old_rate, 'PCM_16')
 
     # Save configs
     configs = data['configs']
@@ -59,23 +60,24 @@ def main(run_args):
         wav_dict['data'] = data
 
         # Normalize
-        # data_norm = librosa.util.normalize(data, axis=1)
-        max_val = np.amax(data)
-        min_val = np.abs(np.amin(data))
-        factor = max(max_val, min_val)
-        data_norm = data / factor
-        wav_dict['normalized_data'] = data_norm
-        # Check norm
-        if run_args.test:
-            data_min = []
-            data_max = []
-            norm_min = []
-            norm_max = []
-            for i in range(len(data)):
-                data_min.append(np.amin(data[i]))
-                data_max.append(np.amax(data[i]))
-                norm_min.append(np.amin(data_norm[i]))
-                norm_max.append(np.amax(data_norm[i]))
+        data_norm = data
+        if run_args.normalize:
+            max_val = np.amax(data)
+            min_val = np.abs(np.amin(data))
+            factor = max(max_val, min_val)
+            data_norm = data / factor
+            wav_dict['normalized_data'] = data_norm
+            # Check norm
+            if run_args.test:
+                data_min = []
+                data_max = []
+                norm_min = []
+                norm_max = []
+                for i in range(len(data)):
+                    data_min.append(np.amin(data[i]))
+                    data_max.append(np.amax(data[i]))
+                    norm_min.append(np.amin(data_norm[i]))
+                    norm_max.append(np.amax(data_norm[i]))
 
         # Downsample
         data_16k = librosa.resample(data_norm, orig_sr=samplerate, target_sr=run_args.rate, res_type="soxr_vhq")
@@ -93,7 +95,10 @@ if __name__ == "__main__":
         "-d", "--debug", action="store_true", help="Run the script in debug mode. Is more verbose."
     )
     parser.add_argument(
-        "-t", "--test", action="store_true", help="Run the script in debug mode. Is more verbose."
+        "-t", "--test", action="store_true", help="Run the script in test mode. Tests normalisation."
+    )
+    parser.add_argument(
+        "-n", "--normalize", action="store_true", help="Normalize sample amplitude (volume)."
     )
     parser.add_argument(
         "-r",

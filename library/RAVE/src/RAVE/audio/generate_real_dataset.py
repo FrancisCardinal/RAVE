@@ -155,15 +155,6 @@ if __name__ == '__main__':
         help="Absolute path to output dataset folder",
     )
 
-    parser.add_argument(
-        "-m",
-        "--max_noises",
-        action="store",
-        type=int,
-        default=1,
-        help="Number of workers to use to run generator.",
-    )
-
     # Multiprocess
     parser.add_argument(
         "-w",
