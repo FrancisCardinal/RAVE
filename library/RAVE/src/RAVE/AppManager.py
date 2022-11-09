@@ -75,7 +75,7 @@ class AppManager:
         self._is_alive = True
         self._cap = VideoSource(args.video_source, args.width, args.height)
         self._cap.set(cv2.CAP_PROP_FPS, 60)
-        self._mic_source = MicSource(4, chunk_size=256)
+        self._mic_source = MicSource(1, chunk_size=256)
         self._tracking = True
         self._tracking_manager = TrackingManager(
             cap=self._cap,
@@ -257,7 +257,11 @@ class AppManager:
             payload (dict): Dictionary containing the id of the
             face selected in the web client.
         """
-        self._selected_face = payload["targetId"]
+        if self._selected_face == payload["targetId"]:
+            #Deselect the current face
+            self._selected_face = None
+        else: 
+            self._selected_face = payload["targetId"]
         emit("selectedTarget", "client", {"targetId": self._selected_face})
 
     def _change_mode(self, payload):

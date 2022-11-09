@@ -1,6 +1,7 @@
 import React from 'react';
 import EyeTrackingMode from '../../Components/UI/EyeTrackingMode';
 import MuteButton from '../../Components/UI/MuteButton';
+import LockButton from '../../Components/UI/LockButton';
 import VolumeSlider from '../../Components/UI/VolumeSlider';
 import Stream from '../../Components/UI/Stream';
 import { BrowserView, MobileView } from 'react-device-detect';
@@ -40,6 +41,7 @@ function HomeScreen() {
         <EyeTrackingMode />
         </div>
         
+        <LockButton />
         <MuteButton />
         <VolumeSlider />
       </div>
