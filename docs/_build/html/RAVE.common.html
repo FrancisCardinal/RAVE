@@ -58,7 +58,9 @@
 <li class="toctree-l4"><a class="reference internal" href="#RAVE.common.image_utils.apply_image_rotation"><code class="docutils literal notranslate"><span class="pre">apply_image_rotation()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#RAVE.common.image_utils.apply_image_translation"><code class="docutils literal notranslate"><span class="pre">apply_image_translation()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#RAVE.common.image_utils.apply_image_translation_and_rotation"><code class="docutils literal notranslate"><span class="pre">apply_image_translation_and_rotation()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#RAVE.common.image_utils.bounding_boxes_are_overlapping"><code class="docutils literal notranslate"><span class="pre">bounding_boxes_are_overlapping()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#RAVE.common.image_utils.box_iou"><code class="docutils literal notranslate"><span class="pre">box_iou()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#RAVE.common.image_utils.box_pair_iou"><code class="docutils literal notranslate"><span class="pre">box_pair_iou()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#RAVE.common.image_utils.check_frontal_face"><code class="docutils literal notranslate"><span class="pre">check_frontal_face()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#RAVE.common.image_utils.clip_coords"><code class="docutils literal notranslate"><span class="pre">clip_coords()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#RAVE.common.image_utils.do_affine_grid_operation"><code class="docutils literal notranslate"><span class="pre">do_affine_grid_operation()</span></code></a></li>
@@ -95,9 +97,9 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
-          <li><a href="RAVE.html">RAVE</a> &raquo;</li>
-      <li>common</li>
+      <li><a href="index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="RAVE.html">RAVE</a></li>
+      <li class="breadcrumb-item active">common</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul>
@@ -675,6 +677,11 @@ offset (float) and the rotation angle (float)</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="RAVE.common.image_utils.bounding_boxes_are_overlapping">
+<span class="sig-name descname"><span class="pre">bounding_boxes_are_overlapping</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">first</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.image_utils.bounding_boxes_are_overlapping" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="RAVE.common.image_utils.box_iou">
 <span class="sig-name descname"><span class="pre">box_iou</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">box1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">box2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.image_utils.box_iou" title="Permalink to this definition"></a></dt>
 <dd><p>Return intersection-over-union (Jaccard index) of boxes.
@@ -696,6 +703,11 @@ Both sets of boxes are expected to be in (x1, y1, x2, y2) format.
 </dd>
 </dl>
 </dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="RAVE.common.image_utils.box_pair_iou">
+<span class="sig-name descname"><span class="pre">box_pair_iou</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">first</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#RAVE.common.image_utils.box_pair_iou" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="RAVE.common.image_utils.check_frontal_face">
