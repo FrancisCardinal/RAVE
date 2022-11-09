@@ -82,7 +82,7 @@ class AppManager:
             cap=self._cap,
             tracker_type="kcf",
             detector_type="yolo",
-            verifier_type="arcface",
+            verifier_type="resnet_face_18",
             frequency=args.freq,
             visualize=not args.headless,
             tracking_or_calib=self.is_tracking,

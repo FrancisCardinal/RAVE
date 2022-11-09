@@ -15,7 +15,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--video_source",
         dest="video_source",
-        type=int,
+        type=str,
         help="Video input source identifier for face tracking camera",
         default= "0" if not is_jetson() 
         else f"""v4l2src device=/dev/video0 ! video/x-raw, format=UYVY, width=640, heigth=480, framerate=30/1 
@@ -28,7 +28,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--eye_video_source",
         dest="eye_video_source",
-        type=int,
+        type=str,
         help="Video input source identifier for eye tracker camera",
         default="1"
         if not is_jetson()
@@ -74,7 +74,7 @@ if __name__ == "__main__":
         dest="freq",
         type=float,
         help="Update frequency for the face detector (for adaptive scaling)",
-        default=1,
+        default=0.75,
     )
     parser.add_argument(
         "--headless",

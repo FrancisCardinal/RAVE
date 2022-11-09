@@ -167,6 +167,7 @@ class ResNetVerifier(Verifier):
                 """
                 return storage
 
+        pretrained_dict = None
         if architecture == 18:
             # Load ResNet18
             # if platform.release().split("-")[-1] == "tegra":
@@ -179,7 +180,7 @@ class ResNetVerifier(Verifier):
             # else:
             model = resnet_face18(pretrained=False)
 
-            model_path = os.path.join(ResNetVerifier.MODEL_PATH, "resnet18", "resnet18.pth"),
+            model_path = os.path.join(ResNetVerifier.MODEL_PATH, "resnet18", "resnet18.pth")
             try:
                 pretrained_dict = torch.load(
                     model_path,
@@ -189,7 +190,7 @@ class ResNetVerifier(Verifier):
                 print(f"""Failed to load resnet18 model, be sure to import resnet18.pth 
                 at {model_path}""")
                 print(e)
-                
+
         elif architecture == 34:
             # Load ResNet34
             model = resnet_face34(pretrained=False)
