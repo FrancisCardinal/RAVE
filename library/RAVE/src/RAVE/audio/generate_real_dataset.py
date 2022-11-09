@@ -11,7 +11,7 @@ from multiprocessing import Process, Queue, Value, Array
 
 
 sys.path.insert(1, './Dataset')
-from Dataset.AudioDatasetBuilder import AudioDatasetBuilder
+from Dataset.AudioDatasetBuilder_Real import AudioDatasetBuilderReal
 
 # CONFIGS_PATH = 'C:\\GitProjet\\RAVE\\library\\RAVE\\src\\RAVE\\audio\\Dataset\\' + 'dataset_config.yaml'
 CONFIGS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'Dataset', 'dataset_config.yaml')
@@ -30,16 +30,15 @@ def run_generator_loop(source_queue, worker_num, run_params, configs, file_cnt):
         file_cnt (int): Shared int containing current file count.
     """
     # TODO: CHECK TO RUN 1 GENERATOR AND ALL WORKERS CALL ON IT
-    dataset_builder = AudioDatasetBuilder(run_params['OUTPUT'],
-                                          run_params['DEBUG'],
-                                          configs,
-                                          sim=False)
+    dataset_builder = AudioDatasetBuilderReal(run_params['OUTPUT'],
+                                              run_params['DEBUG'],
+                                              configs)
     while not source_queue.empty():
         # Get source file
         audio_paths = source_queue.get()
 
         # Run generator
-        file_increment, dataset_list = dataset_builder.generate_real_dataset(source_paths=audio_paths, save_run=True)
+        file_increment, dataset_list = dataset_builder.generate_dataset(source_paths=audio_paths, save_run=True)
 
         # Add results
         with file_cnt.get_lock():
@@ -74,7 +73,7 @@ def main(SOURCE, OUTPUT, DEBUG, WORKERS):
     audio_queue = Queue()
 
     # Load configs
-    configs = AudioDatasetBuilder.load_configs(CONFIGS_PATH)
+    configs = AudioDatasetBuilderReal.load_configs(CONFIGS_PATH)
 
     # Load sources per room
     user_pos_paths = [os.path.normpath(i) for i in glob(os.path.join(SOURCE, '*', '*'))]
