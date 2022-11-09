@@ -5,6 +5,7 @@ import torch
 
 from .models.arcface.trt_model import TrtModel
 import platform
+import torchvision
 
 from .Verifier import Verifier
 
@@ -29,26 +30,21 @@ class ResNetVerifier(Verifier):
         self.device = device
         self.score_threshold = score_threshold
         self.model = self._load_model(architecture)
+        self.transform = torchvision.transforms.Resize((112, 112))
 
     def preprocess_image(self, image):
         """
         Convert to image to format expected by the model
 
         Args:
-            image (np.ndarray): image to convert
+            image (tensor): image to convert
         """
 
         if image is None:
             return None
 
-        img = cv2.resize(image, (112, 112))
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        img = np.transpose(img, (2, 0, 1))
-        img = torch.from_numpy(img).unsqueeze(0).float()
-        if self.device == "cuda":
-            device = torch.cuda.current_device()
-            img = img.to(device)
-        img.div_(255).sub_(0.5).div_(0.5)
+        img = self.transform(image).type(torch.float).unsqueeze(0)
+        img = (img - 0.5)/0.5 # TODO: Determine if these values are necessary and correct
         return img
 
     def get_features(self, frame, face_locations):
@@ -56,7 +52,7 @@ class ResNetVerifier(Verifier):
         Get the encodings (feature vectors) for all request objects
 
         Args:
-            frame (np.ndarray): The image containing the objects
+            frame (tensor): The image containing the objects
             face_locations (list of tuples (int, int, int, int)): List of all
                 the xywh bounding boxes for the objects in the image to compute
                 the encodings for
@@ -66,19 +62,23 @@ class ResNetVerifier(Verifier):
                 represent the object
         """
 
-        features = []
+        batch = None
         for bbox in face_locations:
-            roi = frame[
+            roi = frame[:,
                 int(bbox[1]) : int(bbox[1] + bbox[3]),
                 int(bbox[0]) : int(bbox[0] + bbox[2]),
             ]
             image = self.preprocess_image(roi)
-            # TODO JKealey: is context manager necessary if model is in eval?
-            with torch.no_grad():
-                # TODO JKealey: possibility to keep on gpu with numpy
-                feature = self.model(image).cpu().numpy().squeeze()
-            features.append(feature)
+            if batch is None:
+                batch = image
+            else:
+                batch = torch.cat((batch, image), dim=0)
 
+
+        with torch.no_grad():
+            features = self.model(batch).cpu().numpy()
+
+        features = [v for v in features]
         return features
 
     @staticmethod
@@ -169,21 +169,27 @@ class ResNetVerifier(Verifier):
 
         if architecture == 18:
             # Load ResNet18
-            if platform.release().split("-")[-1] == "tegra":
-                # TODO: Note: to be modified for use on the Jetson
-                model = TrtModel()
-                model_path = os.path.join(
-                    ResNetVerifier.MODEL_PATH, "resnet18", "resnet18_trt.pth"
-                )
-                pretrained_dict = torch.load(model_path)
-            else:
-                model = resnet_face18(pretrained=False)
+            # if platform.release().split("-")[-1] == "tegra":
+            #     # TODO: Note: to be modified for use on the Jetson
+            #     model = TrtModel()
+            #     model_path = os.path.join(
+            #         ResNetVerifier.MODEL_PATH, "resnet18", "resnet18_trt.pth"
+            #     )
+            #     pretrained_dict = torch.load(model_path)
+            # else:
+            model = resnet_face18(pretrained=False)
+
+            model_path = os.path.join(ResNetVerifier.MODEL_PATH, "resnet18", "resnet18.pth"),
+            try:
                 pretrained_dict = torch.load(
-                    os.path.join(
-                        ResNetVerifier.MODEL_PATH, "resnet18", "resnet18.pth"
-                    ),
+                    model_path,
                     map_location=map_fct,
                 )
+            except Exception as e:
+                print(f"""Failed to load resnet18 model, be sure to import resnet18.pth 
+                at {model_path}""")
+                print(e)
+                
         elif architecture == 34:
             # Load ResNet34
             model = resnet_face34(pretrained=False)

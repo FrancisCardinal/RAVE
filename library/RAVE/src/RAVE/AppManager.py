@@ -85,6 +85,8 @@ class AppManager:
             frequency=args.freq,
             visualize=args.visualize,
             tracking_or_calib=self.is_tracking,
+            debug_preprocess=args.show_preprocess,
+            debug_detector=args.show_detector
         )
         self._object_manager = self._tracking_manager.object_manager
         self._pixel_to_delay = Pixel2Delay((args.height, args.width), "./calibration.json")
