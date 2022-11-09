@@ -2,12 +2,13 @@ import argparse
 from time import sleep
 
 from RAVE.AppManager import AppManager
-from RAVE.common.jetson_utils import is_jetson, process_video_source
+from RAVE.common.jetson_utils import is_jetson
 
-CAMERA_DATA="""<?xml version='1.0'?><opencv_storage><cameraMatrix type_id='opencv-matrix'><rows>3</rows>
+CAMERA_DATA = """<?xml version='1.0'?><opencv_storage><cameraMatrix type_id='opencv-matrix'><rows>3</rows>
 <cols>3</cols><dt>f</dt><data>340.60994606 0.0 325.7756748 0.0 341.93970667 242.46219777 0.0 0.0 1.0</data>
 </cameraMatrix><distCoeffs type_id='opencv-matrix'><rows>5</rows><cols>1</cols><dt>f</dt>
-<data>-3.07926877e-01 9.16280959e-02 9.46074597e-04 3.07906550e-04 -1.17169354e-02</data></distCoeffs></opencv_storage>"""
+<data>-3.07926877e-01 9.16280959e-02 9.46074597e-04 3.07906550e-04 -1.17169354e-02</data>
+</distCoeffs></opencv_storage>"""
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Web interface for face tracking")
@@ -17,13 +18,14 @@ if __name__ == "__main__":
         dest="video_source",
         type=str,
         help="Video input source identifier for face tracking camera",
-        default= "0" if not is_jetson() 
-        else f"""v4l2src device=/dev/video0 ! video/x-raw, format=UYVY, width=640, heigth=480, framerate=30/1 
-        ! nvvidconv ! video/x-raw(memory:NVMM) 
-        ! nvvidconv ! video/x-raw, format=BGRx 
-        ! videoconvert ! video/x-raw, format=BGR 
-        ! videoconvert ! cameraundistort  settings=\"{CAMERA_DATA}\" 
-        ! videoconvert ! appsink""",
+        default="0"
+        if not is_jetson()
+        else f"""v4l2src device=/dev/video0 ! video/x-raw, format=UYVY, width=640, heigth=480, framerate=30/1
+         ! nvvidconv ! video/x-raw(memory:NVMM)
+         ! nvvidconv ! video/x-raw, format=BGRx
+         ! videoconvert ! video/x-raw, format=BGR
+         ! videoconvert ! cameraundistort  settings=\"{CAMERA_DATA}\"
+         ! videoconvert ! appsink""",
     )
     parser.add_argument(
         "--eye_video_source",

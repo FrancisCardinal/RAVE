@@ -3,18 +3,21 @@ import time
 import socketio
 import base64
 import threading
+import torch
 from pyodas.visualize import VideoSource
-from pyodas.io import MicSource
 
 # from tqdm import tqdm
 
 from .face_detection.TrackingManager import TrackingManager
 from .face_detection.Pixel2Delay import Pixel2Delay
 from .face_detection.Calibration_audio_vision import CalibrationAudioVision
-from .eye_tracker.GazeInferer.GazeInfererManager import GazeInfererManager
-from RAVE.common.jetson_utils import process_video_source
+
+# from .eye_tracker.GazeInferer.GazeInfererManager import GazeInfererManager
+from .common.jetson_utils import process_video_source
+from .audio.AudioManager import AudioManager
 
 # from RAVE.face_detection.Direction2Pixel import Direction2Pixel
+
 
 sio = socketio.Client()
 
@@ -75,8 +78,6 @@ class AppManager:
     def __init__(self, args):
         self._cap = VideoSource(process_video_source(args.video_source), args.width, args.height)
         self._is_alive = True
-        self._mic_source = MicSource(args.nb_mic_channels, chunk_size=256)
-        self._is_alive = True
         self._tracking = True
         self._tracking_manager = TrackingManager(
             cap=self._cap,
@@ -87,43 +88,55 @@ class AppManager:
             visualize=not args.headless,
             tracking_or_calib=self.is_tracking,
             debug_preprocess=args.show_preprocess,
-            debug_detector=args.show_detector
+            debug_detector=args.show_detector,
         )
         self._object_manager = self._tracking_manager.object_manager
-        self._pixel_to_delay = Pixel2Delay((args.height, args.width), "./calibration_8mics.json")
+        device = "cpu"
+        if torch.cuda.is_available():
+            device = "cuda"
+        self._pixel_to_delay = Pixel2Delay((args.height, args.width), "./calibration_8mics.json", device=device)
         self._args = args
         self._frame_output_frequency = 1
         self._delay_update_frequency = 0.25
         self._selected_face = None
         self._vision_mode = "mute"
-        self._calibrationAudioVision = CalibrationAudioVision(self._cap, self._mic_source, emit)
 
-        self._gaze_inferer_manager = GazeInfererManager(args.eye_video_source, "cpu")
+        # self._gaze_inferer_manager = GazeInfererManager(args.eye_video_source, "cpu")
+
+        self._audio_manager = AudioManager()
+        self._mic_source = self._audio_manager.init_app(
+            save_input=True,
+            save_output=True,
+            passthrough_mode=True,
+            output_path="/home/rave/RAVE/library/RAVE/src/audio_files",
+            gain=3,
+        )
+        self._calibrationAudioVision = CalibrationAudioVision(self._cap, self._mic_source, emit)
 
         sio.on("targetSelect", self._update_selected_face)
         sio.on("changeVisionMode", self._change_mode)
-        sio.on("goToEyeTrackingCalibration", self.emit_calibration_list)
-        sio.on(
-            "startEyeTrackingCalibration",
-            self._gaze_inferer_manager.start_calibration_thread,
-        )
-        sio.on(
-            "resumeEyeTrackingCalib",
-            self._gaze_inferer_manager.resume_calibration_thread,
-        )
-        sio.on(
-            "pauseEyeTrackingCalib",
-            self._gaze_inferer_manager.pause_calibration_thread,
-        )
-        sio.on(
-            "endEyeTrackingCalib",
-            self._gaze_inferer_manager.end_calibration_thread,
-        )
-        sio.on("setOffsetEyeTrackingCalib", self._gaze_inferer_manager.set_offset)
-        sio.on("addEyeTrackingCalib", self._save_eye_calibration)
-        sio.on("selectEyeTrackingCalib", self._select_eye_tracking_calibration)
-        sio.on("deleteEyeTrackingCalib", self._delete_eye_tracking_calibration)
-        sio.on("activateEyeTracking", self.control_eye_tracking)
+        # sio.on("goToEyeTrackingCalibration", self.emit_calibration_list)
+        # sio.on(
+        #     "startEyeTrackingCalibration",
+        #     self._gaze_inferer_manager.start_calibration_thread,
+        # )
+        # sio.on(
+        #     "resumeEyeTrackingCalib",
+        #     self._gaze_inferer_manager.resume_calibration_thread,
+        # )
+        # sio.on(
+        #     "pauseEyeTrackingCalib",
+        #     self._gaze_inferer_manager.pause_calibration_thread,
+        # )
+        # sio.on(
+        #     "endEyeTrackingCalib",
+        #     self._gaze_inferer_manager.end_calibration_thread,
+        # )
+        # sio.on("setOffsetEyeTrackingCalib", self._gaze_inferer_manager.set_offset)
+        # sio.on("addEyeTrackingCalib", self._save_eye_calibration)
+        # sio.on("selectEyeTrackingCalib", self._select_eye_tracking_calibration)
+        # sio.on("deleteEyeTrackingCalib", self._delete_eye_tracking_calibration)
+        # sio.on("activateEyeTracking", self.control_eye_tracking)
 
         # Audio-vision calib
         sio.on("nextCalibTarget", self._calibrationAudioVision.go_next_target)
@@ -179,6 +192,14 @@ class AppManager:
             daemon=True,
         )
         tracking_thread.start()
+
+        # Start audio thread
+        audio_thread = threading.Thread(
+            target=self._audio_manager.start_app,
+            # args=(),
+            daemon=True,
+        )
+        audio_thread.start()
 
         # Start the thread that updates the audio target delay
         target_delays_thread = threading.Thread(
@@ -274,17 +295,10 @@ class AppManager:
         Function to send the audio section the target delay
         """
         if self._selected_face in self._object_manager.tracked_objects:
-            pass
-            # print(
-            #     self._pixel_to_delay.get_delay(
-            #         self._tracking_manager.tracked_objects[
-            #             self._selected_face
-            #         ].landmark
-            #     )
-            # )
+            delay = self._pixel_to_delay.get_delay(self._object_manager.tracked_objects[self._selected_face].landmark)
         else:
-            pass
-            # print(None)
+            delay = None
+        self._audio_manager.set_target(delay)
 
     def stop_tracking(self):
         """

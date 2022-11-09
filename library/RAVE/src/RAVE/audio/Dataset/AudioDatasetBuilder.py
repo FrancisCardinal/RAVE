@@ -1,0 +1,1295 @@
+import glob
+import os
+import yaml
+
+import random
+from shapely.geometry import Polygon, Point
+
+import itertools
+
+import numpy as np
+import math
+from scipy import signal
+import matplotlib
+import matplotlib.pyplot as plt
+import pyroomacoustics as pra
+
+import soundfile as sf
+from pyodas.utils import sqrt_hann
+
+from pydub import AudioSegment
+
+
+SIDE_ID = 0  # X
+DEPTH_ID = 1  # Y
+HEIGHT_ID = 2  # Z
+
+SAMPLE_RATE = 16000
+FRAME_SIZE = 1024
+SOUND_MARGIN = 1  # Assume every sound source is margins away from receiver and each other
+SOURCE_USER_DISTANCE = 5  # Radius of circle in which source can be
+USER_MIN_DISTANCE = 2  # Minimum distance needed between user and walls
+
+MAX_POS_TRIES = 50
+TILT_RANGE = 0.25
+HEAD_RADIUS = 0.1  # in meters
+
+SHOW_GRAPHS = False
+SAVE_RIR = True
+
+IS_DEBUG = False
+
+
+class AudioDatasetBuilder:
+    """
+    Class which handles the generation of the audio dataset through domain randomization of parameters passed through
+    dataset_config.yaml and constructor params.
+
+    Args:
+        output_path (str): Path to output directory.
+        debug (bool): Run in debug mode.
+        configs (dict): Dict containing configurations loaded from dataset_config.yaml
+    """
+
+    user_pos = []
+    user_dir = []
+    xy_angle = 0
+    source_direction = []
+    current_room = []
+    current_room_shape = []
+    current_room_size = []
+    snr = 1
+    receiver_height = 1.5
+
+    # TODO: GENERALIZE MICROPHONE ARRAY
+    receiver_rel = np.array(
+        (  # Receiver (microphone) positions relative to "user" [x, y, z] (m)
+            [-0.07055, 0, 0],
+            [-0.07055, 0.0381, 0],
+            [-0.05715, 0.0618, 0],
+            [-0.01905, 0.0618, 0],
+            [0.01905, 0.0618, 0],
+            [0.05715, 0.0618, 0],
+            [0.07055, 0.0381, 0],
+            [0.07055, 0, 0]
+        )
+
+    )
+
+    def __init__(self, output_path, debug, configs, sim=True):
+
+        # Set object values from arguments
+        self.is_debug = debug
+        self.is_sim = sim
+
+        if not self.is_debug:
+            matplotlib.use("Agg")
+
+        # TODO: Split configs between real and sim
+        # Load params/configs
+        self.configs = configs
+        # Room configs
+        self.room_shapes = self.configs["room_shapes"]
+        self.reverb_room_shapes = self.configs["reverb_room_shapes"]
+        self.room_sizes = self.configs["room_sizes"]
+        # Noise configs
+        self.banned_noises = self.configs["banned_noises"]
+        self.diffuse_noises = self.configs["diffuse_noises"]
+        self.max_diffuse_noises = self.configs["max_diffuse_noises"]
+        self.dir_noise_count_range = self.configs["dir_noise_count_range"]
+        self.dir_noise_count_range = (self.dir_noise_count_range[0], self.dir_noise_count_range[1] + 1)
+        self.sample_per_speech = self.configs["sample_per_speech"]
+        self.speech_as_noise = self.configs["speech_as_noise"]
+        self.snr_limits = self.configs["snr_limits"]
+        # RIR configs
+        self.wall_absorption_limits = self.configs["wall_absorption_limits"]
+        self.rir_reflexion_order = self.configs["rir_reflexion_order"]
+        self.air_absorption = self.configs["air_absorption"]
+        self.air_humidity = self.configs["air_humidity"]
+
+        self.receiver_abs = None
+        self.dir_noise_count = self.dir_noise_count_range[0]
+        self.speech_noise_start = 0
+        self.max_source_distance = 5
+        self.n_channels = len(self.receiver_rel)
+
+        self.is_reverb = None
+        self.noise_paths = None
+        self.dif_noise_paths = []
+        self.dir_noise_paths = []
+        self.room = None
+
+        # Dict strings to vary between real and sim datasets
+        self.audio_dict_out_signal_str = ''
+
+        # Prepare output subfolder
+        self.output_subfolder = output_path
+        os.makedirs(self.output_subfolder, exist_ok=True)
+        self.current_subfolder = None
+
+        # Prepare lists for run-time generation
+        self.dataset_list = []
+
+    @staticmethod
+    def load_configs(config_path):
+        """
+        Load configs file for dataset builder.
+
+        Args:
+            config_path (str): Path where configs file is located.
+        """
+        with open(config_path, "r") as stream:
+            try:
+                configs = yaml.safe_load(stream)
+            except yaml.YAMLError as exc:
+                print(exc)
+        return configs
+
+    @staticmethod
+    def read_audio_file(file_path):
+        """
+        Reads and extracts audio from a file.
+
+        Args:
+            file_path (str): Path to audio file
+        Returns:
+            audio_signal (ndarray): Audio read from path of length chunk_size
+        """
+        audio_signal, fs = sf.read(file_path)
+
+        # TODO: Find how to handle if sample rate not at 16 000 (current dataset is all ok)
+        # if fs != SAMPLE_RATE:
+        #     print(f"ERROR: Sample rate of files ({fs}) do not concord with SAMPLE RATE={SAMPLE_RATE}")
+        #     exit()
+
+        return audio_signal
+
+    @staticmethod
+    def apply_rir(rirs, source):
+        """
+        Method to apply (possibly multichannel) RIRs to a mono-signal.
+
+        Args:
+            rirs (ndarray): RIRs generated previously to reflect room, source position and mic positions
+            source (ndarray): Mono-channel input signal to be reflected to multiple microphones
+        """
+        channels = rirs.shape[0]
+        frames = len(source["signal"])
+        output = np.empty((channels, frames))
+
+        for channel_index in range(channels):
+            output[channel_index] = signal.convolve(source["signal"], rirs[channel_index])[:frames]
+
+        source["signal_w_rir"] = output
+
+    @staticmethod
+    def truncate_sources(audio_dict):
+        """
+        Method used to truncate audio sources to smallest one.
+
+        Args:
+            audio_dict (dict{str,ndarray,list[int]}): Dictionary containing all audio sources {name, signal, position}.
+        """
+        # Get length of the shortest audio
+        shortest = float("inf")
+        for type, source_list in audio_dict.items():
+            for source in source_list:
+                signal_len = len(source["signal"])
+                shortest = signal_len if signal_len < shortest else shortest
+
+        # Truncate all other sources to the shortest length
+        for type, source_list in audio_dict.items():
+            for source in source_list:
+                source["signal"] = source["signal"][: shortest - 1]
+
+    @staticmethod
+    def generate_spectrogram(signal_x, mono=False, title=""):
+        """
+        Determines the spectrogram of the input temporal signal through the  Short Term Fourier Transform (STFT).
+
+        Args:
+            signal_x (ndarray): Signal on which to get spectrogram.
+            mono (bool): Whether the input signal is mono or multichannel.
+            title (str): Title used for spectrogram plot (in debug mode only).
+        Returns:
+            stft_list: List of channels of STFT of input signal x.
+        """
+        chunk_size = FRAME_SIZE // 2
+        window = sqrt_hann(FRAME_SIZE)
+
+        if mono:
+            signal_x = [signal_x]
+
+        stft_list = []
+        f_log_list = []
+        t_list = []
+        for channel_idx, channel in enumerate(signal_x):
+            # Get stft for every channel
+            f, t, stft_x = signal.spectrogram(channel, SAMPLE_RATE, window, FRAME_SIZE, chunk_size)
+            t_list.append(t)
+            f_log_list.append(np.logspace(0, 4, len(f)))
+            stft_log = 10 * np.log10(stft_x)
+            stft_list.append(stft_log)
+
+        # Generate plot
+        if SHOW_GRAPHS:
+            fig, ax = plt.subplots(len(signal_x), constrained_layout=True)
+            fig.suptitle(title)
+            fig.supylabel("Frequency [Hz]")
+            fig.supxlabel("Time [sec]")
+
+            for stft, f, t in zip(stft_list, f_log_list, t_list):
+                # Add log and non-log plots
+                if SHOW_GRAPHS:
+                    if mono:
+                        im = ax.pcolormesh(t, f, stft, shading="gouraud")
+                        ax.set_yscale("log")
+                        fig.colorbar(im, ax=ax)
+                    else:
+                        im = ax[channel_idx].pcolormesh(t, f, stft, shading="gouraud")
+                        ax[channel_idx].set_ylabel(f"Channel_{channel_idx}")
+                        ax[channel_idx].set_yscale("log")
+                        fig.colorbar(im, ax=ax[channel_idx])
+
+            plt.show()
+
+        return stft_list
+
+    # @staticmethod
+    def combine_sources(self, audio_dict, source_types, output_name, dict_str, noise=False, snr=1):
+        """
+        Method used to combine audio source with noises.
+
+        Args:
+            audio_dict (dict): All audio sources.
+            source_types (list[str]): Types of sources to combine.
+            output_name (str): Name of output signal to put in dict.
+            dict_str (str): Name to use to refer to output signal in dict ('signal' or 'signal_w_rir').
+            noise (bool): Check if only noises to add or noise to clean.
+            snr (float): Signal to Noise Ratio (in amplitude).
+        """
+        audio_dict[output_name] = [
+            {
+                "name": "",
+            }
+        ]
+        if self.is_sim:
+            audio_dict[output_name][0][dict_str] = np.zeros(audio_dict[source_types[0]][0][dict_str].shape)
+            if not noise:
+                # Use audiolib function to add noise to clean with snr
+                speech_dict = audio_dict[source_types[0]][0]
+                combined_noise_dict = audio_dict[source_types[1]][0]
+                audio_dict[output_name][0]["name"] += speech_dict["name"] + "_" + combined_noise_dict["name"]
+
+                for s, (speech_channel, noise_channel) in enumerate(
+                    zip(speech_dict[dict_str], combined_noise_dict[dict_str])
+                ):
+                    snr_db = 20 * np.log10(snr)
+                    speech_snr, noise_snr, combined_snr = AudioDatasetBuilder.snr_mixer(speech_channel, noise_channel, snr_db)
+                    speech_dict[dict_str][s] = speech_snr
+                    combined_noise_dict[dict_str][s] = noise_snr
+                    audio_dict[output_name][0][dict_str][s] = combined_snr
+                    # audio_dict[output_name][0][dict_str][s] = speech_channel + noise_channel
+                    pass
+
+            else:
+                # If noise, just add together
+                source_count = 0
+                for source_type in source_types:
+                    for source in audio_dict[source_type]:
+                        audio_dict[output_name][0]["name"] += source["name"] + "_"
+                        audio_dict[output_name][0][dict_str] += source[dict_str]
+                        source_count += 1
+                audio_dict[output_name][0]["name"] = audio_dict[output_name][0]["name"][:-1]
+                audio_dict[output_name][0][dict_str] /= source_count
+
+        else:
+            if not noise:
+                snr_db = 20 * np.log10(snr)
+
+                speech_db = audio_dict['speech'][0][dict_str].dBFS
+                noise_db = audio_dict['combined_noise'][0][dict_str].dBFS
+                adjust_snr = speech_db - noise_db - snr_db
+
+                audio_dict['combined_noise'][0][dict_str] = audio_dict['combined_noise'][0][dict_str] + adjust_snr
+
+            audio_dict[output_name][0][dict_str] = AudioSegment.silent(duration=10000)
+            for source_type in source_types:
+                for source in audio_dict[source_type]:
+                    audio_dict[output_name][0]["name"] += source["name"] + "_"
+                    audio_dict[output_name][0][dict_str] = \
+                        audio_dict[output_name][0][dict_str].overlay(source[dict_str])
+            # TODO: Check if need to reduce sound when adding combinations
+
+    @staticmethod
+    def rotate_coords(coords, angle, inverse=False):
+        """
+        Method to apply rotation matrix to coordinates (only works for x,y).
+
+        Args:
+            coords (list[float]): Original coordinates to rotate ([x, y] or [x, y, z]).
+            angle (float): Angle around which to rotate (rads).
+            inverse (bool): Whether to proceed to inverse rotation.
+
+        Returns:
+            List with new coordinates ([x, y] or [x, y, z]).
+        """
+        # TODO: implement 3d rotation matrix when adding head tilt
+        old_coords = np.array([coords[SIDE_ID], coords[DEPTH_ID]]).T
+
+        # Get correct rotation matrix
+        x_rot = [math.cos(angle), -math.sin(angle)]
+        y_rot = [math.sin(angle), math.cos(angle)]
+        if inverse:
+            x_rot = [math.cos(angle), math.sin(angle)]
+            y_rot = [-math.sin(angle), math.cos(angle)]
+        rot_matrix = np.array([x_rot, y_rot])
+
+        # Apply rotation matrix
+        new_coords = rot_matrix @ old_coords
+        if len(coords) == HEIGHT_ID + 1:
+            new_coords = new_coords.tolist()
+            new_coords.append(coords[HEIGHT_ID])
+
+        return new_coords
+
+    @staticmethod
+    # Function to mix clean speech and noise at various SNR levels
+    def snr_mixer(clean, noise, snr):
+        """
+        Mixes snr for clean and noise signal
+
+        Args:
+            clean (ndarray): Clean signal.
+            noise (ndarray): Noisy signal.
+            snr (float): SNR which to apply on resulting signal.
+        Returns:
+            Clean signal (with snr), noise signal (with snr) and noisy_speech (combined) with snr.
+        """
+        # # Normalizing to -25 dB FS
+        # rms_clean = (clean**2).mean() ** 0.5
+        # scalar_clean = 10 ** (-25 / 20) / rms_clean
+        # clean = clean * scalar_clean
+        # rms_clean = (clean**2).mean() ** 0.5
+        #
+        # rms_noise = (noise**2).mean() ** 0.5
+        # scalar_noise = 10 ** (-25 / 20) / rms_noise
+        # noise = noise * scalar_noise
+        # rms_noise = (noise**2).mean() ** 0.5
+        #
+        # # Set the noise level for a given SNR
+        # noise_scalar = np.sqrt(rms_clean / (10 ** (snr / 20)) / rms_noise)
+        # noise_new_level = noise * noise_scalar
+        # noisy_speech = clean + noise_new_level
+        # return clean, noise_new_level, noisy_speech
+
+
+        ## https://stackoverflow.com/a/72124325/12059223
+        # this is important if loading resulted in uint8 or uint16 types, because it would cause overflow
+        clean = clean.astype(np.float32)
+        noise = noise.astype(np.float32)
+
+        # get the initial energy for reference
+        clean_energy = np.mean(clean ** 2)
+        noise_energy = np.mean(noise ** 2)
+        # calculates the gain to be applied to the noise to achieve the given SNR
+        g = np.sqrt(10.0 ** (-snr / 10) * clean_energy / noise_energy)
+
+        # Assumes signal and noise to be decorrelated and calculate (a, b) such that energy of
+        # a*signal + b*noise matches the energy of the input signal
+        a = np.sqrt(1 / (1 + g ** 2))
+        b = np.sqrt(g ** 2 / (1 + g ** 2))
+        # mix the signals
+        new_clean = a * clean
+        new_noise = b * noise
+        combined = new_clean + new_noise
+        return new_clean, new_noise, combined
+
+    @staticmethod
+    def parse_real_dir(location_str):
+        """
+        Transform the location string from recorded samples to coords.
+        Args:
+            location_str: String containing speech direction (form (y, x, z), 170_m80_m10) in cm).
+
+        Returns:
+            List of coordinates to speech direction in m.
+        """
+
+        coord_str_list = location_str.split('_')
+
+        coord_list = []
+        for coord_str in coord_str_list:
+            factor = 1
+            if coord_str[0] == 'm':
+                factor = -1
+                coord_str = coord_str[1:]
+            coord_int = int(coord_str) * factor / 100   # * negative factor / cm to m
+            coord_list.append(coord_int)
+
+        return coord_list
+
+    def create_subfolder(self, audio_source_dict, output_subfolder):
+        """
+        Creates subfolder in which to save current dataset element.
+
+        Args:
+            audio_source_dict (dict): Dict containing all information on signals (speech and noise)
+            output_subfolder (str): String of general output folder in which all dataset is contained.
+        Returns:
+            String containing current subfolder path.
+        """
+        subfolder_name = audio_source_dict["speech"][0]["name"]
+        for dir_noise in audio_source_dict["dir_noise"]:
+            subfolder_name += f"_{dir_noise['name']}"
+        for dif_noise in audio_source_dict["dif_noise"]:
+            subfolder_name += f"_{dif_noise['name']}"
+        noise_quantity = len(audio_source_dict["dir_noise"]) + len(audio_source_dict["dif_noise"])
+        if self.is_sim:
+            context_str = "reverb" if self.is_reverb else "no_reverb"
+        else:
+            context_str = os.path.join(self.current_room_size, 'pos_'+self.user_pos)
+        subfolder_path = os.path.join(output_subfolder, context_str, f"{noise_quantity}", subfolder_name)
+        subfolder_index = 1
+        if os.path.exists(subfolder_path):
+            while os.path.exists(subfolder_path + f"_{subfolder_index}"):
+                subfolder_index += 1
+            subfolder_path += f"_{subfolder_index}"
+        os.makedirs(subfolder_path, exist_ok=True)
+
+        return subfolder_path
+
+    def plot_scene(self, audio_dict, save_path=None):
+        """
+        Visualize the virtual room by plotting.
+
+        Args:
+            audio_dict (dict): All audio sources.
+            save_path (str): Save path for 2D plot.
+
+        """
+        # 2D
+        # Room
+        fig2d, ax = plt.subplots()
+        ax.set_xlabel("Side (x)")
+        plt.xlim([-5, max(self.current_room_size[0], self.current_room_size[1]) + 5])
+        plt.ylim([-5, max(self.current_room_size[0], self.current_room_size[1]) + 5])
+        ax.set_ylabel("Depth (y)")
+        room_corners = self.current_room_shape
+        for corner_idx in range(len(room_corners)):
+            corner_1 = room_corners[corner_idx]
+            corner_2 = room_corners[(corner_idx + 1) % len(room_corners)]
+            ax.plot([corner_1[0], corner_2[0]], [corner_1[1], corner_2[1]])
+
+        # User
+        for mic_pos in self.receiver_abs:
+            ax.scatter(mic_pos[SIDE_ID], mic_pos[DEPTH_ID], marker="x", c="b")
+        # ax.text(mic_pos[SIDE_ID], mic_pos[DEPTH_ID], 'User')
+        user_dir_point = [self.user_pos[0] + self.user_dir[0], self.user_pos[1] + self.user_dir[1]]
+        ax.plot([self.user_pos[0], user_dir_point[0]], [self.user_pos[1], user_dir_point[1]])
+
+        # Source
+        speech_pos = audio_dict["speech"][0]["position"]
+        speech_name = audio_dict["speech"][0]["name"]
+        ax.scatter(speech_pos[SIDE_ID], speech_pos[DEPTH_ID], c="g")
+        ax.text(speech_pos[SIDE_ID], speech_pos[DEPTH_ID], speech_name)
+        source_circle = plt.Circle(
+            (self.user_pos[0] + self.user_dir[0], self.user_pos[1] + self.user_dir[1]),
+            SOURCE_USER_DISTANCE,
+            color="g",
+            fill=False,
+        )
+        ax.add_patch(source_circle)
+
+        # Noise
+        for dir_noise in audio_dict["dir_noise"]:
+            dir_noise_pos = dir_noise["position"]
+            dir_noise_name = dir_noise["name"]
+            ax.scatter(dir_noise_pos[SIDE_ID], dir_noise_pos[DEPTH_ID], c="m")
+            ax.text(dir_noise_pos[SIDE_ID], dir_noise_pos[DEPTH_ID], dir_noise_name)
+        for dif_noise in audio_dict["dif_noise"]:
+            dif_noise_pos = dif_noise["position"]
+            dif_noise_name = dif_noise["name"]
+            ax.scatter(dif_noise_pos[SIDE_ID], dif_noise_pos[DEPTH_ID], c="r")
+            ax.text(dif_noise_pos[SIDE_ID], dif_noise_pos[DEPTH_ID], dif_noise_name)
+
+        plt.savefig(os.path.join(save_path, "scene2d.jpg"))
+
+        if SHOW_GRAPHS:
+            fig2d.show()
+
+        plt.close()
+
+        # 3D
+        # Room
+        if self.is_debug:
+            fig3d, ax = self.current_room.plot(img_order=0)
+            ax.set_xlabel("Side (x)")
+            ax.set_ylabel("Depth (y)")
+            ax.set_zlabel("Height (z)")
+
+            # User
+            for mic_pos in self.receiver_abs:
+                ax.scatter3D(mic_pos[SIDE_ID], mic_pos[DEPTH_ID], mic_pos[HEIGHT_ID], c="b")
+            ax.text(mic_pos[SIDE_ID], mic_pos[DEPTH_ID], mic_pos[HEIGHT_ID], "User")
+            user_dir_point = [
+                self.user_pos[0] + self.user_dir[0],
+                self.user_pos[1] + self.user_dir[1],
+                self.user_pos[2] + self.user_dir[2],
+            ]
+            ax.plot(
+                [self.user_pos[0], user_dir_point[0]],
+                [self.user_pos[1], user_dir_point[1]],
+                [self.user_pos[2], user_dir_point[2]],
+            )
+
+            # Source
+            ax.scatter3D(speech_pos[SIDE_ID], speech_pos[DEPTH_ID], speech_pos[HEIGHT_ID], c="g")
+            ax.text(speech_pos[SIDE_ID], speech_pos[DEPTH_ID], speech_pos[HEIGHT_ID], speech_name)
+
+            # Noise
+            for dir_noise in audio_dict["dir_noise"]:
+                dir_noise_pos = dir_noise["position"]
+                dir_noise_name = dir_noise["name"]
+                ax.scatter3D(dir_noise_pos[SIDE_ID], dir_noise_pos[DEPTH_ID], dir_noise_pos[HEIGHT_ID], c="m")
+                ax.text(dir_noise_pos[SIDE_ID], dir_noise_pos[DEPTH_ID], dir_noise_pos[HEIGHT_ID], dir_noise_name)
+            for dif_noise in audio_dict["dif_noise"]:
+                dif_noise_pos = dif_noise["position"]
+                dif_noise_name = dif_noise["name"]
+                ax.scatter3D(dif_noise_pos[SIDE_ID], dif_noise_pos[DEPTH_ID], dif_noise_pos[HEIGHT_ID], c="r")
+                ax.text(dif_noise_pos[SIDE_ID], dif_noise_pos[DEPTH_ID], dif_noise_pos[HEIGHT_ID], dif_noise_name)
+
+            fig3d.show()
+            plt.close()
+
+    def generate_random_room(self):
+        """
+        Generate a random room from room shapes and sizes and creates a pra room with it.
+
+        Returns: PyRoomAcoustics room object.
+
+        """
+        # Get random room from room shapes and sizes
+        random_room_shape = self.room_shapes[np.random.randint(0, len(self.room_shapes))]
+        size_factor = np.random.rand() / 2 + 0.75
+        x_factor = np.random.randint(self.room_sizes[0][0], self.room_sizes[0][1])
+        y_factor = x_factor * size_factor
+        z_factor = np.random.randint(self.room_sizes[2][0], self.room_sizes[2][1])
+        self.current_room_size = [x_factor, y_factor, z_factor]
+
+        # Apply size to room shape
+        self.current_room_shape = []
+        for corner in random_room_shape:
+            self.current_room_shape.append(
+                [corner[0] * self.current_room_size[0], corner[1] * self.current_room_size[1]]
+            )
+        corners = np.array(self.current_room_shape).T
+
+        # Generate room from corners and height
+        if self.wall_absorption_limits[0] == self.wall_absorption_limits[1]:
+            self.rir_wall_absorption = self.wall_absorption_limits[0]
+        else:
+            self.rir_wall_absorption = (
+                float(np.random.randint(self.wall_absorption_limits[0] * 100, self.wall_absorption_limits[1] * 100))
+                / 100.0
+            )
+        # TODO: CHECK WALL_ABSORPTION AND SCATTERING VALUES
+        mat = pra.Material(float(self.rir_wall_absorption), 0.1)
+        room = pra.Room.from_corners(
+            corners,
+            fs=SAMPLE_RATE,
+            air_absorption=self.air_absorption,
+            humidity=self.air_humidity,
+            max_order=self.rir_reflexion_order,
+            materials=mat,
+        )
+        room.extrude(self.current_room_size[2], materials=mat)
+        self.current_room = room
+
+        return room
+
+    def generate_user(self):
+        """
+        Generate absolute position for user (and for receivers).
+        """
+        # TODO: GENERATE A NOISE SPEECH SOURCE ON USER TO REPRESENT USER TALKING?
+
+        # Get random position and assign x and y wth sound margins (user not stuck on wall)
+        self.user_pos = self.get_random_position(user=True)
+        if self.user_pos == -1:
+            return
+        while True:
+            self.xy_angle = (np.random.rand() * 2 * math.pi) - math.pi
+            # z_angle = (np.random.rand() - 0.5) * 2 * TILT_RANGE
+            x_dir = (SOURCE_USER_DISTANCE + 1) * math.cos(self.xy_angle)
+            y_dir = (SOURCE_USER_DISTANCE + 1) * math.sin(self.xy_angle)
+            z_dir = 1e-5
+            # z_dir = (np.random.rand() - 0.5) * 2 * TILT_RANGE
+
+            if x_dir and y_dir and z_dir:
+                break
+        self.user_dir = [x_dir, y_dir, z_dir]
+
+        # TODO: IMPLEMENT HEIGHT TILT
+        # For every receiver, set x and y by room dimension and add human height as z
+        self.receiver_abs = []
+        for receiver in self.receiver_rel:
+            receiver_center = self.user_pos.copy()
+            new_x, new_y, new_z = self.rotate_coords(receiver, self.xy_angle, inverse=False)
+            receiver_center[0] += float(new_x)
+            receiver_center[1] += float(new_y)
+            self.receiver_abs.append(receiver_center)
+
+        # Generate user head wall corners
+        # TODO: GENERATE HEAD CLOSER TO CIRCLE THAN SQUARE?
+        # TODO: DONT  GENERATE HEAD DIRECTLY BEHIND MICROPHONES
+        rel_corners = self.receiver_rel
+        abs_top_corners = []
+        abs_bot_corners = []
+        for rel_corner in rel_corners:
+            # Rotated axis
+            new_x, new_y, new_z = self.rotate_coords(rel_corner, self.xy_angle, inverse=False)
+            # Top corners
+            corner_top = self.user_pos.copy()
+            corner_top[0] += new_x
+            corner_top[1] += new_y
+            corner_top[2] += 0.1
+            abs_top_corners.append(corner_top)
+            # Bottom corners
+            corner_bot = self.user_pos.copy()
+            corner_bot[0] += new_x
+            corner_bot[1] += new_y
+            corner_bot[2] -= 0.25
+            abs_bot_corners.append(corner_bot)
+
+        # Generate user head walls and add to room
+        top_plane = np.array(abs_top_corners).T
+        bot_plane = np.array(abs_bot_corners).T
+        planes = [top_plane, bot_plane]
+        for i in range(4):
+            side_plane = np.array(
+                [abs_top_corners[i], abs_top_corners[(i + 1) % 4], abs_bot_corners[(i + 1) % 4], abs_bot_corners[i]]
+            ).T
+            planes.append(side_plane)
+        wall_absorption = np.array([0.95])
+        scattering = np.array([0])
+        for plane in planes:
+            self.current_room.walls.append(pra.wall_factory(plane, wall_absorption, scattering, "Head"))
+
+        # Generate microphone array in room
+        x_mic_values = [mic[0] for mic in self.receiver_abs]
+        y_mic_values = [mic[1] for mic in self.receiver_abs]
+        z_mic_values = [mic[2] for mic in self.receiver_abs]
+        mic_array = np.array([x_mic_values, y_mic_values, z_mic_values])
+        self.current_room.add_microphone_array(pra.MicrophoneArray(mic_array, self.current_room.fs))
+
+    def get_random_position(self, source_pos=None, user=False):
+        """
+        Get random position inside of polygon composed by PyRoomAcoustics room object walls.
+
+        Args:
+            source_pos (list): List of coordinates for source position (if exists).
+            user (bool): Whether the random position to generate is for the user.
+
+        Returns: Position composed of shapely.Point with coordinates [x, y, z]. -1 if no position could be made.
+
+        """
+        # Get room polygon
+        room_poly = Polygon(self.current_room_shape)
+        minx, miny, maxx, maxy = room_poly.bounds
+
+        # If source, change min and max to generate in user front circle
+        if not user and not source_pos:
+            user_dir_point = [self.user_pos[0] + self.user_dir[0], self.user_pos[1] + self.user_dir[1]]
+            minx = max(minx, user_dir_point[0] - SOURCE_USER_DISTANCE)
+            miny = max(miny, user_dir_point[1] - SOURCE_USER_DISTANCE)
+            maxx = min(maxx, user_dir_point[0] + SOURCE_USER_DISTANCE)
+            maxy = min(maxy, user_dir_point[1] + SOURCE_USER_DISTANCE)
+
+        for _ in range(MAX_POS_TRIES):
+            # Create random point inside polygon bounds and check if contained
+            p = Point(random.uniform(minx, maxx), random.uniform(miny, maxy))
+            source_radius = USER_MIN_DISTANCE if user else SOUND_MARGIN
+            circle = p.buffer(source_radius)
+            if not room_poly.contains(circle):
+                continue
+
+            # Set height position for user and/or source
+            z = self.receiver_height
+
+            if not user:
+                if not source_pos:
+                    # If source, check it is contained in circle in front of user
+                    dx_user = p.x - user_dir_point[0]
+                    dy_user = p.y - user_dir_point[1]
+                    is_point_in_user_circle = dx_user**2 + dy_user**2 <= SOURCE_USER_DISTANCE**2
+                    if not is_point_in_user_circle:
+                        continue
+
+                    # Calculate source direction based on user direction
+                    # TODO: add tilt
+                    coords = [
+                        p.x - self.user_pos[SIDE_ID],
+                        p.y - self.user_pos[DEPTH_ID],
+                        z - self.user_pos[HEIGHT_ID],
+                    ]
+                    new_x, new_y, new_z = self.rotate_coords(coords, self.xy_angle, inverse=True)
+                    front_facing_angle = 0.5 * math.pi
+                    new_x, new_y, new_z = self.rotate_coords([new_x, new_y, new_z], front_facing_angle, inverse=False)
+                    self.source_direction = [new_x, new_y, new_z]
+
+                else:
+                    # Check if noise is not on user
+                    dx_user = p.x - self.user_pos[0]
+                    dy_user = p.y - self.user_pos[1]
+                    is_point_in_user_circle = dx_user * dx_user + dy_user * dy_user <= SOUND_MARGIN * SOUND_MARGIN
+                    if is_point_in_user_circle:
+                        continue
+
+                    # Check it is not on top of source
+                    dx_src = p.x - source_pos[0]
+                    dy_src = p.y - source_pos[1]
+                    is_point_in_src_circle = dx_src**2 + dy_src**2 <= SOUND_MARGIN**2
+                    if is_point_in_src_circle:
+                        continue
+
+                    # Set height position for noise
+                    z = np.random.rand() * self.current_room_size[2]
+
+            position = [p.x, p.y, z]
+            return position
+
+        return -1
+
+    def get_random_noise(self, number_noises=None, diffuse_noise=False, source_path=None, sn_count=-1):
+        """
+        Gets random noises to be added to audio clip.
+
+        Args:
+            number_noises (int): Number of noises to use (if specified, overrides self.noise_count).
+            diffuse_noise (bool): Bool to use diffuse or directional noise.
+            source_path (str): String of speech path.
+            sn_count (int): Speech_noise count in last try (-1 if nothing to force).
+        Returns:
+            List of paths to noises (and/or speech) to use.
+        """
+
+        if diffuse_noise:
+            random_indices = np.random.randint(0, len(self.dif_noise_paths), self.max_diffuse_noises)
+            noise_path_list = [self.dif_noise_paths[i] for i in random_indices]
+            speech_noise_count = None
+        else:
+            # Set noise count for this round
+            if number_noises:
+                self.dir_noise_count = number_noises
+            else:
+                if sn_count == -1:      # Only increase number of noises if not having to restart the last run
+                    self.dir_noise_count -= self.dir_noise_count_range[0]
+                    self.dir_noise_count += 1
+                    dir_count_range = self.dir_noise_count_range
+                    self.dir_noise_count = self.dir_noise_count % (dir_count_range[1] - dir_count_range[0])
+                    self.dir_noise_count += self.dir_noise_count_range[0]
+
+            # Get random indices and return items in new list
+            temp_noise_paths = self.dir_noise_paths.copy()
+            if source_path in temp_noise_paths:
+                temp_noise_paths.remove(source_path)
+
+            # If previous run breaks, remake run with same quantity of speech noise
+            if sn_count != -1 and self.speech_as_noise:
+                random_speech_indices = np.random.randint(self.speech_noise_start, len(temp_noise_paths), sn_count)
+                random_noise_indices = np.random.randint(0, self.speech_noise_start, self.dir_noise_count - sn_count)
+                random_indices = np.concatenate((random_speech_indices, random_noise_indices))
+            else:
+                random_indices = np.random.randint(0, len(temp_noise_paths), self.dir_noise_count)
+
+            noise_path_list = []
+            speech_noise_count = 0
+            for i in random_indices:
+                selected_noise = temp_noise_paths[i]
+                if 'clean' in selected_noise: speech_noise_count += 1
+            noise_path_list = [temp_noise_paths[int(i)] for i in random_indices]
+
+        return noise_path_list, speech_noise_count
+
+    def save_files(self, audio_dict, save_spec=False):
+        """
+        Save various files needed for dataset (see params).
+
+        Args:
+            audio_dict (dict): Contains all info on sound sources.
+            save_spec (bool): Whether to save stft (spectrogram) with dataset files.
+        Returns:
+            subfolder_path (str): String containing path to newly created dataset subfolder.
+        """
+
+        # Save combined audio
+        audio_file_name = os.path.join(self.current_subfolder, "audio.wav")
+        combined_signal = audio_dict["combined_audio"][0][self.audio_dict_out_signal_str]
+        if self.is_sim:
+            sf.write(audio_file_name, combined_signal, SAMPLE_RATE)
+            # sf.write(audio_file_name, combined_signal.T, SAMPLE_RATE)
+        else:
+            combined_signal.export(audio_file_name, format='wav')
+        if save_spec:
+            combined_gt = self.generate_spectrogram(combined_signal, title="Audio")
+            audio_gt_name = os.path.join(self.current_subfolder, "audio.npz")
+            np.savez_compressed(audio_gt_name, combined_gt)
+
+        # Save target
+        target_file_name = os.path.join(self.current_subfolder, "target.wav")
+        target_signal = audio_dict["speech"][0]["signal"]
+        if self.is_sim:
+            sf.write(target_file_name, target_signal, SAMPLE_RATE)
+        else:
+            target_signal.export(target_file_name, format='wav')
+        if save_spec:
+            # Save source (speech)
+            target_gt = self.generate_spectrogram(target_signal, mono=True, title="Target")
+            target_gt_name = os.path.join(self.current_subfolder, "target.npz")
+            np.savez_compressed(target_gt_name, target_gt)
+
+        # Save source (with rir)
+        speech_file_name = os.path.join(self.current_subfolder, "speech.wav")
+        speech_signal = audio_dict["speech"][0][self.audio_dict_out_signal_str]
+        if self.is_sim:
+            sf.write(speech_file_name, speech_signal.T, SAMPLE_RATE)
+            # sf.write(speech_file_name, speech_signal, SAMPLE_RATE)
+        else:
+            speech_signal.export(speech_file_name, format='wav')
+        if save_spec:
+            source_gt = self.generate_spectrogram(speech_signal, title="Speech")
+            source_gt_name = os.path.join(self.current_subfolder, "speech.npz")
+            np.savez_compressed(source_gt_name, source_gt)
+
+        # Save combined noise
+        noise_file_name = os.path.join(self.current_subfolder, "noise.wav")
+        combined_noise = audio_dict["combined_noise"][0][self.audio_dict_out_signal_str]
+        if self.is_sim:
+            combined_noise.export(noise_file_name, format='wav')
+        else:
+            sf.write(noise_file_name, combined_noise, SAMPLE_RATE)
+            # sf.write(noise_file_name, combined_noise.T, SAMPLE_RATE)
+        if save_spec:
+            noise_gt = self.generate_spectrogram(combined_noise, title="Noise")
+            noise_gt_name = os.path.join(self.current_subfolder, "noise.npz")
+            np.savez_compressed(noise_gt_name, noise_gt)
+
+        # Save yaml file with configs
+        config_dict_file_name = os.path.join(self.current_subfolder, "configs.yaml")
+        config_dict = self.generate_config_dict(audio_dict, self.current_subfolder)
+        with open(config_dict_file_name, "w") as outfile:
+            yaml.dump(config_dict, outfile, default_flow_style=None)
+
+        # Visualize and save scene
+        if self.is_sim:
+            self.plot_scene(audio_dict, self.current_subfolder)
+
+        return self.current_subfolder
+
+    def generate_and_apply_rirs(self, audio_dict):
+        """
+        Function that generates Room Impulse Responses (RIRs) to source signal positions and applies them to signals.
+        See <https://pyroomacoustics.readthedocs.io/en/pypi-release/>.
+        Will have to look later on at
+        <https://github.com/DavidDiazGuerra/gpuRIR#simulatetrajectory> for moving sources.
+
+        Args:
+            audio_dict (dict{}): Dictionary containing all audio sources and info.
+        Returns:
+            False if RIR was broken on one channel.
+        """
+        # TODO: MOVING RIR
+
+        # Generate RIRs
+        self.current_room.compute_rir()
+        rir_list = self.current_room.rir
+        rirs = np.array(rir_list, dtype=object)
+
+        # Normalise RIR
+        # TODO: CHECK FOR TRUE DIVIDE
+        for channel_idx, channel_rirs in enumerate(rirs):
+            for rir in channel_rirs:
+                max_val = np.max(np.abs(rir))
+                if max_val == 0:
+                    return -1
+                rir /= max_val
+
+        # If diffuse, remove early RIR peaks (remove direct and non-diffuse peaks)
+        for rir_channel in rirs:
+            for diffuse_rir_idx in range(len(audio_dict["dif_noise"])):
+                # Get peaks
+                rir = rir_channel[len(audio_dict["speech"]) + len(audio_dict["dir_noise"]) + diffuse_rir_idx]
+                peaks, _ = signal.find_peaks(rir, distance=100)
+                if SHOW_GRAPHS:
+                    plt.figure()
+                    plt.plot(rir)
+                    plt.plot(peaks, rir[peaks], "x")
+                    plt.show()
+
+                # Remove peaks from RIR
+                min_peak_idx = peaks[len(peaks) // 2]
+                rir[:min_peak_idx] = 0
+
+                # Renormalise RIR
+                max_val = np.max(np.abs(rir))
+                rir /= max_val
+
+                if SHOW_GRAPHS:
+                    plt.figure()
+                    plt.plot(rir)
+                    plt.show()
+
+        if SAVE_RIR:
+            fig, axes = plt.subplots(self.n_channels // 2, 2)
+            fig.suptitle("RIR graph values")
+            for channel_i, channel_rir in enumerate(rirs):
+                rir_plot = channel_rir[0].T
+                axes[channel_i // 2, channel_i % 2].plot(rir_plot)
+            plt.savefig(os.path.join(self.current_subfolder, "rir_channel_plots.jpg"))
+            if SHOW_GRAPHS:
+                plt.show()
+            plt.close()
+
+        # Apply RIR to signal
+        rir_idx = 0
+        for source_type, source_lists in audio_dict.items():
+            for source in source_lists:
+                rir = rirs[:, rir_idx]
+                if self.is_debug:
+                    source["rir"] = rir
+                self.apply_rir(rir, source)
+
+        if SHOW_GRAPHS:
+            fig, axes = plt.subplots(2)
+            fig.suptitle("Speech example before and after RIR")
+            axes[0].plot(audio_dict["speech"][0]["signal"])
+            axes[1].plot(audio_dict["speech"][0]["signal_w_rir"].T)
+            plt.show()
+
+    def generate_config_dict(self, audio_dict, subfolder_name):
+        """
+        Generates dict about config for run.
+
+        Args:
+            audio_dict (dict): Dict containing all source information.
+            subfolder_name (str): Output subfolder path (contains source and noise names if in real-time).
+
+        Returns:
+            Dict with all useful info for run.
+        """
+        # Get info from dict
+        speech_name = audio_dict["speech"][0]["name"]
+        noise_names = []
+        for dir_noise in audio_dict["dir_noise"]:
+            noise_names.append(dir_noise["name"])
+        for dif_noise in audio_dict["dif_noise"]:
+            noise_names.append(dif_noise["name"])
+
+        if self.is_sim:
+            speech_pos = audio_dict["speech"][0]["position"]
+            noise_pos = []
+            for dir_noise in audio_dict["dir_noise"]:
+                noise_pos.append(dir_noise["position"])
+            for dif_noise in audio_dict["dif_noise"]:
+                noise_pos.append(dif_noise["position"])
+
+            config_dict = dict(
+                path=subfolder_name,
+                n_channels=self.n_channels,
+                mic_rel=self.receiver_rel.tolist(),
+                mic_abs=self.receiver_abs,
+                room_shape=self.current_room_shape,
+                room_size=self.current_room_size,
+                user_pos=self.user_pos,
+                user_dir=self.user_dir,
+                speech_pos=np.around(speech_pos, 3).tolist(),
+                noise_pos=[np.around(i, 3).tolist() for i in noise_pos],
+                speech=speech_name,
+                source_dir=np.around(self.source_direction, 3).tolist(),
+                noise=noise_names,
+                snr=self.snr,
+                rir_reflexion_order=self.rir_reflexion_order,
+                wall_absorption=self.rir_wall_absorption,
+            )
+        else:
+            config_dict = dict(
+                path=subfolder_name,
+                n_channels=self.n_channels,
+                mic_rel=self.receiver_rel.tolist(),
+                # mic_abs=self.receiver_abs,
+                # room_shape=self.current_room_shape,
+                room_size=self.current_room_size,
+                user_pos=self.user_pos,
+                # user_dir=self.user_dir,
+                # speech_pos=np.around(speech_pos, 3).tolist(),
+                # noise_pos=[np.around(i, 3).tolist() for i in noise_pos],
+                speech=speech_name,
+                source_dir=np.around(self.source_direction, 3).tolist(),
+                noise=noise_names,
+                snr=self.snr,
+                # rir_reflexion_order=self.rir_reflexion_order,
+                # wall_absorption=self.rir_wall_absorption,
+            )
+        return config_dict
+
+    def init_sim(self, sources_path, noises_path, reverb):
+        """
+        Function used to initialize variables for simulated dataset generation.
+        Args:
+            sources_path (str): Path to sources directory. If None, gets folder from config file.
+            noises_path (str): Path to noise directory. If None, gets folder from config file.
+            reverb (bool): Whether to sue reverb of not (walls fully absorb and max reflexion order = 0).
+        """
+        self.is_reverb = reverb
+
+        # If use reverb add rooms, if not fix rir max order to 0 and wall absorption to 1
+        if self.is_reverb:
+            self.room_shapes.extend(self.reverb_room_shapes)
+        else:
+            self.rir_reflexion_order = 0
+            self.wall_absorption_limits = [1, 1]
+
+        # Load input noise paths
+        self.noise_paths = glob.glob(os.path.join(noises_path, "*.wav"))
+
+        # Split noise paths (diffuse, directional) and remove banned noises
+        for noise in self.noise_paths:
+            if any(banned_noise in noise for banned_noise in self.banned_noises):
+                continue
+            if any(diffuse_noise in noise for diffuse_noise in self.diffuse_noises):
+                self.dif_noise_paths.append(noise)
+            else:
+                self.dir_noise_paths.append(noise)
+
+        # Add speech to directional if in arguments
+        if self.speech_as_noise:
+            self.speech_noise_start = len(self.dir_noise_paths)
+            speeches = glob.glob(os.path.join(sources_path, "*.wav"))
+            for i in range(len(self.dir_noise_paths)):
+                self.dir_noise_paths.append(speeches[i])
+        #
+        # # Add speech to directional if in arguments
+        # if self.speech_as_noise:
+        #     self.dir_noise_paths.extend(sources_path)
+
+    def generate_sim_dataset(self, source_path, save_run):
+        """
+        Main dataset generator function (for simulated data). Loops over rooms and sources and generates dataset.
+
+        Args:
+            source_path (str): String containing path to source audio file.
+            save_run (bool): Save dataset to memory or not.
+
+        Returns:
+            file_count: Number of audio files (subfolders) generated.
+        """
+
+        self.audio_dict_out_signal_str = 'signal_w_rir'
+
+        # Run through every source
+        # for source_path in tqdm(self.source_paths, desc="Source Paths used"):
+        # Get source_audio for every source file
+        source_name = os.path.split(source_path)[1].split(".")[0]  # Get filename for source (before extension)
+        source_audio_base = self.read_audio_file(source_path)
+
+        speech_noise_count = -1         # If run breaks, generates the same amount of speech noises as before
+
+        # Run SAMPLES_PER_SPEECH samples per speech clip
+        samples_created = 0
+        while samples_created < self.sample_per_speech:
+            audio_source_dict = dict()
+            # Get random room and generate user at a position in room
+            self.generate_random_room()
+            self.generate_user()
+            if self.user_pos == -1:
+                if self.is_debug: print(f"User position could not be made with {MAX_POS_TRIES}. Restarting new room.")
+                continue
+
+            # Generate source position and copy source_audio
+            source_pos = self.get_random_position()
+            if source_pos == -1:
+                if self.is_debug: print(f"Source position could not be made with {MAX_POS_TRIES}. Restarting new room.")
+                continue
+            source_audio = source_audio_base.copy()
+            audio_source_dict["speech"] = [{"name": source_name, "signal": source_audio, "position": source_pos}]
+
+            # Add varying number of directional noise sources
+            audio_source_dict["dir_noise"] = []
+            dir_noise_source_paths, speech_noise_count = self.get_random_noise(source_path=source_path,
+                                                                               sn_count=speech_noise_count)
+            for noise_source_path in dir_noise_source_paths:
+                dir_noise = dict()
+                dir_noise["name"] = os.path.split(noise_source_path)[1].split(".")[0]
+                dir_noise["signal"] = self.read_audio_file(noise_source_path)
+                dir_noise["position"] = self.get_random_position(source_pos)
+                audio_source_dict["dir_noise"].append(dir_noise)
+
+            # Add varying number of diffuse noise sources
+            audio_source_dict["dif_noise"] = []
+            dif_noise_source_paths, _ = self.get_random_noise(diffuse_noise=True)
+            for noise_source_path in dif_noise_source_paths:
+                dif_noise = dict()
+                dif_noise["name"] = os.path.split(noise_source_path)[1].split(".")[0]
+                dif_noise["signal"] = self.read_audio_file(noise_source_path)
+                dif_noise["position"] = self.get_random_position(source_pos)
+                audio_source_dict["dif_noise"].append(dif_noise)
+
+            # Create subfolder
+            self.current_subfolder = self.create_subfolder(audio_source_dict, self.output_subfolder)
+
+            # Truncate noise and source short to the shortest length
+            self.truncate_sources(audio_source_dict)
+
+            # Add sources to PyRoom and generate RIRs
+            for source_list in audio_source_dict.values():
+                for source in source_list:
+                    self.current_room.add_source(source["position"], source["signal"])
+
+            rir_success = self.generate_and_apply_rirs(audio_source_dict)
+            if rir_success == -1:
+                if self.is_debug: print("RIR returned false, problem with one channel. Restarting sample.")
+                continue
+            else:
+                speech_noise_count = -1
+
+            # Combine noises
+            self.combine_sources(audio_source_dict, ["dir_noise", "dif_noise"], "combined_noise",
+                                 self.audio_dict_out_signal_str, noise=True)
+
+            # Combine source with noises at a random SNR between limits
+            # TODO: CHECK SNR IF IT WORKS CORRECTLY
+            self.snr = np.random.rand() * (self.snr_limits[1] - self.snr_limits[0]) + self.snr_limits[0]
+            # self.snr = 20 * np.log10(snr)
+            self.combine_sources(audio_source_dict, ["speech", "combined_noise"], "combined_audio", snr=self.snr)
+            # self.snr = float(10 ** (snr / 20))
+
+            # Save elements
+            if save_run:
+                subfolder_path = self.save_files(audio_source_dict)
+
+                self.dataset_list.append(subfolder_path)
+                if self.is_debug:
+                    print("Created: " + subfolder_path)
+            else:
+                # Generate config dict
+                run_name = audio_source_dict["combined_audio"][0]["name"]
+                config_dict = self.generate_config_dict(audio_source_dict, run_name)
+
+                # Generate dict to represent 1 element
+                run_dict = dict()
+                run_dict["audio"] = audio_source_dict["combined_audio"][0]["signal_w_rir"]
+                run_dict["target"] = audio_source_dict["speech"][0]["signal"]
+                run_dict["speech"] = audio_source_dict["speech"][0]["signal_w_rir"]
+                run_dict["noise"] = audio_source_dict["combined_noise"][0]["signal_w_rir"]
+                run_dict["configs"] = config_dict
+                self.dataset_list.append(run_dict)
+
+            # Increase counters
+            samples_created += 1
+
+        return samples_created, self.dataset_list
+
+    def generate_real_dataset(self, source_paths, save_run):
+        """
+        Main dataset generator function (for real data). Takes all data inside a room folder and mix-and-matches.
+        TODO: Bring together with generate_sim_dataset and abstract functionality needed for either.
+
+        Args:
+            source_paths (dict): Dict containing name and paths for {room, speech, noise, other_speech}.
+            save_run (bool): Save dataset to memory or not.
+
+        Returns:
+            file_count: Number of audio files (subfolders) generated.
+        """
+
+        # Split dict
+        source_path = source_paths['speech']
+        noise_paths = source_paths['noise']
+        other_speech_paths = source_paths['other_speech']
+        configs = source_paths['configs']
+
+        # Configs
+        self.current_room_size = configs['room']
+        self.user_pos = configs['user_pos']
+        self.source_direction = AudioDatasetBuilder.parse_real_dir(configs['location'])
+
+        self.audio_dict_out_signal_str = 'signal'
+
+        # Get Load audio
+        source_name = configs['sound']      # Get filename for source (before extension)
+        source_audio_base = AudioSegment.from_wav(source_path)
+
+        # Add speech to noises if needed
+        if self.speech_as_noise:
+            noise_paths.extend(other_speech_paths)
+
+        # Get every combination of noises possible within filtered noises
+        # TODO: Check if we should remove noises if recorded at the same location between themselves?
+        noise_source_paths_combinations = []
+        for i in range(self.dir_noise_count_range[0], self.dir_noise_count_range[1]):
+            combinations = itertools.combinations(noise_paths, i)
+            noise_source_paths_combinations.extend(combinations)
+
+        samples_created = 0
+        total_snr = 0
+        for noise_source_paths in noise_source_paths_combinations:
+            audio_source_dict = dict()
+
+            # Copy source_audio and put in list
+            source_audio = source_audio_base
+            audio_source_dict["speech"] = [{"name": source_name, "signal": source_audio}]
+
+            # Add varying number of directional noise sources
+            audio_source_dict["dir_noise"] = []
+            for noise_source_path in noise_source_paths:
+                noise = dict()
+                noise["name"] = os.path.split(noise_source_path)[0].split(os.path.sep)[-1]
+                noise["signal"] = AudioSegment.from_wav(noise_source_path)
+                audio_source_dict["dir_noise"].append(noise)
+
+            # Add empty dif_noise (to be removed)
+            audio_source_dict["dif_noise"] = []
+
+            # Create subfolder
+            self.current_subfolder = self.create_subfolder(audio_source_dict, self.output_subfolder)
+
+            # Combine noises
+            self.combine_sources(audio_source_dict, ["dir_noise"], "combined_noise",
+                                 self.audio_dict_out_signal_str, noise=True)
+
+            # Combine source with noises at a random SNR between limits
+            # TODO: CHECK SNR IF IT WORKS CORRECTLY
+            self.snr = np.random.rand() * (self.snr_limits[1] - self.snr_limits[0]) + self.snr_limits[0]
+            if self.is_debug: total_snr += self.snr
+            self.combine_sources(audio_source_dict, ["speech", "combined_noise"], "combined_audio",
+                                 self.audio_dict_out_signal_str, snr=self.snr)
+
+            # Save elements
+            if save_run:
+                subfolder_path = self.save_files(audio_source_dict)
+
+                self.dataset_list.append(subfolder_path)
+                if self.is_debug:
+                    print("Created: " + subfolder_path)
+            else:
+                # Generate config dict
+                run_name = audio_source_dict["combined_audio"][0]["name"]
+                config_dict = self.generate_config_dict(audio_source_dict, run_name)
+
+                # Generate dict to represent 1 element
+                run_dict = dict()
+                run_dict["audio"] = audio_source_dict["combined_audio"][0][self.audio_dict_out_signal_str]
+                run_dict["target"] = audio_source_dict["speech"][0]["signal"]
+                run_dict["speech"] = audio_source_dict["speech"][0][self.audio_dict_out_signal_str]
+                run_dict["noise"] = audio_source_dict["combined_noise"][0][self.audio_dict_out_signal_str]
+                run_dict["configs"] = config_dict
+                self.dataset_list.append(run_dict)
+
+            # Increase counters
+            samples_created += 1
+
+        if self.is_debug:
+            print(f'Mean SNR: {total_snr/samples_created}')
+
+        return samples_created, self.dataset_list

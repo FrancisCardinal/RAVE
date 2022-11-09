@@ -1,0 +1,85 @@
+# Randomized configs to use for dataset generation
+
+# List of various room shapes. Uses corners with polygon.
+room_shapes:
+    [
+        [[0, 0], [0, 1], [1, 1], [1, 0]],
+        [[0, 0.33], [0, 0.66], [0.33, 1], [0.66, 1], [1, 0.66], [1, 0.33], [0.66, 0], [0.33, 0]],
+        [[0, 0.33], [0, 0.66], [0.5, 1], [1, 0.66], [1, 0.33], [0.5, 0]]
+    ]
+
+# Rooms that can only be used with reverb (L and Z shapes)
+reverb_room_shapes:
+  [
+        [[0, 0], [0, 1], [1, 1], [1, 0.5], [0.5, 0.5], [0.5, 0]],
+        [[0, 0], [0, 0.25], [0.5, 0.25], [0.5, 1], [1, 1], [1, 0]],
+        [[0, 0], [0, 0.25], [0.25, 0.25], [0.25, 1], [1, 1], [1, 0.75], [0.75, 0.75], [0.75, 0]],
+  ]
+
+# Random room size multiplication factor limits to use on room shapes ([[xmin, xmax], [ymin, ymax], [zmin, zmax]])
+room_sizes: [[10, 100], [10, 100], [3, 20]]
+
+## Path to folder containing source files
+#source_folder: "/home/rave/RAVE-Audio/MS-SNSD/clean_train"
+#
+## Path to folder containing noise files
+#noise_folder: "/home/rave/RAVE-Audio/MS-SNSD/noise_train"
+
+
+# Non authorized noises
+banned_noises:
+    [
+#        'Bus_1',
+#        'Car_1',
+#        'Hallway_1',
+#        'Office_1',
+#        'Kitchen_1',
+#        'Washing_1',
+#        'LivingRoom',
+#        'Munching',
+#        'Neighbor',
+#        'ShuttingDoor',
+#        'Typing',
+#        'SqueakyChair',
+#        'WasherDryer',
+#        'CopyMachine',
+#        'AirConditioner',
+#        'VacuumCleaner'
+    ]
+
+# Diffuse noises
+diffuse_noises:
+    [
+        'AirportAnnouncement',
+        'Babble',
+        'Field',
+        'Cafe',
+        'CafeTeria',
+        'Metro',
+        'Park',
+        'Restaurant',
+        'Square',
+        'Station',
+        'Traffic'
+    ]
+
+# Max diffuse noises
+max_diffuse_noises: 0
+
+# Range of noises count to add to audio file
+dir_noise_count_range: [2, 4]
+
+# Number of samples to get per speech source
+sample_per_speech: 2
+
+# Whether to use speech as noise sources
+speech_as_noise: True
+
+# SNR limit values
+snr_limits: [0.25, 0.75]
+
+# RIR parameters
+wall_absorption_limits: [0.75, 1]
+rir_reflexion_order: 5
+air_absorption: True
+air_humidity: 40

@@ -1,0 +1,6 @@
+
+soundfile
+scipy
+pyroomacoustics
+
+-r requirements_base.txt

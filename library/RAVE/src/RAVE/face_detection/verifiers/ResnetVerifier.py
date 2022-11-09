@@ -1,10 +1,6 @@
 import os
-import cv2
 import numpy as np
 import torch
-
-from .models.arcface.trt_model import TrtModel
-import platform
 import torchvision
 
 from .Verifier import Verifier
@@ -22,9 +18,7 @@ class ResNetVerifier(Verifier):
     """
 
     PROJECT_PATH = os.getcwd()
-    MODEL_PATH = os.path.join(
-        PROJECT_PATH, "RAVE", "face_detection", "verifiers", "models"
-    )
+    MODEL_PATH = os.path.join(PROJECT_PATH, "RAVE", "face_detection", "verifiers", "models")
 
     def __init__(self, score_threshold, device="cpu", architecture=18):
         self.device = device
@@ -44,7 +38,7 @@ class ResNetVerifier(Verifier):
             return None
 
         img = self.transform(image).type(torch.float).unsqueeze(0)
-        img = (img - 0.5)/0.5 # TODO: Determine if these values are necessary and correct
+        img = (img - 0.5) / 0.5  # TODO: Determine if these values are necessary and correct
         return img
 
     def get_features(self, frame, face_locations):
@@ -64,7 +58,8 @@ class ResNetVerifier(Verifier):
 
         batch = None
         for bbox in face_locations:
-            roi = frame[:,
+            roi = frame[
+                :,
                 int(bbox[1]) : int(bbox[1] + bbox[3]),
                 int(bbox[0]) : int(bbox[0] + bbox[2]),
             ]
@@ -73,7 +68,6 @@ class ResNetVerifier(Verifier):
                 batch = image
             else:
                 batch = torch.cat((batch, image), dim=0)
-
 
         with torch.no_grad():
             features = self.model(batch).cpu().numpy()
@@ -105,10 +99,7 @@ class ResNetVerifier(Verifier):
 
             dist.append(
                 np.dot(target_feature, reference_feature)
-                / (
-                    np.linalg.norm(target_feature)
-                    * np.linalg.norm(reference_feature)
-                )
+                / (np.linalg.norm(target_feature) * np.linalg.norm(reference_feature))
             )
 
         # TODO: is this really a score or a dist?
@@ -187,8 +178,10 @@ class ResNetVerifier(Verifier):
                     map_location=map_fct,
                 )
             except Exception as e:
-                print(f"""Failed to load resnet18 model, be sure to import resnet18.pth 
-                at {model_path}""")
+                print(
+                    f"""Failed to load resnet18 model, be sure to import resnet18.pth
+                 at {model_path}"""
+                )
                 print(e)
 
         elif architecture == 34:

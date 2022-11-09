@@ -1,3 +1,4 @@
+from sched import scheduler
 import torch
 import os
 from time import localtime, strftime, time
@@ -41,7 +42,6 @@ class Trainer:
 
     TRAINING_SESSIONS_DIR = "training_sessions"
     MODEL_INFO_FILE_NAME = "saved_model.pth"
-
     def __init__(
         self,
         training_loader,
@@ -53,6 +53,7 @@ class Trainer:
         scheduler,
         ROOT_DIR_PATH,
         CONTINUE_TRAINING,
+        MODEL_INFO_FILE_NAME = None
     ):
         self.training_loader = training_loader
         self.validation_loader = validation_loader
@@ -62,8 +63,11 @@ class Trainer:
         self.optimizer = optimizer
         self.scheduler = scheduler
         self.ROOT_DIR_PATH = ROOT_DIR_PATH
+
+        if MODEL_INFO_FILE_NAME is not None:
+            Trainer.MODEL_INFO_FILE_NAME = MODEL_INFO_FILE_NAME
         self.MODEL_PATH = os.path.join(
-            ROOT_DIR_PATH, Trainer.MODEL_INFO_FILE_NAME
+            ROOT_DIR_PATH, MODEL_INFO_FILE_NAME
         )
         self.min_validation_loss = np.inf
 
@@ -124,7 +128,8 @@ class Trainer:
                 self.save_model_and_training_info()
 
             print(epoch_stats)
-            self.scheduler.step(current_validation_loss)
+            if self.scheduler:
+                self.scheduler.step(current_validation_loss)
             self.epoch += 1
 
         self.terminate_training = True
@@ -180,7 +185,7 @@ class Trainer:
             training_loss += loss.item()
             number_of_images += len(images)
 
-        return training_loss / number_of_images
+        return training_loss / (number_of_images * labels.shape[1] * labels.shape[2])
 
     def compute_validation_loss(self):
         """
@@ -207,7 +212,7 @@ class Trainer:
                 validation_loss += loss.item()
                 number_of_images += len(images)
 
-            return validation_loss / number_of_images
+            return validation_loss / (number_of_images * labels.shape[1] * labels.shape[2])
 
     def update_plot(self):
         """
@@ -237,13 +242,15 @@ class Trainer:
         Saves a checkpoint, which contains the model weights and the
         necessary information to continue the training at some other time
         """
+        save = {
+                    "model_state_dict": self.model.state_dict(),
+                    "optimizer_state_dict": self.optimizer.state_dict(),
+                    "min_validation_loss": self.min_validation_loss,
+                }
+        if self.scheduler:
+            save['scheduler_state_dict'] = self.scheduler.state_dict()
         torch.save(
-            {
-                "model_state_dict": self.model.state_dict(),
-                "optimizer_state_dict": self.optimizer.state_dict(),
-                "scheduler_state_dict": self.scheduler.state_dict(),
-                "min_validation_loss": self.min_validation_loss,
-            },
+            save,
             self.MODEL_PATH,
         )
 
@@ -252,11 +259,14 @@ class Trainer:
         Loads a checkpoint, which contains the model weights and the
         necessary information to continue the training now
         """
+        
         checkpoint = torch.load(self.MODEL_PATH)
         self.model.load_state_dict(checkpoint["model_state_dict"])
         self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-        self.scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
         self.min_validation_loss = checkpoint["min_validation_loss"]
+        
+        if self.scheduler:
+            self.scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
 
     @staticmethod
     def load_best_model(model, MODEL_DIR_PATH, device):
