@@ -162,11 +162,8 @@ class AppManager:
 
         self._gaze_inferer_manager = GazeInfererManager(self._args.eye_video_source, DEVICE, self._args.debug)
 
-        K = self._tracking_manager.K
-        roi = None
-        if self._args.undistort:
-            K = self._tracking_manager.newcameramtx
-            roi = self._tracking_manager.roi
+        K = self._tracking_manager.newcameramtx
+        roi = self._tracking_manager.roi
 
         self._direction_2_pixel = Direction2Pixel(
             K,

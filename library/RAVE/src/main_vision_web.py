@@ -33,13 +33,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--eye_video_source",
         dest="eye_video_source",
-        type=str,
+        type=int,
         help="Video input source identifier for eye tracker camera",
-        default="1"
-        if not is_jetson()
-        else """v4l2src device=/dev/video1 ! video/x-raw, format=UYVY, width=640, heigth=480,
-         framerate=60/1 ! nvvidconv ! video/x-raw(memory:NVMM) ! nvvidconv ! video/x-raw, format=BGRx
-          ! videoconvert ! video/x-raw, format=BGR ! appsink""",
+        default=1,
     )
     parser.add_argument(
         "--nb_mic_channels",
