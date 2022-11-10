@@ -94,6 +94,8 @@ class TrackingManager:
         corrected_shape = (self._cap.shape[1], self._cap.shape[0])
         self.newcameramtx, self.roi = cv2.getOptimalNewCameraMatrix(K, D, corrected_shape, 1, corrected_shape)
 
+        self.drawing_callbacks = list()
+
     def kill_threads(self):
         """
         Call to kill loops in all threads
