@@ -4,19 +4,19 @@ from .Tracker import Tracker
 
 
 OPENCV_TRACKERS = {
-    "csrt": cv2.legacy.TrackerCSRT_create,
+    "csrt": cv2.TrackerCSRT_create,
     # Better fps than csrt, but bit less accuracy
-    "kcf": cv2.legacy.TrackerKCF_create,
+    "kcf": cv2.TrackerKCF_create,
     # Super quick tracker, but has been moved to legacy in OpenCV 4.5.1
-    "mosse": cv2.legacy.TrackerMOSSE.create,
+    "mosse": cv2.TrackerMOSSE.create,
     # Older tracker, low accuracy
-    "mil": cv2.legacy.TrackerMIL_create,
+    "mil": cv2.TrackerMIL_create,
     # NOTE: Could not find a working version
-    # "boosting": cv2.legacy.TrackerBoosting_create,
+    "boosting": cv2.legacy.TrackerBoosting_create,
     # NOTE: Could not find a working version
-    # "tld": cv2.legacy.TrackerTLD_create,
+    "tld": cv2.legacy.TrackerTLD_create,
     # NOTE: Could not find a working version
-    # "medianflow": cv2.legacy.TrackerMedianFlow_create,
+    "medianflow": cv2.legacy.TrackerMedianFlow_create,
 }
 
 

@@ -2,6 +2,7 @@ import cv2
 import threading
 import numpy as np
 import torch
+import time
 
 from .TrackingUpdater import TrackingUpdater
 from .TrackedObjectManager import TrackedObjectManager
@@ -83,23 +84,16 @@ class TrackingManager:
         self._debug_preprocess = debug_preprocess
         self._debug_detector = debug_detector
         self._tracking_or_calib = tracking_or_calib
-        self._device = 'cpu'  
+        self._device = "cpu"
         if torch.cuda.is_available():
-            self._device = 'cuda'
-
-        self.precompute_undistort()
-
-    def precompute_undistort(self):
-        """
-        Pre-calculations for undistortion of images
-        """
+            self._device = "cuda"
 
         K = np.array([[340.60994606, 0.0, 325.7756748], [0.0, 341.93970667, 242.46219777], [0.0, 0.0, 1.0]])
         D = np.array([[-3.07926877e-01, 9.16280959e-02, 9.46074597e-04, 3.07906550e-04, -1.17169354e-02]])
 
         corrected_shape = (self._cap.shape[1], self._cap.shape[0])
-        newcameramtx, self.roi = cv2.getOptimalNewCameraMatrix(K, D, corrected_shape, 1, corrected_shape)
-        
+        self.newcameramtx, self.roi = cv2.getOptimalNewCameraMatrix(K, D, corrected_shape, 1, corrected_shape)
+
     def kill_threads(self):
         """
         Call to kill loops in all threads
@@ -209,6 +203,10 @@ class TrackingManager:
                     # Draw detections from tracked objects
                     tracking_frame = frame.copy()
                     self.draw_all_predictions_on_frame(tracking_frame)
+
+                    for callback in self.drawing_callbacks:
+                        callback(tracking_frame)
+
                     monitor.update("Tracking", tracking_frame)
 
                     if self._debug_preprocess:
@@ -230,6 +228,8 @@ class TrackingManager:
                     if terminate or not monitor.window_is_alive():
                         self.kill_threads()
                         break
+            else:
+                time.sleep(50)
 
     def start(self, args):
         """

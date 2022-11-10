@@ -5,7 +5,6 @@ import torch
 import numpy as np
 import cv2
 import random
-import time
 
 from RAVE.eye_tracker.EyeTrackerTrainer import EyeTrackerTrainer
 from RAVE.common.image_utils import tensor_to_opencv_image, inverse_normalize
@@ -24,9 +23,6 @@ from RAVE.eye_tracker.ellipse_util import (
     draw_ellipse_on_image,
 )
 
-from RAVE.eye_tracker.GazeInferer.GazeInfererManager import GazeInfererManager
-from RAVE.face_detection.Direction2Pixel import Direction2Pixel
-
 
 def main(
     TRAIN,
@@ -34,7 +30,6 @@ def main(
     CONTINUE_TRAINING,
     DISPLAY_VALIDATION,
     TEST,
-    INFERENCE,
     ANNOTATE,
     FILM,
     GPU_INDEX,
@@ -65,9 +60,7 @@ def main(
     if ANNOTATE:
         annotate(EyeTrackerDataset.EYE_TRACKER_DIR_PATH)
 
-    created_real_dataset = EyeTrackerDatasetBuilder.create_datasets(
-        "real_dataset"
-    )
+    created_real_dataset = EyeTrackerDatasetBuilder.create_datasets("real_dataset")
     if created_real_dataset:
         EyeTrackerDatasetBuilder.create_datasets("old_real_dataset", True)
 
@@ -119,9 +112,7 @@ def main(
 
         min_validation_loss = trainer.train_with_validation(NB_EPOCHS)
 
-    EyeTrackerTrainer.load_best_model(
-        eye_tracker_model, EyeTrackerDataset.EYE_TRACKER_DIR_PATH, DEVICE
-    )
+    EyeTrackerTrainer.load_best_model(eye_tracker_model, EyeTrackerDataset.EYE_TRACKER_DIR_PATH, DEVICE)
 
     if DISPLAY_VALIDATION:
         visualize_predictions(eye_tracker_model, validation_loader, DEVICE)
@@ -142,25 +133,20 @@ def main(
                 images, labels, visibilities = (
                     images.to(DEVICE),
                     labels.to(DEVICE),
-                    labels.to(visibilities),
+                    visibilities.to(DEVICE),
                 )
 
                 # Forward Pass
                 predictions, predicted_visibilities = eye_tracker_model(images)
                 # Find the Loss
                 predicted_pupil_are_visibles = predicted_visibilities > 0.90
-                predictions = (
-                    predictions * predicted_pupil_are_visibles.float()
-                )
+                predictions = predictions * predicted_pupil_are_visibles.float()
                 loss = ellipse_loss_function(predictions, labels)
                 # Calculate Loss
                 test_loss += loss.item()
                 number_of_images += len(images)
 
         print("test loss = {}".format(test_loss / number_of_images))
-
-    if INFERENCE:
-        inference(DEVICE)
 
     return min_validation_loss
 
@@ -179,13 +165,7 @@ def visualize_predictions(model, data_loader, DEVICE):
         for images, labels, visibilities in data_loader:
             images, labels = images.to(DEVICE), labels.to(DEVICE)
             predictions, predicted_visibilities = model(images)
-            for (
-                image,
-                prediction,
-                label,
-                visibility,
-                predicted_visibility,
-            ) in zip(
+            for (image, prediction, label, visibility, predicted_visibility,) in zip(
                 images,
                 predictions,
                 labels,
@@ -201,13 +181,9 @@ def visualize_predictions(model, data_loader, DEVICE):
                 image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
                 if visibility:
-                    image = draw_ellipse_on_image(
-                        image, label, color=(0, 255, 0)
-                    )
+                    image = draw_ellipse_on_image(image, label, color=(0, 255, 0))
                 if predicted_visibility > 0.90:
-                    image = draw_ellipse_on_image(
-                        image, prediction, color=(255, 0, 0)
-                    )
+                    image = draw_ellipse_on_image(image, prediction, color=(255, 0, 0))
 
                 cv2.imshow("validation", image)
                 cv2.waitKey(1500)
@@ -220,7 +196,7 @@ def film(root):
     Args:
         root (string): Root path of the eye tracker module
     """
-    camera_dataset = EyeTrackerFilm(2)
+    camera_dataset = EyeTrackerFilm(1)
     camera_loader = torch.utils.data.DataLoader(
         camera_dataset,
         batch_size=1,
@@ -232,9 +208,7 @@ def film(root):
 
     file_name = input("Enter file name : ")
 
-    output_path = os.path.join(
-        root, EllipseAnnotationTool.WORKING_DIR, "videos", file_name + ".avi"
-    )
+    output_path = os.path.join(root, EllipseAnnotationTool.WORKING_DIR, "videos", file_name + ".avi")
     out = cv2.VideoWriter(
         output_path,
         cv2.VideoWriter_fourcc("M", "J", "P", "G"),
@@ -268,88 +242,9 @@ def annotate(root):
     ellipse_annotation_tool.annotate()
 
 
-def inference(device):
-    """Once the model has been trained, it can be used here to infer the
-       gaze of the user in real time (i.e, do some eye tracking). This is
-       a small test-like/headless script: the user will most likely want to use
-       the eye tracking module by using the web site, which provides a nice GUI
-       The Direction2Pixel class is also used to convert the gaze prediction
-       into a pixel of the vision's module camera (this is then used to select
-       a bounding box of interest (i.e, which person in the room do we want to
-       listen to ?))
-
-    Args:
-        device (string): Torch device (most likely 'cpu' or 'cuda')
-    """
-    gaze_inferer_manager = GazeInfererManager(2, device)
-    head_camera = cv2.VideoCapture(4)
-    head_camera.set(cv2.CAP_PROP_FPS, 30.0)
-
-    out = cv2.VideoWriter(
-        "head_camera.avi",
-        cv2.VideoWriter_fourcc("M", "J", "P", "G"),
-        30,
-        (640, 480),
-    )
-    wait_for_enter("start calibration")
-    gaze_inferer_manager.start_calibration_thread()
-
-    wait_for_enter("end calibration")
-    gaze_inferer_manager.end_calibration_thread()
-
-    wait_for_enter("set offset")
-    gaze_inferer_manager.set_offset()
-    gaze_inferer_manager.save_new_calibration("tmp.json")
-
-    wait_for_enter("start inference")
-    gaze_inferer_manager.set_selected_calibration_path("tmp")
-    gaze_inferer_manager.start_inference_thread()
-
-    FPS = 30.0
-    direction_2_pixel = Direction2Pixel(-16, 21)
-    for i in range(int(60 * FPS)):
-        ret, frame = head_camera.read()
-        time.sleep(1 / FPS)
-        angle_x, angle_y = gaze_inferer_manager.get_current_gaze()
-        x, y = 0, 0
-        if angle_x is not None:
-            print("angle_x = {} | angle_y = {}".format(angle_x, angle_y))
-            x, y = direction_2_pixel.get_pixel(angle_x, angle_y)
-
-        if ret:
-            frame = cv2.flip(frame, 0)
-            frame = cv2.flip(frame, 1)
-            cv2.drawMarker(frame, (x, y), color=(0, 0, 255), thickness=2)
-
-            out.write(frame)
-
-            cv2.imshow("Facial camera", frame)
-            cv2.waitKey(1)
-
-    gaze_inferer_manager.stop_inference()
-    gaze_inferer_manager.end()
-    out.release()
-
-
-def wait_for_enter(msg=""):
-    """Function used by the inference (headless) function to wait for the
-       enter key before we move to the next step of the program
-
-    Args:
-        msg (str, optional): Message to display. Defaults to "".
-    """
-    is_waiting_for_enter = True
-    while is_waiting_for_enter:
-        key = input("Waiting for enter key to {}".format(msg))
-        if key == "":
-            is_waiting_for_enter = False
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "-t", "--train", action="store_true", help="Train the neural network"
-    )
+    parser.add_argument("-t", "--train", action="store_true", help="Train the neural network")
     parser.add_argument(
         "-e",
         "--nb_epochs",
@@ -369,30 +264,13 @@ if __name__ == "__main__":
         "-v",
         "--display_validation",
         action="store_true",
-        help=(
-            "Display the predictions of the neural network on the validation"
-            "dataset"
-        ),
+        help=("Display the predictions of the neural network on the validation" "dataset"),
     )
     parser.add_argument(
         "-p",
         "--predict",
         action="store_true",
-        help=(
-            "Display the predictions of the neural network on the test"
-            "dataset"
-        ),
-    )
-
-    parser.add_argument(
-        "-i",
-        "--inference",
-        action="store_true",
-        help=(
-            "Runs the network in inference mode, that is, the network"
-            "outputs predictions on the images of a video on disk or "
-            "on a real time video feed."
-        ),
+        help=("Display the predictions of the neural network on the test" "dataset"),
     )
 
     parser.add_argument(
@@ -429,7 +307,6 @@ if __name__ == "__main__":
         args.continue_training_from_checkpoint,
         args.display_validation,
         args.predict,
-        args.inference,
         args.annotate,
         args.film,
         args.gpu_index,

@@ -1,4 +1,5 @@
 import argparse
+import os
 from time import sleep
 
 from RAVE.AppManager import AppManager
@@ -9,6 +10,8 @@ CAMERA_DATA = """<?xml version='1.0'?><opencv_storage><cameraMatrix type_id='ope
 </cameraMatrix><distCoeffs type_id='opencv-matrix'><rows>5</rows><cols>1</cols><dt>f</dt>
 <data>-3.07926877e-01 9.16280959e-02 9.46074597e-04 3.07906550e-04 -1.17169354e-02</data>
 </distCoeffs></opencv_storage>"""
+
+os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Web interface for face tracking")
@@ -96,9 +99,16 @@ if __name__ == "__main__":
         help="If true, will show the detector debug window",
         action="store_true",
     )
+    parser.add_argument(
+        "--debug",
+        dest="debug",
+        help="Display some debugging information",
+        action="store_true",
+    )
     args = parser.parse_args()
 
     manager = AppManager(args)
+
     try:
         manager.start()
         while True:
