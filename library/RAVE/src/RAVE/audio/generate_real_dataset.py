@@ -38,7 +38,7 @@ def run_generator_loop(source_queue, worker_num, run_params, configs, file_cnt):
         audio_paths = source_queue.get()
 
         # Run generator
-        file_increment, dataset_list = dataset_builder.generate_dataset(source_paths=audio_paths, save_run=True)
+        file_increment = dataset_builder.generate_dataset(source_paths=audio_paths, save_run=True)
 
         # Add results
         with file_cnt.get_lock():

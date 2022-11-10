@@ -40,7 +40,7 @@ def run_generator_loop(source_queue, worker_num, run_params, configs, file_cnt, 
         audio_file = source_queue.get()
 
         # Run generator
-        file_increment, dataset_list = dataset_builder.generate_dataset(source_path=audio_file, save_run=True)
+        file_increment = dataset_builder.generate_dataset(source_path=audio_file, save_run=True)
 
         # Add results
         with file_cnt.get_lock():
@@ -82,9 +82,9 @@ def main(SOURCES, NOISES, OUTPUT, DEBUG, WORKERS, REVERB):
     source_paths_list = glob(os.path.join(SOURCES, '*.wav'))
     for source_path in source_paths_list:
         file_queue.put(source_path)
-    configs = AudioDatasetBuilder.load_configs(CONFIGS_PATH)
+    configs = AudioDatasetBuilderSim.load_configs(CONFIGS_PATH)
     print(f"Starting to generate dataset with {configs}.")
-    total_file_cnt = len(source_paths_list) * configs['sample_per_speech']
+    total_file_cnt = len(source_paths_list) * AudioDatasetBuilderSim.sample_per_speech
     print(f'Generating {total_file_cnt} dataset elements into {OUTPUT}')
 
     # Shared global variables

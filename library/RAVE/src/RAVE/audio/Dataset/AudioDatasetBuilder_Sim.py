@@ -42,29 +42,36 @@ class AudioDatasetBuilderSim(AudioDatasetBuilder):
 
     user_dir = []
     xy_angle = 0
+    receiver_height = 1.5
 
+    # Room configs
+    room_shapes = [  # List of various room shapes. Uses corners with polygon.
+        [[0, 0], [0, 1], [1, 1], [1, 0]],
+        [[0, 0.33], [0, 0.66], [0.33, 1], [0.66, 1], [1, 0.66], [1, 0.33], [0.66, 0], [0.33, 0]],
+        [[0, 0.33], [0, 0.66], [0.5, 1], [1, 0.66], [1, 0.33], [0.5, 0]]
+    ]
+    reverb_room_shapes = [  # Rooms that can only be used with reverb (L and Z shapes)
+        [[0, 0], [0, 1], [1, 1], [1, 0.5], [0.5, 0.5], [0.5, 0]],
+        [[0, 0], [0, 0.25], [0.5, 0.25], [0.5, 1], [1, 1], [1, 0]],
+        [[0, 0], [0, 0.25], [0.25, 0.25], [0.25, 1], [1, 1], [1, 0.75], [0.75, 0.75], [0.75, 0]],
+    ]
+    # Random room size multiplication factor limits ([[xmin, xmax], [ymin, ymax], [zmin, zmax]])
+    room_sizes = [[10, 100], [10, 100], [3, 20]]
     current_room = []
     current_room_shape = []
 
-    receiver_height = 1.5
+    # Noise configs
+    sample_per_speech = 5
+    # RIR configs
+    wall_absorption_limits = [0.75, 1]
+    rir_reflexion_order = 5
+    air_absorption = True
+    air_humidity = 40
 
     def __init__(self, output_path, debug, configs):
 
         self.is_sim = True
         super().__init__(output_path, debug, configs)
-
-        # TODO: Split configs between real and sim
-        # Room configs
-        self.room_shapes = self.configs["room_shapes"]
-        self.reverb_room_shapes = self.configs["reverb_room_shapes"]
-        self.room_sizes = self.configs["room_sizes"]
-        # Noise configs
-        self.sample_per_speech = self.configs["sample_per_speech"]
-        # RIR configs
-        self.wall_absorption_limits = self.configs["wall_absorption_limits"]
-        self.rir_reflexion_order = self.configs["rir_reflexion_order"]
-        self.air_absorption = self.configs["air_absorption"]
-        self.air_humidity = self.configs["air_humidity"]
 
         # Init
         self.receiver_abs = None
@@ -626,14 +633,17 @@ class AudioDatasetBuilderSim(AudioDatasetBuilder):
                 speech_noise_count = -1
 
             # Transform data to pydub AudioSegments
+            # TODO: MOVE BACK TO NUMPY PURELY
             for audio_type in audio_source_dict.values():
                 for audio_sample in audio_type:
-                    audio_data = audio_sample['signal']
+                    audio_data = audio_sample['signal_w_rir'][0]
+                    audio_data_32 = audio_data.astype(np.float32)
                     pydub_audio_segment = AudioSegment(
-                        audio_data.tobytes(),
+                        audio_data_32.tobytes(),
                         frame_rate=self.sample_rate,
-                        sample_width=audio_data.dtype.itemsize,
-                        channels=self.n_channels
+                        sample_width=audio_data_32.dtype.itemsize,
+                        # channels=self.n_channels
+                        channels=1
                     )
                     audio_sample['audio_segment'] = pydub_audio_segment
 

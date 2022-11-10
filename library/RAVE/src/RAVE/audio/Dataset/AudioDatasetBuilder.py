@@ -101,6 +101,9 @@ class AudioDatasetBuilder:
         """
         audio_signal, fs = sf.read(file_path)
 
+        # if audio_signal.dtype == np.float64:
+        #     audio_signal = audio_signal.astype(np.float32)
+
         if fs != sample_rate:
             print(f"ERROR: Sample rate of files ({fs}) do not concord with SAMPLE RATE={sample_rate}")
             print(f"Use sample_adjustment python file to adjust sample rate.")
