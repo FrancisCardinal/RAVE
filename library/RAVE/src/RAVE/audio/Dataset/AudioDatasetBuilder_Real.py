@@ -30,6 +30,7 @@ class AudioDatasetBuilderReal(AudioDatasetBuilder):
     def parse_real_dir(location_str):
         """
         Transform the location string from recorded samples to coords.
+
         Args:
             location_str: String containing speech direction (form (y, x, z), 170_m80_m10) in cm).
 
@@ -187,7 +188,6 @@ class AudioDatasetBuilderReal(AudioDatasetBuilder):
             self.combine_sources(audio_source_dict, ["dir_noise"], "combined_noise", noise=True)
 
             # Combine source with noises at a random SNR between limits
-            # TODO: CHECK SNR IF IT WORKS CORRECTLY
             self.snr = np.random.rand() * (self.snr_limits[1] - self.snr_limits[0]) + self.snr_limits[0]
             if self.is_debug: total_snr += self.snr
             self.combine_sources(audio_source_dict, ["speech", "combined_noise"], "combined_audio", snr=self.snr)

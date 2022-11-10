@@ -203,8 +203,6 @@ class AudioDatasetBuilderSim(AudioDatasetBuilder):
             snr (float): Signal to Noise Ratio (in amplitude).
         """
 
-        # TODO: REFACTOR, maybe use pydub for all combinations?
-
         audio_dict[output_name] = [
             {
                 "name": "",
@@ -240,7 +238,6 @@ class AudioDatasetBuilderSim(AudioDatasetBuilder):
             audio_dict[output_name][0]['signal_w_rir'] /= source_count
 
     @staticmethod
-    # Function to mix clean speech and noise at various SNR levels
     def snr_mixer(clean, noise, snr):
         """
         Mixes snr for clean and noise signal
@@ -253,24 +250,20 @@ class AudioDatasetBuilderSim(AudioDatasetBuilder):
             Clean signal (with snr), noise signal (with snr) and noisy_speech (combined) with snr.
         """
 
-        # TODO: Remove if using pydub for overlay and snr mixing
-
-        ## https://stackoverflow.com/a/72124325/12059223
-        # this is important if loading resulted in uint8 or uint16 types, because it would cause overflow
         clean = clean.astype(np.float32)
         noise = noise.astype(np.float32)
 
-        # get the initial energy for reference
+        # Get initial energy for reference
         clean_energy = np.mean(clean ** 2)
         noise_energy = np.mean(noise ** 2)
-        # calculates the gain to be applied to the noise to achieve the given SNR
+        # Calculates gain to be applied to the noise to achieve the given SNR
         g = np.sqrt(10.0 ** (-snr / 10) * clean_energy / noise_energy)
 
         # Assumes signal and noise to be decorrelated and calculate (a, b) such that energy of
         # a*signal + b*noise matches the energy of the input signal
         a = np.sqrt(1 / (1 + g ** 2))
         b = np.sqrt(g ** 2 / (1 + g ** 2))
-        # mix the signals
+        # Mix the signals
         new_clean = a * clean
         new_noise = b * noise
         combined = new_clean + new_noise
@@ -410,7 +403,6 @@ class AudioDatasetBuilderSim(AudioDatasetBuilder):
                 float(np.random.randint(self.wall_absorption_limits[0] * 100, self.wall_absorption_limits[1] * 100))
                 / 100.0
             )
-        # TODO: CHECK WALL_ABSORPTION AND SCATTERING VALUES
         mat = pra.Material(float(self.rir_wall_absorption), 0.1)
         room = pra.Room.from_corners(
             corners,
@@ -429,7 +421,7 @@ class AudioDatasetBuilderSim(AudioDatasetBuilder):
         """
         Generate absolute position for user (and for receivers).
         """
-        # TODO: GENERATE A NOISE SPEECH SOURCE ON USER TO REPRESENT USER TALKING?
+        # TODO: generate a noise speech source on user to represent user talking?
 
         # Get random position and assign x and y wth sound margins (user not stuck on wall)
         self.user_pos = self.get_random_position(user=True)
@@ -447,7 +439,7 @@ class AudioDatasetBuilderSim(AudioDatasetBuilder):
                 break
         self.user_dir = [x_dir, y_dir, z_dir]
 
-        # TODO: IMPLEMENT HEIGHT TILT
+        # TODO: implement height tilt
         # For every receiver, set x and y by room dimension and add human height as z
         self.receiver_abs = []
         for receiver in self.receiver_rel:
@@ -458,8 +450,7 @@ class AudioDatasetBuilderSim(AudioDatasetBuilder):
             self.receiver_abs.append(receiver_center)
 
         # Generate user head wall corners
-        # TODO: GENERATE HEAD CLOSER TO CIRCLE THAN SQUARE?
-        # TODO: DONT GENERATE HEAD DIRECTLY BEHIND MICROPHONES
+        # TODO: generate head with circle instead of square
         rel_corners = self.receiver_rel
         abs_top_corners = []
         abs_bot_corners = []
@@ -590,7 +581,7 @@ class AudioDatasetBuilderSim(AudioDatasetBuilder):
         Returns:
             False if RIR was broken on one channel.
         """
-        # TODO: MOVING RIR
+        # TODO: moving rir?
 
         # Generate RIRs
         self.current_room.compute_rir()
@@ -598,7 +589,7 @@ class AudioDatasetBuilderSim(AudioDatasetBuilder):
         rirs = np.array(rir_list, dtype=object)
 
         # Normalise RIR
-        # TODO: CHECK FOR TRUE DIVIDE
+        # TODO: find problem with true divide (/0) instead of just crashing out
         for channel_idx, channel_rirs in enumerate(rirs):
             for rir in channel_rirs:
                 max_val = np.max(np.abs(rir))

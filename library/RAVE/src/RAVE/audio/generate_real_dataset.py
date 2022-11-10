@@ -13,7 +13,6 @@ from multiprocessing import Process, Queue, Value, Array
 sys.path.insert(1, './Dataset')
 from Dataset.AudioDatasetBuilder_Real import AudioDatasetBuilderReal
 
-# CONFIGS_PATH = 'C:\\GitProjet\\RAVE\\library\\RAVE\\src\\RAVE\\audio\\Dataset\\' + 'dataset_config.yaml'
 CONFIGS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'Dataset', 'dataset_config.yaml')
 
 
@@ -77,17 +76,13 @@ def main(SOURCE, OUTPUT, DEBUG, WORKERS):
 
     # Load sources per room
     user_pos_paths = [os.path.normpath(i) for i in glob(os.path.join(SOURCE, '*', '*'))]
-    # rooms = [[room_name] for room_name in room_paths[-1]]
     for user_pos_path in user_pos_paths:
-        # room = os.path.split(room_path)[-1]
 
         speech_paths = glob(os.path.join(user_pos_path, 'speech', '**', 'audio.wav'))
         noise_paths = glob(os.path.join(user_pos_path, 'noise', '**', 'audio.wav'))
 
         for idx, speech_path in enumerate(speech_paths):
             other_speech = speech_paths[:idx] + speech_paths[idx+1:]
-            # split_path = speech_path.split(os.path.sep)
-            # location = split_path[len(os.path.split(room_path))+2]
 
             # Speech configs
             config_path = os.path.join(os.path.split(speech_path)[0], 'configs.yaml')
@@ -105,12 +100,9 @@ def main(SOURCE, OUTPUT, DEBUG, WORKERS):
             audio_queue.put(real_audio_dict)
 
     print(f"Starting to generate dataset with {configs}.")
-    # total_file_cnt = len(source_paths_list) * configs['sample_per_speech']
-    # print(f'Generating {total_file_cnt} dataset elements into {OUTPUT}')
 
     # Shared global variables
     file_cnt = Value('i', 0)
-    # total_cnt = Value('i', total_file_cnt)
 
     # Start workers
     for w in range(1, WORKERS+1):

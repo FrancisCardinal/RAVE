@@ -50,7 +50,6 @@ class AudioDatasetBuilder:
         if not self.is_debug:
             matplotlib.use("Agg")
 
-        # TODO: Split configs between real and sim
         # Load params/configs
         self.configs = configs
         # Noise configs
