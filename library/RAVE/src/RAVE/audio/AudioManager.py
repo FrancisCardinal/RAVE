@@ -25,7 +25,7 @@ FILE_PARAMS_MONO = (
     "NONE",
     "not compressed",
 )
-TARGET = np.array([0, 1, 0.5])
+TARGET = [0, 1, 0.5]
 
 EPSILON = 1e-9
 MIN_DB_VAL = 20 * np.log10(EPSILON)
@@ -879,6 +879,8 @@ class AudioManager:
                 self.output_sink(data=out, sink_name="output")
                 continue
 
+            x = torch.from_numpy(x).to(self.device)
+
             # Temporal to Frequential
             self.check_time(name="stft", is_start=True)
             x = torch.from_numpy(x).to(self.device)
@@ -919,6 +921,8 @@ class AudioManager:
             self.check_time(name="istft", is_start=True)
             y = self.sink_dict["output"]["istft"](Y)
             self.check_time(name="istft", is_start=False)
+
+            y = y.detach().cpu().numpy()
 
             # Output fully processed data
             # out = y
