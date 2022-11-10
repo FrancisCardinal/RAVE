@@ -328,7 +328,7 @@ class AudioManager:
         Sets the gain to control output volume.
 
         Args:
-            gain (int): Array containing the target direction, time delay between microphones or None.
+            gain (float): Array containing the target direction, time delay between microphones or None.
         """
         self.gain = gain
 
