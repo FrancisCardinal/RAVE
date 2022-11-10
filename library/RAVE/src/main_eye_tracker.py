@@ -5,20 +5,18 @@ import torch
 import numpy as np
 import cv2
 import random
+import time
 
-from RAVE.common.DANNTrainer import DANNTrainer
+from RAVE.eye_tracker.EyeTrackerTrainer import EyeTrackerTrainer
 from RAVE.common.image_utils import tensor_to_opencv_image, inverse_normalize
 
 from RAVE.eye_tracker.EyeTrackerDataset import (
     EyeTrackerDataset,
-    EyeTrackerInferenceDataset,
+    EyeTrackerFilm,
 )
 
 from RAVE.eye_tracker.EllipseAnnotationTool import EllipseAnnotationTool
 from RAVE.eye_tracker.EyeTrackerDatasetBuilder import EyeTrackerDatasetBuilder
-from RAVE.eye_tracker.EyeTrackerSyntheticDatasetBuilder import (
-    EyeTrackerSyntheticDatasetBuilder,
-)
 
 from RAVE.eye_tracker.EyeTrackerModel import EyeTrackerModel
 from RAVE.eye_tracker.ellipse_util import (
@@ -27,6 +25,7 @@ from RAVE.eye_tracker.ellipse_util import (
 )
 
 from RAVE.eye_tracker.GazeInferer.GazeInfererManager import GazeInfererManager
+from RAVE.face_detection.Direction2Pixel import Direction2Pixel
 
 
 def main(
@@ -66,9 +65,11 @@ def main(
     if ANNOTATE:
         annotate(EyeTrackerDataset.EYE_TRACKER_DIR_PATH)
 
-    created_real_dataset = EyeTrackerDatasetBuilder.create_datasets()
+    created_real_dataset = EyeTrackerDatasetBuilder.create_datasets(
+        "real_dataset"
+    )
     if created_real_dataset:
-        EyeTrackerSyntheticDatasetBuilder.create_datasets(True)
+        EyeTrackerDatasetBuilder.create_datasets("old_real_dataset", True)
 
     BATCH_SIZE = 128
     training_sub_dataset = EyeTrackerDataset.get_training_sub_dataset()
@@ -98,10 +99,13 @@ def main(
 
     min_validation_loss = float("inf")
     if TRAIN:
-        optimizer = torch.optim.AdamW(eye_tracker_model.parameters(), lr=lr,)
+        optimizer = torch.optim.AdamW(
+            eye_tracker_model.parameters(),
+            lr=lr,
+        )
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer)
 
-        trainer = DANNTrainer(
+        trainer = EyeTrackerTrainer(
             training_loader,
             validation_loader,
             ellipse_loss_function,
@@ -115,7 +119,7 @@ def main(
 
         min_validation_loss = trainer.train_with_validation(NB_EPOCHS)
 
-    DANNTrainer.load_best_model(
+    EyeTrackerTrainer.load_best_model(
         eye_tracker_model, EyeTrackerDataset.EYE_TRACKER_DIR_PATH, DEVICE
     )
 
@@ -134,12 +138,20 @@ def main(
         )
         with torch.no_grad():
             test_loss, number_of_images = 0, 0
-            for images, labels, _ in test_loader:
-                images, labels = images.to(DEVICE), labels.to(DEVICE)
+            for images, labels, visibilities in test_loader:
+                images, labels, visibilities = (
+                    images.to(DEVICE),
+                    labels.to(DEVICE),
+                    labels.to(visibilities),
+                )
 
                 # Forward Pass
-                predictions, _ = eye_tracker_model(images)
+                predictions, predicted_visibilities = eye_tracker_model(images)
                 # Find the Loss
+                predicted_pupil_are_visibles = predicted_visibilities > 0.90
+                predictions = (
+                    predictions * predicted_pupil_are_visibles.float()
+                )
                 loss = ellipse_loss_function(predictions, labels)
                 # Calculate Loss
                 test_loss += loss.item()
@@ -164,10 +176,22 @@ def visualize_predictions(model, data_loader, DEVICE):
         DEVICE (String): Device on which to perform the computations
     """
     with torch.no_grad():
-        for images, labels, _ in data_loader:
+        for images, labels, visibilities in data_loader:
             images, labels = images.to(DEVICE), labels.to(DEVICE)
-            predictions, _ = model(images)
-            for image, prediction, label in zip(images, predictions, labels):
+            predictions, predicted_visibilities = model(images)
+            for (
+                image,
+                prediction,
+                label,
+                visibility,
+                predicted_visibility,
+            ) in zip(
+                images,
+                predictions,
+                labels,
+                visibilities,
+                predicted_visibilities,
+            ):
                 image = inverse_normalize(
                     image,
                     EyeTrackerDataset.TRAINING_MEAN,
@@ -176,22 +200,35 @@ def visualize_predictions(model, data_loader, DEVICE):
                 image = tensor_to_opencv_image(image)
                 image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-                image = draw_ellipse_on_image(image, label, color=(0, 255, 0))
-                image = draw_ellipse_on_image(
-                    image, prediction, color=(255, 0, 0)
-                )
+                if visibility:
+                    image = draw_ellipse_on_image(
+                        image, label, color=(0, 255, 0)
+                    )
+                if predicted_visibility > 0.90:
+                    image = draw_ellipse_on_image(
+                        image, prediction, color=(255, 0, 0)
+                    )
 
                 cv2.imshow("validation", image)
                 cv2.waitKey(1500)
 
 
 def film(root):
-    camera_dataset = EyeTrackerInferenceDataset(2, True)
+    """Films a video (most likely a video that will be part of the dataset
+       once annoted)
+
+    Args:
+        root (string): Root path of the eye tracker module
+    """
+    camera_dataset = EyeTrackerFilm(2)
     camera_loader = torch.utils.data.DataLoader(
-        camera_dataset, batch_size=1, shuffle=False, num_workers=0,
+        camera_dataset,
+        batch_size=1,
+        shuffle=False,
+        num_workers=0,
     )
-    frame_height = EyeTrackerDataset.IMAGE_DIMENSIONS[1]
-    frame_width = EyeTrackerDataset.IMAGE_DIMENSIONS[2]
+    frame_height = EyeTrackerFilm.ACQUISITION_HEIGHT
+    frame_width = EyeTrackerFilm.ACQUISITION_WIDTH
 
     file_name = input("Enter file name : ")
 
@@ -207,17 +244,12 @@ def film(root):
     should_run = True
     while should_run:
         with torch.no_grad():
-            for images, _ in camera_loader:
-                image = inverse_normalize(
-                    images[0],
-                    EyeTrackerDataset.TRAINING_MEAN,
-                    EyeTrackerDataset.TRAINING_STD,
-                )
-                image = tensor_to_opencv_image(image)
+            for frames in camera_loader:
+                frame = frames[0].cpu().numpy()
 
-                out.write(image)
+                out.write(frame)
 
-                cv2.imshow("video", image)
+                cv2.imshow("video", frame)
                 key = cv2.waitKey(1)
 
                 if key == ord("q"):
@@ -227,23 +259,90 @@ def film(root):
 
 
 def annotate(root):
+    """Annotates videos so that they can be part of the dataset
+
+    Args:
+        root (string): Root path of the eye tracker module
+    """
     ellipse_annotation_tool = EllipseAnnotationTool(root)
     ellipse_annotation_tool.annotate()
 
 
 def inference(device):
-    import time
+    """Once the model has been trained, it can be used here to infer the
+       gaze of the user in real time (i.e, do some eye tracking). This is
+       a small test-like/headless script: the user will most likely want to use
+       the eye tracking module by using the web site, which provides a nice GUI
+       The Direction2Pixel class is also used to convert the gaze prediction
+       into a pixel of the vision's module camera (this is then used to select
+       a bounding box of interest (i.e, which person in the room do we want to
+       listen to ?))
 
+    Args:
+        device (string): Torch device (most likely 'cpu' or 'cuda')
+    """
     gaze_inferer_manager = GazeInfererManager(2, device)
+    head_camera = cv2.VideoCapture(4)
+    head_camera.set(cv2.CAP_PROP_FPS, 30.0)
+
+    out = cv2.VideoWriter(
+        "head_camera.avi",
+        cv2.VideoWriter_fourcc("M", "J", "P", "G"),
+        30,
+        (640, 480),
+    )
+    wait_for_enter("start calibration")
     gaze_inferer_manager.start_calibration_thread()
-    time.sleep(5)
+
+    wait_for_enter("end calibration")
+    gaze_inferer_manager.end_calibration_thread()
+
+    wait_for_enter("set offset")
+    gaze_inferer_manager.set_offset()
+    gaze_inferer_manager.save_new_calibration("tmp.json")
+
+    wait_for_enter("start inference")
+    gaze_inferer_manager.set_selected_calibration_path("tmp")
     gaze_inferer_manager.start_inference_thread()
-    for _ in range(500):
-        x, y = gaze_inferer_manager.get_current_gaze()
-        if x is not None:
-            print("x = {} | y = {}".format(x, y))
-        time.sleep(0.01)
+
+    FPS = 30.0
+    direction_2_pixel = Direction2Pixel(-16, 21)
+    for i in range(int(60 * FPS)):
+        ret, frame = head_camera.read()
+        time.sleep(1 / FPS)
+        angle_x, angle_y = gaze_inferer_manager.get_current_gaze()
+        x, y = 0, 0
+        if angle_x is not None:
+            print("angle_x = {} | angle_y = {}".format(angle_x, angle_y))
+            x, y = direction_2_pixel.get_pixel(angle_x, angle_y)
+
+        if ret:
+            frame = cv2.flip(frame, 0)
+            frame = cv2.flip(frame, 1)
+            cv2.drawMarker(frame, (x, y), color=(0, 0, 255), thickness=2)
+
+            out.write(frame)
+
+            cv2.imshow("Facial camera", frame)
+            cv2.waitKey(1)
+
     gaze_inferer_manager.stop_inference()
+    gaze_inferer_manager.end()
+    out.release()
+
+
+def wait_for_enter(msg=""):
+    """Function used by the inference (headless) function to wait for the
+       enter key before we move to the next step of the program
+
+    Args:
+        msg (str, optional): Message to display. Defaults to "".
+    """
+    is_waiting_for_enter = True
+    while is_waiting_for_enter:
+        key = input("Waiting for enter key to {}".format(msg))
+        if key == "":
+            is_waiting_for_enter = False
 
 
 if __name__ == "__main__":

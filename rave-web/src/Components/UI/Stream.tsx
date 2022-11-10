@@ -36,7 +36,10 @@ function Stream() {
     if (roomCanvasRef && roomCanvasRef.current && frame) {
       const canvas = roomCanvasRef.current;
       // Resize canvas
-      [canvas.width, canvas.height] = [frame.dimensions[1], frame.dimensions[0]];
+      if(canvas.width !== frame.dimensions[1] || canvas.height !== frame.dimensions[0]){
+        [canvas.width, canvas.height] = [frame.dimensions[1], frame.dimensions[0]];
+        [canvas.style.maxWidth, canvas.style.maxHeight] = [frame.dimensions[1] + "px", frame.dimensions[0] + "px"];
+      }
       const ctx = canvas.getContext('2d');
       if(ctx){
         ctx && ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
@@ -76,8 +79,8 @@ function Stream() {
     <div className="container px-2">
       <div className="flex flex-col justify-center">
         <BrowserView className="flex justify-center">
-          <div className="flex relative w-4/6 ">
-            <div className="select-none">
+          <div className="flex relative w-4/6 justify-center">
+            <div className="flex select-none">
               {
                 frame?.base64Frame ? 
                   <img src={'data:image/jpeg;base64,' + frame?.base64Frame} alt={'loading...'} /> : 
@@ -89,8 +92,10 @@ function Stream() {
                   width: '100%',
                   height: '100%',
                   position: 'absolute',
-                  top: '0px',
                   left: '0px',
+                  right: '0px',
+                  marginLeft : "auto",
+                  marginRight : "auto",
                   backgroundColor: 'rgba(0,0,0,.1)',
                   cursor: 'pointer',
                 }}
@@ -108,8 +113,10 @@ function Stream() {
                 width: '100%',
                 height: '100%',
                 position: 'absolute',
-                top: '0px',
                 left: '0px',
+                right: '0px',
+                marginLeft : "auto",
+                marginRight : "auto",
                 backgroundColor: 'rgba(0,0,0,.1)',
                 cursor: 'pointer',
               }}

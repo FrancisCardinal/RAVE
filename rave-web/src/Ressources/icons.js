@@ -189,3 +189,36 @@ export function NoIcon(props) {
     </svg>
   );
 }
+
+PlayIcon.propTypes = {
+  className: PropTypes.string,
+}
+export function PlayIcon(props) {
+  return (
+    <svg className={props.className} viewBox="0 0 24 24">
+      <path fill="currentColor" d="M8,5.14V19.14L19,12.14L8,5.14Z" />
+    </svg>
+  );
+}
+
+StopIcon.propTypes = {
+  className: PropTypes.string,
+}
+export function StopIcon(props) {
+  return (
+    <svg className={props.className} viewBox="0 0 24 24">
+      <path fill="currentColor" d="M14,19H18V5H14M6,19H10V5H6V19Z" />
+    </svg>
+  );
+}
+
+CameraIcon.propTypes = {
+  className: PropTypes.string,
+}
+export function CameraIcon(props) {
+  return (
+    <svg className={props.className} viewBox="0 0 24 24">
+      <path fill="currentColor" d="M4,4H7L9,2H15L17,4H20A2,2 0 0,1 22,6V18A2,2 0 0,1 20,20H4A2,2 0 0,1 2,18V6A2,2 0 0,1 4,4M12,7A5,5 0 0,0 7,12A5,5 0 0,0 12,17A5,5 0 0,0 17,12A5,5 0 0,0 12,7M12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9Z" />
+    </svg>
+  );
+}

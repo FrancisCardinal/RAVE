@@ -1,18 +1,22 @@
-import time
 import cv2
 import threading
-import torch
+import numpy as np
 
-from collections import defaultdict
+from .TrackingUpdater import TrackingUpdater
+from .TrackedObjectManager import TrackedObjectManager
 
-# from tqdm import tqdm
+from pyodas.visualize import Monitor
 
-from .face_detectors import DetectorFactory
-from .face_verifiers import VerifierFactory
-from ..common.image_utils import intersection
-from .fpsHelper import FPS
-from pyodas.visualize import VideoSource, Monitor
-from .TrackedObject import TrackedObject
+
+class FrameObject:
+    """
+    Container for frames
+    Associate a frame with an id
+    """
+
+    def __init__(self, frame, id):
+        self.frame = frame
+        self.id = id
 
 
 class TrackingManager:
@@ -27,545 +31,212 @@ class TrackingManager:
         intersection_threshold (float):
             Threshold on the intersection criteria for reassigning an id to
             a bounding box
+        verifier_threshold (float):
+            Threshold for the verifier when comparing faces for a matches
         visualize (bool): If true, will show the different tracking frames
 
     Attributes:
-        count (int): for assigning ids.
-        last_frame (ndarray): Last frame acquired by the camera
-        tracked_objects (dict of TrackedObject):
-            dictionary of all faces currently being tracked having been
-            confirmed
-        _tracker_type (str): type of tracker
-        _pre_tracked_objects (dict of TrackedObject):
-            dictionary of all faces currently being in the process of being
-            confirmed
-        _rejected_objects (dict of TrackedObject):
-            dictionary of all faces rejected by post-process
-        _frequency (float):
-            The frequency at which the detector/verifier are called
-        _intersection_threshold (float):
-            Threshold for reassigning an id to a new bbox
-        _detector (Detector): Network doing the detection job
-        _last_detect (float): The time of the last detection.
-        _is_alive (bool): whether the loops should be running or not
+        object_manager (TrackedObjectManager):
+            Instance of class that handles the tracked objects
+        updater (TrackingUpdater):
+            Instance of the class that handles detector updates, face
+            re-identification and association
+        is_alive (bool): whether the loops should be running or not
+        _visualize (bool): If true, will show the different tracking frames
     """
 
     def __init__(
         self,
+        cap,
         tracker_type,
         detector_type,
         verifier_type,
         frequency,
-        intersection_threshold=0.2,
+        intersection_threshold=-0.25,
+        verifier_threshold=0.25,
         visualize=True,
+        tracking_or_calib=lambda: True,
     ):
-        self._tracker_type = tracker_type
+        self.object_manager = TrackedObjectManager(tracker_type)
+        self.updater = TrackingUpdater(
+            detector_type,
+            verifier_type,
+            self.object_manager,
+            frequency,
+            intersection_threshold,
+            verifier_threshold,
+        )
 
-        self.tracked_objects = {}
-        self._pre_tracked_objects = {}
-        self._rejected_objects = {}
-
-        self._frequency = frequency
-        self._intersection_threshold = intersection_threshold
-        self.count = 0
-
-        self._detector = DetectorFactory.create(detector_type)
-        self.last_frame = None
-        self._last_detect = 0
-        self._is_alive = False
+        self._cap = cap
+        self.is_alive = False
         self._visualize = visualize
+        self.frame_count = 0
+        self._tracking_or_calib = tracking_or_calib
 
-        if torch.cuda.is_available():
-            device = "cuda"
-        else:
-            device = "cpu"
-
-        self._verifier = VerifierFactory.create(
-            verifier_type, threshold=0.25, device=device
-        )
-
-    def tracking_count(self):
+    def precompute_undistort(self):
         """
-        Returns:
-            int: The number of tracked objects
+        Pre-calculations for undistortion of images
         """
-        return len(self.tracked_objects)
 
-    # Returns a dictionary combining pre-tracked and tracked objects
-    def get_all_objects(self):
+        K = np.array([[340.60994606, 0.0, 325.7756748], [0.0, 341.93970667, 242.46219777], [0.0, 0.0, 1.0]])
+        D = np.array([[-3.07926877e-01, 9.16280959e-02, 9.46074597e-04, 3.07906550e-04, -1.17169354e-02]])
+
+        corrected_shape = (self._cap.shape[1], self._cap.shape[0])
+        newcameramtx, self.roi = cv2.getOptimalNewCameraMatrix(K, D, corrected_shape, 1, corrected_shape)
+        self.mapx, self.mapy = cv2.initUndistortRectifyMap(K, D, None, newcameramtx, corrected_shape, 5)
+
+    def undistort(self, frame):
         """
-        Returns:
-            dict of TrackedObject:
-                Dictionary of all faces being tracked confirmed and unconfirmed
+        Remove fish-eye distortion from frame
         """
-        return {**self.tracked_objects, **self._pre_tracked_objects}
 
-    # Assumed to be called from main thread only
-    def new_identifier(self):
+        if self.roi is None or self.mapx is None or self.mapy is None:
+            self.precompute_undistort()
+
+        # Undistort
+        frame = cv2.remap(frame, self.mapx, self.mapy, cv2.INTER_LINEAR)
+        x, y, w, h = self.roi
+        frame = frame[y : y + h, x : x + w]
+        corrected_shape = (self._cap.shape[1], self._cap.shape[0])
+        frame = cv2.resize(frame, corrected_shape)
+
+        return frame
+
+    def kill_threads(self):
         """
-        Used to assign a new id to a new tracking object
-        Returns:
-            int:
-                A new id
+        Call to kill loops in all threads
         """
-        new_id = str(self.count)
-        self.count += 1
-        return new_id
+        self.is_alive = False
+        self.updater.is_alive = False
 
-    # Register a new object to tracker. Assumed to be called from main thread
-    def add_tracked_object(self, frame, bbox, mouth):
-        """
-        Creates a new TrackedObject for the new bbox and adds it to the
-        pre-tracked list. It also starts the tracking thread.
-
-        Args:
-            frame (ndarray):
-                current frame with shape HxWx3
-            bbox (list):
-                in format x,y,w,h (superior left corner)
-            mouth (list):
-                The position of the mouth in x,y
-        """
-        new_id = self.new_identifier()
-        new_tracked_object = TrackedObject(
-            self._tracker_type, frame, bbox, mouth, new_id
-        )
-        self._pre_tracked_objects[new_tracked_object.id] = new_tracked_object
-        self.start_tracking_thread(new_tracked_object)
-
-    def start_tracking_thread(self, tracked_object):
-        """
-        Start the tracker with the tracked_object
-
-        Args:
-            tracked_object (TrackedObject): The object to track
-        """
-        new_thread = threading.Thread(
-            target=self.track_loop, args=(tracked_object,), daemon=True
-        )
-        new_thread.start()
-
-    def remove_tracked_object(self, identifier):
-        """
-        Remove tracked object from the tracked_object dictionary
-        and add it to the _rejected_objects
-
-        Args:
-            identifier (int):
-                id of the tracked object to be removed
-        """
-        rejected_object = self.tracked_objects.pop(identifier)
-        self._rejected_objects[identifier] = rejected_object
-
-    def restore_rejected_object(self, identifier, pre_tracked_object):
-        """
-        Remove tracked object from the _rejected_objects dictionary
-        and add it to the tracked_object. Also start the tracking thread
-
-        Args:
-            identifier (int):
-                id of the rejected object to be restored
-            pre_tracked_object (TrackedObject):
-                Object created upon detection of this face, but will now be
-                replaced by the restored object. This object if useful because
-                it contains information on the new detection (ex.: bbox
-                position)
-        """
-        restored_object = self._rejected_objects.pop(identifier)
-        restored_object.restore(pre_tracked_object)
-        self.tracked_objects[identifier] = restored_object
-        self.start_tracking_thread(restored_object)
-
-    def remove_pre_tracked_object(self, identifier):
-        """
-        Remove tracked object from the _pre_tracked_object dictionary
-
-        Args:
-            identifier (int):
-                id of the tracked object to be removed
-        """
-        self._pre_tracked_objects.pop(identifier)
-
-    def stop_tracking(self):
-        """
-        Remove all items from the tracked_objects dictionary
-        """
-        self.tracked_objects = {}
-        self._pre_tracked_objects = {}
-        self._rejected_objects = {}
-
-    def track_loop(self, tracked_object):
-        """
-        Thread worker for calling the tracker on the TrackedObject
-
-        Args:
-            tracked_object (TrackedObject): The object to track
-        """
-        # with tqdm(desc=f"{tracked_object.id}", total=25000) as pbar:
-        while (
-            tracked_object in self.tracked_objects.values()
-            or tracked_object in self._pre_tracked_objects.values()
-        ):
-            frame = self.last_frame
-
-            if frame is None:
-                print("No frame received")
-                continue
-
-            # Make sure tracker is ready to use
-            if not tracked_object.tracker_started:
-                continue
-
-            success, box = tracked_object.tracker.update(frame)
-            # pbar.update()
-            if success:
-                xywh_rect = [int(v) for v in box]
-                tracked_object.update_bbox(xywh_rect)
-
-        print(f"Stopped tracking object {tracked_object.id}")
-
-    def listen_keyboard_input(self, frame, key_pressed):
+    def listen_keyboard_input(self, frame_object, key_pressed):
         """
         Opencv keyboard input handler for defining object to track manually
         or exiting the program.
 
         q or escape exits
         x removes the last tracked object
-        s lets you defined an object to track
+        f shows history of faces captured for each tracked object
 
         Args:
             frame (ndarray): current frame with shape HxWx3
             key_pressed (int): key pressed on the opencv window
         """
         key = key_pressed & 0xFF
-        if key == ord("s"):
-            # Select object to track manually
-            selected_roi = cv2.selectROI(
-                "Frame", frame, fromCenter=False, showCrosshair=True
-            )
-            self.add_tracked_object(frame, selected_roi, None)
-        elif key == ord("x"):
+        if key == ord("x"):
             # Remove last tracked object
-            if len(self.tracked_objects) > 0:
-                self.tracked_objects.popitem()
+            if len(self.object_manager.tracked_objects) > 0:
+                self.object_manager.tracked_objects.popitem()
+        elif key == ord("f"):
+            # Show memory of faces for each tracked object
+            tracked_objects = list(self.object_manager.tracked_objects.values())
+            if len(tracked_objects) == 0:
+                return
+            slot_count = max([len(obj.encoding.all_faces) for obj in tracked_objects])
+            output = []
+            for obj in tracked_objects:
+                face_images = []
+                for i in range(slot_count):
+                    if len(obj.encoding.all_faces) > i:
+                        face_image = obj.encoding.all_faces[i]
+                        face_image = cv2.resize(face_image, (150, 150))
+                        face_images.append(face_image)
+                    else:
+                        face_images.append(np.zeros((150, 150)))
+                output.append(np.concatenate(face_images, axis=1))
+
+            if output:
+                output = np.concatenate(output, axis=0)
+                cv2.imshow("Detected faces", output)
+                cv2.waitKey(10)
+
         elif key == ord("q") or key == 27:
             return True
 
-    def draw_prediction_on_frame(self, frame, tracked_object):
+    def draw_all_predictions_on_frame(self, tracking_frame):
         """
-        Draw the tracker prediction on the frame
+        Draw the prediction for each tracked object on a frame
 
         Args:
             frame (ndarray): current frame with shape HxWx3
-            tracked_object (TrackedObject): tracked object to be drawn
         """
-        x, y, w, h = tracked_object.bbox
-        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-        cv2.putText(
-            frame,
-            tracked_object.id,
-            (x, y - 2),
-            0,
-            1,
-            [0, 0, 255],
-            thickness=2,
-            lineType=cv2.LINE_AA,
-        )
+
+        all_tracked_objects = list(self.object_manager.tracked_objects.values())
+        for i in range(len(all_tracked_objects)):
+            if len(all_tracked_objects) <= i:
+                break
+
+            tracked_object = all_tracked_objects[i]
+            if tracked_object.bbox is None:
+                continue
+            tracked_object.draw_prediction_on_frame(tracking_frame)
+
+            # Draw mouth point
+            mouth = tracked_object.landmark
+            if mouth is not None:
+                x_mouth, y_mouth = mouth
+                cv2.circle(tracking_frame, (x_mouth, y_mouth), 5, [0, 0, 255], -1)
+
+        return tracking_frame
+
+    def process_frame(self, frame):
+        if self.flip_frame:
+            frame = cv2.flip(frame, 0)
+
+        if self.undistort_frame:
+            frame = self.undistort(frame)
 
         return frame
 
-    def match_faces_by_iou(self, objects, detections):
-        """
-        Performs association between trackable objects and bouding boxes from
-        detection by analyzing the intersection overlap and applying a
-        threshold
-
-        Args:
-            objects (dict of id(str):objects): dict of objects to match
-            detections (list of Detection): the detections containing the xywh
-                bboxes to match
-
-        Returns:
-            matched_pairs (list of tuples: (object, detection)): contains the
-                matched pairs between objects and detections
-            unmatched_objects (dict of id(str):objects): dict of all objects
-                that were not matched with predictions
-            unmatched_detections (list of detections): list of detections that
-                were not matched with an object
-        """
-
-        matched_pairs = []
-        unmatched_objects = objects.copy()
-        unmatched_detections = []
-        for i, detection in enumerate(detections):
-            intersection_scores = defaultdict(lambda: 0)
-
-            for tracker_id, trackable_object in unmatched_objects.items():
-                intersection_scores[tracker_id] = intersection(
-                    detection.bbox, trackable_object.bbox
-                )
-
-            max_id = None
-            if intersection_scores:
-                max_id = max(intersection_scores, key=intersection_scores.get)
-
-            if (
-                intersection_scores
-                and intersection_scores[max_id] > self._intersection_threshold
-            ):
-                # A face was matched
-                matched_pairs.append((objects[max_id], detection))
-                unmatched_objects.pop(max_id)
-            else:
-                # A new object was discovered
-                unmatched_detections.append(detection)
-
-        return matched_pairs, unmatched_objects, unmatched_detections
-
-    def associate_faces(self, frame, detections):
-        """
-        Associate predictions to objects currently being tracked
-
-        Args:
-            frame (ndarray): current frame with shape HxWx3
-            detections (list of Detection): each Detection contains a bounding
-                box is in the x,y,w,h format and a mouth landmark point in
-                the x,y format
-        """
-
-        all_tracked_objects = self.get_all_objects()
-        (
-            matched_pairs,
-            unmatched_objects,
-            unmatched_detections,
-        ) = self.match_faces_by_iou(all_tracked_objects, detections)
-
-        # Handle matches
-        for pair in matched_pairs:
-            # A face was matched
-            obj, detection = pair
-            if obj.id in self.tracked_objects.keys():
-                # Do not reset pre-tracked objects
-                self.tracked_objects[obj.id].reset(
-                    frame, detection.bbox, detection.mouth
-                )
-                self.tracked_objects[obj.id].increment_evaluation_frames()
-
-        # Handle unmatched detections
-        for new_detection in unmatched_detections:
-            # A new object was discovered
-            self.add_tracked_object(
-                frame, new_detection.bbox, new_detection.mouth
-            )
-
-        # Reject unmatched tracked objects
-        for obj_id, obj in unmatched_objects.items():
-            if obj.id in self.tracked_objects.keys():
-                tracked_object = self.tracked_objects[obj.id]
-                tracked_object.reject()
-                if tracked_object.rejected:
-                    self.remove_tracked_object(obj.id)
-                    print("Rejecting tracked object:", obj.id)
-
-    def compare_encoding_to_objects(self, objects, encoding_to_compare):
-        """
-        WIP: will be modified
-        Args:
-            ...
-        Returns:
-            ...
-        """
-        reference_encodings = [obj.encoding for obj in objects]
-        match_index, match_score = self._verifier.get_closest_face(
-            reference_encodings, encoding_to_compare
-        )
-
-        if match_index is not None:
-            print(f"Matched old face with score: {match_score}")
-            return objects[match_index]
-
-        return None
-
-    def preprocess_faces(self, frame, monitor):
-        """
-        Associate predictions to objects currently being pre-tracked to confirm
-        that they are faces.
-
-        Args:
-            frame (ndarray): current frame with shape HxWx3
-            monitor (Monitor): pyodas monitor to display the frame
-        """
-
-        if len(self._pre_tracked_objects) == 0:
-            return
-
-        annotated_frame, detections = self._detector.predict(
-            frame.copy(), draw_on_frame=True
-        )
-
-        pre_tracked_objects = self._pre_tracked_objects.copy()
-        matched_pairs, unmatched_objects, _ = self.match_faces_by_iou(
-            pre_tracked_objects, detections
-        )
-
-        # Handle successful re-detections
-        for pair in matched_pairs:
-            obj, detection = pair
-            obj.confirm()
-
-        # Handle unmatched objects
-        for obj_id, obj in unmatched_objects.items():
-            obj.increment_evaluation_frames()
-
-        # Perform operations on all pre-tracked objects
-        finished_trackers_id = set()
-        pre_tracker_frame = frame.copy()
-        for tracker_id, tracked_object in self._pre_tracked_objects.items():
-            if tracked_object.confirmed:
-                self.tracked_objects[tracker_id] = tracked_object
-
-            if not tracked_object.pending:
-                finished_trackers_id.add(tracker_id)
-                print("Adding finished tracker:", tracker_id)
-
-            if tracked_object.bbox is None:
-                continue
-
-            # TODO: Maybe throttle/control when to call verifier
-            # TODO: Build average encoding for objects
-            if tracked_object.encoding is None or not tracked_object.pending:
-                encoding = self._verifier.get_encodings(
-                    frame, [tracked_object.bbox]
-                )[0]
-                tracked_object.update_encoding(encoding)
-
-            # Check if this object matches an old face
-            rejected_objects = list(self._rejected_objects.values())
-            if any(rejected_objects):
-                matched_object = self.compare_encoding_to_objects(
-                    rejected_objects, tracked_object.encoding
-                )
-                if matched_object:
-                    # Matched with old face: start tracking again
-                    self.restore_rejected_object(
-                        matched_object.id, tracked_object
-                    )
-                    # TODO: Do we want to by-pass the rest of pre-processing
-                    #  if the face has been identified as an old face?
-                    # End this object's pre-processing
-                    finished_trackers_id.add(tracker_id)
-
-            pre_tracker_frame = self.draw_prediction_on_frame(
-                pre_tracker_frame, tracked_object
-            )
-
-        for id in finished_trackers_id:
-            self.remove_pre_tracked_object(id)
-        if monitor is not None:
-            monitor.update("Pre-process", pre_tracker_frame)
-        return annotated_frame, detections
-
-    def detector_update(self, frame, monitor, pre_frame, pre_detections):
-        """
-        Obtain the detection predictions, unless the pre-process already
-        called the detection then use those
-
-        Args:
-            frame (ndarray): current frame with shape HxWx3
-            monitor (Monitor): pyodas monitor to display the frame
-            pre_frame (ndarray or None): annotated frame from pre-process step
-            pre_detections (list(Detection)): Detections from the pre-process
-        """
-        if pre_detections is not None:
-            face_frame = pre_frame
-            detections = pre_detections
-        else:
-            face_frame, detections = self._detector.predict(
-                frame.copy(), draw_on_frame=True
-            )
-        self._last_detect = time.time()
-        if monitor is not None:
-            monitor.update("Detection", face_frame)
-
-        self.associate_faces(frame, detections)
-
-    def capture_loop(self, cap):
+    def main_loop(self, monitor):
         """
         Loop to be called on separate thread that handles retrieving new image
-        frames from video input
+        frames from video input and displaying output in windows
 
         Args:
             monitor (Monitor):
                 pyodas monitor to display the frame
-            cap (VideoSource):
-                pyodas video source object to obtain video feed from camera
         """
 
-        while self._is_alive:
-            self.last_frame = cap()
-            time.sleep(0.01)
+        while self.is_alive:
+            if self._tracking_or_calib():
+                # Capture image and pass to classes that need it
+                frame = self._cap()
+                frame = self.process_frame(frame)
 
-    def main_loop(self, monitor, fps):
-        """
-        Tracking algorithm with pre and post process for confirming and
-        rejecting bboxes.
+                frame_object = FrameObject(frame, self.frame_count)
+                self.frame_count += 1
 
-        Args:
-            monitor (Monitor):
-                pyodas monitor to display the frame
-            fps (FPS): To obtain the frames per second
-        """
+                self.updater.last_frame = frame_object
+                self.object_manager.on_new_frame(frame_object)
 
-        # Wait for first frame to be available
-        while self.last_frame is None:
-            time.sleep(0.1)
+                if monitor is not None:
+                    # Draw detections from tracked objects
+                    tracking_frame = frame.copy()
+                    self.draw_all_predictions_on_frame(tracking_frame)
 
-        while self._is_alive:
-            frame = self.last_frame
+                    # fps.setFps()
+                    # fps.writeFpsToFrame(tracking_frame)
 
-            if frame is None:
-                print("No frame received, exiting")
-                break
+                    monitor.update("Tracking", tracking_frame)
 
-            # Do pre-processing of faces
-            pre_frame, pre_detections = None, None
-            if self._pre_tracked_objects:
-                pre_frame, pre_detections = self.preprocess_faces(
-                    frame, monitor
-                )
+                    # Draw most recent pre-processing frame
+                    pre_process_frame = self.updater.pre_process_frame
+                    if pre_process_frame is not None:
+                        monitor.update("Pre-process", pre_process_frame)
+                        self.updater.pre_process_frame = None
 
-            if time.time() - self._last_detect >= self._frequency:
-                self.detector_update(frame, monitor, pre_frame, pre_detections)
+                    # Draw most recent detector frame
+                    detector_frame = self.updater.detector_frame
+                    if detector_frame is not None:
+                        monitor.update("Detection", detector_frame)
+                        self.updater.detector_frame = None
 
-            # Draw detections from tracked objects
-            tracking_frame = frame.copy()
-            for tracked_object in self.tracked_objects.values():
-                if tracked_object.bbox is None:
-                    continue
-                self.draw_prediction_on_frame(tracking_frame, tracked_object)
-
-                # Draw mouth point
-                mouth = tracked_object.landmark
-                if mouth is not None:
-                    x_mouth, y_mouth = mouth
-                    cv2.circle(
-                        tracking_frame, (x_mouth, y_mouth), 5, [0, 0, 255], -1
-                    )
-
-            if monitor is not None:
-                # Update display
-                fps.setFps()
-                # TODO: Fix fps? Delta too short?
-                # frame = fps.writeFpsToFrame(frame)
-                monitor.update("Tracking", tracking_frame)
-
-                # Keyboard input controls
-                terminate = self.listen_keyboard_input(
-                    frame, monitor.key_pressed
-                )
-                if terminate or not monitor.window_is_alive():
-                    self._is_alive = False
-                    break
+                    # Keyboard input controls
+                    terminate = self.listen_keyboard_input(frame_object, monitor.key_pressed)
+                    if terminate or not monitor.window_is_alive():
+                        self.kill_threads()
+                        break
 
     def start(self, args):
         """
@@ -575,13 +246,15 @@ class TrackingManager:
                 Arguments from argument parser, see main_tracking for more
                 information
         """
-        cap = VideoSource(args.video_source, args.width, args.height)
-        shape = (
-            (cap.shape[1], cap.shape[0])
-            if args.flip_display_dim
-            else cap.shape
-        )
-        self._is_alive = True
+
+        shape = self._cap.shape if args.flip_display_dim else (self._cap.shape[1], self._cap.shape[0])
+        self.is_alive = True
+        self.flip_frame = args.flip
+
+        self.undistort_frame = args.undistort
+        if self.undistort_frame:
+            self.precompute_undistort()
+
         if self._visualize:
             monitor = Monitor(
                 "Detection",
@@ -594,15 +267,18 @@ class TrackingManager:
             )
         else:
             monitor = None
-        cap.set(cv2.CAP_PROP_FPS, 60)
-        fps = FPS()
 
-        # Image capture loop
-        capture_thread = threading.Thread(
-            target=self.capture_loop, args=(cap,), daemon=True
-        )
-        capture_thread.start()
+        # Start update loop
+        update_loop = threading.Thread(target=self.updater.update_loop, daemon=True)
+        update_loop.start()
 
-        # Main display loop
-        self.main_loop(monitor, fps)
-        self.stop_tracking()
+        # Start capture & display loop
+        self.main_loop(monitor)
+        self.stop()
+
+    def stop(self):
+        """
+        Stop tracking loop and all related threads
+        """
+        self.kill_threads()
+        self.object_manager.stop_tracking()

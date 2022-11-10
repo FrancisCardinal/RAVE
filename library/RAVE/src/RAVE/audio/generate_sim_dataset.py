@@ -9,7 +9,7 @@ from multiprocessing import Process, Queue, Value, Array
 
 import sys
 sys.path.insert(1, './Dataset')
-from Dataset.AudioDatasetBuilder import AudioDatasetBuilder
+from Dataset.AudioDatasetBuilder_Sim import AudioDatasetBuilderSim
 
 # CONFIGS_PATH = 'C:\\GitProjet\\RAVE\\library\\RAVE\\src\\RAVE\\audio\\Dataset\\' + 'dataset_config.yaml'
 CONFIGS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'Dataset', 'dataset_config.yaml')
@@ -29,18 +29,21 @@ def run_generator_loop(source_queue, worker_num, run_params, configs, file_cnt, 
         total_cnt (int):  Shared int containing total number of files to create.
     """
     # TODO: CHECK TO RUN 1 GENERATOR AND ALL WORKERS CALL ON IT
-    dataset_builder = AudioDatasetBuilder(run_params['OUTPUT'],
-                                          run_params['DEBUG'],
-                                          configs)
+    dataset_builder = AudioDatasetBuilderSim(run_params['OUTPUT'],
+                                             run_params['DEBUG'],
+                                             configs)
 
-    dataset_builder.init_sim(run_params['SOURCES'], run_params['NOISES'], reverb=run_params['REVERB'])
+    dataset_builder.init_sim(run_params['SOURCES'],
+                             run_params['NOISES'],
+                             reverb=run_params['REVERB'],
+                             only_speech=run_params['ONLY_SPEECH'])
 
     while not source_queue.empty():
         # Get source file
         audio_file = source_queue.get()
 
         # Run generator
-        file_increment, dataset_list = dataset_builder.generate_sim_dataset(source_path=audio_file, save_run=True)
+        file_increment = dataset_builder.generate_dataset(source_path=audio_file, save_run=True)
 
         # Add results
         with file_cnt.get_lock():
@@ -49,7 +52,7 @@ def run_generator_loop(source_queue, worker_num, run_params, configs, file_cnt, 
 
 
 # Script used to generate the audio dataset
-def main(SOURCES, NOISES, OUTPUT, DEBUG, WORKERS, REVERB):
+def main(SOURCES, NOISES, OUTPUT, DEBUG, WORKERS, REVERB, ONLY_SPEECH):
     """
     Main running loop to generate dataset. Calls forth worker functions with multiprocessing.
 
@@ -71,7 +74,8 @@ def main(SOURCES, NOISES, OUTPUT, DEBUG, WORKERS, REVERB):
         'NOISES': NOISES,
         'OUTPUT': OUTPUT,
         'DEBUG': DEBUG,
-        'REVERB': REVERB
+        'REVERB': REVERB,
+        'ONLY_SPEECH': ONLY_SPEECH
     }
 
     # Load multiprocess
@@ -82,9 +86,9 @@ def main(SOURCES, NOISES, OUTPUT, DEBUG, WORKERS, REVERB):
     source_paths_list = glob(os.path.join(SOURCES, '*.wav'))
     for source_path in source_paths_list:
         file_queue.put(source_path)
-    configs = AudioDatasetBuilder.load_configs(CONFIGS_PATH)
+    configs = AudioDatasetBuilderSim.load_configs(CONFIGS_PATH)
     print(f"Starting to generate dataset with {configs}.")
-    total_file_cnt = len(source_paths_list) * configs['sample_per_speech']
+    total_file_cnt = len(source_paths_list) * AudioDatasetBuilderSim.sample_per_speech
     print(f'Generating {total_file_cnt} dataset elements into {OUTPUT}')
 
     # Shared global variables
@@ -140,6 +144,11 @@ if __name__ == '__main__':
         help="Absolute path to output dataset folder",
     )
 
+    # Noise params
+    parser.add_argument(
+        "--os", "--only_speech", action="store_true", help="Use only speech as noise."
+    )
+
     # RIR params
     parser.add_argument(
         "-r", "--reverb", action="store_true", help="Use reverberation to generate RIRs"
@@ -178,5 +187,6 @@ if __name__ == '__main__':
         output_subfolder,
         args.debug,
         args.workers,
-        args.reverb
+        args.reverb,
+        args.only_speech
     )

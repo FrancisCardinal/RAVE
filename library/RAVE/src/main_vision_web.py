@@ -1,32 +1,54 @@
 import argparse
+from time import sleep
 
 from RAVE.AppManager import AppManager
+from RAVE.common.jetson_utils import is_jetson
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Web interface for face tracking"
-    )
+    parser = argparse.ArgumentParser(description="Web interface for face tracking")
 
+    parser.add_argument(
+        "--eye_video_source",
+        dest="eye_video_source",
+        type=int,
+        help="Video input source identifier for eye tracker camera",
+        default=1,
+    )
+    parser.add_argument(
+        "--nb_mic_channels",
+        dest="nb_mic_channels",
+        type=int,
+        help="Set the number of microphone channels",
+        default=2,
+    )
     parser.add_argument(
         "--video_source",
         dest="video_source",
-        type=int,
+        type=str,
         help="Video input source identifier",
-        default=0,
+        default="0"
+        if not is_jetson()
+        else """v4l2src device=/dev/video0 ! video/x-raw, format=UYVY, width=640, heigth=480,
+         framerate=30/1 ! nvvidconv ! video/x-raw(memory:NVMM) ! nvvidconv ! video/x-raw, format=BGRx
+          ! videoconvert ! video/x-raw, format=BGR ! appsink""",
+    )
+    parser.add_argument(
+        "--flip",
+        dest="flip",
+        help="Flip display orientation by 180 degrees on horizontal axis",
+        action="store_true",
     )
     parser.add_argument(
         "--flip_display_dim",
         dest="flip_display_dim",
-        type=bool,
-        help="If true, will flip window dimensions to (width, height)",
-        default=False,
+        help="If true, will flip window dimensions to (height, width)",
+        action="store_true",
     )
     parser.add_argument(
-        "--freq",
-        dest="freq",
-        type=float,
-        help="Update frequency for the face detector (for adaptive scaling)",
-        default=1,
+        "--undistort",
+        dest="undistort",
+        help="If true, will correct fish-eye distortion from camera according to hardcoded K & D matrices",
+        action="store_true",
     )
     parser.add_argument(
         "--height",
@@ -40,16 +62,28 @@ if __name__ == "__main__":
         dest="width",
         type=int,
         help="Width of the image to be captured by the camera",
-        default=600,
+        default=640,
     )
     parser.add_argument(
-        "--dont-visualize",
-        dest="visualize",
+        "--freq",
+        dest="freq",
+        type=float,
+        help="Update frequency for the face detector (for adaptive scaling)",
+        default=1,
+    )
+    parser.add_argument(
+        "--headless",
+        dest="headless",
         help="If true, will show the different tracking frames",
-        action="store_false",
+        action="store_true",
     )
     args = parser.parse_args()
 
     manager = AppManager(args)
-
-    manager.start()
+    try:
+        manager.start()
+        while True:
+            sleep(1)
+    except KeyboardInterrupt:
+        manager.stop()
+        quit()

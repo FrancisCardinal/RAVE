@@ -1,21 +1,35 @@
 import argparse
+import cv2
+from pyodas.visualize import VideoSource
 from RAVE.face_detection.TrackingManager import TrackingManager
+from RAVE.common.jetson_utils import is_jetson, process_video_source
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Face tracking")
     parser.add_argument(
         "--video_source",
         dest="video_source",
-        type=int,
+        type=str,
         help="Video input source identifier",
-        default=0,
+        default= "0" if not is_jetson() else "v4l2src device=/dev/video0 ! video/x-raw, format=UYVY, width=640, heigth=480, framerate=60/1 ! nvvidconv ! video/x-raw(memory:NVMM) ! nvvidconv ! video/x-raw, format=BGRx ! videoconvert ! video/x-raw, format=BGR ! appsink" ,
+    )
+    parser.add_argument(
+        "--flip",
+        dest="flip",
+        help="Flip display orientation by 180 degrees on horizontal axis",
+        action="store_true",
     )
     parser.add_argument(
         "--flip_display_dim",
         dest="flip_display_dim",
-        type=bool,
-        help="If true, will flip window dimensions to (width, height)",
-        default=False,
+        help="If true, will flip window dimensions to (height, width)",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--undistort",
+        dest="undistort",
+        help="If true, will correct fish-eye distortion from camera according to hardcoded K & D matrices",
+        action="store_true",
     )
     parser.add_argument(
         "--height",
@@ -29,7 +43,7 @@ if __name__ == "__main__":
         dest="width",
         type=int,
         help="Width of the image to be captured by the camera",
-        default=600,
+        default=640,
     )
     parser.add_argument(
         "--freq",
@@ -39,18 +53,22 @@ if __name__ == "__main__":
         default=1,
     )
     parser.add_argument(
-        "--visualize",
-        dest="visualize",
+        "--headless",
+        dest="headless",
         help="If true, will show the different tracking frames",
         action="store_true",
     )
     args = parser.parse_args()
 
+    cap = VideoSource(process_video_source(args.video_source), args.width, args.height)
     frequency = args.freq
     tracking_manager = TrackingManager(
+        cap=cap,
         tracker_type="kcf",
         detector_type="yolo",
-        verifier_type="resnet_face_34",
+        verifier_type="arcface",
+        verifier_threshold=0.5,
         frequency=frequency,
+        visualize=not args.headless,
     )
     tracking_manager.start(args)

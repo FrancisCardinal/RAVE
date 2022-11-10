@@ -29,19 +29,6 @@ mic_dict : {
 #    'nb_of_channels': 4
 #}
 
-# Thomas mic dict
-#mic_dict : {
-#    'mics': {
-#         '0': [3.308, 6.47, 3.239],
-#         '1': [3.305, 6.467, 3.285],
-#         '2': [3.323, 6.5, 3.312],
-#         '3': [3.345, 6.536, 3.293],
-#         '4': [3.349, 6.539, 3.247],
-#         '5': [3.330, 6.506, 3.220]
-#    },
-#    'nb_of_channels': 6
-#}
-
 # Beamformer to use
 beamformer: 'mvdr'
 
@@ -53,7 +40,7 @@ out_channels: 1
 jetson_source: {
     'name': 'JetsonMic',
     'type': 'mic',
-    'idx': 'default'
+    'idx': '4'
 }
 # Jetson playback sink (default idx uses default device)
 jetson_sink: {

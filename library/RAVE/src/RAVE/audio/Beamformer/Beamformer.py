@@ -1,10 +1,7 @@
-from pyodas.core import DelaySum, Mvdr, Gev
+from pyodas.core import DelaySum, Gev
+from ..GPU.mvdr import Mvdr
 
-BEAMFORMER_TYPES = {
-    "delaysum": DelaySum,
-    "mvdr": Mvdr,
-    "gev": Gev
-}
+BEAMFORMER_TYPES = {"delaysum": DelaySum, "mvdr": Mvdr, "gev": Gev}
 
 
 class Beamformer:
