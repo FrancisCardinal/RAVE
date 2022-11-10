@@ -1035,12 +1035,17 @@ class AudioDatasetBuilder:
             else:
                 self.dir_noise_paths.append(noise)
 
+        onlySpeech = False
         # Add speech to directional if in arguments
         if self.speech_as_noise:
             self.speech_noise_start = len(self.dir_noise_paths)
             speeches = glob.glob(os.path.join(sources_path, "*.wav"))
-            for i in range(len(self.dir_noise_paths)):
-                self.dir_noise_paths.append(speeches[i])
+
+            if not onlySpeech:
+                for i in range(len(self.dir_noise_paths)):
+                    self.dir_noise_paths.append(speeches[i])
+            else:
+                self.dir_noise_paths = speeches
         #
         # # Add speech to directional if in arguments
         # if self.speech_as_noise:

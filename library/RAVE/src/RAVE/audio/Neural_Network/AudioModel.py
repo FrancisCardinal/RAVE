@@ -13,7 +13,8 @@ class AudioModel(nn.Module):
         self.hidden_size = hidden_size
         self.num_layers = num_layers
         self.BN = nn.BatchNorm2d(num_features=1)
-        self.RNN = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, bidirectional=False, dropout=0)
+        #self.RNN = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, bidirectional=False, dropout=0)
+        self.RNN = nn.GRU(input_size,hidden_size, num_layers, batch_first=True, bidirectional=False,dropout=0 )
         self.fc = nn.Linear(hidden_size,32319)
         self.fc2 = nn.Conv2d(in_channels=hidden_size, out_channels=int(input_size/2), kernel_size=1)
         self.sig = nn.Sigmoid()
@@ -44,7 +45,7 @@ class AudioModel(nn.Module):
         # N x T x F x 1 > N x T x F
         x = torch.reshape(x, (x.shape[0], x.shape[1], x.shape[2]*x.shape[3]))
 
-        if hidden:
+        if hidden is not None:
             # N x T x F > N x T x H
             x, h = self.RNN(x, hidden)
         else:
