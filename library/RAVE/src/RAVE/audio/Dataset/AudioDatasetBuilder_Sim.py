@@ -708,7 +708,7 @@ class AudioDatasetBuilderSim(AudioDatasetBuilder):
 
         return self.current_subfolder
 
-    def init_sim(self, sources_path, noises_path, reverb):
+    def init_sim(self, sources_path, noises_path, reverb, only_speech):
         """
         Function used to initialize variables for simulated dataset generation.
         Args:
@@ -741,8 +741,12 @@ class AudioDatasetBuilderSim(AudioDatasetBuilder):
         if self.speech_as_noise:
             self.speech_noise_start = len(self.dir_noise_paths)
             speeches = glob.glob(os.path.join(sources_path, "*.wav"))
-            for i in range(len(self.dir_noise_paths)):
-                self.dir_noise_paths.append(speeches[i])
+
+            if not only_speech:
+                for i in range(len(self.dir_noise_paths)):
+                    self.dir_noise_paths.append(speeches[i])
+            else:
+                self.dir_noise_paths = speeches
 
         # # Add speech to directional if in arguments
         # if self.speech_as_noise:
