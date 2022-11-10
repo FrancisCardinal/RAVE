@@ -146,7 +146,7 @@ if __name__ == '__main__':
 
     # Noise params
     parser.add_argument(
-        "--os", "--only_speech", action="store_true", help="Use only speech as noise."
+        "-os", "--only_speech", action="store_true", help="Use only speech as noise."
     )
 
     # RIR params

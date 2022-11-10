@@ -66,7 +66,7 @@ class AudioDatasetBuilderSim(AudioDatasetBuilder):
     current_room_shape = []
 
     # Noise configs
-    sample_per_speech = 5
+    sample_per_speech = 2
     # RIR configs
     wall_absorption_limits = [0.75, 1]
     rir_reflexion_order = 5

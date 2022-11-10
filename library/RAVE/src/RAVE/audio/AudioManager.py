@@ -8,8 +8,8 @@ import time
 from matplotlib import pyplot as plt
 
 from pyodas.core import KissMask
-from .GPU import Stft, IStft, SpatialCov, DelaySum, get_delays_based_on_mic_array
-from pyodas.utils import CONST, generate_mic_array
+from .GPU import Stft, IStft, SpatialCov, DelaySum
+from pyodas.utils import CONST, generate_mic_array, get_delays_based_on_mic_array
 
 from .IO.IO_manager import IOManager
 from .Neural_Network.AudioModel import AudioModel
@@ -25,7 +25,7 @@ FILE_PARAMS_MONO = (
     "NONE",
     "not compressed",
 )
-TARGET = np.array([0, 1, 0.5])
+TARGET = [0, 1, 0.5]
 
 EPSILON = 1e-9
 MIN_DB_VAL = 20 * np.log10(EPSILON)
@@ -499,14 +499,13 @@ class AudioManager:
                 delay = self.current_delay
             else:
                 target_np = np.array([self.target])
-                delay = get_delays_based_on_mic_array(target_np, self.mic_array, self.frame_size)
-            sum = self.delay_and_sum(signal, delay[0])
-            sum_tensor = torch.tensor(sum).to(self.device)
-            sum_db = 10 * torch.log10(torch.abs(sum_tensor) ** 2 + EPSILON)
+                delay = get_delays_based_on_mic_array(target_np, self.mic_array, self.frame_size)[0]
+                delay = torch.from_numpy(delay).to(self.device).type(torch.float32)
+            sum = self.delay_and_sum(signal, delay)
+            sum_db = 10 * torch.log10(torch.abs(sum) ** 2 + EPSILON)
 
             # Mono
-            signal_tensor = torch.tensor(signal).to(self.device)
-            signal_mono_db = 10 * torch.log10(torch.unsqueeze(torch.sum(torch.abs(signal_tensor) ** 2, dim=0), dim=0) + 1e-09)
+            signal_mono_db = 10 * torch.log10(torch.unsqueeze(torch.sum(torch.abs(signal) ** 2, dim=0), dim=0) + 1e-09)
 
             concat_spec = torch.cat([signal_mono_db, sum_db], dim=1)
             concat_spec = torch.reshape(concat_spec, (1, 1, concat_spec.shape[1], 1))
@@ -529,47 +528,47 @@ class AudioManager:
             audio_signal_f (ndarray): Array containing input audio signal in frequential domain.
         """
         # Get signal
-        s = self.source_dict["speech"]["src"]()
-        n = self.source_dict["noise"]["src"]()
+        s = torch.from_numpy(self.source_dict["speech"]["src"]()).to(self.device)
+        n = torch.from_numpy(self.source_dict["noise"]["src"]()).to(self.device)
 
         # Temporal to frequential
         S = self.source_dict["speech"]["stft"](s)
         N = self.source_dict["noise"]["stft"](n)
 
         # Output speech and noise directly (source, sink, STFT and ISTFT sanity check)
-        s_out = self.sink_dict["speech_out"]["istft"](S)
-        n_out = self.sink_dict["noise_out"]["istft"](N)
+        s_out = self.sink_dict["speech_out"]["istft"](S).detach().cpu().numpy()
+        n_out = self.sink_dict["noise_out"]["istft"](N).detach().cpu().numpy()
         self.output_sink(data=s_out, sink_name="speech_out")
         self.output_sink(data=n_out, sink_name="noise_out")
 
         # Save speech to spectrogram
         if self.print_specs:
-            s_mean = np.mean(S, axis=0)
-            s_log = 20 * np.log10(abs(s_mean) + EPSILON)
-            s_mean = np.expand_dims(s_log, axis=1)
+            s_mean = torch.mean(S, dim=0)
+            s_log = 20 * torch.log10(abs(s_mean) + EPSILON)
+            s_mean = torch.unsqueeze(s_log, dim=1)
             if self.speech_np_gt is not None:
-                self.speech_np_gt = np.append(self.speech_np_gt, s_mean, axis=1)
+                self.speech_np_gt = torch.cat([self.speech_np_gt, s_mean], dim=1)
             else:
                 self.speech_np_gt = s_mean
 
         # Prepare target as done for the model
         # Get energy
-        S_sq = np.abs(S) ** 2
-        N_sq = np.abs(N) ** 2
+        S_sq = torch.abs(S) ** 2
+        N_sq = torch.abs(N) ** 2
         # Mono
-        S_mono = np.mean(S_sq, axis=0, keepdims=False)
-        N_mono = np.mean(N_sq, axis=0, keepdims=False)
+        S_mono = torch.mean(S_sq, dim=0, keepdim=False)
+        N_mono = torch.mean(N_sq, dim=0, keepdim=False)
         # Calculate energy ratio
         noise_mask_gt = N_mono / (N_mono + S_mono + EPSILON)
         speech_mask_gt = S_mono / (N_mono + S_mono + EPSILON)
 
         # Save for spectrogram
         if self.print_specs:
-            speech_mask_gt_exp = np.expand_dims(speech_mask_gt, axis=1)
-            noise_mask_gt_exp = np.expand_dims(noise_mask_gt, axis=1)
+            speech_mask_gt_exp = torch.unsqueeze(speech_mask_gt, dim=1)
+            noise_mask_gt_exp = torch.unsqueeze(noise_mask_gt, dim=1)
             if self.speech_mask_np_gt is not None and self.noise_mask_np_gt is not None:
-                self.speech_mask_np_gt = np.append(self.speech_mask_np_gt, speech_mask_gt_exp, axis=1)
-                self.noise_mask_np_gt = np.append(self.noise_mask_np_gt, noise_mask_gt_exp, axis=1)
+                self.speech_mask_np_gt = torch.cat([self.speech_mask_np_gt, speech_mask_gt_exp], dim=1)
+                self.noise_mask_np_gt = torch.cat([self.noise_mask_np_gt, noise_mask_gt_exp], dim=1)
             else:
                 self.speech_mask_np_gt = speech_mask_gt_exp
                 self.noise_mask_np_gt = noise_mask_gt_exp
@@ -584,11 +583,11 @@ class AudioManager:
             Y_gt = self.beamformer(signal=audio_signal_f, target_scm=target_scm_gt, noise_scm=noise_scm_gt)
         else:
             Y_gt = audio_signal_f * speech_mask_gt
-            Y_gt = np.mean(Y_gt, axis=0)
+            Y_gt = torch.mean(Y_gt, dim=0)
 
         # ISTFT and save
         y_gt = self.sink_dict["output_gt"]["istft"](Y_gt)
-        self.output_sink(data=y_gt, sink_name="output_gt")
+        self.output_sink(data=y_gt.detach().cpu().numpy(), sink_name="output_gt")
 
     def initialise_audio(self, source=None, sinks=None, overwrite_sinks=False, save_path=None):
         """
@@ -674,7 +673,7 @@ class AudioManager:
                 )
             else:
                 self.sink_dict[sink["name"]]["istft"] = IStft(
-                    self.channels, self.frame_size, self.chunk_size, self.window, self.devices
+                    self.channels, self.frame_size, self.chunk_size, self.window, self.device
                 )
 
         # Model
@@ -880,8 +879,11 @@ class AudioManager:
                 self.output_sink(data=out, sink_name="output")
                 continue
 
+            x = torch.from_numpy(x).to(self.device)
+
             # Temporal to Frequential
             self.check_time(name="stft", is_start=True)
+            x = torch.from_numpy(x).to(self.device)
             X = self.source_dict["audio"]["stft"](x)
             self.check_time(name="stft", is_start=False)
 
@@ -912,13 +914,15 @@ class AudioManager:
                 Y = self.beamformer(signal=X, target_scm=target_scm, noise_scm=noise_scm)
             else:
                 Y = X * speech_mask
-                Y = np.mean(Y, axis=0)
+                Y = torch.mean(Y, dim=0)
             self.check_time(name="beamformer", is_start=False)
 
             # ISTFT
             self.check_time(name="istft", is_start=True)
             y = self.sink_dict["output"]["istft"](Y)
             self.check_time(name="istft", is_start=False)
+
+            y = y.detach().cpu().numpy()
 
             # Output fully processed data
             # out = y
@@ -927,6 +931,7 @@ class AudioManager:
             #     out = out[channel_to_use]
             # elif self.out_channels == 2:
             #     out = np.array([out[0], out[-1]])
+            y = y.detach().cpu().numpy()
             self.output_sink(data=y, sink_name="output")
 
             # Check additional sources and output in additional sinks
