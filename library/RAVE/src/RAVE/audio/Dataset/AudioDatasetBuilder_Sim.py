@@ -1,7 +1,9 @@
 import glob
 import os
 import random
+import yaml
 
+import soundfile as sf
 import numpy as np
 import math
 from scipy import signal
@@ -9,11 +11,12 @@ import matplotlib.pyplot as plt
 
 from shapely.geometry import Polygon, Point
 import pyroomacoustics as pra
-from pydub import AudioSegment
 
+from pyodas.utils import sqrt_hann
 from .AudioDatasetBuilder import AudioDatasetBuilder
 
 
+# Definitions
 SIDE_ID = 0  # X
 DEPTH_ID = 1  # Y
 HEIGHT_ID = 2  # Z
@@ -25,7 +28,9 @@ USER_MIN_DISTANCE = 2  # Minimum distance needed between user and walls
 MAX_POS_TRIES = 50
 TILT_RANGE = 0.25
 
+FRAME_SIZE = 1024
 SHOW_GRAPHS = False
+SAVE_SPEC = False
 SAVE_RIR = True
 
 
@@ -130,6 +135,146 @@ class AudioDatasetBuilderSim(AudioDatasetBuilder):
             new_coords.append(coords[HEIGHT_ID])
 
         return new_coords
+
+    @staticmethod
+    def generate_spectrogram(signal_x, mono=False, title=""):
+        """
+        Determines the spectrogram of the input temporal signal through the  Short Term Fourier Transform (STFT).
+
+        Args:
+            signal_x (ndarray): Signal on which to get spectrogram.
+            mono (bool): Whether the input signal is mono or multichannel.
+            title (str): Title used for spectrogram plot (in debug mode only).
+        Returns:
+            stft_list: List of channels of STFT of input signal x.
+        """
+        chunk_size = FRAME_SIZE // 2
+        window = sqrt_hann(FRAME_SIZE)
+
+        if mono:
+            signal_x = [signal_x]
+
+        stft_list = []
+        f_log_list = []
+        t_list = []
+        for channel_idx, channel in enumerate(signal_x):
+            # Get stft for every channel
+            f, t, stft_x = signal.spectrogram(channel, AudioDatasetBuilderSim.sample_rate,
+                                              window, FRAME_SIZE, chunk_size)
+            t_list.append(t)
+            f_log_list.append(np.logspace(0, 4, len(f)))
+            stft_log = 10 * np.log10(stft_x)
+            stft_list.append(stft_log)
+
+        # Generate plot
+        if SHOW_GRAPHS:
+            fig, ax = plt.subplots(len(signal_x), constrained_layout=True)
+            fig.suptitle(title)
+            fig.supylabel("Frequency [Hz]")
+            fig.supxlabel("Time [sec]")
+
+            for stft, f, t in zip(stft_list, f_log_list, t_list):
+                # Add log and non-log plots
+                if SHOW_GRAPHS:
+                    if mono:
+                        im = ax.pcolormesh(t, f, stft, shading="gouraud")
+                        ax.set_yscale("log")
+                        fig.colorbar(im, ax=ax)
+                    else:
+                        im = ax[channel_idx].pcolormesh(t, f, stft, shading="gouraud")
+                        ax[channel_idx].set_ylabel(f"Channel_{channel_idx}")
+                        ax[channel_idx].set_yscale("log")
+                        fig.colorbar(im, ax=ax[channel_idx])
+
+            plt.show()
+
+        return stft_list
+
+    @staticmethod
+    def combine_sources(audio_dict, source_types, output_name, noise=False, snr=1):
+        """
+        Method used to combine audio source with noises.
+
+        Args:
+            audio_dict (dict): All audio sources.
+            source_types (list[str]): Types of sources to combine.
+            output_name (str): Name of output signal to put in dict.
+            noise (bool): Check if only noises to add or noise to clean.
+            snr (float): Signal to Noise Ratio (in amplitude).
+        """
+
+        # TODO: REFACTOR, maybe use pydub for all combinations?
+
+        audio_dict[output_name] = [
+            {
+                "name": "",
+            }
+        ]
+        audio_dict[output_name][0]['signal_w_rir'] = np.zeros(audio_dict[source_types[0]][0]['signal_w_rir'].shape)
+        if not noise:
+            # Use snr function to add noise to clean
+            speech_dict = audio_dict[source_types[0]][0]
+            combined_noise_dict = audio_dict[source_types[1]][0]
+            audio_dict[output_name][0]["name"] += speech_dict["name"] + "_" + combined_noise_dict["name"]
+
+            for s, (speech_channel, noise_channel) in enumerate(
+                    zip(speech_dict['signal_w_rir'], combined_noise_dict['signal_w_rir'])
+            ):
+                snr_db = 20 * np.log10(snr)
+                speech_snr, noise_snr, combined_snr = AudioDatasetBuilderSim.snr_mixer(speech_channel,
+                                                                                       noise_channel, snr_db)
+                speech_dict['signal_w_rir'][s] = speech_snr
+                combined_noise_dict['signal_w_rir'][s] = noise_snr
+                audio_dict[output_name][0]['signal_w_rir'][s] = combined_snr
+                pass
+
+        else:
+            # If noise, just add together
+            source_count = 0
+            for source_type in source_types:
+                for source in audio_dict[source_type]:
+                    audio_dict[output_name][0]["name"] += source["name"] + "_"
+                    audio_dict[output_name][0]['signal_w_rir'] += source['signal_w_rir']
+                    source_count += 1
+            audio_dict[output_name][0]["name"] = audio_dict[output_name][0]["name"][:-1]
+            audio_dict[output_name][0]['signal_w_rir'] /= source_count
+
+    @staticmethod
+    # Function to mix clean speech and noise at various SNR levels
+    def snr_mixer(clean, noise, snr):
+        """
+        Mixes snr for clean and noise signal
+
+        Args:
+            clean (ndarray): Clean signal.
+            noise (ndarray): Noisy signal.
+            snr (float): SNR which to apply on resulting signal.
+        Returns:
+            Clean signal (with snr), noise signal (with snr) and noisy_speech (combined) with snr.
+        """
+
+        # TODO: Remove if using pydub for overlay and snr mixing
+
+        ## https://stackoverflow.com/a/72124325/12059223
+        # this is important if loading resulted in uint8 or uint16 types, because it would cause overflow
+        clean = clean.astype(np.float32)
+        noise = noise.astype(np.float32)
+
+        # get the initial energy for reference
+        clean_energy = np.mean(clean ** 2)
+        noise_energy = np.mean(noise ** 2)
+        # calculates the gain to be applied to the noise to achieve the given SNR
+        g = np.sqrt(10.0 ** (-snr / 10) * clean_energy / noise_energy)
+
+        # Assumes signal and noise to be decorrelated and calculate (a, b) such that energy of
+        # a*signal + b*noise matches the energy of the input signal
+        a = np.sqrt(1 / (1 + g ** 2))
+        b = np.sqrt(g ** 2 / (1 + g ** 2))
+        # mix the signals
+        new_clean = a * clean
+        new_noise = b * noise
+        combined = new_clean + new_noise
+        return new_clean, new_noise, combined
 
     def plot_scene(self, audio_dict, save_path=None):
         """
@@ -513,6 +658,65 @@ class AudioDatasetBuilderSim(AudioDatasetBuilder):
             axes[1].plot(audio_dict["speech"][0]["signal_w_rir"].T)
             plt.show()
 
+    def save_files(self, audio_dict, save_spec=False):
+        """
+        Save various files needed for dataset (see params).
+
+        Args:
+            audio_dict (dict): Contains all info on sound sources.
+            save_spec (bool): Whether to save stft (spectrogram) with dataset files.
+        Returns:
+            subfolder_path (str): String containing path to newly created dataset subfolder.
+        """
+
+        # Save combined audio
+        audio_file_name = os.path.join(self.current_subfolder, "audio.wav")
+        combined_signal = audio_dict["combined_audio"][0]['signal_w_rir']
+        sf.write(audio_file_name, combined_signal.T, self.sample_rate)
+        if save_spec:
+            combined_gt = self.generate_spectrogram(combined_signal, title="Audio")
+            audio_gt_name = os.path.join(self.current_subfolder, "audio.npz")
+            np.savez_compressed(audio_gt_name, combined_gt)
+
+        # Save target
+        target_file_name = os.path.join(self.current_subfolder, "target.wav")
+        target_signal = audio_dict["speech"][0]["signal"]
+        sf.write(target_file_name, target_signal, self.sample_rate)
+        if save_spec:
+            # Save source (speech)
+            target_gt = self.generate_spectrogram(target_signal, mono=True, title="Target")
+            target_gt_name = os.path.join(self.current_subfolder, "target.npz")
+            np.savez_compressed(target_gt_name, target_gt)
+
+        # Save source (with rir)
+        speech_file_name = os.path.join(self.current_subfolder, "speech.wav")
+        speech_signal = audio_dict["speech"][0]['signal_w_rir']
+        sf.write(speech_file_name, speech_signal.T, self.sample_rate)
+        if save_spec:
+            source_gt = self.generate_spectrogram(speech_signal, title="Speech")
+            source_gt_name = os.path.join(self.current_subfolder, "speech.npz")
+            np.savez_compressed(source_gt_name, source_gt)
+
+        # Save combined noise
+        noise_file_name = os.path.join(self.current_subfolder, "noise.wav")
+        combined_noise = audio_dict["combined_noise"][0]['signal_w_rir']
+        sf.write(noise_file_name, combined_noise.T, self.sample_rate)
+        if save_spec:
+            noise_gt = self.generate_spectrogram(combined_noise, title="Noise")
+            noise_gt_name = os.path.join(self.current_subfolder, "noise.npz")
+            np.savez_compressed(noise_gt_name, noise_gt)
+
+        # Save yaml file with configs
+        config_dict_file_name = os.path.join(self.current_subfolder, "configs.yaml")
+        config_dict = self.generate_config_dict(audio_dict, self.current_subfolder)
+        with open(config_dict_file_name, "w") as outfile:
+            yaml.dump(config_dict, outfile, default_flow_style=None)
+
+        # Visualize and save scene
+        self.plot_scene(audio_dict, self.current_subfolder)
+
+        return self.current_subfolder
+
     def init_sim(self, sources_path, noises_path, reverb):
         """
         Function used to initialize variables for simulated dataset generation.
@@ -632,21 +836,6 @@ class AudioDatasetBuilderSim(AudioDatasetBuilder):
             else:
                 speech_noise_count = -1
 
-            # Transform data to pydub AudioSegments
-            # TODO: MOVE BACK TO NUMPY PURELY
-            for audio_type in audio_source_dict.values():
-                for audio_sample in audio_type:
-                    audio_data = audio_sample['signal_w_rir'][0]
-                    audio_data_32 = audio_data.astype(np.float32)
-                    pydub_audio_segment = AudioSegment(
-                        audio_data_32.tobytes(),
-                        frame_rate=self.sample_rate,
-                        sample_width=audio_data_32.dtype.itemsize,
-                        # channels=self.n_channels
-                        channels=1
-                    )
-                    audio_sample['audio_segment'] = pydub_audio_segment
-
             # Combine noises
             self.combine_sources(audio_source_dict, ["dir_noise", "dif_noise"], "combined_noise", noise=True)
 
@@ -657,7 +846,7 @@ class AudioDatasetBuilderSim(AudioDatasetBuilder):
 
             # Save elements
             if save_run:
-                subfolder_path = self.save_files(audio_source_dict)
+                subfolder_path = self.save_files(audio_source_dict, SAVE_SPEC)
                 if self.is_debug:
                     print("Created: " + subfolder_path)
 

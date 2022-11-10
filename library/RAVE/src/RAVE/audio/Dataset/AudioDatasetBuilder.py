@@ -5,8 +5,6 @@ import numpy as np
 import matplotlib
 import soundfile as sf
 
-from pydub import AudioSegment
-
 
 class AudioDatasetBuilder:
     """
@@ -130,41 +128,6 @@ class AudioDatasetBuilder:
         for type, source_list in audio_dict.items():
             for source in source_list:
                 source["signal"] = source["signal"][: shortest - 1]
-
-    @staticmethod
-    def combine_sources(audio_dict, source_types, output_name, noise=False, snr=1):
-        """
-        Method used to combine audio source with noises.
-
-        Args:
-            audio_dict (dict): All audio sources.
-            source_types (list[str]): Types of sources to combine.
-            output_name (str): Name to use to output combined signal in audio_dict.
-            noise (bool): Check if only noises to add or noise to clean.
-            snr (float): Signal to Noise Ratio (in amplitude).
-        """
-
-        audio_dict[output_name] = [
-            {
-                "name": "",
-            }
-        ]
-        if not noise:
-            snr_db = 20 * np.log10(snr)
-
-            speech_db = audio_dict['speech'][0]['audio_segment'].dBFS
-            noise_db = audio_dict['combined_noise'][0]['audio_segment'].dBFS
-            adjust_snr = speech_db - noise_db - snr_db
-
-            audio_dict['combined_noise'][0]['audio_segment'] = \
-                audio_dict['combined_noise'][0]['audio_segment'] + adjust_snr
-
-        audio_dict[output_name][0]['audio_segment'] = AudioSegment.silent(duration=10000)
-        for source_type in source_types:
-            for source in audio_dict[source_type]:
-                audio_dict[output_name][0]["name"] += source["name"] + "_"
-                audio_dict[output_name][0]['audio_segment'] = \
-                    audio_dict[output_name][0]['audio_segment'].overlay(source['audio_segment'])
 
     def get_random_noise(self, number_noises=None, diffuse_noise=False, source_path=None, sn_count=-1):
         """
@@ -310,45 +273,3 @@ class AudioDatasetBuilder:
                 snr=self.snr
             )
         return config_dict
-
-    def save_files(self, audio_dict):
-        """
-        Save various files needed for dataset (see params).
-
-        Args:
-            audio_dict (dict): Contains all info on sound sources.
-        Returns:
-            subfolder_path (str): String containing path to newly created dataset subfolder.
-        """
-
-        # Save combined audio
-        audio_file_name = os.path.join(self.current_subfolder, "audio.wav")
-        combined_signal = audio_dict["combined_audio"][0]['audio_segment']
-        combined_signal.export(audio_file_name, format='wav')
-
-        # Save target (mono)
-        target_file_name = os.path.join(self.current_subfolder, "target.wav")
-        target_signal = audio_dict["speech"][0]["audio_segment"]
-        target_signal.export(target_file_name, format='wav')
-
-        # Save source (multi)
-        speech_file_name = os.path.join(self.current_subfolder, "speech.wav")
-        speech_signal = audio_dict["speech"][0]['audio_segment']
-        speech_signal.export(speech_file_name, format='wav')
-
-        # Save combined noise
-        noise_file_name = os.path.join(self.current_subfolder, "noise.wav")
-        combined_noise = audio_dict["combined_noise"][0]['audio_segment']
-        combined_noise.export(noise_file_name, format='wav')
-
-        # Save yaml file with configs
-        config_dict_file_name = os.path.join(self.current_subfolder, "configs.yaml")
-        config_dict = self.generate_config_dict(audio_dict, self.current_subfolder)
-        with open(config_dict_file_name, "w") as outfile:
-            yaml.dump(config_dict, outfile, default_flow_style=None)
-
-        # Visualize and save scene
-        if self.is_sim:
-            self.plot_scene(audio_dict, self.current_subfolder)
-
-        return self.current_subfolder
