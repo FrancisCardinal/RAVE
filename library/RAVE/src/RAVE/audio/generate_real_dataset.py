@@ -6,6 +6,7 @@ import yaml
 import os
 import sys
 from glob import glob
+import random
 
 from multiprocessing import Process, Queue, Value, Array
 
@@ -46,7 +47,7 @@ def run_generator_loop(source_queue, worker_num, run_params, configs, file_cnt):
 
 
 # Script used to generate the audio dataset
-def main(SOURCE, OUTPUT, DEBUG, WORKERS):
+def main(SOURCE, OUTPUT, DEBUG, WORKERS, SHUFFLE):
     """
     Main running loop to generate dataset. Calls forth worker functions with multiprocessing.
 
@@ -76,13 +77,20 @@ def main(SOURCE, OUTPUT, DEBUG, WORKERS):
 
     # Load sources per room
     user_pos_paths = [os.path.normpath(i) for i in glob(os.path.join(SOURCE, '*', '*'))]
+    if SHUFFLE:
+        random.shuffle(user_pos_paths)
     for user_pos_path in user_pos_paths:
 
         speech_paths = glob(os.path.join(user_pos_path, 'speech', '**', 'audio.wav'))
         noise_paths = glob(os.path.join(user_pos_path, 'noise', '**', 'audio.wav'))
+        if SHUFFLE:
+            random.shuffle(speech_paths)
+            random.shuffle(noise_paths)
 
         for idx, speech_path in enumerate(speech_paths):
             other_speech = speech_paths[:idx] + speech_paths[idx+1:]
+            if SHUFFLE:
+                random.shuffle(other_speech)
 
             # Speech configs
             config_path = os.path.join(os.path.split(speech_path)[0], 'configs.yaml')
@@ -126,6 +134,9 @@ if __name__ == '__main__':
     parser.add_argument(
         "-d", "--debug", action="store_true", help="Run in debug mode"
     )
+    parser.add_argument(
+        "--shuffle", action="store_true", help="Shuffle paths"
+    )
 
     # Path variables
     parser.add_argument(
@@ -136,7 +147,6 @@ if __name__ == '__main__':
         default='tkinter',
         help="Absolute path to recorded samples (dir/room/location/{speech|noise}/name).",
     )
-
     parser.add_argument(
         "-o",
         "--output",
@@ -172,5 +182,6 @@ if __name__ == '__main__':
         source_subfolder,
         output_subfolder,
         args.debug,
-        args.workers
+        args.workers,
+        args.shuffle
     )
