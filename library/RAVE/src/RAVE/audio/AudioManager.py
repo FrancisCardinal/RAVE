@@ -498,15 +498,15 @@ class AudioManager:
             if self.is_delays:
                 delay = self.current_delay
             else:
-                target_np = torch.tensor([self.target]).to(self.device)
-                delay = get_delays_based_on_mic_array(target_np, self.mic_array, self.frame_size, self.device)[0]
-            sum_tensor = self.delay_and_sum(signal, delay)
-            sum_db = 10 * torch.log10(torch.abs(sum_tensor) + EPSILON)
+                target_np = np.array([self.target])
+                delay = get_delays_based_on_mic_array(target_np, self.mic_array, self.frame_size)
+            sum = self.delay_and_sum(signal, delay[0])
+            sum_tensor = torch.tensor(sum).to(self.device)
+            sum_db = 10 * torch.log10(torch.abs(sum_tensor) ** 2 + EPSILON)
 
             # Mono
-            signal_tensor = torch.abs(signal) ** 2
-            signal_mono = torch.mean(signal_tensor, dim=0, keepdims=True)
-            signal_mono_db = 10 * torch.log10(signal_mono + EPSILON)
+            signal_tensor = torch.tensor(signal).to(self.device)
+            signal_mono_db = 10 * torch.log10(torch.unsqueeze(torch.sum(torch.abs(signal_tensor) ** 2, dim=0), dim=0) + 1e-09)
 
             concat_spec = torch.cat([signal_mono_db, sum_db], dim=1)
             concat_spec = torch.reshape(concat_spec, (1, 1, concat_spec.shape[1], 1))
@@ -681,7 +681,7 @@ class AudioManager:
         if self.mask:
             self.masks = KissMask(self.mic_array, buffer_size=30)
         else:
-            self.model = AudioModel(input_size=1026, hidden_size=512, num_layers=2)
+            self.model = AudioModel(input_size=514, hidden_size=512, num_layers=2)
             self.model.to(self.device)
             if self.debug:
                 print(self.model)

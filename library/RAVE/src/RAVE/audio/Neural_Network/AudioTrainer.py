@@ -4,7 +4,9 @@ import torchaudio
 from torchmetrics.audio import SignalNoiseRatio, SignalDistortionRatio
 from tqdm import tqdm
 from RAVE.common.Trainer import Trainer
-
+import numpy as np
+import matplotlib.pyplot as plt
+import math
 
 class AudioTrainer(Trainer):
     """
@@ -47,10 +49,12 @@ class AudioTrainer(Trainer):
 
         training_loss = 0.0
         number_of_images = 0
-        for images, labels, total_energy, _, _ in tqdm(
+        for images, labels, energy, a, b in tqdm(
                 self.training_loader, "training", leave=False
         ):
-            images, labels, total_energy = images.to(self.device), labels.to(self.device), total_energy.to(self.device)
+            images, labels, energy = images.to(self.device), labels.to(self.device), energy.to(self.device)
+
+            #self.show_input_signals(images)
 
             # Clear the gradients
             self.optimizer.zero_grad()
@@ -58,7 +62,6 @@ class AudioTrainer(Trainer):
             predictions, _ = self.model(images)
             # Find the Loss
             #loss = self.loss_function(predictions*total_energy, labels*total_energy)
-            energy = torch.squeeze(images[:,:,:513,:])
             loss = self.loss_function(predictions*energy, labels*energy)
             #loss = self.loss_function(predictions, labels)
             # Calculate gradients
@@ -74,6 +77,19 @@ class AudioTrainer(Trainer):
 
         return training_loss / (number_of_images * labels.shape[1] * labels.shape[2])
 
+    @staticmethod
+    def sqrt_hann_window(window_length, periodic=True, dtype=None, layout=torch.strided, device=None,
+                         requires_grad=False):
+        return torch.sqrt(torch.hann_window(window_length, periodic=periodic, dtype=dtype, layout=layout, device=device,
+                                            requires_grad=requires_grad))
+
+    def show_input_signals(self, signals):
+        y2, x2 = np.mgrid[slice(0, 514, 1),
+                          slice(0, 2, 2 / math.floor((32000 / 256) + 1))]
+
+
+        plt.pcolormesh(x2, y2, signals[0,0,:, :].cpu().float(), shading='gouraud')
+        plt.show()
 
     def compute_validation_loss(self):
         """
@@ -87,32 +103,36 @@ class AudioTrainer(Trainer):
 
             validation_loss = 0.0
             number_of_images = 0
-            for images, labels, total_energy, original_clean_signals, original_audio_freq  in tqdm(
+            for images, labels, energy, original_clean_signals, original_audio_freq  in tqdm(
                 self.validation_loader, "validation", leave=False
             ):
-                images, labels, total_energy, original_clean_signals, original_audio_freq = images.to(self.device), labels.to(self.device), total_energy.to(self.device), original_clean_signals.to(self.device), original_audio_freq.to(self.device)
+                images, labels, energy, original_clean_signals, original_audio_freq = images.to(self.device), labels.to(self.device), energy.to(self.device), original_clean_signals.to(self.device), original_audio_freq.to(self.device)
 
                 # Forward Pass
                 predictions, _ = self.model(images)
                 # Find the Loss
                 #loss = self.loss_function(predictions*total_energy, labels*total_energy)
-                energy = torch.squeeze(images[:, :, :513, :])
                 loss = self.loss_function(predictions * energy, labels * energy)
                 #loss = self.loss_function(predictions, labels)
                 # Calculate Loss
                 validation_loss += loss.item()
                 number_of_images += len(images)
 
+            before_signal_freq = original_audio_freq[:, 0, :, :] #* (1 - predictions)
             cleaned_signal_freq = original_audio_freq[:,0,:,:] * (1-predictions)
             waveform = torchaudio.transforms.InverseSpectrogram(
-                n_fft=1024,
+                n_fft=512,
                 hop_length=256,
+                window_fn= self.sqrt_hann_window
             ).to(self.device)
+
+            signal_before = waveform(before_signal_freq)
             clean_signal = waveform(cleaned_signal_freq)
 
-
-            sdr = self.sdr(clean_signal, original_clean_signals[:, 0, :]).item()
-            print(sdr)
+            beforeSdr = self.sdr(signal_before, original_clean_signals[:, 0, :]).item()
+            afterSdr = self.sdr(clean_signal, original_clean_signals[:, 0, :]).item()
+            print("Avant: ", beforeSdr)
+            print("Après: ", afterSdr)
 
             return validation_loss / (number_of_images * labels.shape[1] * labels.shape[2])
 

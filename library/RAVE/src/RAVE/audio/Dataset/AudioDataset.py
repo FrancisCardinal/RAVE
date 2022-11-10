@@ -19,7 +19,6 @@ from RAVE.audio.Beamformer.Beamformer import Beamformer
 MINIMUM_DATASET_LENGTH = 500
 IS_DEBUG = True
 
-
 class AudioDataset(torch.utils.data.Dataset):
     """
     Class handling usage of the audio dataset
@@ -39,6 +38,7 @@ class AudioDataset(torch.utils.data.Dataset):
         self.sample_rate = sample_rate
         self.num_samples = num_samples
         self.hop_len = 256
+        self.frame_size = 2*self.hop_len
         self.nb_chunks = math.floor((num_samples / self.hop_len) + 1)
         # Load params/configs
         config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'dataset_config.yaml')
@@ -64,21 +64,23 @@ class AudioDataset(torch.utils.data.Dataset):
         # random.shuffle()
 
         self.transformation = torchaudio.transforms.Spectrogram(
-            n_fft=1024,
+            n_fft=self.frame_size,
             hop_length=self.hop_len,
             power=None,
             return_complex=True,
+            window_fn= self.sqrt_hann_window
         )
         self.waveform = torchaudio.transforms.InverseSpectrogram(
-            n_fft=1024,
-            hop_length=256
+            n_fft=self.frame_size,
+            hop_length=self.hop_len,
+            window_fn= self.sqrt_hann_window
         )
-        self.delay_and_sum = Beamformer('delaysum', frame_size=1024)
+        self.delay_and_sum = Beamformer('delaysum', frame_size=self.frame_size)
 
     def __len__(self):
         return len(self.data)
 
-    def __getitem__(self, idx):
+    def __getitem__2(self, idx):
         item_path = self.data[idx]
         original_audio_signal, audio_sr, original_noise_target, noise_sr, orginal_speech_target, speech_sr, config_dict = self.load_item_from_disk(
             item_path)
@@ -103,6 +105,31 @@ class AudioDataset(torch.utils.data.Dataset):
 
         return signal, torch.squeeze(target), total_energy, self.reformat(orginal_speech_target, speech_sr, begin), self._set_mono(self.transformation(self.reformat(original_audio_signal, audio_sr, begin)))
 
+    def __getitem__(self, idx):
+        # Get signals
+        audio_signal, audio_sr, noise_target, noise_sr, speech_target, speech_sr, config_dict = self.load_item_from_disk(
+            self.data[idx])
+
+        # Get random begin point in signals
+        min_val = min(audio_signal.shape[1], noise_target.shape[1], speech_target.shape[1])
+        begin = random.randint(0, (min_val - self.num_samples)) if min_val > self.num_samples + 1 else 0
+
+        # Pre Process
+        sm = self.transformation(self.reformat(speech_target, speech_sr, begin))
+        bm = self.transformation(self.reformat(noise_target, noise_sr, begin))
+        xm = sm + bm
+
+        c = torch.sum(torch.abs(bm) ** 2, dim=0) / (torch.sum(torch.abs(sm) ** 2 + torch.abs(bm) ** 2, dim=0) + 1e-09) # target
+
+
+        yBf = 10 * torch.log10(torch.abs(self._delaySum(xm, config_dict))**2 + 1e-09)
+        yAvg = 10 * torch.log10(torch.unsqueeze(torch.sum(torch.abs(xm)**2, dim=0), dim=0) + 1e-09)
+        input_dnn = torch.cat([yAvg, yBf], dim=1)
+        return input_dnn, torch.squeeze(c), yAvg, self.reformat(speech_target, speech_sr, begin), xm
+    @staticmethod
+    def sqrt_hann_window(window_length, periodic=True, dtype=None, layout=torch.strided, device=None, requires_grad=False):
+        return torch.sqrt(torch.hann_window(window_length, periodic=periodic, dtype=dtype, layout=layout, device=device, requires_grad=requires_grad))
+
     def reformat(self, raw_signal, sr, begin):
         signal = self._resample(raw_signal, sr)
         signal = self._cut(signal, begin)
@@ -123,8 +150,11 @@ class AudioDataset(torch.utils.data.Dataset):
         signal = self.reformat(raw_signal, sr, begin)
         freq_signal = self.transformation(signal)
         #freq_signal = freq_signal ** 2
+        freq_signal = torch.abs(freq_signal) ** 2
         freq_signal = self._set_mono(freq_signal)
-        freq_signal = 20 * torch.log10(torch.abs(freq_signal) + 1e-09) # Garder ca
+        freq_signal = 10 * torch.log10(freq_signal + 1e-09)
+        #freq_signal = self._set_mono(freq_signal)
+        #freq_signal = 20 * torch.log10(self._set_mono(freq_signal) + 1e-09) # Garder ca
         #freq_signal = 20 * torch.log10(freq_signal + 1e-09)
         return freq_signal
 
@@ -150,7 +180,36 @@ class AudioDataset(torch.utils.data.Dataset):
         #freq_signal = freq_signal.real
         return freq_signal
 
-    def _delaySum(self, raw_signal, sr, config, begin):
+    def _delaySum(self, xm, config):
+        mic = config['mic_rel']
+
+        mic_array = generate_mic_array({
+            "mics": {
+                "0": mic[0],
+                "1": mic[1],
+                "2": mic[2],
+                "3": mic[3],
+                "4": mic[4],
+                "5": mic[5],
+                "6": mic[6],
+                "7": mic[7]
+            },
+            "nb_of_channels": 8
+        })
+
+        X = xm.cpu().detach().numpy()
+        X = np.einsum("ijk->kij", X)
+        delay = np.squeeze(
+            get_delays_based_on_mic_array(np.array([config['source_dir']]), mic_array, self.frame_size))  # set variable 1024
+
+        signal = np.zeros((1, X.shape[2], X.shape[0]), dtype=complex)
+        for index, item in enumerate(X):
+            signal[..., index] = self.delay_and_sum(freq_signal=item, delay=delay)
+
+        signal = torch.from_numpy(signal)
+        return signal
+
+    def _delaySum2(self, raw_signal, sr, config, begin):
         signal = self._resample(raw_signal, sr)
         signal = self._cut(signal, begin)
         signal = self._right_pad(signal)
@@ -174,14 +233,14 @@ class AudioDataset(torch.utils.data.Dataset):
         X = freq_signal.cpu().detach().numpy()
         X = np.einsum("ijk->kij", X)
         delay = np.squeeze(
-            get_delays_based_on_mic_array(np.array([config['source_dir']]), mic_array, 1024))  # set variable 1024
+            get_delays_based_on_mic_array(np.array([config['source_dir']]), mic_array, self.frame_size))  # set variable 1024
 
         signal = np.zeros((1, X.shape[2], X.shape[0]), dtype=complex)
         for index, item in enumerate(X):
             signal[..., index] = self.delay_and_sum(freq_signal=item, delay=delay)
 
         signal = torch.from_numpy(signal)
-        signal = 20 * torch.log10(torch.abs(signal) + 1e-09) # Garder ca
+        signal = 10 * torch.log10(torch.abs(signal)**2 + 1e-09) # Garder ca
         #signal = 20 * torch.log10(signal**2 + 1e-09)
         return signal
 
