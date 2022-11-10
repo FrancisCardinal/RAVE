@@ -48,33 +48,3 @@ speech_as_noise: True
 
 # SNR limit values (amplitude)
 snr_limits: [0.5, 4]
-
-
-## SIM
-# List of various room shapes. Uses corners with polygon.
-room_shapes:
-    [
-        [[0, 0], [0, 1], [1, 1], [1, 0]],
-        [[0, 0.33], [0, 0.66], [0.33, 1], [0.66, 1], [1, 0.66], [1, 0.33], [0.66, 0], [0.33, 0]],
-        [[0, 0.33], [0, 0.66], [0.5, 1], [1, 0.66], [1, 0.33], [0.5, 0]]
-    ]
-
-# Rooms that can only be used with reverb (L and Z shapes)
-reverb_room_shapes:
-  [
-        [[0, 0], [0, 1], [1, 1], [1, 0.5], [0.5, 0.5], [0.5, 0]],
-        [[0, 0], [0, 0.25], [0.5, 0.25], [0.5, 1], [1, 1], [1, 0]],
-        [[0, 0], [0, 0.25], [0.25, 0.25], [0.25, 1], [1, 1], [1, 0.75], [0.75, 0.75], [0.75, 0]],
-  ]
-
-# Random room size multiplication factor limits to use on room shapes ([[xmin, xmax], [ymin, ymax], [zmin, zmax]])
-room_sizes: [[10, 100], [10, 100], [3, 20]]
-
-# Number of samples to get per speech source
-sample_per_speech: 5
-
-# RIR parameters
-wall_absorption_limits: [0.75, 1]
-rir_reflexion_order: 5
-air_absorption: True
-air_humidity: 40
