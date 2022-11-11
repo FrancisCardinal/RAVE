@@ -56,7 +56,6 @@ def main2(DEBUG, MASK, TIMER, WORKERS, SOURCE_DIR):
             worker_list = []
             file_queue = Queue()
             # Get audio files
-            # TODO: ADD OPTION TO GIVE .WAV DIRECTLY
             input_files = glob.glob(os.path.join(SOURCE_DIR, '**', 'audio.wav'), recursive=True)
             for audio_file in input_files:
                 file_queue.put(audio_file)

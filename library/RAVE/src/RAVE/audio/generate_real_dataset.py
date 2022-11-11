@@ -6,14 +6,14 @@ import yaml
 import os
 import sys
 from glob import glob
+import random
 
 from multiprocessing import Process, Queue, Value, Array
 
 
 sys.path.insert(1, './Dataset')
-from Dataset.AudioDatasetBuilder import AudioDatasetBuilder
+from Dataset.AudioDatasetBuilder_Real import AudioDatasetBuilderReal
 
-# CONFIGS_PATH = 'C:\\GitProjet\\RAVE\\library\\RAVE\\src\\RAVE\\audio\\Dataset\\' + 'dataset_config.yaml'
 CONFIGS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'Dataset', 'dataset_config.yaml')
 
 
@@ -30,16 +30,15 @@ def run_generator_loop(source_queue, worker_num, run_params, configs, file_cnt):
         file_cnt (int): Shared int containing current file count.
     """
     # TODO: CHECK TO RUN 1 GENERATOR AND ALL WORKERS CALL ON IT
-    dataset_builder = AudioDatasetBuilder(run_params['OUTPUT'],
-                                          run_params['DEBUG'],
-                                          configs,
-                                          sim=False)
+    dataset_builder = AudioDatasetBuilderReal(run_params['OUTPUT'],
+                                              run_params['DEBUG'],
+                                              configs)
     while not source_queue.empty():
         # Get source file
         audio_paths = source_queue.get()
 
         # Run generator
-        file_increment, dataset_list = dataset_builder.generate_real_dataset(source_paths=audio_paths, save_run=True)
+        file_increment = dataset_builder.generate_dataset(source_paths=audio_paths, save_run=True)
 
         # Add results
         with file_cnt.get_lock():
@@ -48,7 +47,7 @@ def run_generator_loop(source_queue, worker_num, run_params, configs, file_cnt):
 
 
 # Script used to generate the audio dataset
-def main(SOURCE, OUTPUT, DEBUG, WORKERS):
+def main(SOURCE, OUTPUT, DEBUG, WORKERS, SHUFFLE):
     """
     Main running loop to generate dataset. Calls forth worker functions with multiprocessing.
 
@@ -74,21 +73,24 @@ def main(SOURCE, OUTPUT, DEBUG, WORKERS):
     audio_queue = Queue()
 
     # Load configs
-    configs = AudioDatasetBuilder.load_configs(CONFIGS_PATH)
+    configs = AudioDatasetBuilderReal.load_configs(CONFIGS_PATH)
 
     # Load sources per room
     user_pos_paths = [os.path.normpath(i) for i in glob(os.path.join(SOURCE, '*', '*'))]
-    # rooms = [[room_name] for room_name in room_paths[-1]]
+    if SHUFFLE:
+        random.shuffle(user_pos_paths)
     for user_pos_path in user_pos_paths:
-        # room = os.path.split(room_path)[-1]
 
         speech_paths = glob(os.path.join(user_pos_path, 'speech', '**', 'audio.wav'))
         noise_paths = glob(os.path.join(user_pos_path, 'noise', '**', 'audio.wav'))
+        if SHUFFLE:
+            random.shuffle(speech_paths)
+            random.shuffle(noise_paths)
 
         for idx, speech_path in enumerate(speech_paths):
             other_speech = speech_paths[:idx] + speech_paths[idx+1:]
-            # split_path = speech_path.split(os.path.sep)
-            # location = split_path[len(os.path.split(room_path))+2]
+            if SHUFFLE:
+                random.shuffle(other_speech)
 
             # Speech configs
             config_path = os.path.join(os.path.split(speech_path)[0], 'configs.yaml')
@@ -106,12 +108,9 @@ def main(SOURCE, OUTPUT, DEBUG, WORKERS):
             audio_queue.put(real_audio_dict)
 
     print(f"Starting to generate dataset with {configs}.")
-    # total_file_cnt = len(source_paths_list) * configs['sample_per_speech']
-    # print(f'Generating {total_file_cnt} dataset elements into {OUTPUT}')
 
     # Shared global variables
     file_cnt = Value('i', 0)
-    # total_cnt = Value('i', total_file_cnt)
 
     # Start workers
     for w in range(1, WORKERS+1):
@@ -135,6 +134,9 @@ if __name__ == '__main__':
     parser.add_argument(
         "-d", "--debug", action="store_true", help="Run in debug mode"
     )
+    parser.add_argument(
+        "--shuffle", action="store_true", help="Shuffle paths"
+    )
 
     # Path variables
     parser.add_argument(
@@ -145,7 +147,6 @@ if __name__ == '__main__':
         default='tkinter',
         help="Absolute path to recorded samples (dir/room/location/{speech|noise}/name).",
     )
-
     parser.add_argument(
         "-o",
         "--output",
@@ -153,15 +154,6 @@ if __name__ == '__main__':
         type=str,
         default='tkinter',
         help="Absolute path to output dataset folder",
-    )
-
-    parser.add_argument(
-        "-m",
-        "--max_noises",
-        action="store",
-        type=int,
-        default=1,
-        help="Number of workers to use to run generator.",
     )
 
     # Multiprocess
@@ -190,5 +182,6 @@ if __name__ == '__main__':
         source_subfolder,
         output_subfolder,
         args.debug,
-        args.workers
+        args.workers,
+        args.shuffle
     )

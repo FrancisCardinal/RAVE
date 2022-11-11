@@ -65,7 +65,7 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST, GPU, DAT
     # todo: get directory from dataset class
     directory = os.path.join('/home/rave/RAVE-Audio/RAVE/library/RAVE/src/RAVE/audio/Neural_Network/model')
 
-    audioModel = AudioModel(input_size=1026, hidden_size=512, num_layers=2)
+    audioModel = AudioModel(input_size=514, hidden_size=512, num_layers=2)
     audioModel.to(DEVICE)
     print(audioModel)
 
@@ -85,7 +85,7 @@ def main(TRAIN, NB_EPOCHS, CONTINUE_TRAINING, DISPLAY_VALIDATION, TEST, GPU, DAT
             scheduler,
             directory,
             CONTINUE_TRAINING,
-            MODEL_INFO_FILE_NAME= "saved_model_gpu0.pth" if GPU == 0 else "saved_model_gpu1.pth"
+            MODEL_INFO_FILE_NAME= "saved_model.pth"
         )
         trainer.train_with_validation(NB_EPOCHS)
 

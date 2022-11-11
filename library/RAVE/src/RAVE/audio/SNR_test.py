@@ -1,14 +1,14 @@
 import torch
 import torchaudio
 from torchmetrics import SignalNoiseRatio, SignalDistortionRatio
-filename = "p376_295_p335_174"
+filename = "p303_132_p266_001"
 
-original_path = "/Users/felixducharmeturcotte/Desktop/S8_results/mix_noise_120speech/reverb/" + filename + "/audio.wav"
-output_path = "/Users/felixducharmeturcotte/Desktop/S8_results/mix_noise_120speech/reverb/" + filename + "/output.wav"
-groundtruth_path = "/Users/felixducharmeturcotte/Desktop/S8_results/mix_noise_120speech/reverb/" + filename + "/target.wav"
+original_path = "/Users/felixducharmeturcotte/Desktop/S8_results/gru_50/" + filename + "/audio.wav"
+output_path = "/Users/felixducharmeturcotte/Desktop/S8_results/gru_50/" + filename + "/output.wav"
+groundtruth_path = "/Users/felixducharmeturcotte/Desktop/S8_results/gru_50/" + filename + "/target.wav"
 
 if __name__ == "__main__":
-    offset = 850
+    offset = 425
 
     device = torch.device("mps")
     print("DEVICE:", device)
