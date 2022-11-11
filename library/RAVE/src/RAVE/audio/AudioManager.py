@@ -883,7 +883,7 @@ class AudioManager:
 
             # Temporal to Frequential
             self.check_time(name="stft", is_start=True)
-            x = torch.from_numpy(x).to(self.device)
+            #x = torch.from_numpy(x).to(self.device)
             X = self.source_dict["audio"]["stft"](x)
             self.check_time(name="stft", is_start=False)
 
@@ -931,7 +931,7 @@ class AudioManager:
             #     out = out[channel_to_use]
             # elif self.out_channels == 2:
             #     out = np.array([out[0], out[-1]])
-            y = y.detach().cpu().numpy()
+            #y = y.detach().cpu().numpy()
             self.output_sink(data=y, sink_name="output")
 
             # Check additional sources and output in additional sinks

@@ -106,7 +106,6 @@ class AudioDataset(torch.utils.data.Dataset):
         return signal, torch.squeeze(target), total_energy, self.reformat(orginal_speech_target, speech_sr, begin), self._set_mono(self.transformation(self.reformat(original_audio_signal, audio_sr, begin)))
 
     def __getitem__(self, idx):
-        idx=0
         # Get signals
         audio_signal, audio_sr, noise_target, noise_sr, speech_target, speech_sr, config_dict = self.load_item_from_disk(
             self.data[idx])
