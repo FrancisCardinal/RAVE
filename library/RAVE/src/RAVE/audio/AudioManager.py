@@ -133,7 +133,6 @@ class AudioManager:
         if self.speech_and_noise:
             self.speech_file = None
             self.noise_file = None
-        self.torch_gt = self.individual_configs["use_torch"]
         self.print_specs = self.individual_configs["print_specs"]
         self.source_list = self.individual_configs["source"]
         self.sink_list = self.individual_configs["sinks"]
@@ -435,14 +434,6 @@ class AudioManager:
             speech_pred_idx += 1
             noise_target_idx = 3
             noise_pred_idx += 2
-            if self.torch_gt:
-                subplot_cnt += 2
-                speech_torch_idx = 1
-                speech_target_idx += 1
-                speech_pred_idx += 1
-                noise_torch_idx = 4
-                noise_target_idx += 2
-                noise_pred_idx += 2
 
         # Set subplot figure
         fig, axs = plt.subplots(subplot_cnt)
@@ -463,12 +454,6 @@ class AudioManager:
             axs[speech_target_idx].pcolormesh(self.speech_mask_np_gt, shading="gouraud", vmin=0, vmax=1)
             axs[noise_target_idx].set_ylabel("Target N")
             axs[noise_target_idx].pcolormesh(self.noise_mask_np_gt, shading="gouraud", vmin=0, vmax=1)
-
-            if self.torch_gt:
-                axs[speech_torch_idx].set_ylabel("Torch S")
-                axs[speech_torch_idx].pcolormesh(self.torch_speech_mask_np, shading="gouraud", vmin=0, vmax=1)
-                axs[noise_torch_idx].set_ylabel("Torch N")
-                axs[noise_torch_idx].pcolormesh(self.torch_noise_mask_np, shading="gouraud", vmin=0, vmax=1)
 
         # Save and display
         save_name = os.path.join(self.out_subfolder_path, "out_spec_plots.png")
@@ -687,13 +672,6 @@ class AudioManager:
             self.model.load_best_model(self.model_path, self.device)
             self.delay_and_sum = DelaySum(self.frame_size, self.device)
 
-        if self.torch_gt:
-            self.transformation = torchaudio.transforms.Spectrogram(
-                n_fft=self.frame_size,
-                hop_length=self.chunk_size,
-                power=None,
-            )
-
         # self.check_time(name='init_audio', is_start=False)
 
     def init_app(self, save_input, save_output, passthrough_mode, output_path="", gain=1):
@@ -852,10 +830,6 @@ class AudioManager:
         Main audio loop.
         """
 
-        # Check torchaudio values for sanity-check when whole input is known
-        if self.torch_gt and self.speech_and_noise:
-            speech_data, noise_data = self.torch_init()
-
         samples = 0
         max_time = 0
         self.loop_i = 0
@@ -938,10 +912,6 @@ class AudioManager:
             # Speech and noise ground truth beamforming
             if self.speech_and_noise:
                 self.calculate_groundtruth(X)
-
-                # Offline torch ground truth
-                if self.torch_gt:
-                    self.torch_run_loop(X, self.loop_i, speech_data, noise_data)
 
             loop_time = self.check_time(name="loop", is_start=False)
             if self.get_timers and self.loop_i >= 5:
