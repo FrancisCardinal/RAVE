@@ -25,6 +25,7 @@ export enum PYTHON_EVENTS {
   SET_VOLUME = 'setVolume',
   START_EYE_TRACKER_CALIBRATION = 'startEyeTrackingCalibration',
   TARGET_SELECT = 'targetSelect',
+  GET_TARGET = 'getTarget',
 }
 
 export interface TargetSelectPayload {
@@ -40,6 +41,13 @@ export function TargetSelectEvent(targetId : number) {
     } as TargetSelectPayload
   }
 };
+
+export function GetTargetEvent() {
+  return {
+    destination : MESSAGE_DESTINATIONS.PYTHON,
+    event: PYTHON_EVENTS.GET_TARGET,
+  }
+}
 
 export function NextCalibTargetEvent() {
   return {

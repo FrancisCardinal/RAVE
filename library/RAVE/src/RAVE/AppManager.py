@@ -1,5 +1,6 @@
 import cv2
 import time
+import numpy as np
 import socketio
 import base64
 import threading
@@ -12,11 +13,12 @@ from .face_detection.TrackingManager import TrackingManager
 from .face_detection.Pixel2Delay import Pixel2Delay
 from .face_detection.Calibration_audio_vision import CalibrationAudioVision
 
-# from .eye_tracker.GazeInferer.GazeInfererManager import GazeInfererManager
+from .eye_tracker.GazeInferer.GazeInfererManager import GazeInfererManager
 from .common.jetson_utils import process_video_source
 from .audio.AudioManager import AudioManager
 
-# from RAVE.face_detection.Direction2Pixel import Direction2Pixel
+from RAVE.face_detection.Direction2Pixel import Direction2Pixel
+from RAVE.common.image_utils import bounding_boxes_are_overlapping, box_pair_iou
 
 
 sio = socketio.Client()
@@ -87,6 +89,8 @@ class AppManager:
             frequency=args.freq,
             visualize=not args.headless,
             tracking_or_calib=self.is_tracking,
+            debug_preprocess=args.show_preprocess,
+            debug_detector=args.show_detector,
         )
         self._object_manager = self._tracking_manager.object_manager
         device = "cpu"
@@ -98,10 +102,8 @@ class AppManager:
         self._delay_update_frequency = 0.25
         self._selected_face = None
         self._vision_mode = "mute"
-
-        # self._gaze_inferer_manager = GazeInfererManager(args.eye_video_source, "cpu")
-
         self._audio_manager = AudioManager()
+
         self._mic_source = self._audio_manager.init_app(
             save_input=True,
             save_output=True,
@@ -113,34 +115,77 @@ class AppManager:
 
         sio.on("targetSelect", self._update_selected_face)
         sio.on("changeVisionMode", self._change_mode)
-        # sio.on("goToEyeTrackingCalibration", self.emit_calibration_list)
-        # sio.on(
-        #     "startEyeTrackingCalibration",
-        #     self._gaze_inferer_manager.start_calibration_thread,
-        # )
-        # sio.on(
-        #     "resumeEyeTrackingCalib",
-        #     self._gaze_inferer_manager.resume_calibration_thread,
-        # )
-        # sio.on(
-        #     "pauseEyeTrackingCalib",
-        #     self._gaze_inferer_manager.pause_calibration_thread,
-        # )
-        # sio.on(
-        #     "endEyeTrackingCalib",
-        #     self._gaze_inferer_manager.end_calibration_thread,
-        # )
-        # sio.on("setOffsetEyeTrackingCalib", self._gaze_inferer_manager.set_offset)
-        # sio.on("addEyeTrackingCalib", self._save_eye_calibration)
-        # sio.on("selectEyeTrackingCalib", self._select_eye_tracking_calibration)
-        # sio.on("deleteEyeTrackingCalib", self._delete_eye_tracking_calibration)
-        # sio.on("activateEyeTracking", self.control_eye_tracking)
 
         # Audio-vision calib
         sio.on("nextCalibTarget", self._calibrationAudioVision.go_next_target)
         sio.on("changeCalibParams", self._calibrationAudioVision.change_nb_points)
         sio.on("goToVisionCalibration", self.start_calib_audio_vision)
         sio.on("quitVisionCalibration", self.stop_calib_audio_vision)
+
+        self._gaze_inferer_manager = None
+        self._x_1, self._x_2 = None, None
+
+        if args.debug:
+            self._tracking_manager.drawing_callbacks.append(self.eye_tracker_debug_drawings)
+
+        sio.on("getTarget", self.get_target)
+        # Eye-tracker
+        sio.on("goToEyeTrackingCalibration", self.emit_calibration_list)
+        sio.on(
+            "startEyeTrackingCalibration",
+            self.start_eye_tracking_calibration,
+        )
+        sio.on(
+            "resumeEyeTrackingCalib",
+            self.resume_eye_tracker_calibration_thread,
+        )
+        sio.on(
+            "pauseEyeTrackingCalib",
+            self.pause_eye_trackercalibration_thread,
+        )
+        sio.on(
+            "endEyeTrackingCalib",
+            self.end_eye_tracking_calibration,
+        )
+        sio.on("setOffsetEyeTrackingCalib", self.set_eye_tracker_offset)
+        sio.on("addEyeTrackingCalib", self._save_eye_calibration)
+        sio.on("selectEyeTrackingCalib", self._select_eye_tracking_calibration)
+        sio.on("deleteEyeTrackingCalib", self._delete_eye_tracking_calibration)
+        sio.on("activateEyeTracking", self.control_eye_tracking)
+
+    def _init_eye_tracker(self):
+        import torch
+
+        DEVICE = "cpu"
+        if torch.cuda.is_available():
+            DEVICE = "cuda"
+
+        self._gaze_inferer_manager = GazeInfererManager(self._args.eye_video_source, DEVICE, self._args.debug)
+
+        K = self._tracking_manager.newcameramtx
+        roi = self._tracking_manager.roi
+
+        self._direction_2_pixel = Direction2Pixel(
+            K,
+            roi,
+            np.array([-0.08, 0.05, -0.10]),
+            self._args.height,
+            self._args.width,
+        )
+
+        # Start a thread that selects a face with the GazeInferer if
+        # the GazeInferer's inference is running
+        threading.Thread(
+            target=self.timed_callback,
+            args=(
+                self._frame_output_frequency,
+                self._update_selected_face_from_gaze_inferer,
+            ),
+            daemon=True,
+        ).start()
+
+    def get_target(self):
+        emit("selectedTarget", "client", {"targetId": self._selected_face})
 
     def timed_callback(self, period, f, *args):
         """
@@ -170,6 +215,8 @@ class AppManager:
         """
         Sends the updated eye tracker calibration list to the server.
         """
+        if self._gaze_inferer_manager is None:
+            self._init_eye_tracker()
         emit(
             "configList",
             "client",
@@ -278,6 +325,50 @@ class AppManager:
         self._selected_face = payload["targetId"]
         emit("selectedTarget", "client", {"targetId": self._selected_face})
 
+    def _update_selected_face_from_gaze_inferer(self):
+        if self._gaze_inferer_manager is None:
+            self._init_eye_tracker()
+
+        angle_x, _ = self._gaze_inferer_manager.get_current_gaze()
+        if angle_x is not None:
+            x_1_m, _ = self._direction_2_pixel.get_pixel(angle_x, 0, 1)
+            x_5_m, _ = self._direction_2_pixel.get_pixel(angle_x, 0, 5)
+
+            self._x_1, self._x_2 = min(x_1_m, x_5_m), max(x_1_m, x_5_m)
+
+            gaze_bbox = [self._x_1, 0, self._x_2 - self._x_1, self._args.height]
+            id, best_iou = None, -1
+
+            for obj in self._object_manager.tracked_objects.values():
+                if bounding_boxes_are_overlapping(obj.bbox, gaze_bbox):
+                    iou = box_pair_iou(obj.bbox, gaze_bbox)
+                    if iou > best_iou:
+                        best_iou = iou
+                        id = obj.id
+
+            if id is not None:
+                self._update_selected_face({"targetId": id})
+
+        else:
+            self._x_1, self._x_2 = None, None
+
+    def eye_tracker_debug_drawings(self, frame):
+        if self._x_1 is not None:
+            cv2.line(
+                frame,
+                (self._x_1, 0),
+                (self._x_1, self._args.height),
+                color=(255, 0, 0),
+                thickness=2,
+            )
+            cv2.line(
+                frame,
+                (self._x_2, 0),
+                (self._x_2, self._args.height),
+                color=(0, 0, 255),
+                thickness=2,
+            )
+
     def _change_mode(self, payload):
         """
         Changes the vision mode when no faces are detected.
@@ -313,6 +404,9 @@ class AppManager:
         Args:
             payload(dict): Contains the filename to use
         """
+        if self._gaze_inferer_manager is None:
+            self._init_eye_tracker()
+
         self._gaze_inferer_manager.save_new_calibration(payload["configName"])
         self.emit_calibration_list()
 
@@ -322,12 +416,18 @@ class AppManager:
         Args:
             payload(dict): Containing the calibration filename to use.
         """
+        if self._gaze_inferer_manager is None:
+            self._init_eye_tracker()
+
         self._gaze_inferer_manager.set_selected_calibration_path(payload["name"])
 
     def _delete_eye_tracking_calibration(self, payload):
         """
         Deletes the selected eye tracking calibration file.
         """
+        if self._gaze_inferer_manager is None:
+            self._init_eye_tracker()
+
         self._gaze_inferer_manager.delete_calibration(payload["id"])
         self.emit_calibration_list()
 
@@ -338,7 +438,41 @@ class AppManager:
             payload (dict): Key onStatus is a boolean True to
              activate or false to stop
         """
+        if self._gaze_inferer_manager is None:
+            self._init_eye_tracker()
+
         if payload["onStatus"]:
             self._gaze_inferer_manager.start_inference_thread()
         else:
             self._gaze_inferer_manager.stop_inference()
+
+    def start_eye_tracking_calibration(self):
+        if self._gaze_inferer_manager is None:
+            self._init_eye_tracker()
+
+        self._tracking = False
+        self._gaze_inferer_manager.start_calibration_thread()
+
+    def end_eye_tracking_calibration(self):
+        if self._gaze_inferer_manager is None:
+            self._init_eye_tracker()
+
+        self._gaze_inferer_manager.end_calibration_thread()
+        self._tracking = True
+
+    def set_eye_tracker_offset(self):
+        if self._gaze_inferer_manager is None:
+            self._init_eye_tracker()
+        self._gaze_inferer_manager.set_offset()
+
+    def resume_eye_tracker_calibration_thread(self):
+        if self._gaze_inferer_manager is None:
+            self._init_eye_tracker()
+
+        self._gaze_inferer_manager.resume_calibration_thread()
+
+    def pause_eye_trackercalibration_thread(self):
+        if self._gaze_inferer_manager is None:
+            self._init_eye_tracker()
+
+        self._gaze_inferer_manager.pause_calibration_thread()

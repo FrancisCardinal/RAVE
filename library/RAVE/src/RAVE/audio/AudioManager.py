@@ -81,6 +81,7 @@ class AudioManager:
         self.sim_input = False
         self.is_delays = False
         self.passthrough_mode = True
+        self.gain = 1
 
         # TODO: ADD OUT CHANNELS
         # General configs
@@ -320,6 +321,15 @@ class AudioManager:
             target (ndarray): Array containing the target direction, time delay between microphones or None.
         """
         self.target = target
+
+    def set_gain(self, gain):
+        """
+        Sets the gain to control output volume.
+
+        Args:
+            gain (float): Array containing the target direction, time delay between microphones or None.
+        """
+        self.gain = gain
 
     def output_sink(self, data, sink_name):
         """

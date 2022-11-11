@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, useContext} from 'react';
 import { BrowserView, MobileView } from 'react-device-detect';
 import { useEventListener, useEmit } from "../../Hooks";
-import { CLIENT_EVENTS, NewFrameAvailablePayload } from 'rave-protocol/clientEvents';
+import { CLIENT_EVENTS, NewFrameAvailablePayload, GetTargetEvent } from 'rave-protocol';
 import { TargetSelectEvent } from 'rave-protocol/pythonEvents';
 import { DebugContext } from '../../DebugContextProvider';
 
@@ -30,6 +30,10 @@ function Stream() {
     });
     setFrame(newFrame);
   },[selectedTarget]);
+
+  useEffect(() => {
+    emit(GetTargetEvent());
+  }, [emit]);
 
   const { debugging } = useContext(DebugContext);
   useEffect(() => {
