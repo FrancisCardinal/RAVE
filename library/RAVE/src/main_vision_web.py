@@ -3,6 +3,10 @@ from time import sleep
 
 from RAVE.AppManager import AppManager
 
+import os
+
+os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Web interface for face tracking")
 
@@ -33,6 +37,19 @@ if __name__ == "__main__":
         action="store_true",
     )
     parser.add_argument(
+        "--undistort",
+        dest="undistort",
+        help="If true, will correct fish-eye distortion from camera according to hardcoded K & D matrices",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--nb_mic_channels",
+        dest="nb_mic_channels",
+        type=int,
+        help="Set the number of microphone channels",
+        default=2,
+    )
+    parser.add_argument(
         "--freq",
         dest="freq",
         type=float,
@@ -51,13 +68,19 @@ if __name__ == "__main__":
         dest="width",
         type=int,
         help="Width of the image to be captured by the camera",
-        default=600,
+        default=640,
     )
     parser.add_argument(
         "--dont-visualize",
         dest="visualize",
         help="If true, will show the different tracking frames",
         action="store_false",
+    )
+    parser.add_argument(
+        "--debug",
+        dest="debug",
+        help="Display some debugging information",
+        action="store_true",
     )
     args = parser.parse_args()
 

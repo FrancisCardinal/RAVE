@@ -3,7 +3,7 @@ import os
 from threading import Thread
 from datetime import datetime
 
-from RAVE.common.DANNTrainer import DANNTrainer
+from RAVE.eye_tracker.EyeTrackerTrainer import EyeTrackerTrainer
 
 from RAVE.eye_tracker.EyeTrackerModel import EyeTrackerModel
 from RAVE.eye_tracker.EyeTrackerDataset import (
@@ -26,7 +26,7 @@ class GazeInfererManager:
     CALIBRATION_STATE = 1
     INFERENCE_STATE = 2
 
-    def __init__(self, CAMERA_INDEX, DEVICE):
+    def __init__(self, CAMERA_INDEX, DEVICE, DEBUG):
         """Constructor of the GazeInfererManager class
 
         Args:
@@ -34,19 +34,18 @@ class GazeInfererManager:
             DEVICE (string): pytorch device (likely "cpu" or "cuda")
         """
         self.DEVICE = DEVICE
+        self.DEBUG = DEBUG
 
         self.model = EyeTrackerModel()
         self.model.to(self.DEVICE)
-        DANNTrainer.load_best_model(
+        EyeTrackerTrainer.load_best_model(
             self.model,
             EyeTrackerDataset.EYE_TRACKER_DIR_PATH,
             self.DEVICE,
         )
         self._current_state = GazeInfererManager.IDLE_STATE
         self.gaze_inferer = None
-        self.eye_tracker_inference_dataset = EyeTrackerInferenceDataset(
-            CAMERA_INDEX
-        )
+        self.eye_tracker_inference_dataset = EyeTrackerInferenceDataset(CAMERA_INDEX)
         self.selected_calibration_path = None
         self.list_calibration = []
         self.list_available_calibrations()
@@ -85,6 +84,14 @@ class GazeInfererManager:
         self.stop_inference()
         self._current_state = GazeInfererManager.CALIBRATION_STATE
 
+        calibration_loader = torch.utils.data.DataLoader(
+            self.eye_tracker_inference_dataset,
+            batch_size=1,
+            shuffle=False,
+            num_workers=0,
+        )
+        self.gaze_inferer = GazeInferer(self.model, calibration_loader, self.DEVICE, self.DEBUG)
+
         Thread(target=self._add_to_fit, daemon=True).start()
 
     def stop_inference(self):
@@ -99,19 +106,23 @@ class GazeInfererManager:
         """Creates the relevant objects then starts the acquisition of input
         images.
         """
-        calibration_loader = torch.utils.data.DataLoader(
+        self.gaze_inferer.add_to_fit()
+
+    def start_inference_thread(self):
+        """Starts the inference thread"""
+        self.log("Start inference")
+        if self._current_state == GazeInfererManager.CALIBRATION_STATE:
+            self.end_calibration_thread()
+
+        self._current_state = GazeInfererManager.INFERENCE_STATE
+
+        conversation_loader = torch.utils.data.DataLoader(
             self.eye_tracker_inference_dataset,
             batch_size=1,
             shuffle=False,
             num_workers=0,
         )
-        self.gaze_inferer = GazeInferer(
-            self.model, calibration_loader, self.DEVICE
-        )
-        self.gaze_inferer.add_to_fit()
-
-    def start_inference_thread(self):
-        """Starts the inference thread"""
+        self.gaze_inferer = GazeInferer(self.model, conversation_loader, self.DEVICE, self.DEBUG)
         Thread(target=self._inference, daemon=True).start()
 
     def pause_calibration_thread(self):
@@ -128,20 +139,6 @@ class GazeInfererManager:
 
     def _inference(self):
         """Creates the relevant objects, then calls GazeInferer.infer()"""
-        if self._current_state == GazeInfererManager.CALIBRATION_STATE:
-            self.end_calibration_thread()
-
-        self._current_state = GazeInfererManager.INFERENCE_STATE
-
-        conversation_loader = torch.utils.data.DataLoader(
-            self.eye_tracker_inference_dataset,
-            batch_size=1,
-            shuffle=False,
-            num_workers=0,
-        )
-        self.gaze_inferer = GazeInferer(
-            self.model, conversation_loader, self.DEVICE
-        )
         self.gaze_inferer.infer(self.selected_calibration_path)
 
     def set_selected_calibration_path(self, file_path):
@@ -152,10 +149,10 @@ class GazeInfererManager:
             file_path (string): The calibration file's path.
         """
         self.log("Select calibration called")
+        self.list_available_calibrations()
+
         self.selected_calibration_path = [
-            d["name"] + ".json"
-            for d in self.list_calibration
-            if file_path == d.get("name")
+            d["name"] + ".json" for d in self.list_calibration if file_path == d.get("name")
         ]
         self.selected_calibration_path = self.selected_calibration_path[0]
         self.log("Selected {}".format(self.selected_calibration_path))
@@ -181,13 +178,9 @@ class GazeInfererManager:
             file_name (string): The name of the new calibration file
         """
         if self.gaze_inferer is not None:
+            file_name = file_name + datetime.now().strftime("-%d-%m-%Y-%H-%M-%S")
             self.gaze_inferer.save_eyeball_model(file_name)
-            self.list_calibration.append(
-                {
-                    "name": file_name
-                    + datetime.now().strftime("-%d-%m-%Y %H:%M:%S")
-                }
-            )
+            self.list_calibration.append({"name": file_name})
 
     def get_current_gaze(self):
         """Returns the latest prediction
@@ -195,9 +188,7 @@ class GazeInfererManager:
         Returns:
             tuple: Pair of x and y angles
         """
-        if (self._current_state is not GazeInfererManager.INFERENCE_STATE) or (
-            self.gaze_inferer is None
-        ):
+        if (self._current_state is not GazeInfererManager.INFERENCE_STATE) or (self.gaze_inferer is None):
             return None, None
 
         return self.gaze_inferer.get_current_gaze()
