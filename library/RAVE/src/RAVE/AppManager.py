@@ -304,7 +304,7 @@ class AppManager:
         if self._selected_face == payload["targetId"]:
             # Deselect the current face
             self._selected_face = None
-        else: 
+        else:
             self._selected_face = payload["targetId"]
         emit("selectedTarget", "client", {"targetId": self._selected_face})
 
