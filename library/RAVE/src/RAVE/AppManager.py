@@ -302,7 +302,7 @@ class AppManager:
             face selected in the web client.
         """
         if self._selected_face == payload["targetId"]:
-            #Deselect the current face
+            # Deselect the current face
             self._selected_face = None
         else: 
             self._selected_face = payload["targetId"]
