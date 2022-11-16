@@ -31,11 +31,6 @@ function Stream() {
     setFrame(newFrame);
   },[selectedTarget]);
 
-  useEventListener(CLIENT_EVENTS.CONNECTION_STATUS, ({status}: ConnectionStatusPayload) => {
-    // Reset selected target when python client closed
-    if(status === 0) setSelectedTarget(-1);
-  });
-
   useEffect(() => {
     emit(GetTargetEvent());
   }, [emit]);

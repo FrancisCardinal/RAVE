@@ -30,7 +30,7 @@ function MuteButton() {
 
   return (
     <div className="flex w-min rounded-md h-min m-2 center-items justify-center">
-      <IconButton onClick={handleClick} aria-label="mute" variant="contained" color={ soundOn ? "success" :"error"} size="small">
+      <IconButton onClick={handleClick} aria-label="mute" variant="contained" color="error" size="small">
         <SoundIcon />
       </IconButton>
     </div>
