@@ -37,8 +37,8 @@ class GazeInferer:
         DEBUG,
         pupil_radius=4,
         initial_eye_z=52.271,
-        flen=3.37,
-        sensor_size=(2.7216, 3.6288),
+        flen=5.2,
+        sensor_size=(3.24, 5.76),
         original_image_size_pre_crop=(
             EyeTrackerInferenceDataset.ACQUISITION_HEIGHT,
             EyeTrackerInferenceDataset.ACQUISITION_WIDTH,
@@ -61,9 +61,9 @@ class GazeInferer:
             initial_eye_z (float, optional): Distance between the camera and
                 the surface of the eye (mm). Defaults to 52.271.
             flen (float, optional): Focal length of the camera (mm). Defaults
-                to 3.37.
+                to 5.2.
             sensor_size (tuple, optional): Size (Height, Width) of the camera
-                sensor (mm). Defaults to (2.7216, 3.6288).
+                sensor (mm). Defaults to (3.24, 5.76).
             original_image_size_pre_crop (tuple, optional): Original image
                 size, before any crop or resize (i.e, the acquisition size).
                 Defaults to ( EyeTrackerInferenceDataset.ACQUISITION_HEIGHT,
@@ -116,13 +116,14 @@ class GazeInferer:
                     images = images.to(self._device)
 
                     # Forward Pass
-                    predictions, _ = self._ellipse_dnn(images)
+                    predictions, predicted_visibilities = self._ellipse_dnn(images)
 
-                    for prediction in predictions:
-                        self._eyefitter.unproject_single_observation(
-                            self.torch_prediction_to_deepvog_format(prediction)
-                        )
-                        self._eyefitter.add_to_fitting()
+                    if predicted_visibilities[0].item() > 0.90:
+                        for prediction in predictions:
+                            self._eyefitter.unproject_single_observation(
+                                self.torch_prediction_to_deepvog_format(prediction)
+                            )
+                            self._eyefitter.add_to_fitting()
 
     def stop_adding_to_fit(self):
         """Sets the self.should_add_to_fit flag to False so that the add_to_fit
@@ -140,8 +141,8 @@ class GazeInferer:
             received too few or garbage predictions) TODO FC :Recover from this
         """
         self._eyefitter.fit_projected_eye_centre(
-            ransac=False,
-            max_iters=250,
+            ransac=True,
+            max_iters=5000,
             min_distance=np.inf,
         )
         self._eyefitter.estimate_eye_sphere()
