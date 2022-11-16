@@ -103,6 +103,7 @@ class AppManager:
         self._selected_face = None
         self._vision_mode = "mute"
         self._audio_manager = AudioManager()
+        self.volume = 30
 
         self._mic_source = self._audio_manager.init_app(
             save_input=True,
@@ -115,6 +116,10 @@ class AppManager:
 
         sio.on("targetSelect", self._update_selected_face)
         sio.on("changeVisionMode", self._change_mode)
+
+        # Volume control
+        sio.on("setVolume", self.set_volume)
+        sio.on("muteRequest", self.mute)
 
         # Audio-vision calib
         sio.on("nextCalibTarget", self._calibrationAudioVision.go_next_target)
@@ -222,6 +227,33 @@ class AppManager:
             "client",
             {"configuration": self._gaze_inferer_manager.list_calibration},
         )
+
+    def set_volume(self, payload):
+        """
+        Change headphone volume
+        """
+        volume = payload["volume"]
+        try:
+            volume = int(volume)
+            if (volume <= 100) and (volume >= 0):
+                if self.volume < volume:
+                    new_gain = 1.0 + float((volume - self.volume) / 100)
+                else:
+                    new_gain = float(abs(volume - self.volume) / 100)
+                self._audio_manager.set_gain(new_gain)
+                self.volume = volume
+        except ValueError:
+            pass
+
+    def mute(self, payload):
+        """
+        Mute headphones
+        """
+        status = payload["muteStatus"]
+        if status:
+            self._audio_manager.set_gain(1)
+        else:
+            self._audio_manager.set_gain(0)
 
     def start(self):
         """
