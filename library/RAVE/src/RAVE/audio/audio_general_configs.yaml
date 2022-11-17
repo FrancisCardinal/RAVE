@@ -1,10 +1,7 @@
 # File with general configs used for running AudioManager
 
-# Chunk size for fourier transform
-chunk_size: 256
-
-# RAVE mic dict
-mic_dict : {
+# Microphone geometries
+mic_dict : {    # RAVE mic dict
     'mics': {
       '0': [ -0.07055, 0, 0 ],
       '1': [ -0.07055, 0.0381, 0 ],
@@ -17,25 +14,28 @@ mic_dict : {
     },
     'nb_of_channels': 8
 }
+mic_dict_respeaker: {     # ReSpeaker mic dict
+    'mics': {
+      '0': [0.02285, 0.02285, 0],
+      '1': [-0.02285, 0.02285, 0],
+      '2': [-0.02285, -0.02285, 0],
+      '3': [0.02285, -0.02285, 0]
+    },
+    'nb_of_channels': 4
+}
 
-# ReSpeaker mic dict
-#mic_dict: {
-#    'mics': {
-#      '0': [0.02285, 0.02285, 0],
-#      '1': [-0.02285, 0.02285, 0],
-#      '2': [-0.02285, -0.02285, 0],
-#      '3': [0.02285, -0.02285, 0]
-#    },
-#    'nb_of_channels': 4
-#}
-
-# Beamformer to use
-beamformer: 'mvdr'
-
-# Output channels
+# Output
+#default_output_dir: 'C:\\GitProjet\\pipeline'
+default_output_dir: '.'
 out_channels: 1
 
-# Jetson configs
+# Arguments
+use_beamformer: True
+use_groundtruth: True   # Calculate various ground truths
+print_specs: True       # Print spectrograms
+
+
+## Jetson configs
 # Jetson mic source  (default idx uses default device)
 jetson_source: {
     'name': 'JetsonMic',
@@ -48,3 +48,53 @@ jetson_sink: {
     'type': 'play',
     'idx': 'default'
 }
+
+
+## PC configs
+# Sources  (default idx uses default device)
+#source: {
+#    'name': 'Mic1',
+#    'type': 'mic',
+#    'idx': null
+#}
+source: {
+    'name': 'sim1',
+    'type': 'sim',
+    'file': '/Users/felixducharmeturcotte/Documents/MS-SNSD/output/1/p237_239_CopyMachine_7/audio.wav'
+}
+
+# Sinks  (default/null idx uses default device)
+# For every sink added, have to add a check and data to ouput in location in the code
+sinks: [
+#    {
+#        'name': 'playback1',
+#        'type': 'play',
+#        'idx': 'default'
+#    },
+    {
+        'name': 'original',
+        'type': 'sim',
+        'beamform': False
+#        'file': 'C:\\GitProjet\\MS-SNSD\\output\\2\\clnsp0_AirConditioner_2_Babble_8\\audio.wav'
+    },
+    {
+        'name': 'output',
+        'type': 'sim',
+        'beamform': True
+    },
+    {
+        'name': 'speech_out',
+        'type': 'sim',
+        'beamform': False
+    },
+    {
+        'name': 'noise_out',
+        'type': 'sim',
+        'beamform': False
+    },
+    {
+        'name': 'output_gt',
+        'type': 'sim',
+        'beamform': True
+    }
+]

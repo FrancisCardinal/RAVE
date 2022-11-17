@@ -30,11 +30,11 @@ def run_loop(file_queue, worker_num, DEBUG, MASK, TIMER):
         # audio_manager.reset_manager()
 
 
-def main2(DEBUG, MASK, TIMER, WORKERS, SOURCE_DIR):
+def main(DEBUG, MASK, TIMER, WORKERS, SOURCE_DIR, MODEL):
 
     # Get all files in a subdirectory
     if SOURCE_DIR == 'default':
-        audio_manager = AudioManager(debug=DEBUG, mask=MASK, use_timers=TIMER)
+        audio_manager = AudioManager(debug=DEBUG, mask=MASK, use_timers=TIMER, model_path=MODEL)
         audio_manager.initialise_audio()
         audio_manager.main_loop()
     else:
@@ -47,7 +47,7 @@ def main2(DEBUG, MASK, TIMER, WORKERS, SOURCE_DIR):
                 'type': 'sim',
                 'file': wav_file[0]
             }
-            audio_manager = AudioManager(debug=DEBUG, mask=MASK, use_timers=TIMER)
+            audio_manager = AudioManager(debug=DEBUG, mask=MASK, use_timers=TIMER, model_path=MODEL)
             audio_manager.initialise_audio(source=audio_dict, path=None)
             audio_manager.main_loop()
         else:
@@ -95,6 +95,13 @@ if __name__ == "__main__":
         default='tkinter',
         help="Absolute path to audio sources to enhance",
     )
+    parser.add_argument(
+        "--model",
+        action="store",
+        type=str,
+        default='tkinter',
+        help="Absolute path to trained model",
+    )
 
     parser.add_argument(
         "-w",
@@ -107,9 +114,12 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    # parse sources
+    # Parse paths
     source_subfolder = args.sources
     if source_subfolder == 'tkinter':
         source_subfolder = filedialog.askdirectory(title="Audio extracts dataset folder")
+    model_path = args.model
+    if not args.mask and model_path == 'tkinter':
+        model_path = filedialog.askopenfilename(title="Trained model file")
 
-    main2(args.debug, args.mask, args.timer, args.workers, source_subfolder)
+    main(args.debug, args.mask, args.timer, args.workers, source_subfolder, model_path)

@@ -5,6 +5,8 @@ import os
 import numpy as np
 import time
 
+from collections import namedtuple
+
 from matplotlib import pyplot as plt
 
 from pyodas.core import KissMask
@@ -15,6 +17,12 @@ from .IO.IO_manager import IOManager
 from .Neural_Network.AudioModel import AudioModel
 from .Beamformer.Beamformer import Beamformer
 
+
+# Named Tuples
+SourceTuple = namedtuple("SourceTuple", "file source stft")
+SinkTuple = namedtuple("SinkTuple", "sink scm_target scm_noise istft")
+
+# DEFINES
 TIME = float("inf")
 # TIME = 5
 FILE_PARAMS_MONO = (
@@ -26,12 +34,8 @@ FILE_PARAMS_MONO = (
     "not compressed",
 )
 TARGET = [0, 1, 0.5]
-
 EPSILON = 1e-9
-MIN_DB_VAL = 20 * np.log10(EPSILON)
 
-
-THOMAS = False
 SHOW_GRAPHS = False
 
 
@@ -45,45 +49,66 @@ class AudioManager:
             use_timers (bool): Get and print timers.
     """
 
-    scm_weight = 0.1
+    chunk_size = 256
+    frame_size = chunk_size * 2
     window = "sqrt_hann"
+    scm_weight = 0.1
 
-    def __init__(self, debug=False, mask=False, use_timers=False):
+    file_params_multi = (
+        8,
+        2,
+        CONST.SAMPLING_RATE,
+        0,
+        "NONE",
+        "not compressed",
+    )
 
-        # TODO: ADD PRIVATE ATTRIBUTES (_)
+    ### Init empty class variables
+    # Class variables init empty
+    file_params_output = FILE_PARAMS_MONO
+    in_subfolder_path = None
+    out_subfolder_path = None
+    source = None
+    original_sink = None
+    target = TARGET
+    source_dict = {}
+    sink_dict = {}
+    timers = {}
+    transformation = None
+
+    # Spectrogram variables
+    noise_mask_np = None
+    speech_mask_np = None
+    speech_mask_np_gt = None
+    noise_mask_np_gt = None
+    speech_np_gt = None
+    torch_speech_mask_np = None
+    torch_noise_mask_np = None
+
+    # Speech and noise variables
+    speech_file = None
+    noise_file = None
+
+    # Set variables to false until changed at init or runtime
+    sim_input = False
+    is_delays = False
+    passthrough_mode = True
+    gain = 1
+
+    # Masks and models
+    masks = None
+    model = None
+    last_h = None
+    delay_and_sum = None
+
+    def __init__(self, debug=False, mask=False, use_timers=False, model_path=None):
 
         # Argument variables
         self.debug = debug
         self.mask = mask
         self.get_timers = use_timers
+        self.model_path = model_path
 
-        # Class variables init empty
-        self.file_params_output = FILE_PARAMS_MONO
-        self.in_subfolder_path = None
-        self.out_subfolder_path = None
-        self.source = None
-        self.original_sink = None
-        self.target = TARGET
-        self.source_dict = {}
-        self.sink_dict = {}
-        self.timers = {}
-        self.transformation = None
-        # Spectrogram variables
-        self.noise_mask_np = None
-        self.speech_mask_np = None
-        self.speech_mask_np_gt = None
-        self.noise_mask_np_gt = None
-        self.speech_np_gt = None
-        self.torch_speech_mask_np = None
-        self.torch_noise_mask_np = None
-
-        # Set variables to false until changed at init or runtime
-        self.sim_input = False
-        self.is_delays = False
-        self.passthrough_mode = True
-        self.gain = 1
-
-        # TODO: ADD OUT CHANNELS
         # General configs
         self.path = os.path.dirname(os.path.abspath(__file__))
         config_path = os.path.join(self.path, "audio_general_configs.yaml")
@@ -95,48 +120,23 @@ class AudioManager:
             except yaml.YAMLError as exc:
                 print(exc)
                 exit()
-        # Get general configs
+        # Transfer general configs
         self.mic_dict = self.general_configs["mic_dict"]
         self.mic_array = generate_mic_array(self.mic_dict)
         self.channels = self.mic_dict["nb_of_channels"]
+
         self.out_channels = self.general_configs["out_channels"]
-        self.chunk_size = self.general_configs["chunk_size"]
-        self.frame_size = self.chunk_size * 2
-        self.beamformer_name = self.general_configs["beamformer"]
+        self.default_output_dir = self.general_configs["default_output_dir"]
+
+        self.use_beamformer = self.general_configs["use_beamformer"]
+        self.speech_and_noise = self.general_configs["use_groundtruth"]
+        self.print_specs = self.general_configs["print_specs"]
+
         self.jetson_source = self.general_configs["jetson_source"]
         self.jetson_sink = self.general_configs["jetson_sink"]
 
-        self.file_params_multi = (
-            8,
-            2,
-            CONST.SAMPLING_RATE,
-            0,
-            "NONE",
-            "not compressed",
-        )
-
-        # Individual configs
-        config_path = os.path.join(self.path, "audio_indiv_configs.yaml")
-        with open(config_path, "r") as stream:
-            try:
-                self.individual_configs = yaml.safe_load(stream)
-                if self.debug:
-                    print(self.individual_configs)
-            except yaml.YAMLError as exc:
-                print(exc)
-                exit()
-        # Get individual configs
-        self.default_output_dir = self.individual_configs["default_output_dir"]
-        self.model_path = self.individual_configs["model_path"]
-        # self.mic_array_index = self.individual_configs['mic_array_index']
-        self.use_beamformer = self.individual_configs["use_beamformer"]
-        self.speech_and_noise = self.individual_configs["use_groundtruth"]
-        if self.speech_and_noise:
-            self.speech_file = None
-            self.noise_file = None
-        self.print_specs = self.individual_configs["print_specs"]
-        self.source_list = self.individual_configs["source"]
-        self.sink_list = self.individual_configs["sinks"]
+        self.source_list = self.general_configs["source"]
+        self.sink_list = self.general_configs["sinks"]
 
         # Check if device has cuda
         self.device = "cpu"
@@ -146,18 +146,8 @@ class AudioManager:
         # IO
         self.io_manager = IOManager()
 
-        # # Masks
-        # # TODO: Add abstraction to model for info not needed in main script
-        if self.mask:
-            self.masks = None
-        else:
-            self.model = None
-            self.last_h = None
-            self.delay_and_sum = None
-
         # Beamformer
-        # TODO: simplify beamformer abstraction kwargs
-        self.beamformer = Beamformer(name=self.beamformer_name, channels=self.channels, device=self.device)
+        self.beamformer = Beamformer(name='mvdr', channels=self.channels, device=self.device)
 
     def init_sim_input(self, name, file):
         """
@@ -208,6 +198,7 @@ class AudioManager:
         Returns:
             sink: WavSink object created.
         """
+        # TODO: refactor
         # Get output subfolder
         if self.out_subfolder_path is None:
             if path:
@@ -243,10 +234,12 @@ class AudioManager:
         Returns:
             source: MicSource object created
         """
+        # Setup mic input index
         if src_index == "default":
             src_index = None
         else:
             src_index = int(src_index)
+
         source = self.io_manager.add_source(
             source_name=name,
             source_type="mic",
@@ -256,6 +249,7 @@ class AudioManager:
             chunk_size=self.chunk_size,
             queue_size=50,
         )
+
         return source
 
     def init_play_output(self, name, sink_index):
@@ -269,10 +263,13 @@ class AudioManager:
         Returns:
             source: PlaybackSink object created
         """
+
+        # Setup playback output index
         if sink_index == "default":
             sink_index = None
         else:
             sink_index = int(sink_index)
+
         sink = self.io_manager.add_sink(
             sink_name=name,
             sink_type="play",
@@ -280,6 +277,7 @@ class AudioManager:
             channels=self.out_channels,
             chunk_size=self.chunk_size,
         )
+
         return sink
 
     def reset_manager(self):
@@ -584,6 +582,18 @@ class AudioManager:
         y_gt = self.sink_dict["output_gt"]["istft"](Y_gt)
         self.output_sink(data=y_gt.detach().cpu().numpy(), sink_name="output_gt")
 
+    def init_model(self):
+        """ Init model or masks, depending on which using """
+        if self.mask:
+            self.masks = KissMask(self.mic_array, buffer_size=30)
+        else:
+            self.model = AudioModel(input_size=514, hidden_size=512, num_layers=2)
+            self.model.to(self.device)
+            if self.debug:
+                print(self.model)
+            self.model.load_best_model(self.model_path, self.device)
+            self.delay_and_sum = DelaySum(self.frame_size, self.device)
+
     def initialise_audio(self, source=None, sinks=None, overwrite_sinks=False, save_path=None):
         """
         Method to initialise audio after start. Uses configs written in 'audio_general_configs.yaml' and
@@ -606,28 +616,30 @@ class AudioManager:
         if source:
             self.source_list = source
         if self.source_list["type"] == "sim":
-            self.source_dict["audio"] = {
-                "file": self.source_list["file"],
-                "src": self.init_sim_input(name=self.source_list["name"], file=self.source_list["file"]),
-                "stft": Stft(self.channels, self.frame_size, self.window, self.device),
-            }
+            # Load sim (wav) input
+            self.source_dict["audio"] = SourceTuple(
+                self.source_list["file"],
+                self.init_sim_input(name=self.source_list["name"], file=self.source_list["file"]),
+                Stft(self.channels, self.frame_size, self.window, self.device)
+            )
+
+            # Try loading speech and noise ground truths if present
             if self.speech_and_noise:
-                # Try loading speech and noise ground truths if present
                 try:
                     # Load speech file
                     self.speech_file = os.path.join(os.path.split(self.source_list["file"])[0], "speech.wav")
-                    self.source_dict["speech"] = {
-                        "file": self.speech_file,
-                        "src": self.init_sim_input(name="speech_gt_source", file=self.speech_file),
-                        "stft": Stft(self.channels, self.frame_size, self.window, self.device),
-                    }
+                    self.source_dict["speech"] = SourceTuple(
+                        self.speech_file,
+                        self.init_sim_input(name="speech_gt_source", file=self.speech_file),
+                        Stft(self.channels, self.frame_size, self.window, self.device)
+                    )
                     # Load noise file
                     self.noise_file = os.path.join(os.path.split(self.source_list["file"])[0], "noise.wav")
-                    self.source_dict["noise"] = {
-                        "file": self.noise_file,
-                        "src": self.init_sim_input(name="noise_gt_source", file=self.noise_file),
-                        "stft": Stft(self.channels, self.frame_size, self.window, self.device),
-                    }
+                    self.source_dict["noise"] = SourceTuple(
+                        self.noise_file,
+                        self.init_sim_input(name="noise_gt_source", file=self.noise_file),
+                        Stft(self.channels, self.frame_size, self.window, self.device)
+                    )
                     # Set argument to True if successful
                     self.speech_and_noise = True
                 except Exception as e:
@@ -635,10 +647,12 @@ class AudioManager:
                         print(e)
                     self.speech_and_noise = False
         else:
-            self.source_dict["audio"] = {
-                "src": self.init_mic_input(name=self.source_list["name"], src_index=self.source_list["idx"]),
-                "stft": Stft(self.channels, self.frame_size, self.window, self.device),
-            }
+            # Load mic input
+            self.source_dict["audio"] = SourceTuple(
+                None,
+                self.init_mic_input(name=self.source_list["name"], src_index=self.source_list["idx"]),
+                Stft(self.channels, self.frame_size, self.window, self.device)
+            )
 
         # Outputs
         # TODO: ADD OUTPUT CHANNELS CONTROL
@@ -648,41 +662,25 @@ class AudioManager:
             else:
                 self.sink_list.extend(sinks)
         for sink in self.sink_list:
-            # Add sink
-            self.sink_dict[sink["name"]] = {}
+            # Get sink object
             if sink["type"] == "sim":
                 wav_params = self.file_params_output if sink["beamform"] else self.file_params_multi
-                self.sink_dict[sink["name"]]["sink"] = self.init_sim_output(name=sink["name"], wav_params=wav_params)
+                sink_obj = self.init_sim_output(name=sink["name"], wav_params=wav_params)
             else:
-                self.sink_dict[sink["name"]]["sink"] = self.init_play_output(name=sink["name"], sink_index=sink["idx"])
+                sink_obj = self.init_play_output(name=sink["name"], sink_index=sink["idx"])
             # Add ISTFT and SCM (if needed for beamforming)
-            if sink["beamform"]:
-                self.sink_dict[sink["name"]]["scm_target"] = SpatialCov(
-                    self.channels, self.frame_size, weight=self.scm_weight, device=self.device
-                )
-                self.sink_dict[sink["name"]]["scm_noise"] = SpatialCov(
-                    self.channels, self.frame_size, weight=self.scm_weight, device=self.device
-                )
-                self.sink_dict[sink["name"]]["istft"] = IStft(
-                    1, self.frame_size, self.chunk_size, self.window, self.device
-                )
+            if not sink["beamform"]:
+                scm_target = scm_noise = None
+                istft = IStft(self.channels, self.frame_size, self.chunk_size, self.window, self.device)
             else:
-                self.sink_dict[sink["name"]]["istft"] = IStft(
-                    self.channels, self.frame_size, self.chunk_size, self.window, self.device
-                )
+                scm_target = SpatialCov(self.channels, self.frame_size, weight=self.scm_weight, device=self.device)
+                scm_noise = SpatialCov(self.channels, self.frame_size, weight=self.scm_weight, device=self.device)
+                istft = IStft(1, self.frame_size, self.chunk_size, self.window, self.device)
+            # Add sink
+            self.sink_dict[sink["name"]] = SinkTuple(sink_obj, scm_target, scm_noise, istft)
 
         # Model
-        if self.mask:
-            self.masks = KissMask(self.mic_array, buffer_size=30)
-        else:
-            self.model = AudioModel(input_size=514, hidden_size=512, num_layers=2)
-            self.model.to(self.device)
-            if self.debug:
-                print(self.model)
-            self.model.load_best_model(self.model_path, self.device)
-            self.delay_and_sum = DelaySum(self.frame_size, self.device)
-
-        # self.check_time(name='init_audio', is_start=False)
+        self.init_model()
 
     def init_app(self, save_input, save_output, passthrough_mode, output_path="", gain=1):
         """
@@ -700,40 +698,39 @@ class AudioManager:
         self.gain = gain
 
         # Model
-        if self.mask:
-            self.masks = KissMask(self.mic_array, buffer_size=30)
-        else:
-            self.model = AudioModel(input_size=514, hidden_size=512, num_layers=2)
-            self.model.to(self.device)
-            if self.debug:
-                print(self.model)
-            self.model.load_best_model(self.model_path, self.device)
-            self.delay_and_sum = DelaySum(self.frame_size, self.device)
+        self.init_model()
 
         # Init source
         mic_source = self.init_mic_input(name=self.jetson_source["name"], src_index=self.jetson_source["idx"])
-        self.source_dict[self.jetson_source["name"]] = {
-            "src": mic_source,
-            "stft": Stft(self.channels, self.frame_size, self.window, self.device),
-        }
+        self.source_dict[self.jetson_source["name"]] = SourceTuple(
+            None,
+            mic_source,
+            Stft(self.channels, self.frame_size, self.window, self.device)
+        )
 
         # Init playback sink
-        self.sink_dict[self.jetson_sink["name"]] = {
-            "sink": self.init_play_output(name=self.jetson_sink["name"], sink_index=self.jetson_sink["idx"]),
-            "scm_target": SpatialCov(self.channels, self.frame_size, weight=self.scm_weight, device=self.device),
-            "scm_noise": SpatialCov(self.channels, self.frame_size, weight=self.scm_weight, device=self.device),
-            "istft": IStft(1, self.frame_size, self.chunk_size, self.window, self.device),
-        }
+        self.sink_dict[self.jetson_sink["name"]] = SinkTuple(
+            self.init_play_output(name=self.jetson_sink["name"], sink_index=self.jetson_sink["idx"]),
+            SpatialCov(self.channels, self.frame_size, weight=self.scm_weight, device=self.device),
+            SpatialCov(self.channels, self.frame_size, weight=self.scm_weight, device=self.device),
+            IStft(1, self.frame_size, self.chunk_size, self.window, self.device)
+        )
 
         # Init simulated sources (.wav) if needed
         if save_input:
-            self.sink_dict["original"] = {
-                "sink": self.init_sim_output(name="original", path=output_path, wav_params=self.file_params_multi)
-            }
+            self.sink_dict["original"] = SinkTuple(
+                self.init_sim_output(name="original", path=output_path, wav_params=self.file_params_multi),
+                None,
+                None,
+                None
+            )
         if save_output:
-            self.sink_dict["output"] = {
-                "sink": self.init_sim_output(name="output", path=output_path, wav_params=self.file_params_output)
-            }
+            self.sink_dict["original"] = SinkTuple(
+                self.init_sim_output(name="output", path=output_path, wav_params=self.file_params_output),
+                None,
+                None,
+                None
+            )
 
         return mic_source
 
@@ -863,11 +860,11 @@ class AudioManager:
                 self.output_sink(data=out, sink_name="output")
                 continue
 
+            # To GPU
             x = torch.from_numpy(x).to(self.device)
 
             # Temporal to Frequential
             self.check_time(name="stft", is_start=True)
-            #x = torch.from_numpy(x).to(self.device)
             X = self.source_dict["audio"]["stft"](x)
             self.check_time(name="stft", is_start=False)
 
@@ -906,6 +903,7 @@ class AudioManager:
             y = self.sink_dict["output"]["istft"](Y)
             self.check_time(name="istft", is_start=False)
 
+            # To CPU
             y = y.detach().cpu().numpy()
 
             # Output fully processed data
