@@ -103,7 +103,7 @@ class AppManager:
         self._selected_face = None
         self._vision_mode = "mute"
         self._audio_manager = AudioManager()
-        self.volume = 30
+        self.mute = False
 
         self._mic_source = self._audio_manager.init_app(
             save_input=True,
@@ -235,7 +235,7 @@ class AppManager:
         volume = payload["volume"]
         try:
             volume = int(volume)
-            if (volume <= 100) and (volume >= 0):
+            if (volume <= 100) and (volume >= 0) and (not self.mute):
                 # if self.volume < volume:
                 #     new_gain = 1.0 + float((volume - self.volume) / 100)
                 # else:
@@ -252,9 +252,11 @@ class AppManager:
         """
         status = payload["muteStatus"]
         if status:
-            self._audio_manager.set_gain(1)
-        else:
+            self.mute = True
             self._audio_manager.set_gain(0)
+        else:
+            self.mute = False
+            self._audio_manager.set_gain(1)
 
     def start(self):
         """
