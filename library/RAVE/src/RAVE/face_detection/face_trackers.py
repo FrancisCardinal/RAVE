@@ -32,6 +32,12 @@ class TrackerFactory:
             from .trackers.TrackerOpenCV import TrackerOpenCV
 
             return TrackerOpenCV(tracker_name=tracker_type)
+
+        elif tracker_type == "pytracking":
+            from .trackers.TrackerPyTracking import TrackerPyTracking
+
+            return TrackerPyTracking()
+
         elif tracker_type == "dlib":
             from .trackers.CorrelationTracker import CorrelationTracker
 

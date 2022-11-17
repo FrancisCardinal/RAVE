@@ -88,7 +88,7 @@ if __name__ == "__main__":
     frequency = args.freq
     tracking_manager = TrackingManager(
         cap=cap,
-        tracker_type="kcf",
+        tracker_type="pytracking",
         detector_type="yolo",
         verifier_type="resnet_face_18",
         frequency=frequency,
