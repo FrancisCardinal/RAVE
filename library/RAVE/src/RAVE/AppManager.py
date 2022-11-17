@@ -236,10 +236,11 @@ class AppManager:
         try:
             volume = int(volume)
             if (volume <= 100) and (volume >= 0):
-                if self.volume < volume:
-                    new_gain = 1.0 + float((volume - self.volume) / 100)
-                else:
-                    new_gain = float(abs(volume - self.volume) / 100)
+                # if self.volume < volume:
+                #     new_gain = 1.0 + float((volume - self.volume) / 100)
+                # else:
+                #     new_gain = float(abs(volume - self.volume) / 100)
+                new_gain = volume * 5 / 100
                 self._audio_manager.set_gain(new_gain)
                 self.volume = volume
         except ValueError:
