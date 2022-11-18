@@ -73,10 +73,6 @@ class DiMP(BaseTracker):
         elif isinstance(self.params.scale_factors, (list, tuple)):
             self.params.scale_factors = torch.Tensor(self.params.scale_factors)
 
-        # Setup scale bounds
-        self.min_scale_factor = torch.max(10 / self.base_target_sz)
-        self.max_scale_factor = torch.min(self.image_sz / self.base_target_sz)
-
         # Extract and transform sample
         init_backbone_feat = self.generate_init_samples(im)
 
@@ -86,6 +82,49 @@ class DiMP(BaseTracker):
         # Initialize IoUNet
         if self.params.get("use_iou_net", True):
             self.init_iou_net(init_backbone_feat)
+
+        out = {"time": time.time() - tic}
+        return out
+
+    def resetbbox(self, image, info):
+        # Time initialization
+        tic = time.time()
+
+        # Convert image
+        im = numpy_to_torch(image)
+
+        # Get target position and size
+        state = info["init_bbox"]
+        self.pos = torch.Tensor([state[1] + (state[3] - 1) / 2, state[0] + (state[2] - 1) / 2])
+        self.target_sz = torch.Tensor([state[3], state[2]])
+
+        # Get object id
+        self.object_id = info.get("object_ids", [None])[0]
+        self.id_str = "" if self.object_id is None else " {}".format(self.object_id)
+
+        # Set sizes
+        self.image_sz = torch.Tensor([im.shape[2], im.shape[3]])
+        sz = self.params.image_sample_size
+        sz = torch.Tensor([sz, sz] if isinstance(sz, int) else sz)
+        if self.params.get("use_image_aspect_ratio", False):
+            sz = self.image_sz * sz.prod().sqrt() / self.image_sz.prod().sqrt()
+            stride = self.params.get("feature_stride", 32)
+            sz = torch.round(sz / stride) * stride
+        self.img_sample_sz = sz
+        self.img_support_sz = self.img_sample_sz
+
+        # Set search area
+        search_area = torch.prod(self.target_sz * self.params.search_area_scale).item()
+        self.target_scale = math.sqrt(search_area) / self.img_sample_sz.prod().sqrt()
+
+        # Target size in base scale
+        self.base_target_sz = self.target_sz / self.target_scale
+
+        # Setup scale factors
+        if not self.params.has("scale_factors"):
+            self.params.scale_factors = torch.ones(1)
+        elif isinstance(self.params.scale_factors, (list, tuple)):
+            self.params.scale_factors = torch.Tensor(self.params.scale_factors)
 
         out = {"time": time.time() - tic}
         return out

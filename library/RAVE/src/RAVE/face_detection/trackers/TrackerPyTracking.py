@@ -3,7 +3,6 @@ import sys
 
 from collections import OrderedDict
 from .pytracking.evaluation import Tracker as PyTracker
-from .pytracking.evaluation.multi_object_wrapper import MultiObjectWrapper
 from .Tracker import Tracker as Tracker
 
 env_path = os.path.join(os.path.dirname(__file__))
@@ -27,16 +26,7 @@ class TrackerPyTracking(Tracker):
         params.tracker_name = tracker_class.name
         params.param_name = tracker_class.parameter_name
 
-        multiobj_mode = getattr(
-            params, "multiobj_mode", getattr(tracker_class.tracker_class, "multiobj_mode", "default")
-        )
-
-        if multiobj_mode == "default":
-            self.tracker = tracker_class.create_tracker(params)
-        elif multiobj_mode == "parallel":
-            self.tracker = MultiObjectWrapper(tracker_class.tracker_class, params, tracker_class.visdom, fast_load=True)
-        else:
-            raise ValueError("Unknown multi object mode {}".format(multiobj_mode))
+        self.tracker = tracker_class.create_tracker(params)
 
         self.sequence_object_ids = []
         self.prev_output = OrderedDict()
@@ -53,13 +43,12 @@ class TrackerPyTracking(Tracker):
         self.id = 1
         info = OrderedDict()
         info["previous_output"] = self.prev_output
-        info["init_object_ids"] = [
+        info["object_ids"] = [
             self.id,
         ]
-        info["init_bbox"] = OrderedDict({self.id: initial_bbox})
-        info["sequence_object_ids"] = self.sequence_object_ids
+        info["init_bbox"] = initial_bbox
 
-        out = self.tracker.track(frame, info)
+        out = self.tracker.initialize(frame, info)
         self.prev_output = OrderedDict(out)
 
     def update(self, frame):
@@ -69,11 +58,16 @@ class TrackerPyTracking(Tracker):
         Args:
             frame (np.ndarray): new frame used to update the tracker
         """
-        info = OrderedDict()
-        info["sequence_object_ids"] = self.sequence_object_ids
-        info["previous_output"] = self.prev_output
 
-        out = self.tracker.track(frame, info)
+        out = self.tracker.track(frame)
 
-        bbox = out["target_bbox"][self.id]
+        bbox = out["target_bbox"]
         return (True, bbox)
+
+    def reset(self, frame, bbox):
+        info = OrderedDict()
+        info["object_ids"] = [
+            self.id,
+        ]
+        info["init_bbox"] = bbox
+        self.tracker.resetbbox(frame, info)
