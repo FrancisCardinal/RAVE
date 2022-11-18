@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 import importlib
 import inspect
-import ltr.admin.settings as ws_settings
+import RAVE.face_detection.trackers.ltr.admin.settings as ws_settings
 
 
 def load_trained_network(workspace_dir, network_path, checkpoint=None):

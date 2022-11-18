@@ -1,4 +1,4 @@
-from ltr.admin.environment import env_settings
+from RAVE.face_detection.trackers.ltr.admin.environment import env_settings
 
 
 class Settings:

@@ -1,9 +1,9 @@
 import torch
 import torch.autograd
 import math
-from pytracking.libs import TensorList
-from pytracking.utils.plotting import plot_graph
-from ltr.models.layers.activation import softmax_reg
+from RAVE.face_detection.trackers.pytracking.libs import TensorList
+from RAVE.face_detection.trackers.pytracking.utils.plotting import plot_graph
+from RAVE.face_detection.trackers.ltr.models.layers.activation import softmax_reg
 
 
 class L2Problem:

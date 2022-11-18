@@ -3,7 +3,7 @@ import torch.utils.data.dataloader
 import importlib
 import collections
 
-from pytracking import TensorDict, TensorList
+from RAVE.face_detection.trackers.pytracking import TensorDict, TensorList
 
 string_classes = (str, bytes)
 

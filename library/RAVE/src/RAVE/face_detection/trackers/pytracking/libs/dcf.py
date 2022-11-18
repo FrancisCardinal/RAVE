@@ -1,7 +1,7 @@
 import torch
 import math
-from pytracking import fourier
-from pytracking import complex
+from RAVE.face_detection.trackers.pytracking import fourier
+from RAVE.face_detection.trackers.pytracking import complex
 import torch.nn.functional as F
 
 

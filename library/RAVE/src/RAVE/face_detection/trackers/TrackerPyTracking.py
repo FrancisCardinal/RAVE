@@ -1,4 +1,3 @@
-import numpy as np
 import os
 import sys
 
@@ -55,9 +54,9 @@ class TrackerPyTracking(Tracker):
         info = OrderedDict()
         info["previous_output"] = self.prev_output
         info["init_object_ids"] = [
-            id,
+            self.id,
         ]
-        info["init_bbox"] = OrderedDict({id: initial_bbox})
+        info["init_bbox"] = OrderedDict({self.id: initial_bbox})
         info["sequence_object_ids"] = self.sequence_object_ids
 
         out = self.tracker.track(frame, info)
@@ -70,15 +69,11 @@ class TrackerPyTracking(Tracker):
         Args:
             frame (np.ndarray): new frame used to update the tracker
         """
-        print("Update Start")
         info = OrderedDict()
         info["sequence_object_ids"] = self.sequence_object_ids
         info["previous_output"] = self.prev_output
 
         out = self.tracker.track(frame, info)
-        print(f"After tracker {out}")
-        bbox = out["target_bbox"][self.id]
 
-        bbox = np.array(out)
-        print("Update End")
-        return bbox
+        bbox = out["target_bbox"][self.id]
+        return (True, bbox)

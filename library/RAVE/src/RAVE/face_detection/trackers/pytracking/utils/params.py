@@ -1,4 +1,4 @@
-from pytracking import TensorList
+from RAVE.face_detection.trackers.pytracking import TensorList
 import random
 
 

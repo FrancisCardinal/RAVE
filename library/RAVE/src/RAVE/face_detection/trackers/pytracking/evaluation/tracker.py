@@ -2,16 +2,16 @@ import importlib
 import os
 import numpy as np
 from collections import OrderedDict
-from pytracking.evaluation.environment import env_settings
+from RAVE.face_detection.trackers.pytracking.evaluation.environment import env_settings
 import time
 import cv2 as cv
-from pytracking.utils.visdom import Visdom
+from RAVE.face_detection.trackers.pytracking.utils.visdom import Visdom
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-from pytracking.utils.plotting import draw_figure, overlay_mask
-from pytracking.utils.convert_vot_anno_to_rect import convert_vot_anno_to_rect
-from ltr.data.bounding_box_utils import masks_to_bboxes
-from pytracking.evaluation.multi_object_wrapper import MultiObjectWrapper
+from RAVE.face_detection.trackers.pytracking.utils.plotting import draw_figure, overlay_mask
+from RAVE.face_detection.trackers.pytracking.utils.convert_vot_anno_to_rect import convert_vot_anno_to_rect
+from RAVE.face_detection.trackers.ltr.data.bounding_box_utils import masks_to_bboxes
+from RAVE.face_detection.trackers.pytracking.evaluation.multi_object_wrapper import MultiObjectWrapper
 from pathlib import Path
 import torch
 

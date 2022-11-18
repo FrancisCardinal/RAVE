@@ -1,6 +1,6 @@
 import numpy as np
-from pytracking.evaluation.environment import env_settings
-from ltr.data.image_loader import imread_indexed
+from RAVE.face_detection.trackers.pytracking.evaluation.environment import env_settings
+from RAVE.face_detection.trackers.ltr.data.image_loader import imread_indexed
 from collections import OrderedDict
 
 

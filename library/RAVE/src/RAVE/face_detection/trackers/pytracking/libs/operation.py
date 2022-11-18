@@ -1,6 +1,6 @@
 import torch
 import torch.nn.functional as F
-from pytracking.libs.tensorlist import tensor_operation, TensorList
+from RAVE.face_detection.trackers.pytracking.libs.tensorlist import tensor_operation, TensorList
 
 
 @tensor_operation
