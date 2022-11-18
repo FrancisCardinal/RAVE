@@ -268,8 +268,13 @@ class TrackedObject:
             landmark (tuple (int, int)): x & y coordinates for the landmark
         """
         self.tracker_started = False  # Tracker is not ready to use
-        self.tracker = TrackerFactory.create(self._tracker_type)
-        self.tracker.start(frame_object.frame, bbox)
+
+        if self._tracker_type == "pytracking":
+            self.tracker.reset(frame_object.frame, bbox)
+        else:
+            self.tracker = TrackerFactory.create(self._tracker_type)
+            self.tracker.start(frame_object.frame, bbox)
+
         self.bbox = bbox
         self.current_frame = frame_object
         self.update_landmark(landmark)
