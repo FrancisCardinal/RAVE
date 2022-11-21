@@ -25,14 +25,13 @@ mic_dict_respeaker: {     # ReSpeaker mic dict
 }
 
 # Output
-#default_output_dir: 'C:\\GitProjet\\pipeline'
 default_output_dir: '.'
-out_channels: 1
+output_stereo: False
 
 # Arguments
 use_beamformer: True
 use_groundtruth: True   # Calculate various ground truths
-print_specs: True       # Print spectrograms
+print_specs: False       # Print spectrograms
 
 
 ## Jetson configs
@@ -60,7 +59,7 @@ jetson_sink: {
 source: {
     'name': 'sim1',
     'type': 'sim',
-    'file': '/Users/felixducharmeturcotte/Documents/MS-SNSD/output/1/p237_239_CopyMachine_7/audio.wav'
+    'file': './audio.wav'
 }
 
 # Sinks  (default/null idx uses default device)
@@ -75,7 +74,6 @@ sinks: [
         'name': 'original',
         'type': 'sim',
         'beamform': False
-#        'file': 'C:\\GitProjet\\MS-SNSD\\output\\2\\clnsp0_AirConditioner_2_Babble_8\\audio.wav'
     },
     {
         'name': 'output',

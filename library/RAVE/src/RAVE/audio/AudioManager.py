@@ -100,12 +100,14 @@ class AudioManager:
             except yaml.YAMLError as exc:
                 print(exc)
                 exit()
+
         # Transfer general configs
         self.mic_dict = self.general_configs["mic_dict"]
         self.mic_array = generate_mic_array(self.mic_dict)
         self.channels = self.mic_dict["nb_of_channels"]
 
-        self.out_channels = self.general_configs["out_channels"]
+        self.output_stereo = self.general_configs["output_stereo"]
+        self.out_channels = 2 if self.output_stereo else 1
         self.default_output_dir = self.general_configs["default_output_dir"]
 
         self.use_beamformer = self.general_configs["use_beamformer"]
@@ -118,7 +120,7 @@ class AudioManager:
         self.source_list = self.general_configs["source"]
         self.sink_list = self.general_configs["sinks"]
 
-        # Microphone arrays
+        # wav parameters
         self.wav_params_multi = (
             self.channels,
             2,
@@ -171,7 +173,7 @@ class AudioManager:
             except yaml.YAMLError as exc:
                 print(exc)
                 exit()
-        # TODO: get microphone matrix from congis file
+        # TODO: get microphone matrix from configs file
         self.target = input_configs["source_dir"]
 
         return source
@@ -324,8 +326,7 @@ class AudioManager:
             True if success (sink exists), else False
         """
 
-        # TODO: ADD POSSIBILITY TO CONTROL OUTPUT CHANNELS
-        # TODO: ADD STEREO OUTPUT
+        # TODO: add stereo output
 
         # Output fully processed data
         # out = y
@@ -664,7 +665,7 @@ class AudioManager:
             else:
                 scm_target = SpatialCov(self.channels, self.frame_size, weight=self.scm_weight, device=self.device)
                 scm_noise = SpatialCov(self.channels, self.frame_size, weight=self.scm_weight, device=self.device)
-                istft = IStft(1, self.frame_size, self.chunk_size, self.window, self.device)
+                istft = IStft(self.out_channels, self.frame_size, self.chunk_size, self.window, self.device)
             # Add sink
             self.sink_dict[sink["name"]] = SinkTuple(sink_obj, scm_target, scm_noise, istft)
 
@@ -702,7 +703,7 @@ class AudioManager:
             self.init_play_output(name=self.jetson_sink["name"], sink_index=self.jetson_sink["idx"]),
             SpatialCov(self.channels, self.frame_size, weight=self.scm_weight, device=self.device),
             SpatialCov(self.channels, self.frame_size, weight=self.scm_weight, device=self.device),
-            IStft(1, self.frame_size, self.chunk_size, self.window, self.device)
+            IStft(self.out_channels, self.frame_size, self.chunk_size, self.window, self.device)
         )
 
         # Init simulated sources (.wav) if needed
@@ -715,7 +716,7 @@ class AudioManager:
             )
         if save_output:
             self.sink_dict["original"] = SinkTuple(
-                self.init_sim_output(name="output", path=output_path, wav_params=self.wav_params_output),
+                self.init_sim_output(name="output", path=output_path, wav_params=self.wav_params_out),
                 None,
                 None,
                 None
@@ -887,6 +888,7 @@ class AudioManager:
             else:
                 Y = X * speech_mask
                 Y = torch.mean(Y, dim=0)
+                # TODO: stereo output
             self.check_time(name="beamformer", is_start=False)
 
             # ISTFT
