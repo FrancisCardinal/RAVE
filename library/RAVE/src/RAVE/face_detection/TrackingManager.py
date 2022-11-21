@@ -88,8 +88,8 @@ class TrackingManager:
         if torch.cuda.is_available():
             self._device = "cuda"
 
-        K = np.array([[340.60994606, 0.0, 325.7756748], [0.0, 341.93970667, 242.46219777], [0.0, 0.0, 1.0]])
-        D = np.array([[-3.07926877e-01, 9.16280959e-02, 9.46074597e-04, 3.07906550e-04, -1.17169354e-02]])
+        K = np.array([[347.33973783, 0.0, 324.87219961], [0.0, 345.76160498, 243.98890458], [0.0, 0.0, 1.0]])
+        D = np.array([[-3.12182472e-01, 9.71248263e-02, -4.70897871e-05, 1.60933679e-04, -1.31438715e-02]])
 
         corrected_shape = (self._cap.shape[1], self._cap.shape[0])
         self.newcameramtx, self.roi = cv2.getOptimalNewCameraMatrix(K, D, corrected_shape, 1, corrected_shape)
