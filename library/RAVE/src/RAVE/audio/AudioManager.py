@@ -330,6 +330,7 @@ class AudioManager:
         Args:
             gain (float): Array containing the target direction, time delay between microphones or None.
         """
+        print(gain)
         self.gain = gain
 
     def output_sink(self, data, sink_name):
