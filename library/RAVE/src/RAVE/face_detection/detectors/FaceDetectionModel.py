@@ -1,10 +1,10 @@
 import torch
 import os
-import platform
 import sys
 from torch import nn
+from RAVE.common.jetson_utils import is_jetson
 
-if platform.release().split("-")[-1] == "tegra":
+if is_jetson():
     from .models.yolov5.models.trt_model import TrtModel
     from .models.yolov5.utils.general import non_max_suppression_face
 
@@ -41,11 +41,13 @@ class FaceDetectionModel(nn.Module):
         sys.path.append(MODEL_PATH)
         self.device = DEVICE
 
-        if platform.release().split("-")[-1] == "tegra":
+        if is_jetson():
+            print("Loading YOLOv5n-face TRT model...")
             self.model = TrtModel(os.path.join(MODEL_PATH, "yolov5n-face.trt"))
         else:
             # TODO-JKealey: load to cpu to avoid ram/gpu surge as
             #  suggested in doc
+            print("Loading YOLOv5n-face model...")
             self.model = (
                 torch.load(
                     os.path.join(MODEL_PATH, "yolov5n-face.pt"),
@@ -74,7 +76,7 @@ class FaceDetectionModel(nn.Module):
             pytorch tensor:
                 The predictions of the network
         """
-        if platform.release().split("-")[-1] == "tegra":
+        if is_jetson():
             # TODO JKealey: don't pass to GPU before inference
             x = self.model(x.cpu().numpy()).reshape(1, 18900, 16)
             x = non_max_suppression_face(

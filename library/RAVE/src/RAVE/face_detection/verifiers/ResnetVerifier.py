@@ -161,16 +161,8 @@ class ResNetVerifier(Verifier):
         pretrained_dict = None
         if architecture == 18:
             # Load ResNet18
-            # if platform.release().split("-")[-1] == "tegra":
-            #     # TODO: Note: to be modified for use on the Jetson
-            #     model = TrtModel()
-            #     model_path = os.path.join(
-            #         ResNetVerifier.MODEL_PATH, "resnet18", "resnet18_trt.pth"
-            #     )
-            #     pretrained_dict = torch.load(model_path)
-            # else:
+            print("Loading Resnet18 verifier...")
             model = resnet_face18(pretrained=False)
-
             model_path = os.path.join(ResNetVerifier.MODEL_PATH, "resnet18", "resnet18.pth")
             try:
                 pretrained_dict = torch.load(
