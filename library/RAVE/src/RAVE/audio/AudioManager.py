@@ -55,6 +55,7 @@ class AudioManager:
     current_delay = None
     source_dict = {}
     sink_dict = {}
+    source_list = []
     timers = {}
     transformation = None
 
@@ -116,8 +117,6 @@ class AudioManager:
 
         self.jetson_source = self.general_configs["jetson_source"]
         self.jetson_sink = self.general_configs["jetson_sink"]
-
-        self.source_list = self.general_configs["source"]
         self.sink_list = self.general_configs["sinks"]
 
         # wav parameters
@@ -295,6 +294,9 @@ class AudioManager:
             self.speech_mask_np_gt = None
             self.noise_mask_np_gt = None
             self.speech_np_gt = None
+
+        # Reset timers
+        self.timers = {}
 
     def set_target(self, target):
         """
@@ -512,8 +514,8 @@ class AudioManager:
             audio_signal_f (ndarray): Array containing input audio signal in frequential domain.
         """
         # Get signal
-        s = torch.from_numpy(self.source_dict["speech"].src()).to(self.device)
-        n = torch.from_numpy(self.source_dict["noise"].src()).to(self.device)
+        s = torch.from_numpy(self.source_dict["speech"].source()).to(self.device)
+        n = torch.from_numpy(self.source_dict["noise"].source()).to(self.device)
 
         # Temporal to frequential
         S = self.source_dict["speech"].stft(s)
@@ -585,7 +587,7 @@ class AudioManager:
             self.model.load_best_model(self.model_path, self.device)
             self.delay_and_sum = DelaySum(self.frame_size, self.device)
 
-    def initialise_audio(self, source=None, sinks=None, overwrite_sinks=False, save_path=None):
+    def initialise_audio(self, source, sinks=None, overwrite_sinks=False, save_path=None):
         """
         Method to initialise audio after start. Uses configs written in 'audio_general_configs.yaml'.
 
@@ -603,8 +605,7 @@ class AudioManager:
             self.out_subfolder_path = save_path
 
         # Inputs
-        if source:
-            self.source_list = source
+        self.source_list = source
         if self.source_list["type"] == "sim":
             # Load sim (wav) input
             self.source_dict["audio"] = SourceTuple(
@@ -613,7 +614,7 @@ class AudioManager:
                 Stft(self.channels, self.frame_size, self.window, self.device)
             )
 
-            # Try loading speech and noise ground truths if present
+            # If sim, try loading speech and noise ground truths
             if self.speech_and_noise:
                 try:
                     # Load speech file
@@ -645,7 +646,6 @@ class AudioManager:
             )
 
         # Outputs
-        # TODO: add output channels control
         if sinks:
             if overwrite_sinks:
                 self.sink_list = sinks
@@ -737,7 +737,7 @@ class AudioManager:
             self.current_delay = self.target
 
             # Record from microphone
-            x = self.source_dict[self.jetson_source["name"]].src()
+            x = self.source_dict[self.jetson_source["name"]].source()
             if x is None:
                 if self.debug:
                     print("End of transmission. Closing.")
@@ -836,7 +836,7 @@ class AudioManager:
             self.check_time(name="loop", is_start=True)
 
             # Record from microphone
-            x = self.source_dict["audio"].src()
+            x = self.source_dict["audio"].source()
             if x is None:
                 if self.debug:
                     print("End of transmission. Closing.")
@@ -887,7 +887,12 @@ class AudioManager:
                 Y = self.beamformer(signal=X, target_scm=target_scm, noise_scm=noise_scm)
             else:
                 Y = X * speech_mask
-                Y = torch.mean(Y, dim=0)
+                if self.output_stereo:
+                    Y = torch.split(Y, 4)
+                    Y = [torch.mean(Y[0], dim=0), torch.mean(Y[1], dim=0)]
+                    Y = torch.stack(Y, dim=0)
+                else:
+                    Y = torch.mean(Y, dim=0)
                 # TODO: stereo output
             self.check_time(name="beamformer", is_start=False)
 

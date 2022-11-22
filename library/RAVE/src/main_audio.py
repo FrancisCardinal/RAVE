@@ -9,7 +9,7 @@ from tkinter import filedialog
 from RAVE.audio.AudioManager import AudioManager
 
 
-def run_loop(file_queue, worker_num, DEBUG, MASK, TIMER):
+def run_loop(file_queue, worker_num, DEBUG, MASK, TIMER, MODEL):
 
     # TODO: ADD POSSIBILITY TO RESET AUDIO_MANAGER INSTEAD OF RECREATING
     while not file_queue.empty():
@@ -19,7 +19,7 @@ def run_loop(file_queue, worker_num, DEBUG, MASK, TIMER):
         print(f'Worker {worker_num}: Starting speech enhancement on {audio_file}')
 
         # Run audio manager
-        audio_manager = AudioManager(debug=DEBUG, mask=MASK, use_timers=TIMER)
+        audio_manager = AudioManager(debug=DEBUG, mask=MASK, use_timers=TIMER, model_path=MODEL)
         audio_dict = {
             'name': 'loop_sim_source',
             'type': 'sim',
@@ -32,49 +32,46 @@ def run_loop(file_queue, worker_num, DEBUG, MASK, TIMER):
 
 def main(DEBUG, MASK, TIMER, WORKERS, SOURCE_DIR, MODEL):
 
-    # Get all files in a subdirectory
-    if SOURCE_DIR == 'default':
+    # Check if given a dataset folder or a subfolder
+    wav_file = glob.glob(os.path.join(SOURCE_DIR, 'audio.wav'))
+    if wav_file:
+        # Directly given a subfolder
+        audio_dict = {
+            'name': 'loop_sim_source',
+            'type': 'sim',
+            'file': wav_file[0]
+        }
         audio_manager = AudioManager(debug=DEBUG, mask=MASK, use_timers=TIMER, model_path=MODEL)
-        audio_manager.initialise_audio()
+        audio_manager.initialise_audio(source=audio_dict, save_path=None)
         audio_manager.main_loop()
     else:
-        # Check if given a dataset folder or a subfolder
-        wav_file = glob.glob(os.path.join(SOURCE_DIR, 'audio.wav'))
-        if wav_file:
-            # Directly given a subfolder
-            audio_dict = {
-                'name': 'loop_sim_source',
-                'type': 'sim',
-                'file': wav_file[0]
-            }
-            audio_manager = AudioManager(debug=DEBUG, mask=MASK, use_timers=TIMER, model_path=MODEL)
-            audio_manager.initialise_audio(source=audio_dict, path=None)
-            audio_manager.main_loop()
+        # Given a whole dataset folder
+        worker_count = WORKERS
+        worker_list = []
+        file_queue = Queue()
+        # Get audio files
+        input_files = glob.glob(os.path.join(SOURCE_DIR, '**', 'audio.wav'), recursive=True)
+        if not input_files:
+            print("No audio files found in given directory. Exiting.")
+            exit()
         else:
-            # Given a whole dataset folder
-            worker_count = WORKERS
-            worker_list = []
-            file_queue = Queue()
-            # Get audio files
-            input_files = glob.glob(os.path.join(SOURCE_DIR, '**', 'audio.wav'), recursive=True)
             for audio_file in input_files:
                 file_queue.put(audio_file)
 
-            # Start workers
-            for w in range(1, worker_count+1):
-                p = Process(target=run_loop, args=(file_queue, w, DEBUG, MASK, TIMER, ))
-                worker_list.append(p)
-                p.start()
-                print(f'Worker {w}: started.')
+        # Start workers
+        for w in range(1, worker_count+1):
+            p = Process(target=run_loop, args=(file_queue, w, DEBUG, MASK, TIMER, MODEL, ))
+            worker_list.append(p)
+            p.start()
+            print(f'Worker {w}: started.')
 
-            # Join workers when done
-            for w_num, p in enumerate(worker_list):
-                p.join()
-                print(f'Worker {w_num+1}: finished.')
+        # Join workers when done
+        for w_num, p in enumerate(worker_list):
+            p.join()
+            print(f'Worker {w_num+1}: finished.')
 
 
 if __name__ == "__main__":
-    # main2()
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
