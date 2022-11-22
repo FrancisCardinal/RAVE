@@ -253,10 +253,10 @@ class AppManager:
         status = payload["muteStatus"]
         if status:
             self.mute = True
-            self._audio_manager.set_gain(0)
+            self._audio_manager.set_gain(float(0))
         else:
             self.mute = False
-            self._audio_manager.set_gain(1)
+            self._audio_manager.set_gain(float(1))
 
     def start(self):
         """
