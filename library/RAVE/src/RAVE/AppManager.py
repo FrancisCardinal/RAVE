@@ -1,6 +1,5 @@
 import cv2
 import time
-import numpy as np
 import socketio
 import base64
 import threading
@@ -167,17 +166,6 @@ class AppManager:
 
         self._gaze_inferer_manager = GazeInfererManager(self._args.eye_video_source, DEVICE, self._args.debug)
 
-        K = self._tracking_manager.newcameramtx
-        roi = self._tracking_manager.roi
-
-        self._direction_2_pixel = Direction2Pixel(
-            K,
-            roi,
-            np.array([-0.08, 0.05, -0.10]),
-            self._args.height,
-            self._args.width,
-        )
-
         # Start a thread that selects a face with the GazeInferer if
         # the GazeInferer's inference is running
         threading.Thread(
@@ -188,6 +176,21 @@ class AppManager:
             ),
             daemon=True,
         ).start()
+
+    def _init_direction_2_pixel(self):
+        K = self._tracking_manager.newcameramtx
+        roi = self._tracking_manager.roi
+
+        while self._gaze_inferer_manager.get_eye_camera_to_eye_translation() is None:
+            time.sleep(10)
+
+        self._direction_2_pixel = Direction2Pixel(
+            K,
+            roi,
+            self._gaze_inferer_manager.get_eye_camera_to_eye_translation(),
+            self._args.height,
+            self._args.width,
+        )
 
     def get_target(self):
         emit("selectedTarget", "client", {"targetId": self._selected_face})
@@ -478,6 +481,7 @@ class AppManager:
 
         if payload["onStatus"]:
             self._gaze_inferer_manager.start_inference_thread()
+            self._init_direction_2_pixel()
         else:
             self._gaze_inferer_manager.stop_inference()
 
