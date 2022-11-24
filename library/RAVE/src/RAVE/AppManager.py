@@ -127,6 +127,7 @@ class AppManager:
         sio.on("quitVisionCalibration", self.stop_calib_audio_vision)
 
         self._gaze_inferer_manager = None
+        self._direction_2_pixel = None
         self._x_1, self._x_2 = None, None
 
         if args.debug:
@@ -369,6 +370,9 @@ class AppManager:
 
         angle_x, _ = self._gaze_inferer_manager.get_current_gaze()
         if angle_x is not None:
+            if self._direction_2_pixel is None:
+                self._init_direction_2_pixel()
+
             x_1_m, _ = self._direction_2_pixel.get_pixel(angle_x, 0, 1)
             x_5_m, _ = self._direction_2_pixel.get_pixel(angle_x, 0, 5)
 
@@ -481,9 +485,9 @@ class AppManager:
 
         if payload["onStatus"]:
             self._gaze_inferer_manager.start_inference_thread()
-            self._init_direction_2_pixel()
         else:
             self._gaze_inferer_manager.stop_inference()
+            self._direction_2_pixel = None
 
     def start_eye_tracking_calibration(self):
         if self._gaze_inferer_manager is None:
