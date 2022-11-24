@@ -6,7 +6,6 @@ from .Detector import Detector, Detection
 from .FaceDetectionModel import FaceDetectionModel
 from ...common.image_utils import (
     xyxy2xywh,
-    opencv_image_to_tensor,
     scale_coords,
     scale_coords_landmarks,
 )
@@ -31,8 +30,10 @@ class YoloFaceDetector(Detector):
                 Threshold for detection confidence score (0-1)
     """
 
-    def __init__(self, threshold=0.5):
+    def __init__(self, threshold=0.5, min_face_size=1400):
         self.threshold = threshold
+        self.min_face_size = min_face_size
+
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model = FaceDetectionModel(self.device)
         self.model.to(self.device)
@@ -66,12 +67,8 @@ class YoloFaceDetector(Detector):
         predictions = self.model(tensor)[0]
 
         # Scale coords
-        predictions[:, 5:15] = scale_coords_landmarks(
-            tensor.shape[2:], predictions[:, 5:15], frame.shape
-        ).round()
-        predictions[:, :4] = scale_coords(
-            tensor.shape[2:], predictions[:, :4], frame.shape
-        ).round()
+        predictions[:, 5:15] = scale_coords_landmarks(tensor.shape[2:], predictions[:, 5:15], frame.shape).round()
+        predictions[:, :4] = scale_coords(tensor.shape[2:], predictions[:, :4], frame.shape).round()
 
         detections = []
         for i in range(predictions.size()[0]):
@@ -79,28 +76,15 @@ class YoloFaceDetector(Detector):
             # Make sure confidence is over threshold for each detection
             confidence = predictions[i, 4].cpu().item()
             if confidence < self.threshold:
-                print(
-                    f"Rejecting face detection below threshold"
-                    f": {confidence} < {self.threshold}"
-                )
+                print("Rejecting face detection below threshold" ": {:.2f} < {:.2f}".format(confidence, self.threshold))
                 continue
 
-            gn = torch.tensor(frame.shape)[[1, 0, 1, 0]].to(
-                self.device
-            )  # normalization gain whwh
-            gn_lks = torch.tensor(frame.shape)[
-                [1, 0, 1, 0, 1, 0, 1, 0, 1, 0]
-            ].to(
+            gn = torch.tensor(frame.shape)[[1, 0, 1, 0]].to(self.device)  # normalization gain whwh
+            gn_lks = torch.tensor(frame.shape)[[1, 0, 1, 0, 1, 0, 1, 0, 1, 0]].to(
                 self.device
             )  # normalization gain landmarks
-            xywh = (
-                (xyxy2xywh(predictions[i, :4].view(1, 4)) / gn)
-                .view(-1)
-                .tolist()
-            )
-            landmarks = (
-                (predictions[i, 5:15].view(1, 10) / gn_lks).view(-1).tolist()
-            )
+            xywh = (xyxy2xywh(predictions[i, :4].view(1, 4)) / gn).view(-1).tolist()
+            landmarks = (predictions[i, 5:15].view(1, 10) / gn_lks).view(-1).tolist()
 
             # Bounding box
             height, width, _ = frame.shape
@@ -111,6 +95,13 @@ class YoloFaceDetector(Detector):
                 int(xywh[3] * height),
             ]
 
+            # Check to see if face is large enough
+            bbox_size = bbox_scaled[2] * bbox_scaled[3]
+            if bbox_size < self.min_face_size:
+                # Reject detection
+                print(f"Rejecting face that is too small {bbox_size} < {self.min_face_size}")
+                continue
+
             # Landmarks
             for i in range(5):
                 landmarks[2 * i] = int(landmarks[2 * i] * width)
@@ -120,15 +111,11 @@ class YoloFaceDetector(Detector):
             mouth_y = int((landmarks[7] + landmarks[9]) / 2)
             mouth = (mouth_x, mouth_y)
 
-            new_detection = Detection(
-                frame, bbox_scaled, mouth, landmarks
-            )
+            new_detection = Detection(frame, bbox_scaled, mouth, landmarks)
             detections.append(new_detection)
 
             if draw_on_frame:
-                frame = YoloFaceDetector.show_results(
-                    frame, bbox_scaled, confidence, landmarks, mouth
-                )
+                frame = YoloFaceDetector.show_results(frame, bbox_scaled, confidence, landmarks, mouth)
 
         return frame, detections
 
@@ -183,13 +170,9 @@ class YoloFaceDetector(Detector):
         for i in range(5):
             point_x = landmarks[2 * i]
             point_y = landmarks[2 * i + 1]
-            img = cv2.circle(
-                img, (point_x, point_y), line_thickness + 1, colors[i], -1
-            )
+            img = cv2.circle(img, (point_x, point_y), line_thickness + 1, colors[i], -1)
 
-        img = cv2.circle(
-            img, (mouth[0], mouth[1]), line_thickness + 1, (255, 0, 0), -1
-        )
+        img = cv2.circle(img, (mouth[0], mouth[1]), line_thickness + 1, (255, 0, 0), -1)
 
         # Confidence score
         font_thickness = max(line_thickness - 1, 1)  # font thickness

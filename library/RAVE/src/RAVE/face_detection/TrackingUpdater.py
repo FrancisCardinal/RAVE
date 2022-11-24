@@ -59,7 +59,7 @@ class TrackingUpdater:
         verifier_threshold,
         visualize=True,
         debug_preprocess=False,
-        debug_detector=False
+        debug_detector=False,
     ):
 
         self.detector = DetectorFactory.create(detector_type)
@@ -156,7 +156,7 @@ class TrackingUpdater:
         if len(bboxes_to_verify) > 0:
             predicted_features = self.verifier.get_features(frame_object.frame_tensor, bboxes_to_verify)
 
-        # Handle matches  
+        # Handle matches
         for pair in matched_pairs:
             # A face was matched
             obj, detection = pair
@@ -180,11 +180,11 @@ class TrackingUpdater:
                 else:
                     # Match refuse since the appearances are too different
                     print(
-                        "Refusing IOU match, due to similarity score:",
-                        similarity_score,
-                        "<",
-                        self.verifier_threshold,
+                        "Refusing IOU match, due to similarity score: {:.2f} < {:.2f}".format(
+                            similarity_score, self.verifier_threshold
+                        )
                     )
+
                     # Moving to unmatched
                     unmatched_detections.append(detection)
                     unmatched_objects[obj.id] = obj
@@ -215,7 +215,7 @@ class TrackingUpdater:
         match_index, match_score = self.verifier.get_closest_face(reference_encodings, encoding_to_compare)
 
         if match_index is not None:
-            print(f"Matched old face with score: {match_score}")
+            print("Matched old face with score: {:.2f}".format(match_score))
             return objects[match_index]
 
         return None
@@ -333,7 +333,7 @@ class TrackingUpdater:
 
             if pre_tracked_object.bbox is None:
                 continue
-            
+
             if self.visualize and self.debug_preprocess:
                 pre_tracker_frame = pre_tracked_object.draw_prediction_on_frame(pre_tracker_frame)
 
@@ -354,7 +354,9 @@ class TrackingUpdater:
         if len(pre_tracked_objects) == 0:
             return
 
-        annotated_frame, detections = self.detector.predict(frame_object, draw_on_frame=(self.visualize and self.debug_detector))
+        annotated_frame, detections = self.detector.predict(
+            frame_object, draw_on_frame=(self.visualize and self.debug_detector)
+        )
 
         pre_tracked_objects_copy = pre_tracked_objects.copy()
         matched_pairs, unmatched_objects, _ = self.match_faces_by_iou(pre_tracked_objects_copy, detections)
@@ -378,7 +380,9 @@ class TrackingUpdater:
             face_frame = pre_frame
             detections = pre_detections
         else:
-            face_frame, detections = self.detector.predict(frame_object, draw_on_frame=(self.visualize and self.debug_detector))
+            face_frame, detections = self.detector.predict(
+                frame_object, draw_on_frame=(self.visualize and self.debug_detector)
+            )
         self.last_detect = time.time()
         self.detector_frame = face_frame
 
