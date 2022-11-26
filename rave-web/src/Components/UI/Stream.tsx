@@ -117,10 +117,8 @@ function Stream() {
                 width: '100%',
                 height: '100%',
                 position: 'absolute',
+                top: '0px',
                 left: '0px',
-                right: '0px',
-                marginLeft : "auto",
-                marginRight : "auto",
                 backgroundColor: 'rgba(0,0,0,.1)',
                 cursor: 'pointer',
               }}
