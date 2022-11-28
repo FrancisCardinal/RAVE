@@ -39,7 +39,6 @@ function HomeScreen() {
         </button>
         <EyeTrackingMode />
         </div>
-        
         <MuteButton />
         <VolumeSlider />
       </div>

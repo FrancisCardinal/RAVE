@@ -361,7 +361,11 @@ class AppManager:
             payload (dict): Dictionary containing the id of the
             face selected in the web client.
         """
-        self._selected_face = payload["targetId"]
+        if self._selected_face == payload["targetId"]:
+            # Deselect the current face
+            self._selected_face = None
+        else:
+            self._selected_face = payload["targetId"]
         emit("selectedTarget", "client", {"targetId": self._selected_face})
 
     def _update_selected_face_from_gaze_inferer(self):

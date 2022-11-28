@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, useContext} from 'react';
 import { BrowserView, MobileView } from 'react-device-detect';
 import { useEventListener, useEmit } from "../../Hooks";
-import { CLIENT_EVENTS, NewFrameAvailablePayload, GetTargetEvent } from 'rave-protocol';
+import { CLIENT_EVENTS, NewFrameAvailablePayload, GetTargetEvent, ConnectionStatusPayload } from 'rave-protocol';
 import { TargetSelectEvent } from 'rave-protocol/pythonEvents';
 import { DebugContext } from '../../DebugContextProvider';
 
@@ -117,10 +117,8 @@ function Stream() {
                 width: '100%',
                 height: '100%',
                 position: 'absolute',
+                top: '0px',
                 left: '0px',
-                right: '0px',
-                marginLeft : "auto",
-                marginRight : "auto",
                 backgroundColor: 'rgba(0,0,0,.1)',
                 cursor: 'pointer',
               }}
