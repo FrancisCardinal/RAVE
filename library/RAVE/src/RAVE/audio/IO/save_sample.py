@@ -7,11 +7,13 @@ import argparse
 import yaml
 from tkinter import filedialog
 
+from pathlib import Path
+
 CHANNELS = 4
 MIC_ARRAY = load_mic_array_from_ressources("ReSpeaker_USB")
 CHUNK_SIZE = 256
 
-OUTPUT_FOLDER = '/home/rave/RAVE/audio/dataset'
+OUTPUT_FOLDER = '/home/rave/'
 # OUTPUT_FOLDER = 'C:\\GitProjet\\RAVE\\library\\RAVE\\src\\RAVE\\audio\\test_output.wav'
 
 # Params: .wav file channels, int16 byte size, sampling rate, nb of samples,
@@ -23,23 +25,27 @@ def generate_output(run_args):
 
     # Get output path
     loc = run_args.location
-    is_speech = run_args.name.startswith("clsnp") or run_args.name.startswith("p2") or run_args.name.startswith("p3")
-    speech_noise = "speech" if is_speech else "noise"
+    # is_speech = run_args.name.startswith("clsnp") or run_args.name.startswith("p2") or run_args.name.startswith("p3")
+    speech_noise = "speech" if args.speech else "noise"
     name = run_args.name
-    output_folder_path = os.path.join(loc, speech_noise, name)
+    output_folder_path = os.path.join(OUTPUT_FOLDER, loc, speech_noise, name)
     output_file_path = os.path.join(output_folder_path, 'audio.wav')
 
     # Save file information
     room_name = os.path.split(loc)[0]
-    direction = os.path.split(loc)[1]
+    position = os.path.split(loc)[1]
     output_config_path = os.path.join(output_folder_path, 'configs.yaml')
     config_dict = dict(
         path=output_folder_path,
         room=room_name,
-        location=direction,
-        is_speech=is_speech,
+        location=position,
+        direction=args.direction,
+        is_speech=args.speech,
         sound=name
     )
+
+    Path(output_folder_path).mkdir(parents=True, exist_ok=True)
+
     with open(output_config_path, "w") as outfile:
         yaml.dump(config_dict, outfile, default_flow_style=None)
 
@@ -49,7 +55,7 @@ def generate_output(run_args):
 def main(run_args):
 
     file_params = (
-        4,
+        8,
         2,
         CONST.SAMPLING_RATE,
         CONST.SAMPLING_RATE * run_args.time,
@@ -59,7 +65,7 @@ def main(run_args):
 
     output_path = generate_output(run_args)
 
-    source = MicSource(channels=CHANNELS, mic_arr=MIC_ARRAY, chunk_size=CHUNK_SIZE, mic_index=run_args.mic_idx)
+    source = MicSource(channels=8, chunk_size=CHUNK_SIZE, mic_index=run_args.mic_idx)
     sink = WavSink(file=output_path, wav_params=file_params, chunk_size=CHUNK_SIZE)
 
     samples = 0
@@ -101,9 +107,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "-d", "--debug", action="store_true", help="Run the script in debug mode. Is more verbose."
     )
-    # parser.add_argument(
-    #     "-s", "--speech", action="store_true", help="Sample to record is speech."
-    # )
+    parser.add_argument(
+        "-s", "--speech", action="store_true", help="Sample to record is speech."
+    )
     # parser.add_argument(
     #     "-r",
     #     "--room",
@@ -129,14 +135,13 @@ if __name__ == "__main__":
         type=str,
         help="Filename to be used for saving."
     )
-    # parser.add_argument(
-    #     "-d",
-    #     "--direction",
-    #     action="store",
-    #     type=str,
-    #     default='0,0,0',
-    #     help="Direction of the sound compared to the microphone array (side, depth, height in m)."
-    # )
+    parser.add_argument(
+        "--direction",
+        action="store",
+        type=str,
+        default='0,0,0',
+        help="Direction of the sound compared to the microphone array (side, depth, height in m)."
+    )
 
     parser.add_argument(
         "-t",
@@ -152,7 +157,7 @@ if __name__ == "__main__":
         "--mic_idx",
         action="store",
         type=int,
-        default=0,
+        default=4,
         help="Microphone index to use for saving sound."
     )
 

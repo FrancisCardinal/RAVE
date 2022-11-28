@@ -35,7 +35,7 @@ if __name__ == "__main__":
         dest="eye_video_source",
         type=int,
         help="Video input source identifier for eye tracker camera",
-        default=1,
+        default=2,
     )
     parser.add_argument(
         "--nb_mic_channels",

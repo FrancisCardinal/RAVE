@@ -150,6 +150,8 @@ class GazeInferer:
         # Issue error if eyeball model still does not exist after fitting.
         if (self.eyefitter.eye_centre is None) or (self.eyefitter.aver_eye_radius is None):
             raise TypeError("Eyeball model was not fitted.")
+        else:
+            print("Eyeball model was fitted !")
 
     def torch_prediction_to_deepvog_format(self, prediction):
         """Takes one output of the neural network and converts it to the

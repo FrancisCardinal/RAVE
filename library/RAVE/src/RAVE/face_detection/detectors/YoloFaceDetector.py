@@ -30,7 +30,7 @@ class YoloFaceDetector(Detector):
                 Threshold for detection confidence score (0-1)
     """
 
-    def __init__(self, threshold=0.5, min_face_size=1400):
+    def __init__(self, threshold=0.5, min_face_size=500):
         self.threshold = threshold
         self.min_face_size = min_face_size
 

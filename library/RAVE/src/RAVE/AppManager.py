@@ -267,8 +267,8 @@ class AppManager:
         Start the tracking loop and the connection to server.
         """
         # Start server
+        # sio.connect("ws://192.168.0.100:9000")
         sio.connect("ws://localhost:9000")
-
         # Start tracking thread
         tracking_thread = threading.Thread(
             target=self._tracking_manager.start,
