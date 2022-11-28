@@ -2,11 +2,11 @@ import os
 import random
 
 import torch
+import torchvision
 from torchvision import transforms
 
-from PIL import Image
-
-from ..common.image_utils import apply_image_translation, apply_image_rotation
+from ..common.image_utils import apply_image_translation
+from ..common.image_utils import apply_image_rotation
 from ..common.Dataset import Dataset
 from ..eye_tracker.EyeTrackerVideoCapture import EyeTrackerVideoCapture
 from .NormalizedEllipse import NormalizedEllipse
@@ -87,9 +87,7 @@ class EyeTrackerDataset(Dataset):
         Returns:
             Dataset: The training sub dataset
         """
-        return EyeTrackerDatasetOnlineDataAugmentation(
-            EyeTrackerDataset.TRAINING_DIR
-        )
+        return EyeTrackerDatasetOnlineDataAugmentation(EyeTrackerDataset.TRAINING_DIR)
 
     @staticmethod
     def get_validation_sub_dataset():
@@ -131,9 +129,7 @@ class EyeTrackerDatasetOnlineDataAugmentation(EyeTrackerDataset):
 
         self.TRAINING_TRANSFORM = transforms.Compose(
             [
-                transforms.ColorJitter(
-                    brightness=0.5, contrast=0.5, saturation=0.5, hue=0.5
-                ),  # random
+                transforms.ColorJitter(brightness=0.5, contrast=0.5, saturation=0.5, hue=0.5),  # random
                 transforms.GaussianBlur(3),  # random
                 transforms.RandomInvert(0.25),  # random
             ]
@@ -160,9 +156,7 @@ class EyeTrackerDatasetOnlineDataAugmentation(EyeTrackerDataset):
 
         output_image_tensor, phi = apply_image_rotation(image)
 
-        output_image_tensor, x_offset, y_offset = apply_image_translation(
-            output_image_tensor
-        )
+        output_image_tensor, x_offset, y_offset = apply_image_translation(output_image_tensor)
         pupil_is_visible = label is not None
         if pupil_is_visible:
             current_ellipse = NormalizedEllipse.get_from_list(label)
@@ -198,9 +192,13 @@ class EyeTrackerInferenceDataset(EyeTrackerDataset):
         EyeTrackerVideoCapture.ACQUISITION_HEIGHT,
     )
 
-    def __init__(self, opencv_device):
+    def __init__(self, opencv_device, torch_device):
         super().__init__("test")  # TODO FC : Find a more elegant solution
         self._video_feed = EyeTrackerVideoCapture(opencv_device)
+        self._to_tensor_transform = transforms.ToTensor()
+        self._resize_transform = transforms.Resize(self.IMAGE_DIMENSIONS[1:3])
+
+        self._DEVICE = torch_device
 
     def __len__(self):
         """
@@ -226,14 +224,15 @@ class EyeTrackerInferenceDataset(EyeTrackerDataset):
         """
         frame = self._video_feed.read()
 
+        frame = self._to_tensor_transform(frame).to(self._DEVICE)
+
         top, left, height, width = EyeTrackerDataset.CROP_SIZE
-        frame = frame[top : top + height, left : left + width]
+        frame = torchvision.transforms.functional.crop(frame, top, left, height, width)
 
-        frame = Image.fromarray(frame, "RGB")
-        image = self.PRE_PROCESS_TRANSFORM(frame)
-        image = self.NORMALIZE_TRANSFORM(image)
+        frame = self._resize_transform(frame)
+        frame = self.NORMALIZE_TRANSFORM(frame)
 
-        return image
+        return frame
 
     def end(self):
         """Should be called at the end of the program to free the opencv

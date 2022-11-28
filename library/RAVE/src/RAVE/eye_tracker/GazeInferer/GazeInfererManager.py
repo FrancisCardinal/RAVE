@@ -46,7 +46,7 @@ class GazeInfererManager:
         )
         self._current_state = GazeInfererManager.IDLE_STATE
         self.gaze_inferer = None
-        self.eye_tracker_inference_dataset = EyeTrackerInferenceDataset(CAMERA_INDEX)
+        self.eye_tracker_inference_dataset = EyeTrackerInferenceDataset(CAMERA_INDEX, DEVICE)
         self.selected_calibration_path = None
         self.list_calibration = []
         self.list_available_calibrations()
