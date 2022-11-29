@@ -264,7 +264,7 @@ class TrackedObject:
         rel_size = (bbox[2] * bbox[3]) / (self.bbox[2] * self.bbox[3])
         # print("Rel dist: {:.2f}, rel size: {:.4f}".format(rel_distance, rel_size))
 
-        if rel_distance > 0.5 or rel_size > 1.25 or rel_size < 0.75:
+        if rel_distance > 0.4 or rel_size > 1.2 or rel_size < 0.8:
             print("Resetting tracker for object", self.id)
 
             self.tracker_started = False  # Tracker is not ready to use
@@ -288,17 +288,17 @@ class TrackedObject:
         """
 
         x, y, w, h = self.bbox
-        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-        if self.id is not None:
-            cv2.putText(
-                frame,
-                self.id,
-                (x, y - 2),
-                0,
-                1,
-                [0, 0, 255],
-                thickness=2,
-                lineType=cv2.LINE_AA,
-            )
+        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 3)
+        # if self.id is not None:
+        #     cv2.putText(
+        #         frame,
+        #         self.id,
+        #         (x, y - 2),
+        #         0,
+        #         1,
+        #         [0, 0, 255],
+        #         thickness=2,
+        #         lineType=cv2.LINE_AA,
+        #     )
 
         return frame
