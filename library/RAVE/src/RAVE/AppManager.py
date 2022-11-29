@@ -366,6 +366,7 @@ class AppManager:
             self._selected_face = None
         else:
             self._selected_face = payload["targetId"]
+            self._audio_manager.reset_model_context()
         emit("selectedTarget", "client", {"targetId": self._selected_face})
 
     def _update_selected_face_from_gaze_inferer(self):
@@ -392,7 +393,7 @@ class AppManager:
                         best_iou = iou
                         id = obj.id
 
-            if id is not None:
+            if id is not None and self._selected_face != id:
                 self._update_selected_face({"targetId": id})
 
         else:
