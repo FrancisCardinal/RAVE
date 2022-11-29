@@ -21,12 +21,12 @@ class ArcFace(Verifier):
         self.model = arcface_model.load_model()
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    def get_features(self, frame, face_locations):
+    def get_features(self, frame_object, face_locations):
         """
         Get the feature vectors for all requested objects
 
         Args:
-            frame (np.ndarray): The image containing the objects
+            frame_object (FrameObject): The image containing the objects
             face_locations (list of tuples (int, int, int, int)): List of all
                 the xywh bounding boxes for the objects in the image to compute
                 the encodings for
@@ -35,6 +35,8 @@ class ArcFace(Verifier):
             (list(float)): Variable length list containing the floats that
                 represent the object
         """
+
+        frame = frame_object.frame
         features = []
         for bbox in face_locations:
             roi = frame[
@@ -47,7 +49,10 @@ class ArcFace(Verifier):
                 image = np.transpose(image, (0, 3, 1, 2))
                 feature = self.model(image)
             else:
-                feature = self.model(image)[0].numpy().tolist()
+                image = torch.tensor(image)
+                feature = (
+                    self.model(image)[0].numpy().tolist()
+                )  # TODO: Confirm that this operation is done on GPU when there is one available
 
             features.append(feature)
 

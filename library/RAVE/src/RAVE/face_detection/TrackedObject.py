@@ -8,6 +8,15 @@ CONFIRMATION_THRESHOLD = 4
 NB_FRAMES_TO_REJECT = 6
 REJECTION_THRESHOLD = 2
 
+FRAME_COLORS = [
+    [31, 31, 196],
+    [29, 124, 226],
+    [21, 214, 117],
+    [242, 148, 55],
+    [244, 73, 244],
+    [35, 237, 237],
+]
+
 
 class TrackedObject:
     """
@@ -288,17 +297,26 @@ class TrackedObject:
         """
 
         x, y, w, h = self.bbox
-        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 3)
-        # if self.id is not None:
-        #     cv2.putText(
-        #         frame,
-        #         self.id,
-        #         (x, y - 2),
-        #         0,
-        #         1,
-        #         [0, 0, 255],
-        #         thickness=2,
-        #         lineType=cv2.LINE_AA,
-        #     )
+        color = [0, 0, 255]
+        if self.id is not None:
+            color = FRAME_COLORS[int(self.id) % len(FRAME_COLORS)]
+            cv2.putText(
+                frame,
+                self.id,
+                (x, y - 6),
+                0,
+                1,
+                color,
+                thickness=2,
+                lineType=cv2.LINE_AA,
+            )
+
+        cv2.rectangle(frame, (x, y), (x + w, y + h), color, 4)
+
+        # Draw mouth point
+        mouth = self.landmark
+        if mouth is not None:
+            x_mouth, y_mouth = mouth
+            cv2.drawMarker(frame, (x_mouth, y_mouth), color, cv2.MARKER_CROSS, 12, 2)
 
         return frame

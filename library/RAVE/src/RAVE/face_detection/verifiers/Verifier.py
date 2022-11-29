@@ -7,12 +7,12 @@ class Verifier(ABC):
     """
 
     @abstractmethod
-    def get_features(self, frame, face_locations):
+    def get_features(self, frame_object, face_locations):
         """
         Get the feature vectors for all requested objects
 
         Args:
-            frame (np.ndarray): The image containing the objects
+            frame_object (FrameObject): The image containing the objects
             face_locations (list of tuples (int, int, int, int)): List of all
                 the xywh bounding boxes for the objects in the image to compute
                 the encodings for

@@ -165,12 +165,6 @@ class TrackingManager:
                 continue
             tracked_object.draw_prediction_on_frame(tracking_frame)
 
-            # Draw mouth point
-            # mouth = tracked_object.landmark
-            # if mouth is not None:
-            #     x_mouth, y_mouth = mouth
-            #     cv2.circle(tracking_frame, (x_mouth, y_mouth), 5, [0, 0, 255], -1)
-
         return tracking_frame
 
     def process_frame(self, frame):
