@@ -265,7 +265,7 @@ class TrackedObject:
         # print("Rel dist: {:.2f}, rel size: {:.4f}".format(rel_distance, rel_size))
 
         if rel_distance > 0.5 or rel_size > 1.25 or rel_size < 0.75:
-            print("Resetting tracker for object", self.id)
+            # print("Resetting tracker for object", self.id)
 
             self.tracker_started = False  # Tracker is not ready to use
             self.tracker = TrackerFactory.create(self._tracker_type)

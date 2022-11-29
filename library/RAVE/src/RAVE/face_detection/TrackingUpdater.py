@@ -179,11 +179,11 @@ class TrackingUpdater:
                     matched_object.update_encoding(feature, frame_object.frame, detection.bbox)
                 else:
                     # Match refuse since the appearances are too different
-                    print(
-                        "Refusing IOU match, due to similarity score: {:.2f} < {:.2f}".format(
-                            similarity_score, self.verifier_threshold
-                        )
-                    )
+                    # print(
+                    #     "Refusing IOU match, due to similarity score: {:.2f} < {:.2f}".format(
+                    #         similarity_score, self.verifier_threshold
+                    #     )
+                    # )
 
                     # Moving to unmatched
                     unmatched_detections.append(detection)
@@ -201,7 +201,7 @@ class TrackingUpdater:
                 tracked_object.reject()
                 if tracked_object.rejected:
                     self.object_manager.remove_tracked_object(obj.id)
-                    print("Rejecting tracked object:", obj.id)
+                    # print("Rejecting tracked object:", obj.id)
 
     def compare_encoding_to_objects(self, objects, encoding_to_compare):
         """
@@ -215,7 +215,7 @@ class TrackingUpdater:
         match_index, match_score = self.verifier.get_closest_face(reference_encodings, encoding_to_compare)
 
         if match_index is not None:
-            print("Matched old face with score: {:.2f}".format(match_score))
+            # print("Matched old face with score: {:.2f}".format(match_score))
             return objects[match_index]
 
         return None
@@ -319,7 +319,7 @@ class TrackingUpdater:
                         )
                         if matched_object:
                             # Matched with old face: start tracking again
-                            print("Matched with old face:", matched_object.id)
+                            # print("Matched with old face:", matched_object.id)
                             self.object_manager.restore_rejected_object(matched_object.id, pre_tracked_object)
 
                 if matched_object is None:
