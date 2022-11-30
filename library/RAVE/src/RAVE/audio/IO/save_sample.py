@@ -27,8 +27,10 @@ def generate_output(run_args):
     loc = run_args.location
     # is_speech = run_args.name.startswith("clsnp") or run_args.name.startswith("p2") or run_args.name.startswith("p3")
     speech_noise = "speech" if args.speech else "noise"
-    name = run_args.name
-    output_folder_path = os.path.join(OUTPUT_FOLDER, loc, speech_noise, name)
+    diff_name = "_diff" if args.diff else ""
+    name = run_args.name + diff_name
+    relative_output = os.path.join(loc, speech_noise, name)
+    output_folder_path = os.path.join(OUTPUT_FOLDER, relative_output)
     output_file_path = os.path.join(output_folder_path, 'audio.wav')
 
     # Save file information
@@ -36,10 +38,10 @@ def generate_output(run_args):
     position = os.path.split(loc)[1]
     output_config_path = os.path.join(output_folder_path, 'configs.yaml')
     config_dict = dict(
-        path=output_folder_path,
+        path=relative_output,
         room=room_name,
-        location=position,
-        direction=args.direction,
+        user_pos=position,
+        location=args.direction,
         is_speech=args.speech,
         sound=name
     )
@@ -108,6 +110,9 @@ if __name__ == "__main__":
         "-d", "--debug", action="store_true", help="Run the script in debug mode. Is more verbose."
     )
     parser.add_argument(
+        "--diff", action="store_true", help="If diffuse."
+    )
+    parser.add_argument(
         "-s", "--speech", action="store_true", help="Sample to record is speech."
     )
     # parser.add_argument(
@@ -139,7 +144,7 @@ if __name__ == "__main__":
         "--direction",
         action="store",
         type=str,
-        default='0,0,0',
+        default='0_0_0',
         help="Direction of the sound compared to the microphone array (side, depth, height in m)."
     )
 
