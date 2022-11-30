@@ -334,9 +334,10 @@ class AudioManager:
         self.gain = gain
 
     def reset_model_context(self):
+        """
+        Resets models context when changing target
+        """
         self.last_h = torch.zeros((2, 1, 512))
-
-        print("h reset")
 
     def output_sink(self, data, sink_name):
         """
