@@ -173,7 +173,10 @@ class AudioDatasetBuilderReal(AudioDatasetBuilder):
 
         # Add speech to noises if needed
         if self.speech_as_noise:
-            noise_paths.extend(other_speech_paths)
+            if self.speech_only_noise:
+                noise_paths = other_speech_paths
+            else:
+                noise_paths.extend(other_speech_paths)
 
         # Get every combination of noises possible within filtered noises
         noise_source_paths_combinations = []

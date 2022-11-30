@@ -59,6 +59,7 @@ class AudioDatasetBuilder:
         self.dir_noise_count_range = self.configs["dir_noise_count_range"]
         self.dir_noise_count_range = (self.dir_noise_count_range[0], self.dir_noise_count_range[1] + 1)
         self.speech_as_noise = self.configs["speech_as_noise"]
+        self.speech_only_noise = self.configs["speech_only_noise"]
         self.snr_limits = self.configs["snr_limits"]
 
         # Init

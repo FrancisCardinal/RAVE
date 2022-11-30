@@ -35,8 +35,7 @@ def run_generator_loop(source_queue, worker_num, run_params, configs, file_cnt, 
 
     dataset_builder.init_sim(run_params['SOURCES'],
                              run_params['NOISES'],
-                             reverb=run_params['REVERB'],
-                             only_speech=run_params['ONLY_SPEECH'])
+                             reverb=run_params['REVERB'])
 
     while not source_queue.empty():
         # Get source file
@@ -52,7 +51,7 @@ def run_generator_loop(source_queue, worker_num, run_params, configs, file_cnt, 
 
 
 # Script used to generate the audio dataset
-def main(SOURCES, NOISES, OUTPUT, DEBUG, WORKERS, REVERB, ONLY_SPEECH):
+def main(SOURCES, NOISES, OUTPUT, DEBUG, WORKERS, REVERB):
     """
     Main running loop to generate dataset. Calls forth worker functions with multiprocessing.
 
@@ -74,8 +73,7 @@ def main(SOURCES, NOISES, OUTPUT, DEBUG, WORKERS, REVERB, ONLY_SPEECH):
         'NOISES': NOISES,
         'OUTPUT': OUTPUT,
         'DEBUG': DEBUG,
-        'REVERB': REVERB,
-        'ONLY_SPEECH': ONLY_SPEECH
+        'REVERB': REVERB
     }
 
     # Load multiprocess
@@ -144,11 +142,6 @@ if __name__ == '__main__':
         help="Absolute path to output dataset folder",
     )
 
-    # Noise params
-    parser.add_argument(
-        "-os", "--only_speech", action="store_true", help="Use only speech as noise."
-    )
-
     # RIR params
     parser.add_argument(
         "-r", "--reverb", action="store_true", help="Use reverberation to generate RIRs"
@@ -187,6 +180,5 @@ if __name__ == '__main__':
         output_subfolder,
         args.debug,
         args.workers,
-        args.reverb,
-        args.only_speech
+        args.reverb
     )
