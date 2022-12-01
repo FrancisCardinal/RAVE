@@ -101,7 +101,7 @@ class AppManager:
         self._delay_update_frequency = 0.25
         self._selected_face = None
         self._vision_mode = "mute"
-        self._audio_manager = AudioManager()
+        self._audio_manager = AudioManager(save_output=True)
         self.mute = False
 
         self._mic_source = self._audio_manager.init_app(
@@ -267,7 +267,7 @@ class AppManager:
         Start the tracking loop and the connection to server.
         """
         # Start server
-        # sio.connect("ws://192.168.0.100:9000")
+        # sio.connect("ws://192.168.0.102:9000")
         sio.connect("ws://localhost:9000")
         # Start tracking thread
         tracking_thread = threading.Thread(

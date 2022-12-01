@@ -38,6 +38,7 @@ def generate_output(run_args):
     position = os.path.split(loc)[1]
     output_config_path = os.path.join(output_folder_path, 'configs.yaml')
     config_dict = dict(
+        is_diff=args.diff,
         path=relative_output,
         room=room_name,
         user_pos=position,
