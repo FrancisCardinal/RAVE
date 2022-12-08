@@ -1,5 +1,6 @@
 import time
-import threading
+
+# import threading
 from concurrent.futures import ThreadPoolExecutor
 
 from .TrackedObject import TrackedObject
@@ -32,7 +33,7 @@ class TrackedObjectManager:
 
     def __init__(self, tracker_type):
         self.tracker_type = tracker_type
-        self.thread_pool_executor = ThreadPoolExecutor(max_workers=8)
+        self.thread_pool_executor = ThreadPoolExecutor(max_workers=20)
 
         self.tracked_objects = {}
         self.pre_tracked_objects = {}
@@ -120,9 +121,7 @@ class TrackedObjectManager:
                 The position of the mouth in x,y
         """
         new_id = self.new_pre_identifier()
-        new_tracked_object = TrackedObject(
-            self.tracker_type, frame_object, bbox, mouth, new_id
-        )
+        new_tracked_object = TrackedObject(self.tracker_type, frame_object, bbox, mouth, new_id)
         self.pre_tracked_objects[new_tracked_object.id] = new_tracked_object
         self.start_tracking_thread(new_tracked_object)
 
@@ -248,10 +247,7 @@ class TrackedObjectManager:
         """
 
         last_frame_id = -1
-        while (
-            tracked_object in self.tracked_objects.values()
-            or tracked_object in self.pre_tracked_objects.values()
-        ):
+        while tracked_object in self.tracked_objects.values() or tracked_object in self.pre_tracked_objects.values():
 
             frame_object = self.last_frame
             if frame_object is None or last_frame_id == frame_object.id:
@@ -261,7 +257,7 @@ class TrackedObjectManager:
 
             self.new_frame_tracked_object(frame_object, tracked_object)
 
-        print(f"Stopped tracking object {tracked_object.id}")
+        # print(f"Stopped tracking object {tracked_object.id}")
 
     def global_track_loop(self):
         """

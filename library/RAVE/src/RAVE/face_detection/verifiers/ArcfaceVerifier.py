@@ -49,7 +49,7 @@ class ArcFace(Verifier):
                 image = np.transpose(image, (0, 3, 1, 2))
                 feature = self.model(image)
             else:
-                image = torch.tensor(image)
+                # image = torch.tensor(image)
                 feature = (
                     self.model(image)[0].numpy().tolist()
                 )  # TODO: Confirm that this operation is done on GPU when there is one available
