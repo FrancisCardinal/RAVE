@@ -414,5 +414,4 @@ class TrackingUpdater:
             if pre_tracked_objects:
                 pre_frame, pre_detections = self.preprocess_faces(frame_object)
             if time.time() - self.last_detect >= self.frequency:
-                print("UPDATE!")
                 self.detector_update(frame_object, pre_frame, pre_detections)

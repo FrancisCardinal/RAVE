@@ -1,6 +1,4 @@
 import time
-
-# import threading
 from concurrent.futures import ThreadPoolExecutor
 
 from .TrackedObject import TrackedObject
@@ -33,7 +31,7 @@ class TrackedObjectManager:
 
     def __init__(self, tracker_type):
         self.tracker_type = tracker_type
-        self.thread_pool_executor = ThreadPoolExecutor(max_workers=20)
+        self.thread_pool_executor = ThreadPoolExecutor(max_workers=8)
 
         self.tracked_objects = {}
         self.pre_tracked_objects = {}
