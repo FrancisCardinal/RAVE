@@ -1,4 +1,4 @@
-from pyodas.io import WavSource, MicSource, PlaybackSink, WavSink
+from pyodas.io import MicSource, WavSink
 from pyodas.utils import CONST, load_mic_array_from_ressources
 
 import os
@@ -13,7 +13,7 @@ CHANNELS = 4
 MIC_ARRAY = load_mic_array_from_ressources("ReSpeaker_USB")
 CHUNK_SIZE = 256
 
-OUTPUT_FOLDER = '/home/rave/'
+OUTPUT_FOLDER = "/home/rave/"
 # OUTPUT_FOLDER = 'C:\\GitProjet\\RAVE\\library\\RAVE\\src\\RAVE\\audio\\test_output.wav'
 
 # Params: .wav file channels, int16 byte size, sampling rate, nb of samples,
@@ -31,12 +31,12 @@ def generate_output(run_args):
     name = run_args.name + diff_name
     relative_output = os.path.join(loc, speech_noise, name)
     output_folder_path = os.path.join(OUTPUT_FOLDER, relative_output)
-    output_file_path = os.path.join(output_folder_path, 'audio.wav')
+    output_file_path = os.path.join(output_folder_path, "audio.wav")
 
     # Save file information
     room_name = os.path.split(loc)[0]
     position = os.path.split(loc)[1]
-    output_config_path = os.path.join(output_folder_path, 'configs.yaml')
+    output_config_path = os.path.join(output_folder_path, "configs.yaml")
     config_dict = dict(
         is_diff=args.diff,
         path=relative_output,
@@ -44,7 +44,7 @@ def generate_output(run_args):
         user_pos=position,
         location=args.direction,
         is_speech=args.speech,
-        sound=name
+        sound=name,
     )
 
     Path(output_folder_path).mkdir(parents=True, exist_ok=True)
@@ -80,42 +80,40 @@ def main(run_args):
         if run_args.debug:
             loop_idx += 1
 
-        if run_args.debug: start_source_time = time.perf_counter_ns()
+        if run_args.debug:
+            start_source_time = time.perf_counter_ns()
         x = source()
         if x is None:
-            print('End of transmission. Closing.')
+            print("End of transmission. Closing.")
             break
-        if run_args.debug: end_source_time = time.perf_counter_ns()
+        if run_args.debug:
+            end_source_time = time.perf_counter_ns()
 
-        if run_args.debug: start_sink_time = time.perf_counter_ns()
+        if run_args.debug:
+            start_sink_time = time.perf_counter_ns()
         sink(x)
-        if run_args.debug: end_sink_time = time.perf_counter_ns()
+        if run_args.debug:
+            end_sink_time = time.perf_counter_ns()
 
         samples += CHUNK_SIZE
         if samples % (CHUNK_SIZE * 25) == 0:
-            print(f'Samples processed: {samples}')
+            print(f"Samples processed: {samples}")
 
         if run_args.debug:
             total_source_time += (end_source_time - start_source_time) / 1000000
             total_sink_time += (end_sink_time - start_sink_time) / 1000000
 
-    print(f'Finished reading {samples} samples by {CHUNK_SIZE} chunk size ')
+    print(f"Finished reading {samples} samples by {CHUNK_SIZE} chunk size ")
     if run_args.debug and samples > 0:
-        print(f'Mean read time: {total_source_time/loop_idx} ms.')
-        print(f'Mean send time: {total_sink_time/loop_idx} ms.')
+        print(f"Mean read time: {total_source_time/loop_idx} ms.")
+        print(f"Mean send time: {total_sink_time/loop_idx} ms.")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "-d", "--debug", action="store_true", help="Run the script in debug mode. Is more verbose."
-    )
-    parser.add_argument(
-        "--diff", action="store_true", help="If diffuse."
-    )
-    parser.add_argument(
-        "-s", "--speech", action="store_true", help="Sample to record is speech."
-    )
+    parser.add_argument("-d", "--debug", action="store_true", help="Run the script in debug mode. Is more verbose.")
+    parser.add_argument("--diff", action="store_true", help="If diffuse.")
+    parser.add_argument("-s", "--speech", action="store_true", help="Sample to record is speech.")
     # parser.add_argument(
     #     "-r",
     #     "--room",
@@ -130,41 +128,23 @@ if __name__ == "__main__":
         "--location",
         action="store",
         type=str,
-        default='tkinter',
+        default="tkinter",
         help="Room and location used in the room (in the format room/location)."
-             "Location format is side, depth, height in cm (x_y_z)."
+        "Location format is side, depth, height in cm (x_y_z).",
     )
-    parser.add_argument(
-        "-n",
-        "--name",
-        action="store",
-        type=str,
-        help="Filename to be used for saving."
-    )
+    parser.add_argument("-n", "--name", action="store", type=str, help="Filename to be used for saving.")
     parser.add_argument(
         "--direction",
         action="store",
         type=str,
-        default='0_0_0',
-        help="Direction of the sound compared to the microphone array (side, depth, height in m)."
+        default="0_0_0",
+        help="Direction of the sound compared to the microphone array (side, depth, height in m).",
     )
 
-    parser.add_argument(
-        "-t",
-        "--time",
-        action="store",
-        type=int,
-        default=10,
-        help="Time to save sample for."
-    )
+    parser.add_argument("-t", "--time", action="store", type=int, default=10, help="Time to save sample for.")
 
     parser.add_argument(
-        "-m",
-        "--mic_idx",
-        action="store",
-        type=int,
-        default=4,
-        help="Microphone index to use for saving sound."
+        "-m", "--mic_idx", action="store", type=int, default=4, help="Microphone index to use for saving sound."
     )
 
     args = parser.parse_args()
@@ -176,7 +156,7 @@ if __name__ == "__main__":
     #     room = os.path.split(room_path)[-1]
 
     # parse location folder
-    if args.location == 'tkinter':
+    if args.location == "tkinter":
         location_path = filedialog.askdirectory(title="Location directory.")
         split_path = os.path.split(location_path)
         room = split_path[-2]

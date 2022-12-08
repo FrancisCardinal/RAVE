@@ -1,2 +1,2 @@
 cd rave-web
-npm start
+serve -s build/
