@@ -92,8 +92,8 @@ if __name__ == "__main__":
         detector_type="yolo",
         verifier_type="resnet_face_18",  # "resnet_face_18",
         frequency=frequency,
-        intersection_threshold=-0.5,
-        verifier_threshold=0.01,
+        intersection_threshold=-0.2,
+        verifier_threshold=0.5,  # 0.25 for resnet
         visualize=not args.headless,
         debug_preprocess=args.show_preprocess,
         debug_detector=args.show_detector,
