@@ -48,7 +48,7 @@ class AudioManager:
     scm_weight = 0.1
     window = "sqrt_hann"
 
-    def __init__(self, debug=False, mask=False, use_timers=False):
+    def __init__(self, debug=False, mask=False, use_timers=False, save_output=False):
 
         # TODO: ADD PRIVATE ATTRIBUTES (_)
 
@@ -56,6 +56,7 @@ class AudioManager:
         self.debug = debug
         self.mask = mask
         self.get_timers = use_timers
+        self.save_output = save_output
 
         # Class variables init empty
         self.file_params_output = FILE_PARAMS_MONO
@@ -332,6 +333,12 @@ class AudioManager:
         """
         self.gain = gain
 
+    def reset_model_context(self):
+        """
+        Resets models context when changing target
+        """
+        self.last_h = None
+
     def output_sink(self, data, sink_name):
         """
         Checks if sink exists, if yes, output to it
@@ -348,8 +355,9 @@ class AudioManager:
         # TODO: ADD STEREO OUTPUT
 
         if sink_name in self.sink_dict:
-            chosen_sink = self.sink_dict[sink_name]["sink"]
-            chosen_sink(data)
+            if self.save_output or self.sink_dict[sink_name]["sink_type"] != "sim":
+                chosen_sink = self.sink_dict[sink_name]["sink"]
+                chosen_sink(data)
             return True
         else:
             return False
@@ -893,7 +901,7 @@ class AudioManager:
 
             # Temporal to Frequential
             self.check_time(name="stft", is_start=True)
-            #x = torch.from_numpy(x).to(self.device)
+            # x = torch.from_numpy(x).to(self.device)
             X = self.source_dict["audio"]["stft"](x)
             self.check_time(name="stft", is_start=False)
 
@@ -941,7 +949,7 @@ class AudioManager:
             #     out = out[channel_to_use]
             # elif self.out_channels == 2:
             #     out = np.array([out[0], out[-1]])
-            #y = y.detach().cpu().numpy()
+            # y = y.detach().cpu().numpy()
             self.output_sink(data=y, sink_name="output")
 
             # Check additional sources and output in additional sinks

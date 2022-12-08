@@ -13,24 +13,24 @@ import soundfile as sf
 
 def save_data(data, run_args, old_rate):
     # Create folder
-    output_dir = os.path.normpath(os.path.join(run_args.output, data['configs']['path']))
+    output_dir = os.path.normpath(os.path.join(run_args.output, data["configs"]["path"]))
     os.makedirs(output_dir, exist_ok=True)
 
     # Save data files
-    data_path = os.path.join(output_dir, 'audio.wav')
-    sf.write(data_path,  data['downsampled_data'].T, run_args.rate, 'PCM_16')
+    data_path = os.path.join(output_dir, "audio.wav")
+    sf.write(data_path, data["downsampled_data"].T, run_args.rate, "PCM_16")
     if run_args.debug:
         # Save original data
-        og_data_path = os.path.join(output_dir, 'original.wav')
-        sf.write(og_data_path, data['data'].T, old_rate, 'PCM_16')
+        og_data_path = os.path.join(output_dir, "original.wav")
+        sf.write(og_data_path, data["data"].T, old_rate, "PCM_16")
         # Save upsampled normalized
         if run_args.normalize:
-            norm_data_path = os.path.join(output_dir, 'normalized.wav')
-            sf.write(norm_data_path, data['normalized_data'].T, old_rate, 'PCM_16')
+            norm_data_path = os.path.join(output_dir, "normalized.wav")
+            sf.write(norm_data_path, data["normalized_data"].T, old_rate, "PCM_16")
 
     # Save configs
-    configs = data['configs']
-    configs['sampling_rate'] = run_args.rate
+    configs = data["configs"]
+    configs["sampling_rate"] = run_args.rate
     config_dict_file_name = os.path.join(output_dir, "configs.yaml")
     with open(config_dict_file_name, "w") as outfile:
         yaml.dump(configs, outfile, default_flow_style=None)
@@ -38,7 +38,7 @@ def save_data(data, run_args, old_rate):
 
 def main(run_args):
     # Get every .wav and config files
-    wav_file_paths = glob.glob(os.path.join(run_args.source, '**', "*.wav"), recursive=True)
+    wav_file_paths = glob.glob(os.path.join(run_args.source, "**", "*.wav"), recursive=True)
     dir_path_list = [os.path.dirname(i) for i in wav_file_paths]
 
     # Get audio path, data, downsample, get mean amplitude
@@ -46,18 +46,18 @@ def main(run_args):
         wav_dict = dict()
 
         # Get configs
-        config_path = os.path.join(dir_path, 'configs.yaml')
+        config_path = os.path.join(dir_path, "configs.yaml")
         with open(config_path, "r") as stream:
             try:
                 configs = yaml.safe_load(stream)
             except yaml.YAMLError as exc:
                 print(exc)
-        wav_dict['configs'] = configs
+        wav_dict["configs"] = configs
 
         # Get audio
-        data, samplerate = sf.read(os.path.join(dir_path, 'audio.wav'), dtype='float32')
+        data, samplerate = sf.read(os.path.join(dir_path, "audio.wav"), dtype="float32")
         data = data.T
-        wav_dict['data'] = data
+        wav_dict["data"] = data
 
         # Normalize
         data_norm = data
@@ -66,7 +66,7 @@ def main(run_args):
             min_val = np.abs(np.amin(data))
             factor = max(max_val, min_val)
             data_norm = data / factor
-            wav_dict['normalized_data'] = data_norm
+            wav_dict["normalized_data"] = data_norm
             # Check norm
             if run_args.test:
                 data_min = []
@@ -81,56 +81,38 @@ def main(run_args):
 
         # Downsample
         data_16k = librosa.resample(data_norm, orig_sr=samplerate, target_sr=run_args.rate, res_type="soxr_vhq")
-        wav_dict['downsampled_data'] = data_16k
+        wav_dict["downsampled_data"] = data_16k
 
         save_data(wav_dict, run_args, samplerate)
 
         if run_args.debug:
-            print(f'Finished processing sample at {dir_path}.')
+            print(f"Finished processing sample at {dir_path}.")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "-d", "--debug", action="store_true", help="Run the script in debug mode. Is more verbose."
-    )
-    parser.add_argument(
-        "-t", "--test", action="store_true", help="Run the script in test mode. Tests normalisation."
-    )
-    parser.add_argument(
-        "-n", "--normalize", action="store_true", help="Normalize sample amplitude (volume)."
-    )
-    parser.add_argument(
-        "-r",
-        "--rate",
-        action="store",
-        type=int,
-        default=16000,
-        help="New sampling rate."
-    )
+    parser.add_argument("-d", "--debug", action="store_true", help="Run the script in debug mode. Is more verbose.")
+    parser.add_argument("-t", "--test", action="store_true", help="Run the script in test mode. Tests normalisation.")
+    parser.add_argument("-n", "--normalize", action="store_true", help="Normalize sample amplitude (volume).")
+    parser.add_argument("-r", "--rate", action="store", type=int, default=16000, help="New sampling rate.")
     parser.add_argument(
         "-s",
         "--source",
         action="store",
         type=str,
-        default='tkinter',
-        help="Source folder containing all .wav files to modify."
+        default="tkinter",
+        help="Source folder containing all .wav files to modify.",
     )
     parser.add_argument(
-        "-o",
-        "--output",
-        action="store",
-        type=str,
-        default='tkinter',
-        help="Output folder to drop modified data."
+        "-o", "--output", action="store", type=str, default="tkinter", help="Output folder to drop modified data."
     )
 
     args = parser.parse_args()
 
     # parse folders
-    if args.source == 'tkinter':
+    if args.source == "tkinter":
         args.source = filedialog.askdirectory(title="Source directory.")
-    if args.output == 'tkinter':
+    if args.output == "tkinter":
         args.output = filedialog.askdirectory(title="Output directory.")
 
     main(args)

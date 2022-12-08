@@ -39,7 +39,7 @@ class AudioDatasetBuilder:
             [0.01905, 0.0618, 0],
             [0.05715, 0.0618, 0],
             [0.07055, 0.0381, 0],
-            [0.07055, 0, 0]
+            [0.07055, 0, 0],
         )
     )
 
@@ -103,7 +103,7 @@ class AudioDatasetBuilder:
 
         if fs != sample_rate:
             print(f"ERROR: Sample rate of files ({fs}) do not concord with SAMPLE RATE={sample_rate}")
-            print(f"Use sample_adjustment python file to adjust sample rate.")
+            print("Use sample_adjustment python file to adjust sample rate.")
             exit()
 
         return audio_signal
@@ -150,7 +150,7 @@ class AudioDatasetBuilder:
             if number_noises:
                 self.dir_noise_count = number_noises
             else:
-                if sn_count == -1:      # Only increase number of noises if not having to restart the last run
+                if sn_count == -1:  # Only increase number of noises if not having to restart the last run
                     self.dir_noise_count -= self.dir_noise_count_range[0]
                     self.dir_noise_count += 1
                     dir_count_range = self.dir_noise_count_range
@@ -174,7 +174,8 @@ class AudioDatasetBuilder:
             speech_noise_count = 0
             for i in random_indices:
                 selected_noise = temp_noise_paths[i]
-                if 'clean' in selected_noise: speech_noise_count += 1
+                if "clean" in selected_noise:
+                    speech_noise_count += 1
             noise_path_list = [temp_noise_paths[int(i)] for i in random_indices]
 
         return noise_path_list, speech_noise_count
@@ -201,7 +202,7 @@ class AudioDatasetBuilder:
         if self.is_sim:
             context_str = "reverb" if self.is_reverb else "no_reverb"
         else:
-            context_str = os.path.join(self.current_room_size, 'pos_'+self.user_pos)
+            context_str = os.path.join(self.current_room_size, "pos_" + self.user_pos)
         subfolder_path = os.path.join(output_subfolder, context_str, f"{noise_quantity}", subfolder_name)
 
         subfolder_index = 1
@@ -269,6 +270,6 @@ class AudioDatasetBuilder:
                 speech=speech_name,
                 source_dir=np.around(self.source_direction, 3).tolist(),
                 noise=noise_names,
-                snr=self.snr
+                snr=self.snr,
             )
         return config_dict

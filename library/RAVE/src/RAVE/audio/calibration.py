@@ -41,15 +41,15 @@ video_source = vis.VideoSource(
 )
 m = vis.Monitor("Camera", video_source.shape, refresh_rate=100)
 
-K = np.array([[340.60994606, 0.0, 325.7756748], [0.0, 341.93970667, 242.46219777], [0.0, 0.0, 1.0]])
-D = np.array([[-3.07926877e-01, 9.16280959e-02, 9.46074597e-04, 3.07906550e-04, -1.17169354e-02]])
+K = np.array([[347.33973783, 0.0, 324.87219961], [0.0, 345.76160498, 243.98890458], [0.0, 0.0, 1.0]])
+D = np.array([[-3.12182472e-01, 9.71248263e-02, -4.70897871e-05, 1.60933679e-04, -1.31438715e-02]])
 
 corrected_shape = (video_source.shape[1], video_source.shape[0])
 newcameramtx, roi = cv2.getOptimalNewCameraMatrix(K, D, corrected_shape, 1, corrected_shape)
 mapx, mapy = cv2.initUndistortRectifyMap(K, D, None, newcameramtx, corrected_shape, 5)
 
 # Core
-mic_source = MicSource(CHANNELS, mic_arr=mic_dict, chunk_size=CHUNK_SIZE, queue_size=10, mic_index=4)
+mic_source = MicSource(CHANNELS, mic_arr=mic_dict, chunk_size=CHUNK_SIZE, queue_size=10, mic_index=5)
 
 while True:
     # Get the audio signal and image frame

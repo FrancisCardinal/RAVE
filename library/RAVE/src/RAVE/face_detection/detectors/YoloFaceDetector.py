@@ -76,7 +76,9 @@ class YoloFaceDetector(Detector):
             # Make sure confidence is over threshold for each detection
             confidence = predictions[i, 4].cpu().item()
             if confidence < self.threshold:
-                print("Rejecting face detection below threshold" ": {:.2f} < {:.2f}".format(confidence, self.threshold))
+                # print(
+                #     "Rejecting face detection below threshold" ": {:.2f} < {:.2f}".format(confidence, self.threshold)
+                # )
                 continue
 
             gn = torch.tensor(frame.shape)[[1, 0, 1, 0]].to(self.device)  # normalization gain whwh
@@ -99,7 +101,7 @@ class YoloFaceDetector(Detector):
             bbox_size = bbox_scaled[2] * bbox_scaled[3]
             if bbox_size < self.min_face_size:
                 # Reject detection
-                print(f"Rejecting face that is too small {bbox_size} < {self.min_face_size}")
+                # print(f"Rejecting face that is too small {bbox_size} < {self.min_face_size}")
                 continue
 
             # Landmarks

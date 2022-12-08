@@ -1,11 +1,11 @@
 import torch
 from torch import nn
-import torchaudio
-import os
+
 
 class AudioModel(nn.Module):
     """
-    Model of the neural network that generate a mask to combine with a beamformer method to cancel noise for the audio module
+    Model of the neural network that generate a mask to combine with a beamformer method
+    to cancel noise for the audio module
     """
 
     def __init__(self, input_size, hidden_size, num_layers):
@@ -13,10 +13,10 @@ class AudioModel(nn.Module):
         self.hidden_size = hidden_size
         self.num_layers = num_layers
         self.BN = nn.BatchNorm2d(num_features=1)
-        #self.RNN = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, bidirectional=False, dropout=0)
-        self.RNN = nn.GRU(input_size,hidden_size, num_layers, batch_first=True, bidirectional=False,dropout=0 )
-        self.fc = nn.Linear(hidden_size,32319)
-        self.fc2 = nn.Conv2d(in_channels=hidden_size, out_channels=int(input_size/2), kernel_size=1)
+        # self.RNN = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, bidirectional=False, dropout=0)
+        self.RNN = nn.GRU(input_size, hidden_size, num_layers, batch_first=True, bidirectional=False, dropout=0)
+        self.fc = nn.Linear(hidden_size, 32319)
+        self.fc2 = nn.Conv2d(in_channels=hidden_size, out_channels=int(input_size / 2), kernel_size=1)
         self.sig = nn.Sigmoid()
 
     def forward(self, x, hidden=None):
@@ -43,7 +43,7 @@ class AudioModel(nn.Module):
         x = x.permute(0, 2, 3, 1)
 
         # N x T x F x 1 > N x T x F
-        x = torch.reshape(x, (x.shape[0], x.shape[1], x.shape[2]*x.shape[3]))
+        x = torch.reshape(x, (x.shape[0], x.shape[1], x.shape[2] * x.shape[3]))
 
         if hidden is not None:
             # N x T x F > N x T x H
@@ -71,7 +71,6 @@ class AudioModel(nn.Module):
         x = self.sig(x)
         return x, h
 
-
     def load_best_model(self, MODEL_DIR_PATH, device):
         """
         Used to get the best version of a model from disk
@@ -84,5 +83,3 @@ class AudioModel(nn.Module):
         self.load_state_dict(checkpoint["model_state_dict"])
 
         self.eval()
-
-

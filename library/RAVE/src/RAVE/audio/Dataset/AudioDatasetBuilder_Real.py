@@ -38,15 +38,15 @@ class AudioDatasetBuilderReal(AudioDatasetBuilder):
             List of coordinates to speech direction in m.
         """
 
-        coord_str_list = location_str.split('_')
+        coord_str_list = location_str.split("_")
 
         coord_list = []
         for coord_str in coord_str_list:
             factor = 1
-            if coord_str[0] == 'm':
+            if coord_str[0] == "m":
                 factor = -1
                 coord_str = coord_str[1:]
-            coord_int = int(coord_str) * factor / 100   # * negative factor / cm to m
+            coord_int = int(coord_str) * factor / 100  # * negative factor / cm to m
             coord_list.append(coord_int)
 
         return coord_list
@@ -72,19 +72,21 @@ class AudioDatasetBuilderReal(AudioDatasetBuilder):
         if not noise:
             snr_db = 20 * np.log10(snr)
 
-            speech_db = audio_dict['speech'][0]['audio_segment'].dBFS
-            noise_db = audio_dict['combined_noise'][0]['audio_segment'].dBFS
+            speech_db = audio_dict["speech"][0]["audio_segment"].dBFS
+            noise_db = audio_dict["combined_noise"][0]["audio_segment"].dBFS
             adjust_snr = speech_db - noise_db - snr_db
 
-            audio_dict['combined_noise'][0]['audio_segment'] = \
-                audio_dict['combined_noise'][0]['audio_segment'] + adjust_snr
+            audio_dict["combined_noise"][0]["audio_segment"] = (
+                audio_dict["combined_noise"][0]["audio_segment"] + adjust_snr
+            )
 
-        audio_dict[output_name][0]['audio_segment'] = AudioSegment.silent(duration=10000)
+        audio_dict[output_name][0]["audio_segment"] = AudioSegment.silent(duration=10000)
         for source_type in source_types:
             for source in audio_dict[source_type]:
                 audio_dict[output_name][0]["name"] += source["name"] + "_"
-                audio_dict[output_name][0]['audio_segment'] = \
-                    audio_dict[output_name][0]['audio_segment'].overlay(source['audio_segment'])
+                audio_dict[output_name][0]["audio_segment"] = audio_dict[output_name][0]["audio_segment"].overlay(
+                    source["audio_segment"]
+                )
 
     def save_files(self, audio_dict):
         """
@@ -98,23 +100,23 @@ class AudioDatasetBuilderReal(AudioDatasetBuilder):
 
         # Save combined audio
         audio_file_name = os.path.join(self.current_subfolder, "audio.wav")
-        combined_signal = audio_dict["combined_audio"][0]['audio_segment']
-        combined_signal.export(audio_file_name, format='wav')
+        combined_signal = audio_dict["combined_audio"][0]["audio_segment"]
+        combined_signal.export(audio_file_name, format="wav")
 
         # Save target (mono)
         target_file_name = os.path.join(self.current_subfolder, "target.wav")
         target_signal = audio_dict["speech"][0]["audio_segment"]
-        target_signal.export(target_file_name, format='wav')
+        target_signal.export(target_file_name, format="wav")
 
         # Save source (multi)
         speech_file_name = os.path.join(self.current_subfolder, "speech.wav")
-        speech_signal = audio_dict["speech"][0]['audio_segment']
-        speech_signal.export(speech_file_name, format='wav')
+        speech_signal = audio_dict["speech"][0]["audio_segment"]
+        speech_signal.export(speech_file_name, format="wav")
 
         # Save combined noise
         noise_file_name = os.path.join(self.current_subfolder, "noise.wav")
-        combined_noise = audio_dict["combined_noise"][0]['audio_segment']
-        combined_noise.export(noise_file_name, format='wav')
+        combined_noise = audio_dict["combined_noise"][0]["audio_segment"]
+        combined_noise.export(noise_file_name, format="wav")
 
         # Save yaml file with configs
         config_dict_file_name = os.path.join(self.current_subfolder, "configs.yaml")
@@ -137,18 +139,18 @@ class AudioDatasetBuilderReal(AudioDatasetBuilder):
         """
 
         # Split dict
-        source_path = source_paths['speech']
-        noise_paths = source_paths['noise']
-        other_speech_paths = source_paths['other_speech']
-        configs = source_paths['configs']
+        source_path = source_paths["speech"]
+        noise_paths = source_paths["noise"]
+        other_speech_paths = source_paths["other_speech"]
+        configs = source_paths["configs"]
 
         # Configs
-        self.current_room_size = configs['room']
-        self.user_pos = configs['user_pos']
-        self.source_direction = self.parse_real_dir(configs['location'])
+        self.current_room_size = configs["room"]
+        self.user_pos = configs["user_pos"]
+        self.source_direction = self.parse_real_dir(configs["location"])
 
         # Get Load audio
-        source_name = configs['sound']      # Get filename for source (before extension)
+        source_name = configs["sound"]  # Get filename for source (before extension)
         source_audio_base = AudioSegment.from_wav(source_path)
 
         # Add speech to noises if needed
@@ -189,7 +191,8 @@ class AudioDatasetBuilderReal(AudioDatasetBuilder):
 
             # Combine source with noises at a random SNR between limits
             self.snr = np.random.rand() * (self.snr_limits[1] - self.snr_limits[0]) + self.snr_limits[0]
-            if self.is_debug: total_snr += self.snr
+            if self.is_debug:
+                total_snr += self.snr
             self.combine_sources(audio_source_dict, ["speech", "combined_noise"], "combined_audio", snr=self.snr)
 
             # Save elements
@@ -202,6 +205,6 @@ class AudioDatasetBuilderReal(AudioDatasetBuilder):
             samples_created += 1
 
         if self.is_debug:
-            print(f'Mean SNR: {total_snr/samples_created}')
+            print(f"Mean SNR: {total_snr/samples_created}")
 
         return samples_created

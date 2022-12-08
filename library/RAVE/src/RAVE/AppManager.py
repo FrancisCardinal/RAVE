@@ -101,7 +101,7 @@ class AppManager:
         self._delay_update_frequency = 0.25
         self._selected_face = None
         self._vision_mode = "mute"
-        self._audio_manager = AudioManager()
+        self._audio_manager = AudioManager(save_output=True)
         self.mute = False
 
         self._mic_source = self._audio_manager.init_app(
@@ -127,6 +127,7 @@ class AppManager:
         sio.on("quitVisionCalibration", self.stop_calib_audio_vision)
 
         self._gaze_inferer_manager = None
+        self._direction_2_pixel = None
         self._x_1, self._x_2 = None, None
 
         if args.debug:
@@ -266,8 +267,8 @@ class AppManager:
         Start the tracking loop and the connection to server.
         """
         # Start server
+        # sio.connect("ws://192.168.0.102:9000")
         sio.connect("ws://localhost:9000")
-
         # Start tracking thread
         tracking_thread = threading.Thread(
             target=self._tracking_manager.start,
@@ -360,7 +361,12 @@ class AppManager:
             payload (dict): Dictionary containing the id of the
             face selected in the web client.
         """
-        self._selected_face = payload["targetId"]
+        if self._selected_face == payload["targetId"]:
+            # Deselect the current face
+            self._selected_face = None
+        else:
+            self._selected_face = payload["targetId"]
+            self._audio_manager.reset_model_context()
         emit("selectedTarget", "client", {"targetId": self._selected_face})
 
     def _update_selected_face_from_gaze_inferer(self):
@@ -369,6 +375,9 @@ class AppManager:
 
         angle_x, _ = self._gaze_inferer_manager.get_current_gaze()
         if angle_x is not None:
+            if self._direction_2_pixel is None:
+                self._init_direction_2_pixel()
+
             x_1_m, _ = self._direction_2_pixel.get_pixel(angle_x, 0, 1)
             x_5_m, _ = self._direction_2_pixel.get_pixel(angle_x, 0, 5)
 
@@ -384,7 +393,7 @@ class AppManager:
                         best_iou = iou
                         id = obj.id
 
-            if id is not None:
+            if id is not None and self._selected_face != id:
                 self._update_selected_face({"targetId": id})
 
         else:
@@ -481,9 +490,9 @@ class AppManager:
 
         if payload["onStatus"]:
             self._gaze_inferer_manager.start_inference_thread()
-            self._init_direction_2_pixel()
         else:
             self._gaze_inferer_manager.stop_inference()
+            self._direction_2_pixel = None
 
     def start_eye_tracking_calibration(self):
         if self._gaze_inferer_manager is None:

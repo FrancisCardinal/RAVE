@@ -8,13 +8,11 @@ import sys
 from glob import glob
 import random
 
-from multiprocessing import Process, Queue, Value, Array
-
-
-sys.path.insert(1, './Dataset')
+from multiprocessing import Process, Queue, Value
 from Dataset.AudioDatasetBuilder_Real import AudioDatasetBuilderReal
 
-CONFIGS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'Dataset', 'dataset_config.yaml')
+sys.path.insert(1, "./Dataset")
+CONFIGS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Dataset", "dataset_config.yaml")
 
 
 def run_generator_loop(source_queue, worker_num, run_params, configs, file_cnt):
@@ -30,9 +28,7 @@ def run_generator_loop(source_queue, worker_num, run_params, configs, file_cnt):
         file_cnt (int): Shared int containing current file count.
     """
     # TODO: CHECK TO RUN 1 GENERATOR AND ALL WORKERS CALL ON IT
-    dataset_builder = AudioDatasetBuilderReal(run_params['OUTPUT'],
-                                              run_params['DEBUG'],
-                                              configs)
+    dataset_builder = AudioDatasetBuilderReal(run_params["OUTPUT"], run_params["DEBUG"], configs)
     while not source_queue.empty():
         # Get source file
         audio_paths = source_queue.get()
@@ -62,11 +58,7 @@ def main(SOURCE, OUTPUT, DEBUG, WORKERS, SHUFFLE):
 
     # Save run parameters
     # TODO: CHECK IF WE CAN PUT SOME PARAMS IN CONFIG FILE
-    run_params = {
-        'SOURCE': SOURCE,
-        'OUTPUT': OUTPUT,
-        'DEBUG': DEBUG
-    }
+    run_params = {"SOURCE": SOURCE, "OUTPUT": OUTPUT, "DEBUG": DEBUG}
 
     # Load multiprocess
     worker_list = []
@@ -76,24 +68,24 @@ def main(SOURCE, OUTPUT, DEBUG, WORKERS, SHUFFLE):
     configs = AudioDatasetBuilderReal.load_configs(CONFIGS_PATH)
 
     # Load sources per room
-    user_pos_paths = [os.path.normpath(i) for i in glob(os.path.join(SOURCE, '*', '*'))]
+    user_pos_paths = [os.path.normpath(i) for i in glob(os.path.join(SOURCE, "*", "*"))]
     if SHUFFLE:
         random.shuffle(user_pos_paths)
     for user_pos_path in user_pos_paths:
 
-        speech_paths = glob(os.path.join(user_pos_path, 'speech', '**', 'audio.wav'))
-        noise_paths = glob(os.path.join(user_pos_path, 'noise', '**', 'audio.wav'))
+        speech_paths = glob(os.path.join(user_pos_path, "speech", "**", "audio.wav"))
+        noise_paths = glob(os.path.join(user_pos_path, "noise", "**", "audio.wav"))
         if SHUFFLE:
             random.shuffle(speech_paths)
             random.shuffle(noise_paths)
 
         for idx, speech_path in enumerate(speech_paths):
-            other_speech = speech_paths[:idx] + speech_paths[idx+1:]
+            other_speech = speech_paths[:idx] + speech_paths[idx + 1 :]
             if SHUFFLE:
                 random.shuffle(other_speech)
 
             # Speech configs
-            config_path = os.path.join(os.path.split(speech_path)[0], 'configs.yaml')
+            config_path = os.path.join(os.path.split(speech_path)[0], "configs.yaml")
             with open(config_path, "r") as stream:
                 try:
                     sample_configs = yaml.safe_load(stream)
@@ -101,42 +93,40 @@ def main(SOURCE, OUTPUT, DEBUG, WORKERS, SHUFFLE):
                     print(exc)
 
             # Job dict
-            real_audio_dict = {'speech': speech_path,
-                               'noise': noise_paths,
-                               'other_speech': other_speech,
-                               'configs': sample_configs}
+            real_audio_dict = {
+                "speech": speech_path,
+                "noise": noise_paths,
+                "other_speech": other_speech,
+                "configs": sample_configs,
+            }
             audio_queue.put(real_audio_dict)
 
     print(f"Starting to generate dataset with {configs}.")
 
     # Shared global variables
-    file_cnt = Value('i', 0)
+    file_cnt = Value("i", 0)
 
     # Start workers
-    for w in range(1, WORKERS+1):
+    for w in range(1, WORKERS + 1):
         p = Process(target=run_generator_loop, args=(audio_queue, w, run_params, configs, file_cnt))
         worker_list.append(p)
         p.start()
-        print(f'Worker {w}: started.')
+        print(f"Worker {w}: started.")
 
     # Join workers when done
     for w_num, p in enumerate(worker_list):
         p.join()
-        print(f'Worker {w_num + 1}: finished.')
+        print(f"Worker {w_num + 1}: finished.")
 
     end_time = time.time()
-    print(f"Finished generating dataset.")
+    print("Finished generating dataset.")
     print(f"{end_time-start_time} seconds user time to generate {file_cnt.value} files into {OUTPUT}.")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "-d", "--debug", action="store_true", help="Run in debug mode"
-    )
-    parser.add_argument(
-        "--shuffle", action="store_true", help="Shuffle paths"
-    )
+    parser.add_argument("-d", "--debug", action="store_true", help="Run in debug mode")
+    parser.add_argument("--shuffle", action="store_true", help="Shuffle paths")
 
     # Path variables
     parser.add_argument(
@@ -144,7 +134,7 @@ if __name__ == '__main__':
         "--source",
         action="store",
         type=str,
-        default='tkinter',
+        default="tkinter",
         help="Absolute path to recorded samples (dir/room/location/{speech|noise}/name).",
     )
     parser.add_argument(
@@ -152,7 +142,7 @@ if __name__ == '__main__':
         "--output",
         action="store",
         type=str,
-        default='tkinter',
+        default="tkinter",
         help="Absolute path to output dataset folder",
     )
 
@@ -170,18 +160,12 @@ if __name__ == '__main__':
 
     # parse sources
     source_subfolder = args.source
-    if source_subfolder == 'tkinter':
+    if source_subfolder == "tkinter":
         source_subfolder = filedialog.askdirectory(title="Sources folder")
 
     # parse output
     output_subfolder = args.output
-    if output_subfolder == 'tkinter':
+    if output_subfolder == "tkinter":
         output_subfolder = filedialog.askdirectory(title="Output folder")
 
-    main(
-        source_subfolder,
-        output_subfolder,
-        args.debug,
-        args.workers,
-        args.shuffle
-    )
+    main(source_subfolder, output_subfolder, args.debug, args.workers, args.shuffle)

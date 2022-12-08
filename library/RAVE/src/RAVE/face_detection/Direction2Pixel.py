@@ -42,6 +42,7 @@ class Direction2Pixel:
         r_ce_cs = np.array([[-37.96, 81.46, 11.75]]) / 1000.0
 
         translation_eye_camera = -(csRce @ ceRcet @ translation_eye_camera_to_eye + r_ce_cs.T)
+        translation_eye_camera = np.squeeze(translation_eye_camera)
         T_eye_camera = np.array(
             [
                 [0, -1, 0, translation_eye_camera[0]],

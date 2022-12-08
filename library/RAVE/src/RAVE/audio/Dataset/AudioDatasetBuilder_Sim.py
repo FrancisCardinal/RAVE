@@ -53,7 +53,7 @@ class AudioDatasetBuilderSim(AudioDatasetBuilder):
     room_shapes = [  # List of various room shapes. Uses corners with polygon.
         [[0, 0], [0, 1], [1, 1], [1, 0]],
         [[0, 0.33], [0, 0.66], [0.33, 1], [0.66, 1], [1, 0.66], [1, 0.33], [0.66, 0], [0.33, 0]],
-        [[0, 0.33], [0, 0.66], [0.5, 1], [1, 0.66], [1, 0.33], [0.5, 0]]
+        [[0, 0.33], [0, 0.66], [0.5, 1], [1, 0.66], [1, 0.33], [0.5, 0]],
     ]
     reverb_room_shapes = [  # Rooms that can only be used with reverb (L and Z shapes)
         [[0, 0], [0, 1], [1, 1], [1, 0.5], [0.5, 0.5], [0.5, 0]],
@@ -159,8 +159,9 @@ class AudioDatasetBuilderSim(AudioDatasetBuilder):
         t_list = []
         for channel_idx, channel in enumerate(signal_x):
             # Get stft for every channel
-            f, t, stft_x = signal.spectrogram(channel, AudioDatasetBuilderSim.sample_rate,
-                                              window, FRAME_SIZE, chunk_size)
+            f, t, stft_x = signal.spectrogram(
+                channel, AudioDatasetBuilderSim.sample_rate, window, FRAME_SIZE, chunk_size
+            )
             t_list.append(t)
             f_log_list.append(np.logspace(0, 4, len(f)))
             stft_log = 10 * np.log10(stft_x)
@@ -208,7 +209,7 @@ class AudioDatasetBuilderSim(AudioDatasetBuilder):
                 "name": "",
             }
         ]
-        audio_dict[output_name][0]['signal_w_rir'] = np.zeros(audio_dict[source_types[0]][0]['signal_w_rir'].shape)
+        audio_dict[output_name][0]["signal_w_rir"] = np.zeros(audio_dict[source_types[0]][0]["signal_w_rir"].shape)
         if not noise:
             # Use snr function to add noise to clean
             speech_dict = audio_dict[source_types[0]][0]
@@ -216,14 +217,15 @@ class AudioDatasetBuilderSim(AudioDatasetBuilder):
             audio_dict[output_name][0]["name"] += speech_dict["name"] + "_" + combined_noise_dict["name"]
 
             for s, (speech_channel, noise_channel) in enumerate(
-                    zip(speech_dict['signal_w_rir'], combined_noise_dict['signal_w_rir'])
+                zip(speech_dict["signal_w_rir"], combined_noise_dict["signal_w_rir"])
             ):
                 snr_db = 20 * np.log10(snr)
-                speech_snr, noise_snr, combined_snr = AudioDatasetBuilderSim.snr_mixer(speech_channel,
-                                                                                       noise_channel, snr_db)
-                speech_dict['signal_w_rir'][s] = speech_snr
-                combined_noise_dict['signal_w_rir'][s] = noise_snr
-                audio_dict[output_name][0]['signal_w_rir'][s] = combined_snr
+                speech_snr, noise_snr, combined_snr = AudioDatasetBuilderSim.snr_mixer(
+                    speech_channel, noise_channel, snr_db
+                )
+                speech_dict["signal_w_rir"][s] = speech_snr
+                combined_noise_dict["signal_w_rir"][s] = noise_snr
+                audio_dict[output_name][0]["signal_w_rir"][s] = combined_snr
                 pass
 
         else:
@@ -232,10 +234,10 @@ class AudioDatasetBuilderSim(AudioDatasetBuilder):
             for source_type in source_types:
                 for source in audio_dict[source_type]:
                     audio_dict[output_name][0]["name"] += source["name"] + "_"
-                    audio_dict[output_name][0]['signal_w_rir'] += source['signal_w_rir']
+                    audio_dict[output_name][0]["signal_w_rir"] += source["signal_w_rir"]
                     source_count += 1
             audio_dict[output_name][0]["name"] = audio_dict[output_name][0]["name"][:-1]
-            audio_dict[output_name][0]['signal_w_rir'] /= source_count
+            audio_dict[output_name][0]["signal_w_rir"] /= source_count
 
     @staticmethod
     def snr_mixer(clean, noise, snr):
@@ -254,15 +256,15 @@ class AudioDatasetBuilderSim(AudioDatasetBuilder):
         noise = noise.astype(np.float32)
 
         # Get initial energy for reference
-        clean_energy = np.mean(clean ** 2)
-        noise_energy = np.mean(noise ** 2)
+        clean_energy = np.mean(clean**2)
+        noise_energy = np.mean(noise**2)
         # Calculates gain to be applied to the noise to achieve the given SNR
         g = np.sqrt(10.0 ** (-snr / 10) * clean_energy / noise_energy)
 
         # Assumes signal and noise to be decorrelated and calculate (a, b) such that energy of
         # a*signal + b*noise matches the energy of the input signal
-        a = np.sqrt(1 / (1 + g ** 2))
-        b = np.sqrt(g ** 2 / (1 + g ** 2))
+        a = np.sqrt(1 / (1 + g**2))
+        b = np.sqrt(g**2 / (1 + g**2))
         # Mix the signals
         new_clean = a * clean
         new_noise = b * noise
@@ -662,7 +664,7 @@ class AudioDatasetBuilderSim(AudioDatasetBuilder):
 
         # Save combined audio
         audio_file_name = os.path.join(self.current_subfolder, "audio.wav")
-        combined_signal = audio_dict["combined_audio"][0]['signal_w_rir']
+        combined_signal = audio_dict["combined_audio"][0]["signal_w_rir"]
         sf.write(audio_file_name, combined_signal.T, self.sample_rate)
         if save_spec:
             combined_gt = self.generate_spectrogram(combined_signal, title="Audio")
@@ -681,7 +683,7 @@ class AudioDatasetBuilderSim(AudioDatasetBuilder):
 
         # Save source (with rir)
         speech_file_name = os.path.join(self.current_subfolder, "speech.wav")
-        speech_signal = audio_dict["speech"][0]['signal_w_rir']
+        speech_signal = audio_dict["speech"][0]["signal_w_rir"]
         sf.write(speech_file_name, speech_signal.T, self.sample_rate)
         if save_spec:
             source_gt = self.generate_spectrogram(speech_signal, title="Speech")
@@ -690,7 +692,7 @@ class AudioDatasetBuilderSim(AudioDatasetBuilder):
 
         # Save combined noise
         noise_file_name = os.path.join(self.current_subfolder, "noise.wav")
-        combined_noise = audio_dict["combined_noise"][0]['signal_w_rir']
+        combined_noise = audio_dict["combined_noise"][0]["signal_w_rir"]
         sf.write(noise_file_name, combined_noise.T, self.sample_rate)
         if save_spec:
             noise_gt = self.generate_spectrogram(combined_noise, title="Noise")
@@ -770,7 +772,7 @@ class AudioDatasetBuilderSim(AudioDatasetBuilder):
         source_name = os.path.split(source_path)[1].split(".")[0]  # Get filename for source (before extension)
         source_audio_base = self.read_audio_file(source_path, self.sample_rate)
 
-        speech_noise_count = -1         # If run breaks, generates the same amount of speech noises as before
+        speech_noise_count = -1  # If run breaks, generates the same amount of speech noises as before
 
         # Run SAMPLES_PER_SPEECH samples per speech clip
         samples_created = 0
@@ -781,21 +783,24 @@ class AudioDatasetBuilderSim(AudioDatasetBuilder):
             self.generate_random_room()
             self.generate_user()
             if self.user_pos == -1:
-                if self.is_debug: print(f"User position could not be made with {MAX_POS_TRIES}. Restarting new room.")
+                if self.is_debug:
+                    print(f"User position could not be made with {MAX_POS_TRIES}. Restarting new room.")
                 continue
 
             # Generate source position and copy source_audio
             source_pos = self.get_random_position()
             if source_pos == -1:
-                if self.is_debug: print(f"Source position could not be made with {MAX_POS_TRIES}. Restarting new room.")
+                if self.is_debug:
+                    print(f"Source position could not be made with {MAX_POS_TRIES}. Restarting new room.")
                 continue
             source_audio = source_audio_base.copy()
             audio_source_dict["speech"] = [{"name": source_name, "signal": source_audio, "position": source_pos}]
 
             # Add varying number of directional noise sources
             audio_source_dict["dir_noise"] = []
-            dir_noise_source_paths, speech_noise_count = self.get_random_noise(source_path=source_path,
-                                                                               sn_count=speech_noise_count)
+            dir_noise_source_paths, speech_noise_count = self.get_random_noise(
+                source_path=source_path, sn_count=speech_noise_count
+            )
             for noise_source_path in dir_noise_source_paths:
                 dir_noise = dict()
                 dir_noise["name"] = os.path.split(noise_source_path)[1].split(".")[0]
@@ -826,7 +831,8 @@ class AudioDatasetBuilderSim(AudioDatasetBuilder):
 
             rir_success = self.generate_and_apply_rirs(audio_source_dict)
             if rir_success == -1:
-                if self.is_debug: print("RIR returned false, problem with one channel. Restarting sample.")
+                if self.is_debug:
+                    print("RIR returned false, problem with one channel. Restarting sample.")
                 continue
             else:
                 speech_noise_count = -1
@@ -836,7 +842,8 @@ class AudioDatasetBuilderSim(AudioDatasetBuilder):
 
             # Combine source with noises at a random SNR between limits
             self.snr = np.random.rand() * (self.snr_limits[1] - self.snr_limits[0]) + self.snr_limits[0]
-            if self.is_debug: total_snr += self.snr
+            if self.is_debug:
+                total_snr += self.snr
             self.combine_sources(audio_source_dict, ["speech", "combined_noise"], "combined_audio", snr=self.snr)
 
             # Save elements
@@ -849,6 +856,6 @@ class AudioDatasetBuilderSim(AudioDatasetBuilder):
             samples_created += 1
 
         if self.is_debug:
-            print(f'Mean SNR: {total_snr/samples_created}')
+            print(f"Mean SNR: {total_snr/samples_created}")
 
         return samples_created

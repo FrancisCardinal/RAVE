@@ -196,7 +196,7 @@ def film(root):
     Args:
         root (string): Root path of the eye tracker module
     """
-    camera_dataset = EyeTrackerFilm(1)
+    camera_dataset = EyeTrackerFilm(2)
     camera_loader = torch.utils.data.DataLoader(
         camera_dataset,
         batch_size=1,

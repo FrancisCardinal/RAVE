@@ -21,6 +21,8 @@ Gstreamer_pipeline = f"""v4l2src device=/dev/video0 ! video/x-raw, format=UYVY, 
 
 window_title = "USB Camera"
 
+print(cv2.getBuildInformation())
+
 
 def show_camera():
 
