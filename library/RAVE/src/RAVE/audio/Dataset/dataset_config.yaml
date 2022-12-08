@@ -48,4 +48,4 @@ speech_as_noise: True
 speech_only_noise: False
 
 # SNR limit values (amplitude)
-snr_limits: [0.5, 4]
+snr_limits: [0.5, 10]
