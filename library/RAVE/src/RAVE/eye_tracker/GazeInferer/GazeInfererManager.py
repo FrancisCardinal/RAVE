@@ -1,5 +1,6 @@
 import torch
 import os
+import numpy as np
 from threading import Thread
 from datetime import datetime
 
@@ -45,7 +46,7 @@ class GazeInfererManager:
         )
         self._current_state = GazeInfererManager.IDLE_STATE
         self.gaze_inferer = None
-        self.eye_tracker_inference_dataset = EyeTrackerInferenceDataset(CAMERA_INDEX)
+        self.eye_tracker_inference_dataset = EyeTrackerInferenceDataset(CAMERA_INDEX, DEVICE)
         self.selected_calibration_path = None
         self.list_calibration = []
         self.list_available_calibrations()
@@ -192,6 +193,25 @@ class GazeInfererManager:
             return None, None
 
         return self.gaze_inferer.get_current_gaze()
+
+    def get_eye_camera_to_eye_translation(self):
+        """Returns the translation from the eye camera to the user's eye,
+           in the eye camera's referential
+
+        Returns:
+            (np.array) : The translation from the eye camera to the user's eye,
+                         in the eye camera's referential
+        """
+        if self.gaze_inferer is None:
+            return None
+
+        if (self.gaze_inferer.eyefitter.eye_centre is None) or (self.gaze_inferer.eyefitter.aver_eye_radius is None):
+            return None
+
+        translation = np.copy(self.gaze_inferer.eyefitter.eye_centre)
+        translation[2] += self.gaze_inferer.eyefitter.aver_eye_radius
+
+        return translation / 100000.0
 
     def end(self):
         """Should be called at the end of the program to free the opencv

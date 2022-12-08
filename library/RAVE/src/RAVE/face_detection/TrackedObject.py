@@ -183,12 +183,7 @@ class TrackedObject:
         if self.pending:
             self._confirmed_frames += 1
             self._evaluation_frames += 1
-            print(
-                "Confirming:",
-                self._confirmed_frames,
-                " / ",
-                self._confirmation_threshold,
-            )
+            # print("Confirming:", self._confirmed_frames, " / ", self._confirmation_threshold)
             if self._confirmed_frames >= self._confirmation_threshold:
                 self._confirmed = True
                 self._evaluation_frames = 0
@@ -203,12 +198,7 @@ class TrackedObject:
 
             self._rejected_frames += 1
             self._evaluation_frames += 1
-            print(
-                "Rejecting:",
-                self._rejected_frames,
-                " / ",
-                self._rejection_threshold,
-            )
+            # print("Rejecting:", self._rejected_frames, " / ", self._rejection_threshold)
 
             if self._evaluation_frames > self._nb_of_frames_to_reject:
                 self._evaluation_frames = 0
@@ -267,17 +257,27 @@ class TrackedObject:
                 the object
             landmark (tuple (int, int)): x & y coordinates for the landmark
         """
-        self.tracker_started = False  # Tracker is not ready to use
-        self.tracker = TrackerFactory.create(self._tracker_type)
-        self.tracker.start(frame_object.frame, bbox)
-        self.bbox = bbox
-        self.current_frame = frame_object
-        self.update_landmark(landmark)
 
-        # Request missing frames update
-        self.missed_frames_update_pending = True
-        self.tracker_started = True  # Tracker is ready to use
-        self._confirmed = True  # Useful when recovering from pre-processing
+        # Evaluate if new bbox is different enough from current one
+        distance = ((bbox[0] - self.bbox[0]) ** 2 + (bbox[1] - self.bbox[1]) ** 2) ** 0.5
+        rel_distance = distance / max(self.bbox[2], self.bbox[3])
+        rel_size = (bbox[2] * bbox[3]) / (self.bbox[2] * self.bbox[3])
+        # print("Rel dist: {:.2f}, rel size: {:.4f}".format(rel_distance, rel_size))
+
+        if rel_distance > 0.5 or rel_size > 1.25 or rel_size < 0.75:
+            # print("Resetting tracker for object", self.id)
+
+            self.tracker_started = False  # Tracker is not ready to use
+            self.tracker = TrackerFactory.create(self._tracker_type)
+            self.tracker.start(frame_object.frame, bbox)
+            self.bbox = bbox
+            self.current_frame = frame_object
+            self.update_landmark(landmark)
+
+            # Request missing frames update
+            self.missed_frames_update_pending = True
+            self.tracker_started = True  # Tracker is ready to use
+            self._confirmed = True  # Useful when recovering from pre-processing
 
     def draw_prediction_on_frame(self, frame):
         """

@@ -1,21 +1,24 @@
 import cv2
 import time
-import numpy as np
 import socketio
 import base64
 import threading
+import torch
 from pyodas.visualize import VideoSource
-from pyodas.io import MicSource
 
 # from tqdm import tqdm
 
 from .face_detection.TrackingManager import TrackingManager
 from .face_detection.Pixel2Delay import Pixel2Delay
 from .face_detection.Calibration_audio_vision import CalibrationAudioVision
+
 from .eye_tracker.GazeInferer.GazeInfererManager import GazeInfererManager
+from .common.jetson_utils import process_video_source
+from .audio.AudioManager import AudioManager
 
 from RAVE.face_detection.Direction2Pixel import Direction2Pixel
 from RAVE.common.image_utils import bounding_boxes_are_overlapping, box_pair_iou
+
 
 sio = socketio.Client()
 
@@ -74,39 +77,63 @@ class AppManager:
     """
 
     def __init__(self, args):
+        self._cap = VideoSource(process_video_source(args.video_source), args.width, args.height)
         self._is_alive = True
-        self._cap = VideoSource(args.video_source, args.width, args.height)
-        self._cap.set(cv2.CAP_PROP_FPS, 30)
-        self._mic_source = MicSource(args.nb_mic_channels, chunk_size=256)
         self._tracking = True
         self._tracking_manager = TrackingManager(
             cap=self._cap,
             tracker_type="kcf",
             detector_type="yolo",
-            verifier_type="arcface",
+            verifier_type="resnet_face_18",
             frequency=args.freq,
-            visualize=args.visualize,
+            visualize=not args.headless,
             tracking_or_calib=self.is_tracking,
+            debug_preprocess=args.show_preprocess,
+            debug_detector=args.show_detector,
         )
         self._object_manager = self._tracking_manager.object_manager
-        self._pixel_to_delay = Pixel2Delay((args.height, args.width), "./calibration.json")
+        device = "cpu"
+        if torch.cuda.is_available():
+            device = "cuda"
+        self._pixel_to_delay = Pixel2Delay((args.height, args.width), "./calibration_8mics.json", device=device)
         self._args = args
         self._frame_output_frequency = 1
         self._delay_update_frequency = 0.25
         self._selected_face = None
         self._vision_mode = "mute"
+        self._audio_manager = AudioManager(save_output=True)
+        self.mute = False
+
+        self._mic_source = self._audio_manager.init_app(
+            save_input=True,
+            save_output=True,
+            passthrough_mode=True,
+            output_path="/home/rave/RAVE/library/RAVE/src/audio_files",
+            gain=3,
+        )
         self._calibrationAudioVision = CalibrationAudioVision(self._cap, self._mic_source, emit)
 
+        sio.on("targetSelect", self._update_selected_face)
+        sio.on("changeVisionMode", self._change_mode)
+
+        # Volume control
+        sio.on("setVolume", self.set_volume)
+        sio.on("muteRequest", self.mute)
+
+        # Audio-vision calib
+        sio.on("nextCalibTarget", self._calibrationAudioVision.go_next_target)
+        sio.on("changeCalibParams", self._calibrationAudioVision.change_nb_points)
+        sio.on("goToVisionCalibration", self.start_calib_audio_vision)
+        sio.on("quitVisionCalibration", self.stop_calib_audio_vision)
+
         self._gaze_inferer_manager = None
+        self._direction_2_pixel = None
         self._x_1, self._x_2 = None, None
 
         if args.debug:
             self._tracking_manager.drawing_callbacks.append(self.eye_tracker_debug_drawings)
 
         sio.on("getTarget", self.get_target)
-        sio.on("targetSelect", self._update_selected_face)
-        sio.on("changeVisionMode", self._change_mode)
-
         # Eye-tracker
         sio.on("goToEyeTrackingCalibration", self.emit_calibration_list)
         sio.on(
@@ -131,12 +158,6 @@ class AppManager:
         sio.on("deleteEyeTrackingCalib", self._delete_eye_tracking_calibration)
         sio.on("activateEyeTracking", self.control_eye_tracking)
 
-        # Audio-vision calib
-        sio.on("nextCalibTarget", self._calibrationAudioVision.go_next_target)
-        sio.on("changeCalibParams", self._calibrationAudioVision.change_nb_points)
-        sio.on("goToVisionCalibration", self.start_calib_audio_vision)
-        sio.on("quitVisionCalibration", self.stop_calib_audio_vision)
-
     def _init_eye_tracker(self):
         import torch
 
@@ -145,20 +166,6 @@ class AppManager:
             DEVICE = "cuda"
 
         self._gaze_inferer_manager = GazeInfererManager(self._args.eye_video_source, DEVICE, self._args.debug)
-
-        K = self._tracking_manager.K
-        roi = None
-        if self._args.undistort:
-            K = self._tracking_manager.newcameramtx
-            roi = self._tracking_manager.roi
-
-        self._direction_2_pixel = Direction2Pixel(
-            K,
-            roi,
-            np.array([-0.08, 0.05, -0.10]),
-            self._args.height,
-            self._args.width,
-        )
 
         # Start a thread that selects a face with the GazeInferer if
         # the GazeInferer's inference is running
@@ -170,6 +177,21 @@ class AppManager:
             ),
             daemon=True,
         ).start()
+
+    def _init_direction_2_pixel(self):
+        K = self._tracking_manager.newcameramtx
+        roi = self._tracking_manager.roi
+
+        while self._gaze_inferer_manager.get_eye_camera_to_eye_translation() is None:
+            time.sleep(10)
+
+        self._direction_2_pixel = Direction2Pixel(
+            K,
+            roi,
+            self._gaze_inferer_manager.get_eye_camera_to_eye_translation(),
+            self._args.height,
+            self._args.width,
+        )
 
     def get_target(self):
         emit("selectedTarget", "client", {"targetId": self._selected_face})
@@ -210,13 +232,43 @@ class AppManager:
             {"configuration": self._gaze_inferer_manager.list_calibration},
         )
 
+    def set_volume(self, payload):
+        """
+        Change headphone volume
+        """
+        volume = payload["volume"]
+        try:
+            volume = int(volume)
+            if (volume <= 100) and (volume >= 0) and (not self.mute):
+                # if self.volume < volume:
+                #     new_gain = 1.0 + float((volume - self.volume) / 100)
+                # else:
+                #     new_gain = float(abs(volume - self.volume) / 100)
+                new_gain = volume * 5 / 100
+                self._audio_manager.set_gain(new_gain)
+                self.volume = volume
+        except ValueError:
+            pass
+
+    def mute(self, payload):
+        """
+        Mute headphones
+        """
+        status = payload["muteStatus"]
+        if status:
+            self.mute = True
+            self._audio_manager.set_gain(float(0))
+        else:
+            self.mute = False
+            self._audio_manager.set_gain(float(1))
+
     def start(self):
         """
         Start the tracking loop and the connection to server.
         """
         # Start server
+        # sio.connect("ws://192.168.0.102:9000")
         sio.connect("ws://localhost:9000")
-
         # Start tracking thread
         tracking_thread = threading.Thread(
             target=self._tracking_manager.start,
@@ -224,6 +276,14 @@ class AppManager:
             daemon=True,
         )
         tracking_thread.start()
+
+        # Start audio thread
+        audio_thread = threading.Thread(
+            target=self._audio_manager.start_app,
+            # args=(),
+            daemon=True,
+        )
+        audio_thread.start()
 
         # Start the thread that updates the audio target delay
         target_delays_thread = threading.Thread(
@@ -306,6 +366,7 @@ class AppManager:
             self._selected_face = None
         else:
             self._selected_face = payload["targetId"]
+            self._audio_manager.reset_model_context()
         emit("selectedTarget", "client", {"targetId": self._selected_face})
 
     def _update_selected_face_from_gaze_inferer(self):
@@ -314,6 +375,9 @@ class AppManager:
 
         angle_x, _ = self._gaze_inferer_manager.get_current_gaze()
         if angle_x is not None:
+            if self._direction_2_pixel is None:
+                self._init_direction_2_pixel()
+
             x_1_m, _ = self._direction_2_pixel.get_pixel(angle_x, 0, 1)
             x_5_m, _ = self._direction_2_pixel.get_pixel(angle_x, 0, 5)
 
@@ -329,7 +393,7 @@ class AppManager:
                         best_iou = iou
                         id = obj.id
 
-            if id is not None:
+            if id is not None and self._selected_face != id:
                 self._update_selected_face({"targetId": id})
 
         else:
@@ -367,17 +431,10 @@ class AppManager:
         Function to send the audio section the target delay
         """
         if self._selected_face in self._object_manager.tracked_objects:
-            pass
-            # print(
-            #     self._pixel_to_delay.get_delay(
-            #         self._tracking_manager.tracked_objects[
-            #             self._selected_face
-            #         ].landmark
-            #     )
-            # )
+            delay = self._pixel_to_delay.get_delay(self._object_manager.tracked_objects[self._selected_face].landmark)
         else:
-            pass
-            # print(None)
+            delay = None
+        self._audio_manager.set_target(delay)
 
     def stop_tracking(self):
         """
@@ -435,6 +492,7 @@ class AppManager:
             self._gaze_inferer_manager.start_inference_thread()
         else:
             self._gaze_inferer_manager.stop_inference()
+            self._direction_2_pixel = None
 
     def start_eye_tracking_calibration(self):
         if self._gaze_inferer_manager is None:

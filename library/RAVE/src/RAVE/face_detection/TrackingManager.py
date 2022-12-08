@@ -1,12 +1,14 @@
 import cv2
 import threading
 import numpy as np
+import torch
 import time
 
 from .TrackingUpdater import TrackingUpdater
 from .TrackedObjectManager import TrackedObjectManager
 
 from pyodas.visualize import Monitor
+from RAVE.common.image_utils import opencv_image_to_tensor
 
 
 class FrameObject:
@@ -15,8 +17,9 @@ class FrameObject:
     Associate a frame with an id
     """
 
-    def __init__(self, frame, id):
+    def __init__(self, frame, id, device):
         self.frame = frame
+        self.frame_tensor = opencv_image_to_tensor(frame.copy(), device)
         self.id = id
 
 
@@ -53,9 +56,11 @@ class TrackingManager:
         detector_type,
         verifier_type,
         frequency,
-        intersection_threshold=-0.5,
-        verifier_threshold=0.5,
+        intersection_threshold=-0.25,
+        verifier_threshold=0.25,
         visualize=True,
+        debug_preprocess=False,
+        debug_detector=False,
         tracking_or_calib=lambda: True,
     ):
         self.object_manager = TrackedObjectManager(tracker_type)
@@ -66,43 +71,30 @@ class TrackingManager:
             frequency,
             intersection_threshold,
             verifier_threshold,
+            visualize=visualize,
+            debug_preprocess=debug_preprocess,
+            debug_detector=debug_detector,
         )
 
         self._cap = cap
         self.is_alive = False
-        self._visualize = visualize
         self.frame_count = 0
+
+        self._visualize = visualize
+        self._debug_preprocess = debug_preprocess
+        self._debug_detector = debug_detector
         self._tracking_or_calib = tracking_or_calib
-        self.K = np.array([[340.60994606, 0.0, 325.7756748], [0.0, 341.93970667, 242.46219777], [0.0, 0.0, 1.0]])
+        self._device = "cpu"
+        if torch.cuda.is_available():
+            self._device = "cuda"
+
+        K = np.array([[347.33973783, 0.0, 324.87219961], [0.0, 345.76160498, 243.98890458], [0.0, 0.0, 1.0]])
+        D = np.array([[-3.12182472e-01, 9.71248263e-02, -4.70897871e-05, 1.60933679e-04, -1.31438715e-02]])
+
+        corrected_shape = (self._cap.shape[1], self._cap.shape[0])
+        self.newcameramtx, self.roi = cv2.getOptimalNewCameraMatrix(K, D, corrected_shape, 1, corrected_shape)
+
         self.drawing_callbacks = list()
-
-    def precompute_undistort(self):
-        """
-        Pre-calculations for undistortion of images
-        """
-
-        D = np.array([[-3.07926877e-01, 9.16280959e-02, 9.46074597e-04, 3.07906550e-04, -1.17169354e-02]])
-
-        corrected_shape = (self._cap.shape[1], self._cap.shape[0])
-        self.newcameramtx, self.roi = cv2.getOptimalNewCameraMatrix(self.K, D, corrected_shape, 1, corrected_shape)
-        self.mapx, self.mapy = cv2.initUndistortRectifyMap(self.K, D, None, self.newcameramtx, corrected_shape, 5)
-
-    def undistort(self, frame):
-        """
-        Remove fish-eye distortion from frame
-        """
-
-        if self.roi is None or self.mapx is None or self.mapy is None:
-            self.precompute_undistort()
-
-        # Undistort
-        frame = cv2.remap(frame, self.mapx, self.mapy, cv2.INTER_LINEAR)
-        x, y, w, h = self.roi
-        frame = frame[y : y + h, x : x + w]
-        corrected_shape = (self._cap.shape[1], self._cap.shape[0])
-        frame = cv2.resize(frame, corrected_shape)
-
-        return frame
 
     def kill_threads(self):
         """
@@ -185,9 +177,6 @@ class TrackingManager:
         if self.flip_frame:
             frame = cv2.flip(frame, 0)
 
-        if self.undistort_frame:
-            frame = self.undistort(frame)
-
         return frame
 
     def main_loop(self, monitor):
@@ -206,13 +195,13 @@ class TrackingManager:
                 frame = self._cap()
                 frame = self.process_frame(frame)
 
-                frame_object = FrameObject(frame, self.frame_count)
+                frame_object = FrameObject(frame, self.frame_count, self._device)
                 self.frame_count += 1
 
                 self.updater.last_frame = frame_object
                 self.object_manager.on_new_frame(frame_object)
 
-                if monitor is not None:
+                if self._visualize:
                     # Draw detections from tracked objects
                     tracking_frame = frame.copy()
                     self.draw_all_predictions_on_frame(tracking_frame)
@@ -220,22 +209,21 @@ class TrackingManager:
                     for callback in self.drawing_callbacks:
                         callback(tracking_frame)
 
-                    # fps.setFps()
-                    # fps.writeFpsToFrame(tracking_frame)
-
                     monitor.update("Tracking", tracking_frame)
 
-                    # Draw most recent pre-processing frame
-                    pre_process_frame = self.updater.pre_process_frame
-                    if pre_process_frame is not None:
-                        monitor.update("Pre-process", pre_process_frame)
-                        self.updater.pre_process_frame = None
+                    if self._debug_preprocess:
+                        # Draw most recent pre-processing frame
+                        pre_process_frame = self.updater.pre_process_frame
+                        if pre_process_frame is not None:
+                            monitor.update("Pre-process", pre_process_frame)
+                            self.updater.pre_process_frame = None
 
-                    # Draw most recent detector frame
-                    detector_frame = self.updater.detector_frame
-                    if detector_frame is not None:
-                        monitor.update("Detection", detector_frame)
-                        self.updater.detector_frame = None
+                    if self._debug_detector:
+                        # Draw most recent detector frame
+                        detector_frame = self.updater.detector_frame
+                        if detector_frame is not None:
+                            monitor.update("Detection", detector_frame)
+                            self.updater.detector_frame = None
 
                     # Keyboard input controls
                     terminate = self.listen_keyboard_input(frame_object, monitor.key_pressed)
@@ -258,25 +246,19 @@ class TrackingManager:
         self.is_alive = True
         self.flip_frame = args.flip
 
-        self.undistort_frame = args.undistort
-        if self.undistort_frame:
-            self.precompute_undistort()
-
         if self._visualize:
-            monitor = Monitor(
-                "Detection",
-                shape,
-                "Tracking",
-                shape,
-                "Pre-process",
-                shape,
-                refresh_rate=30,
-            )
+            debug_args = ["Tracking", shape]
+            if self._debug_detector:
+                debug_args.extend(["Detection", shape])
+            if self._debug_preprocess:
+                debug_args.extend(["Pre-process", shape])
+
+            monitor = Monitor(*debug_args, refresh_rate=30)
         else:
             monitor = None
 
         # Start update loop
-        update_loop = threading.Thread(target=self.updater.update_loop, daemon=True)
+        update_loop = threading.Thread(target=self.updater.update_loop, name="Update loop", daemon=True)
         update_loop.start()
 
         # Start capture & display loop

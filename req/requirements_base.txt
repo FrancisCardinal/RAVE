@@ -1,0 +1,13 @@
+matplotlib
+numpy
+tqdm
+pre-commit
+jsonschema
+python-socketio
+Sphinx
+sphinx_rtd_theme
+scipy
+gdown
+
+--extra-index-url https://test.pypi.org/simple/
+pyodas-JacobKealey

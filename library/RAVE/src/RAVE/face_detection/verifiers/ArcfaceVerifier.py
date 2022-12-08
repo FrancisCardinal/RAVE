@@ -1,11 +1,11 @@
 import numpy as np
 import cv2
-import platform
 import torch
 
 from .Verifier import Verifier
+from RAVE.common.jetson_utils import is_jetson
 
-if platform.release().split("-")[-1] == "tegra":
+if is_jetson():
     from .models.arcface import ArcFace_trt as arcface_model
 else:
     from .models.arcface import ArcFace_tf as arcface_model
@@ -43,16 +43,7 @@ class ArcFace(Verifier):
             ]
             image = ArcFace.preprocess_image(roi)
 
-            # TODO: Change inference call here.. could make predict() func in
-            #  both implementations
-            if platform.release().split("-")[-1] == "tegra":
-                # image = image.squeeze(0)
-                # # TODO: No need to convert to tensor on cuda
-                #  before bringing it back to numpy
-                # tensor = ArcFace.opencv_image_to_tensor(
-                #     image.copy(), self.device
-                # )
-                # tensor = torch.unsqueeze(tensor, 0)
+            if is_jetson():
                 image = np.transpose(image, (0, 3, 1, 2))
                 feature = self.model(image)
             else:
@@ -83,9 +74,7 @@ class ArcFace(Verifier):
             reference_feature = reference_encoding.get_average
             target_feature = face_encoding.get_average
 
-            cosine_dist = ArcFace.find_cosine_distance(
-                reference_feature, target_feature
-            )
+            cosine_dist = ArcFace.find_cosine_distance(reference_feature, target_feature)
             dist.append(cosine_dist)
 
         scores = [1 - d for d in dist]

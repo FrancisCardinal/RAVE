@@ -37,8 +37,8 @@ class GazeInferer:
         DEBUG,
         pupil_radius=4,
         initial_eye_z=52.271,
-        flen=3.37,
-        sensor_size=(2.7216, 3.6288),
+        flen=5.2,
+        sensor_size=(3.24, 5.76),
         original_image_size_pre_crop=(
             EyeTrackerInferenceDataset.ACQUISITION_HEIGHT,
             EyeTrackerInferenceDataset.ACQUISITION_WIDTH,
@@ -61,9 +61,9 @@ class GazeInferer:
             initial_eye_z (float, optional): Distance between the camera and
                 the surface of the eye (mm). Defaults to 52.271.
             flen (float, optional): Focal length of the camera (mm). Defaults
-                to 3.37.
+                to 5.2.
             sensor_size (tuple, optional): Size (Height, Width) of the camera
-                sensor (mm). Defaults to (2.7216, 3.6288).
+                sensor (mm). Defaults to (3.24, 5.76).
             original_image_size_pre_crop (tuple, optional): Original image
                 size, before any crop or resize (i.e, the acquisition size).
                 Defaults to ( EyeTrackerInferenceDataset.ACQUISITION_HEIGHT,
@@ -78,7 +78,7 @@ class GazeInferer:
         image = next(iter(self._dataloader))
         self.shape = image.shape[2], image.shape[3]
 
-        self._eyefitter = SingleEyeFitter(
+        self.eyefitter = SingleEyeFitter(
             focal_length=flen,
             pupil_radius=pupil_radius,
             initial_eye_z=initial_eye_z,
@@ -116,13 +116,14 @@ class GazeInferer:
                     images = images.to(self._device)
 
                     # Forward Pass
-                    predictions, _ = self._ellipse_dnn(images)
+                    predictions, predicted_visibilities = self._ellipse_dnn(images)
 
-                    for prediction in predictions:
-                        self._eyefitter.unproject_single_observation(
-                            self.torch_prediction_to_deepvog_format(prediction)
-                        )
-                        self._eyefitter.add_to_fitting()
+                    if predicted_visibilities[0].item() > 0.90:
+                        for prediction in predictions:
+                            self.eyefitter.unproject_single_observation(
+                                self.torch_prediction_to_deepvog_format(prediction)
+                            )
+                            self.eyefitter.add_to_fitting()
 
     def stop_adding_to_fit(self):
         """Sets the self.should_add_to_fit flag to False so that the add_to_fit
@@ -133,22 +134,24 @@ class GazeInferer:
 
     def fit(self):
         """Fit eyeball model with the acquired images. Parameters are stored as
-            internal attributes of self._eyefitter
+            internal attributes of self.eyefitter
 
         Raises:
             TypeError: Raised if the eyeball model could not be fitted (we
             received too few or garbage predictions) TODO FC :Recover from this
         """
-        self._eyefitter.fit_projected_eye_centre(
-            ransac=False,
-            max_iters=250,
+        self.eyefitter.fit_projected_eye_centre(
+            ransac=True,
+            max_iters=5000,
             min_distance=np.inf,
         )
-        self._eyefitter.estimate_eye_sphere()
+        self.eyefitter.estimate_eye_sphere()
 
         # Issue error if eyeball model still does not exist after fitting.
-        if (self._eyefitter.eye_centre is None) or (self._eyefitter.aver_eye_radius is None):
+        if (self.eyefitter.eye_centre is None) or (self.eyefitter.aver_eye_radius is None):
             raise TypeError("Eyeball model was not fitted.")
+        else:
+            print("Eyeball model was fitted !")
 
     def torch_prediction_to_deepvog_format(self, prediction):
         """Takes one output of the neural network and converts it to the
@@ -233,8 +236,8 @@ class GazeInferer:
             file_name + ".json",
         )
         save_dict = {
-            "eye_centre": self._eyefitter.eye_centre.tolist(),
-            "aver_eye_radius": self._eyefitter.aver_eye_radius,
+            "eye_centre": self.eyefitter.eye_centre.tolist(),
+            "aver_eye_radius": self.eyefitter.aver_eye_radius,
             "x_offset": self._x_offset,
             "y_offset": self._y_offset,
         }
@@ -309,9 +312,9 @@ class GazeInferer:
         if visibility.item() < 0.90:
             return None, None
 
-        self._eyefitter.unproject_single_observation(self.torch_prediction_to_deepvog_format(prediction))
-        _, n_list, _, _ = self._eyefitter.gen_consistent_pupil()
-        x, y = self._eyefitter.convert_vec2angle31(n_list[0])
+        self.eyefitter.unproject_single_observation(self.torch_prediction_to_deepvog_format(prediction))
+        _, n_list, _, _ = self.eyefitter.gen_consistent_pupil()
+        x, y = self.eyefitter.convert_vec2angle31(n_list[0])
 
         return x, y
 
@@ -332,8 +335,8 @@ class GazeInferer:
 
         loaded_dict = json.loads(json_str)
 
-        self._eyefitter.eye_centre = np.array(loaded_dict["eye_centre"])
-        self._eyefitter.aver_eye_radius = loaded_dict["aver_eye_radius"]
+        self.eyefitter.eye_centre = np.array(loaded_dict["eye_centre"])
+        self.eyefitter.aver_eye_radius = loaded_dict["aver_eye_radius"]
 
         self._x_offset = loaded_dict["x_offset"]
         self._y_offset = loaded_dict["y_offset"]

@@ -1,3 +1,4 @@
+import torch
 import numpy as np
 import json
 from itertools import product
@@ -39,7 +40,7 @@ class Pixel2Delay:
 
     """
 
-    def __init__(self, img_shape, calibration_file):
+    def __init__(self, img_shape, calibration_file, device):
         self._calibration_matrix = None
         self._order_of_polynomial = None
         self._channels = None
@@ -49,6 +50,8 @@ class Pixel2Delay:
         self._exponents = None
         self._height = img_shape[0]
         self._width = img_shape[1]
+        self._device = device
+
         self.import_calibration_matrix(calibration_file)
 
     def import_calibration_matrix(self, calibration_file):
@@ -62,34 +65,25 @@ class Pixel2Delay:
 
         """
         with open(calibration_file, "r", encoding="utf-8") as f:
-            self._calibration_matrix = np.array(json.load(f))
+            self._calibration_matrix = torch.tensor(json.load(f), device=self._device)
 
         # Get the order of the polynomial and the channels from the shape of
         # the calibration matrix
-        self._order_of_polynomial = int(
-            np.sqrt(self._calibration_matrix.shape[0]) - 1
-        )
-        self._channels = int(
-            np.roots([1, -1, -2 * self._calibration_matrix.shape[1]])[0]
-        )
+        self._order_of_polynomial = int(np.sqrt(self._calibration_matrix.shape[0]) - 1)
+        self._channels = int(np.roots([1, -1, -2 * self._calibration_matrix.shape[1]])[0])
 
         # init indices to assign directly in the delay
-        self._upper_triangle_indices = np.triu_indices(self._channels, k=1)
-        self._lower_triangle_indices = np.tril_indices(self._channels, k=-1)
-
-        # init delay to zeros
-        self._delay = np.zeros(
-            (self._channels, self._channels), dtype=np.float32
+        self._upper_triangle_indices = torch.triu_indices(self._channels, self._channels, offset=1, device=self._device)
+        self._lower_triangle_indices = torch.tril_indices(
+            self._channels, self._channels, offset=-1, device=self._device
         )
 
+        # init delay to zeros
+        self._delay = torch.zeros((self._channels, self._channels), device=self._device, dtype=torch.float32)
+
         # Used to reconstruct the delay from a pixel
-        self._exponents = np.array(
-            [
-                [x, y]
-                for x, y in product(
-                    range(self._order_of_polynomial + 1), repeat=2
-                )
-            ]
+        self._exponents = torch.tensor(
+            [[x, y] for x, y in product(range(self._order_of_polynomial + 1), repeat=2)], device=self._device
         )
 
     def get_delay(self, pixel_coords):
@@ -105,24 +99,15 @@ class Pixel2Delay:
             with shape (Nb_of_mics, Nb_of_mics)
 
         """
-        normalized_mouth_x = (2 * pixel_coords[0] - self._width - 1) / (
-            self._width - 1
-        )
-        normalized_mouth_y = (2 * pixel_coords[1] - self._height - 1) / (
-            self._height - 1
-        )
+        normalized_mouth_x = (2 * pixel_coords[0] - self._width - 1) / (self._width - 1)
+        normalized_mouth_y = (2 * pixel_coords[1] - self._height - 1) / (self._height - 1)
 
         A = (
-            normalized_mouth_x ** self._exponents[:, 0][:, np.newaxis]
-            * normalized_mouth_y ** self._exponents[:, 1][:, np.newaxis]
+            normalized_mouth_x ** self._exponents[:, 0][:, None] * normalized_mouth_y ** self._exponents[:, 1][:, None]
         ).T
 
         delay_pairs = A @ self._calibration_matrix
-        self._delay[
-            self._upper_triangle_indices[0], self._upper_triangle_indices[1]
-        ] = delay_pairs
-        self._delay[
-            self._lower_triangle_indices[0], self._lower_triangle_indices[1]
-        ] = (-1 * delay_pairs)
+        self._delay[self._upper_triangle_indices[0], self._upper_triangle_indices[1]] = delay_pairs
+        self._delay[self._lower_triangle_indices[0], self._lower_triangle_indices[1]] = -1 * delay_pairs
 
         return self._delay

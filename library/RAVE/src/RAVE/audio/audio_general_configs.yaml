@@ -1,0 +1,50 @@
+# File with general configs used for running AudioManager
+
+# Chunk size for fourier transform
+chunk_size: 256
+
+# RAVE mic dict
+mic_dict : {
+    'mics': {
+      '0': [ -0.07055, 0, 0 ],
+      '1': [ -0.07055, 0.0381, 0 ],
+      '2': [ -0.05715, 0.0618, 0 ],
+      '3': [ -0.01905, 0.0618, 0 ],
+      '4': [ 0.01905, 0.0618, 0 ],
+      '5': [ 0.05715, 0.0618, 0 ],
+      '6': [ 0.07055, 0.0381, 0 ],
+      '7': [ 0.07055, 0, 0 ]
+    },
+    'nb_of_channels': 8
+}
+
+# ReSpeaker mic dict
+#mic_dict: {
+#    'mics': {
+#      '0': [0.02285, 0.02285, 0],
+#      '1': [-0.02285, 0.02285, 0],
+#      '2': [-0.02285, -0.02285, 0],
+#      '3': [0.02285, -0.02285, 0]
+#    },
+#    'nb_of_channels': 4
+#}
+
+# Beamformer to use
+beamformer: 'mvdr'
+
+# Output channels
+out_channels: 1
+
+# Jetson configs
+# Jetson mic source  (default idx uses default device)
+jetson_source: {
+    'name': 'JetsonMic',
+    'type': 'mic',
+    'idx': '5'
+}
+# Jetson playback sink (default idx uses default device)
+jetson_sink: {
+    'name': 'JetsonPlayback',
+    'type': 'play',
+    'idx': 'default'
+}

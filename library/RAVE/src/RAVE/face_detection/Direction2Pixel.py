@@ -7,8 +7,8 @@ class Direction2Pixel:
     To convert an eye direction to a pixel on the facial camera
 
     Params:
-        translation_eye_camera (nd.array):
-            x,y,z translation in meters between to eye and the camera
+        translation_eye_camera_to_eye (nd.array):
+            x,y,z translation in meters from the eye to the eye camera
         img_heigth (int):
             image heigth in pixels
         img_width (int):
@@ -19,10 +19,30 @@ class Direction2Pixel:
         self,
         k_matrix,
         roi,
-        translation_eye_camera=np.array([0, 0, 0]),
+        translation_eye_camera_to_eye=np.array([0, 0, 0]),
         img_height=480,
         img_width=640,
     ):
+        # Rotation matrix from the eye camera to the scene camera
+        csRce = np.array([[-1, 0, 0], [0, 1, 0], [0, 0, -1]])
+
+        # the eye camera as a rotation around its X axis
+        eye_camera_rotation_angle = np.deg2rad(22.5)
+
+        # Rotation matrix from the rotated eye camera to a virtual "straight" eye camera
+        ceRcet = np.array(
+            [
+                [1, 0, 0],
+                [0, np.cos(eye_camera_rotation_angle), -np.sin(eye_camera_rotation_angle)],
+                [0, np.sin(eye_camera_rotation_angle), np.cos(eye_camera_rotation_angle)],
+            ]
+        )
+
+        # translation vector, in the scene camera's referential, from the scene camera to the eye camera
+        r_ce_cs = np.array([[-37.96, 81.46, 11.75]]) / 1000.0
+
+        translation_eye_camera = -(csRce @ ceRcet @ translation_eye_camera_to_eye + r_ce_cs.T)
+        translation_eye_camera = np.squeeze(translation_eye_camera)
         T_eye_camera = np.array(
             [
                 [0, -1, 0, translation_eye_camera[0]],
@@ -64,8 +84,8 @@ class Direction2Pixel:
         p_eye = np.dot(self._P, p_eye.T)
         p_eye = p_eye / (p_eye[2])
 
-        pixel_x = self._clamp_pixel(p_eye[0], self._img_width)
-        pixel_y = self._clamp_pixel(p_eye[1], self._img_height)
+        pixel_x = p_eye[0]
+        pixel_y = p_eye[1]
 
         # Undistort adjustements
         if self._roi is not None:
@@ -77,8 +97,8 @@ class Direction2Pixel:
             pixel_x *= self._img_width / cropped_width
             pixel_y *= self._img_height / cropped_height
 
-            pixel_x = self._clamp_pixel(pixel_x, self._img_width)
-            pixel_y = self._clamp_pixel(pixel_y, self._img_height)
+        pixel_x = self._clamp_pixel(pixel_x, self._img_width)
+        pixel_y = self._clamp_pixel(pixel_y, self._img_height)
 
         return (
             int(pixel_x),

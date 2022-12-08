@@ -1,0 +1,50 @@
+# Randomized configs to use for dataset generation
+
+# Non authorized noises
+banned_noises:
+    [
+#        'Bus_1',
+#        'Car_1',
+#        'Hallway_1',
+#        'Office_1',
+#        'Kitchen_1',
+#        'Washing_1',
+#        'LivingRoom',
+#        'Munching',
+#        'Neighbor',
+#        'ShuttingDoor',
+#        'Typing',
+#        'SqueakyChair',
+#        'WasherDryer',
+#        'CopyMachine',
+#        'AirConditioner',
+#        'VacuumCleaner'
+    ]
+
+# Diffuse noises
+diffuse_noises:
+    [
+        'AirportAnnouncement',
+        'Babble',
+        'Field',
+        'Cafe',
+        'CafeTeria',
+        'Metro',
+        'Park',
+        'Restaurant',
+        'Square',
+        'Station',
+        'Traffic'
+    ]
+
+# Max diffuse noises
+max_diffuse_noises: 0
+
+# Range of noises count to add to audio file
+dir_noise_count_range: [1, 3]
+
+# Whether to use speech as noise sources
+speech_as_noise: True
+
+# SNR limit values (amplitude)
+snr_limits: [0.5, 4]
