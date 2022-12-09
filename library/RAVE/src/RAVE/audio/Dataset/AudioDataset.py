@@ -1,19 +1,15 @@
 import torch
 import torchaudio
-import torchvision
 from pyodas.utils import generate_mic_array, get_delays_based_on_mic_array
-from pyodas.core import IStft
 
 from tkinter import filedialog
 import glob
 import os
 import random
 import yaml
-import soundfile as sf
 import numpy as np
 import math
 
-from .AudioDatasetBuilder import AudioDatasetBuilder
 from RAVE.audio.Beamformer.Beamformer import Beamformer
 
 MINIMUM_DATASET_LENGTH = 500
@@ -80,31 +76,6 @@ class AudioDataset(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.data)
 
-    def __getitem__2(self, idx):
-        item_path = self.data[idx]
-        original_audio_signal, audio_sr, original_noise_target, noise_sr, orginal_speech_target, speech_sr, config_dict = self.load_item_from_disk(
-            item_path)
-
-        min_val = min(original_audio_signal.shape[1], original_noise_target.shape[1], orginal_speech_target.shape[1])
-        begin = 0 #random.randint(0, (min_val - self.num_samples)) if min_val > self.num_samples + 1 else 0
-
-        signal1 = self.signal1(original_audio_signal, audio_sr, begin)
-        signal2 = self._delaySum(original_audio_signal, audio_sr, config_dict, begin)
-        signal = torch.cat([signal1, signal2], dim=1)
-
-        noise_target = self.targets(original_noise_target, noise_sr, begin)
-        speech_target = self.targets(orginal_speech_target, speech_sr, begin)
-        #noise_target -= torch.min(noise_target)
-        #speech_target -= torch.min(speech_target)
-
-        #target = noise_target ** 2 / (noise_target ** 2 + speech_target ** 2 + 1e-10)
-        target = noise_target / (noise_target + speech_target + 1e-10)
-
-        total_energy = noise_target + speech_target
-
-
-        return signal, torch.squeeze(target), total_energy, self.reformat(orginal_speech_target, speech_sr, begin), self._set_mono(self.transformation(self.reformat(original_audio_signal, audio_sr, begin)))
-
     def __getitem__(self, idx):
         # Get signals
         audio_signal, audio_sr, noise_target, noise_sr, speech_target, speech_sr, config_dict = self.load_item_from_disk(
@@ -136,50 +107,6 @@ class AudioDataset(torch.utils.data.Dataset):
         signal = self._right_pad(signal)
         return signal
 
-    def signal1(self, raw_signal, sr, begin):
-        """
-        Used to transform a signal into a logarithmic energy mask
-        Args:
-            raw_signal: The temporal signal to be converted
-            sr (int) : target sample rate to be used
-            begin (int) : index from which to start the signal, This allows to not always start from 0
-
-        Returns: The logarithmic energy mask calculated
-
-        """
-        signal = self.reformat(raw_signal, sr, begin)
-        freq_signal = self.transformation(signal)
-        #freq_signal = freq_signal ** 2
-        freq_signal = torch.abs(freq_signal) ** 2
-        freq_signal = self._set_mono(freq_signal)
-        freq_signal = 10 * torch.log10(freq_signal + 1e-09)
-        #freq_signal = self._set_mono(freq_signal)
-        #freq_signal = 20 * torch.log10(self._set_mono(freq_signal) + 1e-09) # Garder ca
-        #freq_signal = 20 * torch.log10(freq_signal + 1e-09)
-        return freq_signal
-
-    def targets(self, raw_signal, sr, begin):
-        """
-        Used to transform a signal into an energy mask
-        Args:
-            raw_signal: The temporal signal to be converted
-            sr (int) : target sample rate to be used
-            begin (int) : index from which to start the signal, This allows to not always start from 0
-
-        Returns: The energy mask calculated
-
-        """
-        signal = self._resample(raw_signal, sr)
-        signal = self._cut(signal, begin)
-        signal = self._right_pad(signal)
-        freq_signal = self.transformation(signal)
-        #freq_signal = freq_signal.real
-        freq_signal = torch.abs(freq_signal) ** 2
-        freq_signal = self._set_mono(freq_signal)
-        #freq_signal = 20 * torch.log10(torch.abs(freq_signal) + 1e-09)
-        #freq_signal = freq_signal.real
-        return freq_signal
-
     def _delaySum(self, xm, config):
         mic = config['mic_rel']
 
@@ -209,41 +136,6 @@ class AudioDataset(torch.utils.data.Dataset):
         signal = torch.from_numpy(signal)
         return signal
 
-    def _delaySum2(self, raw_signal, sr, config, begin):
-        signal = self._resample(raw_signal, sr)
-        signal = self._cut(signal, begin)
-        signal = self._right_pad(signal)
-        freq_signal = self.transformation(signal)
-        mic = config['mic_rel']
-
-        mic_array = generate_mic_array({
-            "mics": {
-                "0": mic[0],
-                "1": mic[1],
-                "2": mic[2],
-                "3": mic[3],
-                "4": mic[4],
-                "5": mic[5],
-                "6": mic[6],
-                "7": mic[7]
-            },
-            "nb_of_channels": 8
-        })
-
-        X = freq_signal.cpu().detach().numpy()
-        X = np.einsum("ijk->kij", X)
-        delay = np.squeeze(
-            get_delays_based_on_mic_array(np.array([config['source_dir']]), mic_array, self.frame_size))  # set variable 1024
-
-        signal = np.zeros((1, X.shape[2], X.shape[0]), dtype=complex)
-        for index, item in enumerate(X):
-            signal[..., index] = self.delay_and_sum(freq_signal=item, delay=delay)
-
-        signal = torch.from_numpy(signal)
-        signal = 10 * torch.log10(torch.abs(signal)**2 + 1e-09) # Garder ca
-        #signal = 20 * torch.log10(signal**2 + 1e-09)
-        return signal
-
     def _resample(self, signal, sr):
         if sr != self.sample_rate:
             resampler = torchaudio.transforms.Resample(sr, self.sample_rate)
@@ -265,7 +157,7 @@ class AudioDataset(torch.utils.data.Dataset):
         length_signal = signal.shape[1]
         if length_signal < self.num_samples:
             num_missing_samples = self.num_samples - length_signal
-            signal = torch.nn.functional.pad(signal, (0, num_missing_samples))
+            signal = torch.nn.functional.pad(signal, [0, num_missing_samples])
         return signal
 
     def get_dataset(self, dataset_path):

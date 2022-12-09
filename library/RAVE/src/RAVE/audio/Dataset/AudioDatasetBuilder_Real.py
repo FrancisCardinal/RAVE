@@ -69,7 +69,27 @@ class AudioDatasetBuilderReal(AudioDatasetBuilder):
                 "name": "",
             }
         ]
-        if not noise:
+
+        if noise:
+                # If all noise, calculate mean dBFS values for samples
+                mean_dBFS = 0
+                for source_type in source_types:
+                    if len(audio_dict[source_type]) == 1:
+                        continue
+                    for n, source in enumerate(audio_dict[source_type]):
+                        sample_dBFS = source['audio_segment'].dBFS
+                        mean_dBFS = mean_dBFS * n/(n+1) + sample_dBFS/(n+1)
+
+                # Adjust samples dBFS to mean
+                for source_type in source_types:
+                    if len(audio_dict[source_type]) == 1:
+                        continue
+                    for n, source in enumerate(audio_dict[source_type]):
+                        adjust_dbfs = source['audio_segment'].dBFS - mean_dBFS
+                        source['audio_segment'] -= adjust_dbfs
+
+        else:
+            # If speech and noise, add noise to specified snr
             snr_db = 20 * np.log10(snr)
 
             speech_db = audio_dict['speech'][0]['audio_segment'].dBFS
@@ -153,7 +173,10 @@ class AudioDatasetBuilderReal(AudioDatasetBuilder):
 
         # Add speech to noises if needed
         if self.speech_as_noise:
-            noise_paths.extend(other_speech_paths)
+            if self.speech_only_noise:
+                noise_paths = other_speech_paths
+            else:
+                noise_paths.extend(other_speech_paths)
 
         # Get every combination of noises possible within filtered noises
         noise_source_paths_combinations = []
