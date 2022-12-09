@@ -1,22 +1,24 @@
-import torch
-import torchaudio
 import yaml
 import os
-import numpy as np
 import time
-
+import numpy as np
 from collections import namedtuple
-
 from matplotlib import pyplot as plt
 
+# PyODAS dependencies
 from pyodas.core import KissMask
 from .GPU import Stft, IStft, SpatialCov, DelaySum
 from pyodas.utils import CONST, generate_mic_array, get_delays_based_on_mic_array
 
+# Internal dependancies
 from .IO.IO_manager import IOManager
 from .Neural_Network.AudioModel import AudioModel
 from .Beamformer.Beamformer import Beamformer
 
+# PyTorch dependencies
+import torch
+import torchaudio
+from torchmetrics import SignalNoiseRatio, SignalDistortionRatio
 
 # Named Tuples
 SourceTuple = namedtuple("SourceTuple", "file source stft")
@@ -49,6 +51,8 @@ class AudioManager:
     # Class variables init empty
     in_subfolder_path = None
     out_subfolder_path = None
+    file_configs_path = None
+    file_configs = None
     source = None
     original_sink = None
     target = TARGET
@@ -65,6 +69,12 @@ class AudioManager:
     speech_mask_np_gt = None
     noise_mask_np_gt = None
     speech_np_gt = None
+
+    # SDR and SNR variables
+    old_snr = None
+    old_sdr = None
+    new_snr = None
+    new_sdr = None
 
     # Speech and noise variables
     speech_file = None
@@ -92,8 +102,8 @@ class AudioManager:
 
         # General configs
         self.path = os.path.dirname(os.path.abspath(__file__))
-        config_path = os.path.join(self.path, "audio_general_configs.yaml")
-        with open(config_path, "r") as stream:
+        self.config_path = os.path.join(self.path, "audio_general_configs.yaml")
+        with open(self.config_path, "r") as stream:
             try:
                 self.general_configs = yaml.safe_load(stream)
                 if self.debug:
@@ -114,6 +124,7 @@ class AudioManager:
         self.use_beamformer = self.general_configs["use_beamformer"]
         self.speech_and_noise = self.general_configs["use_groundtruth"]
         self.print_specs = self.general_configs["print_specs"]
+        self.print_sdr = self.general_configs["print_sdr"]
 
         self.jetson_source = self.general_configs["jetson_source"]
         self.jetson_sink = self.general_configs["jetson_sink"]
@@ -148,9 +159,9 @@ class AudioManager:
         # Beamformer
         self.beamformer = Beamformer(name='mvdr', channels=self.channels, device=self.device)
 
-    def init_sim_input(self, name, file):
+    def init_wav_input(self, name, file):
         """
-        Initialise simulated input (from .wav file).
+        Initialise wav file input.
 
         Args:
             name (str): Name of source.
@@ -177,9 +188,9 @@ class AudioManager:
 
         return source
 
-    def init_sim_output(self, name, wav_params):
+    def init_wav_output(self, name, wav_params):
         """
-        Initialise simulated output (.wav file).
+        Initialise wav file output.
 
         Args:
             name (str): Name of sink.
@@ -463,6 +474,54 @@ class AudioManager:
             plt.show(block=True)
         plt.close()
 
+    def calculate_sdr(self):
+
+        # TODO: Runtime sdr instead of at the end
+        offset = 370
+        # offset = 0
+
+        target_path = os.path.join(self.in_subfolder_path, 'target.wav')
+        original_path = os.path.join(self.in_subfolder_path, 'audio.wav')
+        output_path = os.path.join(self.out_subfolder_path, 'output.wav')
+
+        # New
+        prediction, _ = torchaudio.load(output_path)
+        length = prediction.shape[1]
+        prediction = prediction[:, offset:length]
+
+        target, _ = torchaudio.load(target_path)
+        target = torch.unsqueeze(torch.mean(target, dim=0), dim=0)
+        target = target[:, 0:length - offset]
+
+        # Old
+        original, _ = torchaudio.load(original_path)
+        original = original[:, :length]
+        original = torch.mean(original, dim=0, keepdim=True)
+
+        target_original, _ = torchaudio.load(target_path)
+        target_original = torch.unsqueeze(torch.mean(target_original, dim=0), dim=0)
+        target_original = target_original[:, :length]
+
+        sdr = SignalDistortionRatio()
+        self.old_sdr = sdr(original, target_original).item()
+        self.new_sdr = sdr(prediction, target).item()
+        if self.debug:
+            print("SDR: Before: ", self.old_sdr, " After: ", self.new_sdr)
+
+        snr = SignalNoiseRatio()
+        self.old_snr = snr(original, target_original).item()
+        self.new_snr = snr(prediction, target).item()
+        if self.debug:
+            print("SNR: Before: ", self.old_snr, " After: ", self.new_snr)
+
+        # Add to config file
+        self.file_configs['old_snr'] = self.old_snr
+        self.file_configs['new_snr'] = self.new_snr
+        self.file_configs['old_sdr'] = self.old_sdr
+        self.file_configs['new_sdr'] = self.new_sdr
+        with open(self.file_configs_path, "w") as outfile:
+            yaml.dump(self.file_configs, outfile, default_flow_style=None)
+
     def compute_masks(self, signal):
         """
         Computes masks (through KISS or neural network) for speech and noise on noisy speech signal.
@@ -610,9 +669,19 @@ class AudioManager:
             # Load sim (wav) input
             self.source_dict["audio"] = SourceTuple(
                 self.source_list["file"],
-                self.init_sim_input(name=self.source_list["name"], file=self.source_list["file"]),
+                self.init_wav_input(name=self.source_list["name"], file=self.source_list["file"]),
                 Stft(self.channels, self.frame_size, self.window, self.device)
             )
+
+            # Try to load configs
+            self.file_configs_path = os.path.join(os.path.dirname(self.source_list["file"]), 'configs.yaml')
+            with open(self.file_configs_path, "r") as stream:
+                try:
+                    self.file_configs = yaml.safe_load(stream)
+                except yaml.YAMLError as exc:
+                    print("Couldn't load audio file configs.")
+                    print(exc)
+                    exit()
 
             # If sim, try loading speech and noise ground truths
             if self.speech_and_noise:
@@ -621,14 +690,14 @@ class AudioManager:
                     self.speech_file = os.path.join(os.path.split(self.source_list["file"])[0], "speech.wav")
                     self.source_dict["speech"] = SourceTuple(
                         self.speech_file,
-                        self.init_sim_input(name="speech_gt_source", file=self.speech_file),
+                        self.init_wav_input(name="speech_gt_source", file=self.speech_file),
                         Stft(self.channels, self.frame_size, self.window, self.device)
                     )
                     # Load noise file
                     self.noise_file = os.path.join(os.path.split(self.source_list["file"])[0], "noise.wav")
                     self.source_dict["noise"] = SourceTuple(
                         self.noise_file,
-                        self.init_sim_input(name="noise_gt_source", file=self.noise_file),
+                        self.init_wav_input(name="noise_gt_source", file=self.noise_file),
                         Stft(self.channels, self.frame_size, self.window, self.device)
                     )
                     # Set argument to True if successful
@@ -655,7 +724,7 @@ class AudioManager:
             # Get sink object
             if sink["type"] == "sim":
                 wav_params = self.wav_params_out if sink["beamform"] else self.wav_params_multi
-                sink_obj = self.init_sim_output(name=sink["name"], wav_params=wav_params)
+                sink_obj = self.init_wav_output(name=sink["name"], wav_params=wav_params)
             else:
                 sink_obj = self.init_play_output(name=sink["name"], sink_index=sink["idx"])
             # Add ISTFT and SCM (if needed for beamforming)
@@ -709,14 +778,14 @@ class AudioManager:
         # Init simulated sources (.wav) if needed
         if save_input:
             self.sink_dict["original"] = SinkTuple(
-                self.init_sim_output(name="original", path=output_path, wav_params=self.wav_params_multi),
+                self.init_wav_output(name="original", path=output_path, wav_params=self.wav_params_multi),
                 None,
                 None,
                 None
             )
         if save_output:
             self.sink_dict["original"] = SinkTuple(
-                self.init_sim_output(name="output", path=output_path, wav_params=self.wav_params_out),
+                self.init_wav_output(name="output", path=output_path, wav_params=self.wav_params_out),
                 None,
                 None,
                 None
@@ -926,6 +995,13 @@ class AudioManager:
         # Plot target + prediction spectrograms
         if self.print_specs:
             self.print_spectrograms()
+
+        if self.print_sdr:
+            # TODO: Check input is sim
+            if self.speech_and_noise:
+                self.calculate_sdr()
+            else:
+                print(f"Cannot measure SDR if no ")
 
         print(f"Audio_Manager: Finished running main_audio ({samples} samples)")
         if self.get_timers:

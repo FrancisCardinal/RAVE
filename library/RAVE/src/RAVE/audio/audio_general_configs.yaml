@@ -26,13 +26,13 @@ mic_dict_respeaker: {     # ReSpeaker mic dict
 
 # Output
 default_output_dir: '.'
-output_stereo: True
+output_stereo: False
 
 # Arguments
 use_beamformer: False
 use_groundtruth: True   # Calculate various ground truths
-print_specs: False       # Print spectrograms
-
+print_specs: False      # Print spectrograms
+print_sdr: True         # Print sdr change
 
 ## Jetson configs
 # Jetson mic source  (default idx uses default device)

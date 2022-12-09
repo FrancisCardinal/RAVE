@@ -2,14 +2,14 @@ import os
 import glob
 import argparse
 
-from multiprocessing import Process, Queue
+from multiprocessing import Process, Queue, Manager
 
 from tkinter import filedialog
 
 from RAVE.audio.AudioManager import AudioManager
 
 
-def run_loop(file_queue, worker_num, DEBUG, MASK, TIMER, MODEL):
+def run_loop(file_queue, snr_sdr_dict, worker_num, DEBUG, MASK, TIMER, MODEL):
 
     # TODO: ADD POSSIBILITY TO RESET AUDIO_MANAGER INSTEAD OF RECREATING
     while not file_queue.empty():
@@ -27,6 +27,17 @@ def run_loop(file_queue, worker_num, DEBUG, MASK, TIMER, MODEL):
         }
         audio_manager.initialise_audio(source=audio_dict)
         audio_manager.main_loop()
+
+        # Calculate snr and sdr
+        if audio_manager.print_sdr:
+            snr_sdr_dict['print_results'] = True
+            snr_sdr_dict['count'] += 1
+            n = snr_sdr_dict['count']
+            snr_sdr_dict['old_snr'] = snr_sdr_dict['old_snr'] * (n-1)/n + audio_manager.old_snr/n
+            snr_sdr_dict['new_snr'] = snr_sdr_dict['new_snr'] * (n-1)/n + audio_manager.new_snr/n
+            snr_sdr_dict['old_sdr'] = snr_sdr_dict['old_sdr'] * (n-1)/n + audio_manager.old_sdr/n
+            snr_sdr_dict['new_sdr'] = snr_sdr_dict['new_sdr'] * (n-1)/n + audio_manager.new_sdr/n
+
         # audio_manager.reset_manager()
 
 
@@ -45,30 +56,44 @@ def main(DEBUG, MASK, TIMER, WORKERS, SOURCE_DIR, MODEL):
         audio_manager.initialise_audio(source=audio_dict, save_path=None)
         audio_manager.main_loop()
     else:
-        # Given a whole dataset folder
-        worker_count = WORKERS
-        worker_list = []
-        file_queue = Queue()
-        # Get audio files
-        input_files = glob.glob(os.path.join(SOURCE_DIR, '**', 'audio.wav'), recursive=True)
-        if not input_files:
-            print("No audio files found in given directory. Exiting.")
-            exit()
-        else:
-            for audio_file in input_files:
-                file_queue.put(audio_file)
+        with Manager() as manager:
+            # Given a whole dataset folder
+            worker_count = WORKERS
+            worker_list = []
+            file_queue = Queue()
+            sdr_snr_dict = manager.dict()
+            sdr_snr_dict['print_results'] = False
+            sdr_snr_dict['count'] = 0
+            sdr_snr_dict['old_snr'] = 0
+            sdr_snr_dict['new_snr'] = 0
+            sdr_snr_dict['old_sdr'] = 0
+            sdr_snr_dict['new_sdr'] = 0
 
-        # Start workers
-        for w in range(1, worker_count+1):
-            p = Process(target=run_loop, args=(file_queue, w, DEBUG, MASK, TIMER, MODEL, ))
-            worker_list.append(p)
-            p.start()
-            print(f'Worker {w}: started.')
+            # Get audio files
+            input_files = glob.glob(os.path.join(SOURCE_DIR, '**', 'audio.wav'), recursive=True)
+            if not input_files:
+                print("No audio files found in given directory. Exiting.")
+                exit()
+            else:
+                for audio_file in input_files:
+                    file_queue.put(audio_file)
 
-        # Join workers when done
-        for w_num, p in enumerate(worker_list):
-            p.join()
-            print(f'Worker {w_num+1}: finished.')
+            # Start workers
+            for w in range(1, worker_count+1):
+                p = Process(target=run_loop, args=(file_queue, sdr_snr_dict, w, DEBUG, MASK, TIMER, MODEL, ))
+                worker_list.append(p)
+                p.start()
+                print(f'Worker {w}: started.')
+
+            # Join workers when done
+            for w_num, p in enumerate(worker_list):
+                p.join()
+                print(f'Worker {w_num+1}: finished.')
+
+            if sdr_snr_dict['print_results']:
+                print(f"SDR_SNR: Measured over {sdr_snr_dict['count']} samples :")
+                print(f"\t Old SNR: {sdr_snr_dict['old_snr']} \t New SNR: {sdr_snr_dict['new_snr']}")
+                print(f"\t Old SDR: {sdr_snr_dict['old_sdr']} \t New SDR: {sdr_snr_dict['new_sdr']}")
 
 
 if __name__ == "__main__":
