@@ -73,8 +73,10 @@ class AudioManager:
     # SDR and SNR variables
     old_snr = None
     old_sdr = None
+    gain_sdr = None
     new_snr = None
     new_sdr = None
+    gain_snr = None
 
     # Speech and noise variables
     speech_file = None
@@ -477,8 +479,7 @@ class AudioManager:
     def calculate_sdr(self):
 
         # TODO: Runtime sdr instead of at the end
-        offset = 370
-        # offset = 0
+        offset = 100
 
         target_path = os.path.join(self.in_subfolder_path, 'target.wav')
         original_path = os.path.join(self.in_subfolder_path, 'audio.wav')
@@ -491,7 +492,7 @@ class AudioManager:
 
         target, _ = torchaudio.load(target_path)
         target = torch.unsqueeze(torch.mean(target, dim=0), dim=0)
-        target = target[:, 0:length - offset]
+        target = target[:, 0:length-offset]
 
         # Old
         original, _ = torchaudio.load(original_path)
@@ -500,25 +501,29 @@ class AudioManager:
 
         target_original, _ = torchaudio.load(target_path)
         target_original = torch.unsqueeze(torch.mean(target_original, dim=0), dim=0)
-        target_original = target_original[:, :length]
+        target_original = target_original[:, 0:length]
 
         sdr = SignalDistortionRatio()
         self.old_sdr = sdr(original, target_original).item()
         self.new_sdr = sdr(prediction, target).item()
+        self.gain_sdr = self.new_sdr - self.old_sdr
         if self.debug:
-            print("SDR: Before: ", self.old_sdr, " After: ", self.new_sdr)
+            print("SDR: Before: ", self.old_sdr, " After: ", self.new_sdr, " Gain: ", self.gain_sdr)
 
         snr = SignalNoiseRatio()
         self.old_snr = snr(original, target_original).item()
         self.new_snr = snr(prediction, target).item()
+        self.gain_snr = self.new_snr - self.old_snr
         if self.debug:
-            print("SNR: Before: ", self.old_snr, " After: ", self.new_snr)
+            print("SNR: Before: ", self.old_snr, " After: ", self.new_snr, " Gain: ", self.gain_snr)
 
         # Add to config file
         self.file_configs['old_snr'] = self.old_snr
         self.file_configs['new_snr'] = self.new_snr
+        self.file_configs['gain_snr'] = self.gain_snr
         self.file_configs['old_sdr'] = self.old_sdr
         self.file_configs['new_sdr'] = self.new_sdr
+        self.file_configs['gain_sdr'] = self.gain_sdr
         with open(self.file_configs_path, "w") as outfile:
             yaml.dump(self.file_configs, outfile, default_flow_style=None)
 

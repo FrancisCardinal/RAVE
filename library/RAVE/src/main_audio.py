@@ -1,6 +1,7 @@
 import os
 import glob
 import argparse
+import yaml
 
 from multiprocessing import Process, Queue, Manager
 
@@ -40,6 +41,16 @@ def run_loop(file_queue, snr_sdr_dict, worker_num, DEBUG, MASK, TIMER, MODEL):
 
         # audio_manager.reset_manager()
 
+    snr_sdr_dict['gain_snr'] = snr_sdr_dict['new_snr'] - snr_sdr_dict['old_snr']
+    snr_sdr_dict['gain_sdr'] = snr_sdr_dict['new_sdr'] - snr_sdr_dict['old_sdr']
+
+    if snr_sdr_dict['print_results']:
+        print(f"SDR_SNR: Measured over {snr_sdr_dict['count']} samples :")
+        print(f"\t Old SNR: {snr_sdr_dict['old_snr']} \t New SNR: {snr_sdr_dict['new_snr']} "
+              f"\t Gain SNR: {snr_sdr_dict['gain_snr']}")
+        print(f"\t Old SDR: {snr_sdr_dict['old_sdr']} \t New SDR: {snr_sdr_dict['new_sdr']}"
+              f"\t Gain SDR: {snr_sdr_dict['gain_sdr']}")
+
 
 def main(DEBUG, MASK, TIMER, WORKERS, SOURCE_DIR, MODEL):
 
@@ -61,13 +72,15 @@ def main(DEBUG, MASK, TIMER, WORKERS, SOURCE_DIR, MODEL):
             worker_count = WORKERS
             worker_list = []
             file_queue = Queue()
-            sdr_snr_dict = manager.dict()
-            sdr_snr_dict['print_results'] = False
-            sdr_snr_dict['count'] = 0
-            sdr_snr_dict['old_snr'] = 0
-            sdr_snr_dict['new_snr'] = 0
-            sdr_snr_dict['old_sdr'] = 0
-            sdr_snr_dict['new_sdr'] = 0
+            snr_sdr_dict = manager.dict()
+            snr_sdr_dict['print_results'] = False
+            snr_sdr_dict['count'] = 0
+            snr_sdr_dict['old_snr'] = 0
+            snr_sdr_dict['new_snr'] = 0
+            snr_sdr_dict['gain_snr'] = 0
+            snr_sdr_dict['old_sdr'] = 0
+            snr_sdr_dict['new_sdr'] = 0
+            snr_sdr_dict['gain_sdr'] = 0
 
             # Get audio files
             input_files = glob.glob(os.path.join(SOURCE_DIR, '**', 'audio.wav'), recursive=True)
@@ -80,7 +93,7 @@ def main(DEBUG, MASK, TIMER, WORKERS, SOURCE_DIR, MODEL):
 
             # Start workers
             for w in range(1, worker_count+1):
-                p = Process(target=run_loop, args=(file_queue, sdr_snr_dict, w, DEBUG, MASK, TIMER, MODEL, ))
+                p = Process(target=run_loop, args=(file_queue, snr_sdr_dict, w, DEBUG, MASK, TIMER, MODEL, ))
                 worker_list.append(p)
                 p.start()
                 print(f'Worker {w}: started.')
@@ -90,10 +103,19 @@ def main(DEBUG, MASK, TIMER, WORKERS, SOURCE_DIR, MODEL):
                 p.join()
                 print(f'Worker {w_num+1}: finished.')
 
-            if sdr_snr_dict['print_results']:
-                print(f"SDR_SNR: Measured over {sdr_snr_dict['count']} samples :")
-                print(f"\t Old SNR: {sdr_snr_dict['old_snr']} \t New SNR: {sdr_snr_dict['new_snr']}")
-                print(f"\t Old SDR: {sdr_snr_dict['old_sdr']} \t New SDR: {sdr_snr_dict['new_sdr']}")
+            snr_sdr_dict['gain_snr'] = snr_sdr_dict['new_snr'] - snr_sdr_dict['old_snr']
+            snr_sdr_dict['gain_sdr'] = snr_sdr_dict['new_sdr'] - snr_sdr_dict['old_sdr']
+
+            results_yaml_path = os.path.join(SOURCE_DIR, 'sdr_results.yaml')
+            with open(results_yaml_path, "w") as outfile:
+                yaml.dump(snr_sdr_dict, outfile, default_flow_style=None)
+
+            if snr_sdr_dict['print_results']:
+                print(f"SDR_SNR: Measured over {snr_sdr_dict['count']} samples :")
+                print(f"\t Old SNR: {snr_sdr_dict['old_snr']} \t New SNR: {snr_sdr_dict['new_snr']} "
+                      f"\t Gain SNR: {snr_sdr_dict['gain_snr']}")
+                print(f"\t Old SDR: {snr_sdr_dict['old_sdr']} \t New SDR: {snr_sdr_dict['new_sdr']}"
+                      f"\t Gain SDR: {snr_sdr_dict['gain_sdr']}")
 
 
 if __name__ == "__main__":
