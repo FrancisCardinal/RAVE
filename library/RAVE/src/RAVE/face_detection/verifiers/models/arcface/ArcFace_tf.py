@@ -7,26 +7,23 @@ import gdown
 
 
 def load_model(
-    url="https://github.com/serengil/deepface_models"
-    + "/releases/download/v1.0/arcface_weights.h5",
+    url="https://github.com/serengil/deepface_models" + "/releases/download/v1.0/arcface_weights.h5",
 ):
     """
     ...
     """
+    print("Loading Arcface verifier model...")
+
     base_model = ResNet34()
     inputs = base_model.inputs[0]
     arcface_model = base_model.outputs[0]
-    arcface_model = keras.layers.BatchNormalization(
-        momentum=0.9, epsilon=2e-5
-    )(arcface_model)
+    arcface_model = keras.layers.BatchNormalization(momentum=0.9, epsilon=2e-5)(arcface_model)
     arcface_model = keras.layers.Dropout(0.4)(arcface_model)
     arcface_model = keras.layers.Flatten()(arcface_model)
-    arcface_model = keras.layers.Dense(
-        512, activation=None, use_bias=True, kernel_initializer="glorot_normal"
-    )(arcface_model)
-    embedding = keras.layers.BatchNormalization(
-        momentum=0.9, epsilon=2e-5, name="embedding", scale=True
-    )(arcface_model)
+    arcface_model = keras.layers.Dense(512, activation=None, use_bias=True, kernel_initializer="glorot_normal")(
+        arcface_model
+    )
+    embedding = keras.layers.BatchNormalization(momentum=0.9, epsilon=2e-5, name="embedding", scale=True)(arcface_model)
     model = keras.models.Model(inputs, embedding, name=base_model.name)
 
     # ---------------------------------------
@@ -57,9 +54,7 @@ def ResNet34():
     """
     img_input = tensorflow.keras.layers.Input(shape=(112, 112, 3))
 
-    x = tensorflow.keras.layers.ZeroPadding2D(padding=1, name="conv1_pad")(
-        img_input
-    )
+    x = tensorflow.keras.layers.ZeroPadding2D(padding=1, name="conv1_pad")(img_input)
     x = tensorflow.keras.layers.Conv2D(
         64,
         3,
@@ -68,12 +63,8 @@ def ResNet34():
         kernel_initializer="glorot_normal",
         name="conv1_conv",
     )(x)
-    x = tensorflow.keras.layers.BatchNormalization(
-        axis=3, epsilon=2e-5, momentum=0.9, name="conv1_bn"
-    )(x)
-    x = tensorflow.keras.layers.PReLU(shared_axes=[1, 2], name="conv1_prelu")(
-        x
-    )
+    x = tensorflow.keras.layers.BatchNormalization(axis=3, epsilon=2e-5, momentum=0.9, name="conv1_bn")(x)
+    x = tensorflow.keras.layers.PReLU(shared_axes=[1, 2], name="conv1_prelu")(x)
     x = stack_fn(x)
 
     model = training.Model(img_input, x, name="ResNet34")
@@ -102,12 +93,8 @@ def block1(x, filters, kernel_size=3, stride=1, conv_shortcut=True, name=None):
     else:
         shortcut = x
 
-    x = tensorflow.keras.layers.BatchNormalization(
-        axis=bn_axis, epsilon=2e-5, momentum=0.9, name=name + "_1_bn"
-    )(x)
-    x = tensorflow.keras.layers.ZeroPadding2D(padding=1, name=name + "_1_pad")(
-        x
-    )
+    x = tensorflow.keras.layers.BatchNormalization(axis=bn_axis, epsilon=2e-5, momentum=0.9, name=name + "_1_bn")(x)
+    x = tensorflow.keras.layers.ZeroPadding2D(padding=1, name=name + "_1_pad")(x)
     x = tensorflow.keras.layers.Conv2D(
         filters,
         3,
@@ -116,16 +103,10 @@ def block1(x, filters, kernel_size=3, stride=1, conv_shortcut=True, name=None):
         use_bias=False,
         name=name + "_1_conv",
     )(x)
-    x = tensorflow.keras.layers.BatchNormalization(
-        axis=bn_axis, epsilon=2e-5, momentum=0.9, name=name + "_2_bn"
-    )(x)
-    x = tensorflow.keras.layers.PReLU(
-        shared_axes=[1, 2], name=name + "_1_prelu"
-    )(x)
+    x = tensorflow.keras.layers.BatchNormalization(axis=bn_axis, epsilon=2e-5, momentum=0.9, name=name + "_2_bn")(x)
+    x = tensorflow.keras.layers.PReLU(shared_axes=[1, 2], name=name + "_1_prelu")(x)
 
-    x = tensorflow.keras.layers.ZeroPadding2D(padding=1, name=name + "_2_pad")(
-        x
-    )
+    x = tensorflow.keras.layers.ZeroPadding2D(padding=1, name=name + "_2_pad")(x)
     x = tensorflow.keras.layers.Conv2D(
         filters,
         kernel_size,
@@ -134,9 +115,7 @@ def block1(x, filters, kernel_size=3, stride=1, conv_shortcut=True, name=None):
         use_bias=False,
         name=name + "_2_conv",
     )(x)
-    x = tensorflow.keras.layers.BatchNormalization(
-        axis=bn_axis, epsilon=2e-5, momentum=0.9, name=name + "_3_bn"
-    )(x)
+    x = tensorflow.keras.layers.BatchNormalization(axis=bn_axis, epsilon=2e-5, momentum=0.9, name=name + "_3_bn")(x)
 
     x = tensorflow.keras.layers.Add(name=name + "_add")([shortcut, x])
     return x
@@ -148,9 +127,7 @@ def stack1(x, filters, blocks, stride1=2, name=None):
     """
     x = block1(x, filters, stride=stride1, name=name + "_block1")
     for i in range(2, blocks + 1):
-        x = block1(
-            x, filters, conv_shortcut=False, name=name + "_block" + str(i)
-        )
+        x = block1(x, filters, conv_shortcut=False, name=name + "_block" + str(i))
     return x
 
 

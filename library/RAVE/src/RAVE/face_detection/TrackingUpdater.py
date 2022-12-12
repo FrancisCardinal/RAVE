@@ -154,7 +154,7 @@ class TrackingUpdater:
             if obj.id in tracked_objects.keys():
                 bboxes_to_verify.append(detection.bbox)
         if len(bboxes_to_verify) > 0:
-            predicted_features = self.verifier.get_features(frame_object.frame_tensor, bboxes_to_verify)
+            predicted_features = self.verifier.get_features(frame_object, bboxes_to_verify)
 
         # Handle matches
         for pair in matched_pairs:
@@ -232,7 +232,7 @@ class TrackingUpdater:
             obj, detection = pair
             bboxes_to_verify.append(detection.bbox)
         if len(bboxes_to_verify) > 0:
-            predicted_features = self.verifier.get_features(frame_object.frame_tensor, bboxes_to_verify)
+            predicted_features = self.verifier.get_features(frame_object, bboxes_to_verify)
 
         # Handle successful re-detections
         for pair in matched_pairs:

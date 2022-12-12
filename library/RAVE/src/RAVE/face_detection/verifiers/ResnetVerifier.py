@@ -41,12 +41,12 @@ class ResNetVerifier(Verifier):
         img = (img - 0.5) / 0.5  # TODO: Determine if these values are necessary and correct
         return img
 
-    def get_features(self, frame, face_locations):
+    def get_features(self, frame_object, face_locations):
         """
         Get the encodings (feature vectors) for all request objects
 
         Args:
-            frame (tensor): The image containing the objects
+            frame_object (FrameObject): The image containing the objects
             face_locations (list of tuples (int, int, int, int)): List of all
                 the xywh bounding boxes for the objects in the image to compute
                 the encodings for
@@ -55,7 +55,7 @@ class ResNetVerifier(Verifier):
             (list(float)): Variable length list containing the floats that
                 represent the object
         """
-
+        frame = frame_object.frame_tensor
         batch = None
         for bbox in face_locations:
             roi = frame[
