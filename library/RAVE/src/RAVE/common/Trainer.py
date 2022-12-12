@@ -66,7 +66,7 @@ class Trainer:
 
         if MODEL_INFO_FILE_NAME is not None:
             Trainer.MODEL_INFO_FILE_NAME = MODEL_INFO_FILE_NAME
-        self.MODEL_PATH = os.path.join(ROOT_DIR_PATH, MODEL_INFO_FILE_NAME)
+        self.MODEL_PATH = os.path.join(ROOT_DIR_PATH, Trainer.MODEL_INFO_FILE_NAME)
         self.min_validation_loss = np.inf
 
         if CONTINUE_TRAINING:
