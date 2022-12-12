@@ -65,19 +65,17 @@ class Dataset(torch.utils.data.Dataset):
                 transforms.ToTensor(),
             ]
         )
-        self.NORMALIZE_TRANSFORM = transforms.Normalize(
-            mean=TRAINING_MEAN, std=TRAINING_STD
-        )
+        self.NORMALIZE_TRANSFORM = transforms.Normalize(mean=TRAINING_MEAN, std=TRAINING_STD)
+        if sub_dataset_dir is None:
+            self.IMAGES_DIR_PATH, self.LABELS_DIR_PATH = "", ""
+            self.images_paths = np.array([])
 
-        BASE_PATH = os.path.join(
-            ROOT_PATH, Dataset.DATASET_DIR, sub_dataset_dir
-        )
-        self.IMAGES_DIR_PATH = os.path.join(BASE_PATH, Dataset.IMAGES_DIR)
-        self.LABELS_DIR_PATH = os.path.join(BASE_PATH, Dataset.LABELS_DIR)
+        else:
+            BASE_PATH = os.path.join(ROOT_PATH, Dataset.DATASET_DIR, sub_dataset_dir)
+            self.IMAGES_DIR_PATH = os.path.join(BASE_PATH, Dataset.IMAGES_DIR)
+            self.LABELS_DIR_PATH = os.path.join(BASE_PATH, Dataset.LABELS_DIR)
 
-        self.images_paths = Dataset.get_multiple_workers_safe_list_of_paths(
-            self.IMAGES_DIR_PATH
-        )
+            self.images_paths = Dataset.get_multiple_workers_safe_list_of_paths(self.IMAGES_DIR_PATH)
 
     def __len__(self):
         """

@@ -193,7 +193,7 @@ class EyeTrackerInferenceDataset(EyeTrackerDataset):
     )
 
     def __init__(self, opencv_device, torch_device):
-        super().__init__("test")  # TODO FC : Find a more elegant solution
+        super().__init__(None)
         self._video_feed = EyeTrackerVideoCapture(opencv_device)
         self._to_tensor_transform = transforms.ToTensor()
         self._resize_transform = transforms.Resize(self.IMAGE_DIMENSIONS[1:3])
@@ -255,7 +255,7 @@ class EyeTrackerFilm(EyeTrackerDataset):
     )
 
     def __init__(self, opencv_device):
-        super().__init__("test")  # TODO FC : Find a more elegant solution
+        super().__init__(None)
         self._video_feed = EyeTrackerVideoCapture(opencv_device)
 
     def __len__(self):
