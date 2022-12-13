@@ -62,6 +62,8 @@ Send us your comments/suggestions to improve the project in [issues](https://git
 [IntRoLab - Laboratoire de robotique intelligente / interactive / intégrée / interdisciplinaire @ Université de Sherbrooke](https://introlab.3it.usherbrooke.ca)
 
 ## References
+#### For the eye tracker, the code for the conversion of an ellipse to a gaze direction was taken and adapted from [DeepVog](https://github.com/pydsgz/DeepVOG), who also use a [GPLv3](LICENSE) license.
+
 #### Code and pre-trained models for face detection and face recognition used from:
 
       @article{YOLO5Face,
