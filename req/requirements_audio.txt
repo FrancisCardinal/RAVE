@@ -6,4 +6,6 @@ scipy
 pyroomacoustics
 pydub
 
+torchmetrics
+
 -r requirements_base.txt

@@ -2,8 +2,6 @@ import torch
 from torch.nn import functional as F
 
 import numpy as np
-import cv2
-
 import random
 
 random.seed(42)
@@ -223,6 +221,59 @@ def xyxy2xywh(x):
     return y
 
 
+def bounding_boxes_are_overlapping(first, other):
+    first_upper_left_corner_X = int(first[0])
+    first_upper_left_corner_Y = int(first[1])
+    first_bottom_right_corner_X = first_upper_left_corner_X + int(first[2])
+    first_bottom_right_corner_Y = first_upper_left_corner_Y + int(first[3])
+
+    other_upper_left_corner_X = int(other[0])
+    other_upper_left_corner_Y = int(other[1])
+    other_bottom_right_corner_X = first_upper_left_corner_X + int(other[2])
+    other_bottom_right_corner_Y = first_upper_left_corner_Y + int(other[3])
+
+    xCondition = (first_upper_left_corner_X < other_bottom_right_corner_X) and (
+        first_bottom_right_corner_X > other_upper_left_corner_X
+    )
+    yCondition = (first_upper_left_corner_Y < other_bottom_right_corner_Y) and (
+        first_bottom_right_corner_Y > other_upper_left_corner_Y
+    )
+
+    return xCondition and yCondition
+
+
+def box_pair_iou(first, other):
+    first_upper_left_corner_X = int(first[0])
+    first_upper_left_corner_Y = int(first[1])
+    first_bottom_right_corner_X = first_upper_left_corner_X + int(first[2])
+    first_bottom_right_corner_Y = first_upper_left_corner_Y + int(first[3])
+
+    other_upper_left_corner_X = int(other[0])
+    other_upper_left_corner_Y = int(other[1])
+    other_bottom_right_corner_X = first_upper_left_corner_X + int(other[2])
+    other_bottom_right_corner_Y = first_upper_left_corner_Y + int(other[3])
+
+    bbox_1 = torch.tensor(
+        [
+            first_upper_left_corner_X,
+            first_upper_left_corner_Y,
+            first_bottom_right_corner_X,
+            first_bottom_right_corner_Y,
+        ]
+    ).unsqueeze(0)
+    bbox_2 = torch.tensor(
+        [
+            other_upper_left_corner_X,
+            other_upper_left_corner_Y,
+            other_bottom_right_corner_X,
+            other_bottom_right_corner_Y,
+        ]
+    ).unsqueeze(0)
+
+    ious = box_iou(bbox_1, bbox_2)
+    return ious[0].item()
+
+
 def box_iou(box1, box2):
     # https://github.com/pytorch/vision/blob/master/torchvision/ops/boxes.py
     """
@@ -431,4 +482,3 @@ def check_frontal_face(
     if dist_rate < thresh_dist_low or dist_rate > thresh_dist_high or high_ratio_std > thresh_high_std:
         return False
     return True
-

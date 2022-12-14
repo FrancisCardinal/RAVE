@@ -1,8 +1,8 @@
 import os
 import torch
 import numpy as np
-from scipy.ndimage import median_filter
 import json
+from threading import Lock
 
 from RAVE.eye_tracker.EyeTrackerDataset import (
     EyeTrackerDataset,
@@ -10,9 +10,6 @@ from RAVE.eye_tracker.EyeTrackerDataset import (
 )
 from RAVE.eye_tracker.GazeInferer.deepvog.eyefitter import SingleEyeFitter
 
-import cv2
-from RAVE.common.image_utils import tensor_to_opencv_image, inverse_normalize
-from RAVE.eye_tracker.ellipse_util import draw_ellipse_on_image
 from RAVE.common.Filters import box_smooth
 
 
@@ -37,7 +34,7 @@ class GazeInferer:
         ellipse_dnn,
         dataloader,
         device,
-        eyeball_model_path="model_01.json",
+        DEBUG,
         pupil_radius=4,
         initial_eye_z=52.271,
         flen=3.37,
@@ -54,11 +51,7 @@ class GazeInferer:
             dataloader (Dataloader): Pytorch's dataloader that enables us to
                 get the images of the camera
             device (string): Pytorch device (i.e, should we use cpu or gpu ?)
-            eyeball_model_path (str, optional): The name of the files that
-                contains the caracteristics of the eye on which we want to run
-                this code (information on its size and position that is
-                obtained through calibration and the fit method). Defaults to
-                "model_01.json".
+            DEBUG (bool): Whether to display the debug feed or not.
             pupil_radius (int, optional): Approximation of the radius of the
                 observed pupil. Defaults to 4, as this is the median value
                 (pupil size is typically between 2-8 mm, if you know your
@@ -79,11 +72,8 @@ class GazeInferer:
         self._ellipse_dnn = ellipse_dnn
         self._dataloader = dataloader
         self._device = device
-        self._eyeball_model_path = os.path.join(
-            EyeTrackerDataset.EYE_TRACKER_DIR_PATH,
-            "GazeInferer",
-            eyeball_model_path,
-        )
+        self.DEBUG = DEBUG
+
         self._selected_calibration_path = ""
         image = next(iter(self._dataloader))
         self.shape = image.shape[2], image.shape[3]
@@ -97,13 +87,17 @@ class GazeInferer:
             sensor_size=sensor_size,
         )
         self.x, self.y = None, None
+        self._x_offset, self._y_offset = None, None
+
         self._median_size, self._box_size = 5, 3
         self._past_xs, self._past_ys = (
             np.zeros((self._median_size + self._box_size - 1)),
             np.zeros((self._median_size + self._box_size - 1)),
         )
-        self.out = None
+
         self.calibration_is_paused = False
+
+        self._gaze_lock = Lock()
 
     def add_to_fit(self):
         """Acquires and add images to an internal array, so that they can be
@@ -153,9 +147,7 @@ class GazeInferer:
         self._eyefitter.estimate_eye_sphere()
 
         # Issue error if eyeball model still does not exist after fitting.
-        if (self._eyefitter.eye_centre is None) or (
-            self._eyefitter.aver_eye_radius is None
-        ):
+        if (self._eyefitter.eye_centre is None) or (self._eyefitter.aver_eye_radius is None):
             raise TypeError("Eyeball model was not fitted.")
 
     def torch_prediction_to_deepvog_format(self, prediction):
@@ -221,11 +213,13 @@ class GazeInferer:
         to ensure a physical calibration point is placed at (0,0) ))
         """
         with torch.no_grad():
-            for images in self._dataloader:
-                self._x_offset, self._y_offset = self.get_angles_from_image(
-                    images
-                )
-                break
+            while (self._x_offset is None) and (self._y_offset is None):
+                for images in self._dataloader:
+                    (
+                        self._x_offset,
+                        self._y_offset,
+                    ) = self.get_angles_from_image(images)
+                    break
 
     def save_eyeball_model(self, file_name):
         """Saves the fitted model (and the offset pair) to the disk.
@@ -264,39 +258,37 @@ class GazeInferer:
 
                     x, y = self.get_angles_from_image(images)
 
+                    if (x is None) or (y is None):
+                        self.x = None
+                        self.y = None
+                        continue
+
                     self._past_xs = np.roll(self._past_xs, -1)
                     self._past_ys = np.roll(self._past_ys, -1)
                     self._past_xs[-1] = x
                     self._past_ys[-1] = y
 
-                    median_filtered_x = median_filter(
-                        self._past_xs, self._median_size
-                    )
-                    median_filtered_y = median_filter(
-                        self._past_ys, self._median_size
-                    )
-
                     box_filtered_x = box_smooth(
-                        median_filtered_x[
-                            self._box_size - 1 : 2 * self._box_size - 1
-                        ],
+                        self._past_xs[self._box_size - 1 : 2 * self._box_size - 1],
                         self._box_size,
                     )
                     box_filtered_y = box_smooth(
-                        median_filtered_y[
-                            self._box_size - 1 : 2 * self._box_size - 1
-                        ],
+                        self._past_ys[self._box_size - 1 : 2 * self._box_size - 1],
                         self._box_size,
                     )
 
-                    self.x = (
-                        box_filtered_x[self._box_size // 2] - self._x_offset
-                    )
-                    self.y = (
-                        box_filtered_y[self._box_size // 2] - self._y_offset
-                    )
+                    self._gaze_lock.acquire()
 
-    def get_angles_from_image(self, images, save_video_feed=False):
+                    self.x = box_filtered_x[self._box_size // 2] - self._x_offset
+                    self.y = box_filtered_y[self._box_size // 2] - self._y_offset
+
+                    self._gaze_lock.release()
+
+        self._gaze_lock.acquire()
+        self.x, self.y = None, None
+        self._gaze_lock.release()
+
+    def get_angles_from_image(self, images):
         """Takes an image, predicts the ellipse that corresponds to the
            pupil using the neural network, then uses the eye model to
            convert this ellipse to a gave vector (pair of x and y angles)
@@ -311,40 +303,15 @@ class GazeInferer:
         """
         images = images.to(self._device)
 
-        predictions, _ = self._ellipse_dnn(images)
+        predictions, predicted_visibilities = self._ellipse_dnn(images)
+        prediction, visibility = predictions[0], predicted_visibilities[0]
 
-        prediction = predictions[0]
-        self._eyefitter.unproject_single_observation(
-            self.torch_prediction_to_deepvog_format(prediction)
-        )
-        (
-            _,
-            n_list,
-            _,
-            _,
-        ) = self._eyefitter.gen_consistent_pupil()
+        if visibility.item() < 0.90:
+            return None, None
+
+        self._eyefitter.unproject_single_observation(self.torch_prediction_to_deepvog_format(prediction))
+        _, n_list, _, _ = self._eyefitter.gen_consistent_pupil()
         x, y = self._eyefitter.convert_vec2angle31(n_list[0])
-
-        if save_video_feed:
-            if self.out is None:
-                self.out = cv2.VideoWriter(
-                    "eye_tracker.avi",
-                    cv2.VideoWriter_fourcc("M", "J", "P", "G"),
-                    30,
-                    (320, 240),
-                )
-
-            image = inverse_normalize(
-                images[0],
-                EyeTrackerDataset.TRAINING_MEAN,
-                EyeTrackerDataset.TRAINING_STD,
-            )
-            image = tensor_to_opencv_image(image)
-
-            image = draw_ellipse_on_image(
-                image, predictions[0], color=(255, 0, 0)
-            )
-            self.out.write(image)
 
         return x, y
 
@@ -377,4 +344,8 @@ class GazeInferer:
         Returns:
             tuple: Pair of x and y angles
         """
-        return self.x, self.y
+        self._gaze_lock.acquire()
+        x, y = self.x, self.y  # primitive type, this is a deep copy
+        self._gaze_lock.release()
+
+        return x, y

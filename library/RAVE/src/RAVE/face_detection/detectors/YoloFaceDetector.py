@@ -39,12 +39,12 @@ class YoloFaceDetector(Detector):
 
     # TODO (Anthony): Code copied from main_face_detection;
     #  combine or remove one or the other eventually
-    def predict(self, frame, draw_on_frame=False):
+    def predict(self, frame_object, draw_on_frame=False):
         """
         Method to obtain the prediction of yolov5_face
 
         Args:
-            frame (np.ndarray):
+            frame (FrameObject):
                 image form which we want to detect faces with shape (HxWx3)
             draw_on_frame (bool):
                 Whether or not to draw the predictions on the return frame.
@@ -56,8 +56,12 @@ class YoloFaceDetector(Detector):
                 and mouth coordinate. For dnn, the mought is always None
                 instead because it does not extract features.
         """
-        original_frame = frame.copy()
-        tensor = opencv_image_to_tensor(frame, self.device)
+        frame = frame_object.frame
+        tensor = frame_object.frame_tensor
+        if draw_on_frame:
+            frame = frame.copy()
+
+        # tensor = opencv_image_to_tensor(frame, self.device)
         tensor = torch.unsqueeze(tensor, 0)
         predictions = self.model(tensor)[0]
 
@@ -117,7 +121,7 @@ class YoloFaceDetector(Detector):
             mouth = (mouth_x, mouth_y)
 
             new_detection = Detection(
-                original_frame.copy(), bbox_scaled, mouth, landmarks
+                frame, bbox_scaled, mouth, landmarks
             )
             detections.append(new_detection)
 

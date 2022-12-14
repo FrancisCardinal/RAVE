@@ -1,15 +1,16 @@
 import os
 import glob
 import argparse
+import yaml
 
-from multiprocessing import Process, Queue
+from multiprocessing import Process, Queue, Manager
 
 from tkinter import filedialog
 
 from RAVE.audio.AudioManager import AudioManager
 
 
-def run_loop(file_queue, worker_num, DEBUG, MASK, TIMER):
+def run_loop(file_queue, snr_sdr_dict, worker_num, DEBUG, MASK, TIMER, MODEL):
 
     # TODO: ADD POSSIBILITY TO RESET AUDIO_MANAGER INSTEAD OF RECREATING
     while not file_queue.empty():
@@ -19,7 +20,7 @@ def run_loop(file_queue, worker_num, DEBUG, MASK, TIMER):
         print(f'Worker {worker_num}: Starting speech enhancement on {audio_file}')
 
         # Run audio manager
-        audio_manager = AudioManager(debug=DEBUG, mask=MASK, use_timers=TIMER)
+        audio_manager = AudioManager(debug=DEBUG, mask=MASK, use_timers=TIMER, model_path=MODEL)
         audio_dict = {
             'name': 'loop_sim_source',
             'type': 'sim',
@@ -27,42 +28,72 @@ def run_loop(file_queue, worker_num, DEBUG, MASK, TIMER):
         }
         audio_manager.initialise_audio(source=audio_dict)
         audio_manager.main_loop()
+
+        # Calculate snr and sdr
+        if audio_manager.print_sdr:
+            snr_sdr_dict['print_results'] = True
+            snr_sdr_dict['count'] += 1
+            n = snr_sdr_dict['count']
+            snr_sdr_dict['old_snr'] = snr_sdr_dict['old_snr'] * (n-1)/n + audio_manager.old_snr/n
+            snr_sdr_dict['new_snr'] = snr_sdr_dict['new_snr'] * (n-1)/n + audio_manager.new_snr/n
+            snr_sdr_dict['old_sdr'] = snr_sdr_dict['old_sdr'] * (n-1)/n + audio_manager.old_sdr/n
+            snr_sdr_dict['new_sdr'] = snr_sdr_dict['new_sdr'] * (n-1)/n + audio_manager.new_sdr/n
+
         # audio_manager.reset_manager()
 
+    snr_sdr_dict['gain_snr'] = snr_sdr_dict['new_snr'] - snr_sdr_dict['old_snr']
+    snr_sdr_dict['gain_sdr'] = snr_sdr_dict['new_sdr'] - snr_sdr_dict['old_sdr']
 
-def main2(DEBUG, MASK, TIMER, WORKERS, SOURCE_DIR):
+    if snr_sdr_dict['print_results']:
+        print(f"SDR_SNR: Measured over {snr_sdr_dict['count']} samples :")
+        print(f"\t Old SNR: {snr_sdr_dict['old_snr']} \t New SNR: {snr_sdr_dict['new_snr']} "
+              f"\t Gain SNR: {snr_sdr_dict['gain_snr']}")
+        print(f"\t Old SDR: {snr_sdr_dict['old_sdr']} \t New SDR: {snr_sdr_dict['new_sdr']}"
+              f"\t Gain SDR: {snr_sdr_dict['gain_sdr']}")
 
-    # Get all files in a subdirectory
-    if SOURCE_DIR == 'default':
-        audio_manager = AudioManager(debug=DEBUG, mask=MASK, use_timers=TIMER)
-        audio_manager.initialise_audio()
+
+def main(DEBUG, MASK, TIMER, WORKERS, SOURCE_DIR, MODEL):
+
+    # Check if given a dataset folder or a subfolder
+    wav_file = glob.glob(os.path.join(SOURCE_DIR, 'audio.wav'))
+    if wav_file:
+        # Directly given a subfolder
+        audio_dict = {
+            'name': 'loop_sim_source',
+            'type': 'sim',
+            'file': wav_file[0]
+        }
+        audio_manager = AudioManager(debug=DEBUG, mask=MASK, use_timers=TIMER, model_path=MODEL)
+        audio_manager.initialise_audio(source=audio_dict, save_path=None)
         audio_manager.main_loop()
     else:
-        # Check if given a dataset folder or a subfolder
-        wav_file = glob.glob(os.path.join(SOURCE_DIR, 'audio.wav'))
-        if wav_file:
-            # Directly given a subfolder
-            audio_dict = {
-                'name': 'loop_sim_source',
-                'type': 'sim',
-                'file': wav_file[0]
-            }
-            audio_manager = AudioManager(debug=DEBUG, mask=MASK, use_timers=TIMER)
-            audio_manager.initialise_audio(source=audio_dict, path=None)
-            audio_manager.main_loop()
-        else:
+        with Manager() as manager:
             # Given a whole dataset folder
             worker_count = WORKERS
             worker_list = []
             file_queue = Queue()
+            snr_sdr_dict = manager.dict()
+            snr_sdr_dict['print_results'] = False
+            snr_sdr_dict['count'] = 0
+            snr_sdr_dict['old_snr'] = 0
+            snr_sdr_dict['new_snr'] = 0
+            snr_sdr_dict['gain_snr'] = 0
+            snr_sdr_dict['old_sdr'] = 0
+            snr_sdr_dict['new_sdr'] = 0
+            snr_sdr_dict['gain_sdr'] = 0
+
             # Get audio files
             input_files = glob.glob(os.path.join(SOURCE_DIR, '**', 'audio.wav'), recursive=True)
-            for audio_file in input_files:
-                file_queue.put(audio_file)
+            if not input_files:
+                print("No audio files found in given directory. Exiting.")
+                exit()
+            else:
+                for audio_file in input_files:
+                    file_queue.put(audio_file)
 
             # Start workers
             for w in range(1, worker_count+1):
-                p = Process(target=run_loop, args=(file_queue, w, DEBUG, MASK, TIMER, ))
+                p = Process(target=run_loop, args=(file_queue, snr_sdr_dict, w, DEBUG, MASK, TIMER, MODEL, ))
                 worker_list.append(p)
                 p.start()
                 print(f'Worker {w}: started.')
@@ -72,9 +103,22 @@ def main2(DEBUG, MASK, TIMER, WORKERS, SOURCE_DIR):
                 p.join()
                 print(f'Worker {w_num+1}: finished.')
 
+            snr_sdr_dict['gain_snr'] = snr_sdr_dict['new_snr'] - snr_sdr_dict['old_snr']
+            snr_sdr_dict['gain_sdr'] = snr_sdr_dict['new_sdr'] - snr_sdr_dict['old_sdr']
+
+            results_yaml_path = os.path.join(SOURCE_DIR, 'sdr_results.yaml')
+            with open(results_yaml_path, "w") as outfile:
+                yaml.dump(snr_sdr_dict, outfile, default_flow_style=None)
+
+            if snr_sdr_dict['print_results']:
+                print(f"SDR_SNR: Measured over {snr_sdr_dict['count']} samples :")
+                print(f"\t Old SNR: {snr_sdr_dict['old_snr']} \t New SNR: {snr_sdr_dict['new_snr']} "
+                      f"\t Gain SNR: {snr_sdr_dict['gain_snr']}")
+                print(f"\t Old SDR: {snr_sdr_dict['old_sdr']} \t New SDR: {snr_sdr_dict['new_sdr']}"
+                      f"\t Gain SDR: {snr_sdr_dict['gain_sdr']}")
+
 
 if __name__ == "__main__":
-    # main2()
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -95,6 +139,13 @@ if __name__ == "__main__":
         default='tkinter',
         help="Absolute path to audio sources to enhance",
     )
+    parser.add_argument(
+        "--model",
+        action="store",
+        type=str,
+        default='tkinter',
+        help="Absolute path to trained model",
+    )
 
     parser.add_argument(
         "-w",
@@ -107,9 +158,12 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    # parse sources
+    # Parse paths
     source_subfolder = args.sources
     if source_subfolder == 'tkinter':
         source_subfolder = filedialog.askdirectory(title="Audio extracts dataset folder")
+    model_path = args.model
+    if not args.mask and model_path == 'tkinter':
+        model_path = filedialog.askopenfilename(title="Trained model file")
 
-    main2(args.debug, args.mask, args.timer, args.workers, source_subfolder)
+    main(args.debug, args.mask, args.timer, args.workers, source_subfolder, model_path)

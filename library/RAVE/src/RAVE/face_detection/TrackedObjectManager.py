@@ -1,5 +1,6 @@
 import time
 import threading
+from concurrent.futures import ThreadPoolExecutor
 
 from .TrackedObject import TrackedObject
 
@@ -31,6 +32,7 @@ class TrackedObjectManager:
 
     def __init__(self, tracker_type):
         self.tracker_type = tracker_type
+        self.thread_pool_executor = ThreadPoolExecutor(max_workers=8)
 
         self.tracked_objects = {}
         self.pre_tracked_objects = {}
@@ -126,15 +128,12 @@ class TrackedObjectManager:
 
     def start_tracking_thread(self, tracked_object):
         """
-        Start the tracker with the tracked_object
+        Start the tracker with the tracked_object within the threadpool
 
         Args:
             tracked_object (TrackedObject): The object to track
         """
-        new_thread = threading.Thread(
-            target=self.track_loop, args=(tracked_object,), daemon=True
-        )
-        new_thread.start()
+        self.thread_pool_executor.submit(self.single_track_loop, (tracked_object))
 
     def remove_tracked_object(self, identifier):
         """
@@ -216,7 +215,31 @@ class TrackedObjectManager:
 
         tracked_object.updating_missed_frames = False
 
-    def track_loop(self, tracked_object):
+    def new_frame_tracked_object(self, frame_object, tracked_object):
+        """
+        Work done for an individual tracker at each new frame update
+
+        Args:
+            frame_object (ndarray): the new image frame
+            tracked_object (TrackedObject): The object to track
+        """
+        # Make sure tracker is ready to use
+        if not tracked_object.tracker_started:
+            time.sleep(0.01)
+            return
+
+        # Start updating missed frames if required by object
+        if tracked_object.missed_frames_update_pending:
+            self.update_missed_frames(tracked_object)
+
+        # Make sure missed frame update is not in progress
+        if tracked_object.updating_missed_frames:
+            time.sleep(0.01)
+            return
+
+        self.update_tracked_object(tracked_object, frame_object)
+
+    def single_track_loop(self, tracked_object):
         """
         Thread worker for calling the tracker on the TrackedObject
 
@@ -236,20 +259,25 @@ class TrackedObjectManager:
                 continue  # No new frame
             last_frame_id = frame_object.id
 
-            # Make sure tracker is ready to use
-            if not tracked_object.tracker_started:
-                time.sleep(0.01)
-                continue
-
-            # Start updating missed frames if required by object
-            if tracked_object.missed_frames_update_pending:
-                self.update_missed_frames(tracked_object)
-
-            # Make sure missed frame update is not in progress
-            if tracked_object.updating_missed_frames:
-                time.sleep(0.01)
-                continue
-
-            self.update_tracked_object(tracked_object, frame_object)
+            self.new_frame_tracked_object(frame_object, tracked_object)
 
         print(f"Stopped tracking object {tracked_object.id}")
+
+    def global_track_loop(self):
+        """
+        Global worker loop to handle all objects to track in a single thread
+        """
+
+        last_frame_id = -1
+        while True:
+
+            frame_object = self.last_frame
+            if frame_object is None or last_frame_id == frame_object.id:
+                time.sleep(0.01)
+                continue  # No new frame
+            last_frame_id = frame_object.id
+
+            all_objects = list(self.tracked_objects.values())
+            all_objects.extend(list(self.pre_tracked_objects.values()))
+            for tracked_object in all_objects:
+                self.new_frame_tracked_object(frame_object, tracked_object)

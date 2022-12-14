@@ -17,22 +17,29 @@ class Direction2Pixel:
 
     def __init__(
         self,
+        k_matrix,
+        roi,
         translation_eye_camera=np.array([0, 0, 0]),
         img_height=480,
         img_width=640,
     ):
-        self._center_x = img_width / 2
-        self._center_y = img_height / 2
-
-        self._k_matrix = np.array(
+        T_eye_camera = np.array(
             [
-                [376.96798, 0.0, 314.09011],
-                [0.0, 374.08737, 250.37452],
-                [0.0, 0.0, 1.0],
+                [0, -1, 0, translation_eye_camera[0]],
+                [0, 0, -1, translation_eye_camera[1]],
+                [1, 0, 0, translation_eye_camera[2]],
+                [0, 0, 0, 1],
             ]
         )
-        self._distortion = np.array([-0.321459, 0.073634])
-        self._translation_eye_camera = translation_eye_camera
+        K = np.r_[k_matrix, [np.array([0, 0, 0])]]
+        K = np.c_[K, np.array([0, 0, 0, 1])]
+
+        self._P = np.dot(K, T_eye_camera)
+
+        self._roi = roi
+        self._img_width = img_width
+        self._img_height = img_height
+
         self._eps = 1e-20
 
     def get_pixel(self, angle_x, angle_y, dist):
@@ -46,53 +53,48 @@ class Direction2Pixel:
         Returns:
             (pixel_x, pixel_y): the pixel values for the position in the image
         """
-        angle_x = math.radians(90 - angle_x)
-        angle_y = math.radians(90 + angle_y)
+        phi = math.radians(-angle_x)
+        theta = math.radians(90 - angle_y)
 
-        x_eye = dist * math.sin(angle_y) * math.cos(angle_x)
-        y_eye = dist * math.cos(angle_y)
-        z_eye = dist * math.sin(angle_y) * math.sin(angle_x)
+        x_eye = dist * math.sin(theta) * math.cos(phi)
+        y_eye = dist * math.sin(theta) * math.sin(phi)
+        z_eye = dist * math.cos(theta)
 
-        x_cam = x_eye + self._translation_eye_camera[0]
-        y_cam = y_eye + self._translation_eye_camera[1]
-        z_cam = z_eye + self._translation_eye_camera[2]
+        p_eye = np.array([x_eye, y_eye, z_eye, 1])
+        p_eye = np.dot(self._P, p_eye.T)
+        p_eye = p_eye / (p_eye[2])
 
-        a = x_cam / z_cam
-        b = y_cam / z_cam
+        pixel_x = self._clamp_pixel(p_eye[0], self._img_width)
+        pixel_y = self._clamp_pixel(p_eye[1], self._img_height)
 
-        r = math.sqrt(a**2 + b**2)
-        theta = math.atan(r)
+        # Undistort adjustements
+        if self._roi is not None:
+            origin_x, origin_y, cropped_width, cropped_height = self._roi
 
-        theta_distorted = theta * (
-            1
-            + (self._distortion[0] * (theta**2))
-            + (self._distortion[1] * (theta**4))
-        )
+            pixel_x -= origin_x
+            pixel_y -= origin_y
 
-        x_cam = theta_distorted * a / (r + self._eps)
-        y_cam = theta_distorted * b / (r + self._eps)
+            pixel_x *= self._img_width / cropped_width
+            pixel_y *= self._img_height / cropped_height
 
-        pixel_x = self._k_matrix[0, 0] * x_cam + self._k_matrix[0, 2]
-        pixel_y = self._k_matrix[1, 1] * y_cam + self._k_matrix[1, 2]
-
-        if pixel_x > self._center_x * 2:
-            pixel_x = self._center_x * 2
-        elif pixel_x < 0:
-            pixel_x = 0
-
-        if pixel_y > self._center_y * 2:
-            pixel_y = self._center_y * 2
-        elif pixel_y < 0:
-            pixel_y = 0
+            pixel_x = self._clamp_pixel(pixel_x, self._img_width)
+            pixel_y = self._clamp_pixel(pixel_y, self._img_height)
 
         return (
             int(pixel_x),
             int(pixel_y),
         )
 
-    def is_line_segment_in_rectangle(
-        self, point1, point2, top_left_corner, bottom_right_corner
-    ):
+    def _clamp_pixel(self, pixel_value, max_value):
+        pixel_out = pixel_value
+        if pixel_value > max_value:
+            pixel_out = max_value
+        elif pixel_value < 0:
+            pixel_out = 0
+
+        return pixel_out
+
+    def is_line_segment_in_rectangle(self, point1, point2, top_left_corner, bottom_right_corner):
         """
         Args:
             point1 (Tuple of int): First point of the line in pixels (x, y)
@@ -114,9 +116,7 @@ class Direction2Pixel:
 
         points_on_line = np.vstack((x_range, y_range))
 
-        return self.are_points_in_rectangle(
-            points_on_line, top_left_corner, bottom_right_corner
-        )
+        return self.are_points_in_rectangle(points_on_line, top_left_corner, bottom_right_corner)
 
     @staticmethod
     def are_points_in_rectangle(
@@ -143,11 +143,7 @@ class Direction2Pixel:
         condition2 = points[0] < bottom_right_corner[0]
         condition3 = points[1] > top_left_corner[1]
         condition4 = points[1] < bottom_right_corner[1]
-        answer = sum(
-            np.logical_and.reduce(
-                (condition1, condition2, condition3, condition4)
-            )
-        )
+        answer = sum(np.logical_and.reduce((condition1, condition2, condition3, condition4)))
 
         return answer >= 1
 
@@ -165,9 +161,7 @@ class Direction2Pixel:
         # TODO - JKealey: handle when line is vertical or horizontal
         #  if necessary because it seems our lines will never be.
         a = (point1[1] - point2[1]) / (point1[0] - point2[0])
-        b = (point1[0] * point2[1] - point2[0] * point1[1]) / (
-            point1[0] - point2[0]
-        )
+        b = (point1[0] * point2[1] - point2[0] * point1[1]) / (point1[0] - point2[0])
 
         return a, b
 
