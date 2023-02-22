@@ -536,7 +536,7 @@ class AudioManager:
             speech_mask = 1 - noise_mask
             self.check_time(name="data", is_start=False)
 
-            return speech_mask, noise_mask
+            return speech_mask, noise_mask, sum
 
     def calculate_groundtruth(self, audio_signal_f):
         """
@@ -766,6 +766,99 @@ class AudioManager:
             }
 
         return mic_source
+    
+    def iros_init(self):
+        self.is_delays = True
+        self.passthrough_mode = True
+        self.target = None
+        self.gain = 1
+        self.model = AudioModel(input_size=514, hidden_size=512, num_layers=2)
+        self.model.to(self.device)
+        if self.debug:
+            print(self.model)
+        self.model.load_best_model(self.model_path, self.device)
+        self.delay_and_sum = DelaySum(self.frame_size, self.device)
+
+        self.source_dict[self.jetson_source["name"]] = {
+            "stft": Stft(self.channels, self.frame_size, self.window, self.device),
+            "target_stft": Stft(self.channels, self.frame_size, self.window, self.device),
+        }
+        self.sink_dict[self.jetson_sink["name"]] = {
+            "istft": IStft(1, self.frame_size, self.chunk_size, self.window, self.device),
+            "target_istft": IStft(self.channels, self.frame_size, self.chunk_size, self.window, self.device),
+        }
+
+    def iros_test_mvdr(self, mix):
+        samples = mix.shape[2]
+        current_sample = 0
+        self.current_delay = self.target
+        speech_masks = None
+        noise_masks = None
+
+        while current_sample <= samples-256:
+
+            x = mix[0][..., current_sample:current_sample+256]
+            X = self.source_dict[self.jetson_source["name"]]["stft"](x)
+            speech_mask, noise_mask, _ = self.compute_masks(signal=X)
+            if speech_masks is None and noise_masks is None:
+                speech_masks = speech_mask[..., None]
+                noise_masks  = noise_mask[..., None]
+            else:
+                speech_masks = torch.cat((speech_masks, speech_mask[..., None]), dim=1)
+                noise_masks = torch.cat((noise_masks, noise_mask[..., None]), dim=1)
+
+            current_sample += 256
+
+        dummy_input = torch.zeros_like(x)
+        X = self.source_dict[self.jetson_source["name"]]["stft"](dummy_input)
+        speech_mask, noise_mask, _ = self.compute_masks(signal=X)
+        if speech_masks is None and noise_masks is None:
+            speech_masks = speech_mask[..., None]
+            noise_masks  = noise_mask[..., None]
+        else:
+            speech_masks = torch.cat((speech_masks, speech_mask[..., None]), dim=1)
+            noise_masks = torch.cat((noise_masks, noise_mask[..., None]), dim=1)
+
+
+        self.reset_model_context()
+        self.source_dict[self.jetson_source["name"]]["stft"].reset()
+        self.sink_dict[self.jetson_sink["name"]]["istft"].reset()
+
+        return speech_masks, noise_masks
+    
+    def iros_test(self, mix, isolated_target):
+        samples = mix.shape[2]
+        current_sample = 0
+        output = torch.tensor([], device=self.device)
+        target = torch.tensor([], device=self.device)
+        self.current_delay = self.target
+
+        while current_sample <= samples-256:
+            target_x = isolated_target[..., current_sample:current_sample+256]
+            target_X = self.source_dict[self.jetson_source["name"]]["target_stft"](target_x)
+            target_sum = self.delay_and_sum(target_X, self.current_delay)
+            target_y = self.sink_dict[self.jetson_sink["name"]]["target_istft"](target_sum)
+            target = torch.cat((target, target_y), dim=1)
+
+
+            x = mix[0][..., current_sample:current_sample+256]
+            X = self.source_dict[self.jetson_source["name"]]["stft"](x)
+            speech_mask, noise_mask, sum = self.compute_masks(signal=X)
+            Y = sum * speech_mask
+            # Y = torch.mean(Y, dim=0)
+            y = self.sink_dict[self.jetson_sink["name"]]["istft"](Y)
+            output = torch.cat((output, y), dim=1)
+
+            current_sample += 256
+
+
+        self.reset_model_context()
+        self.source_dict[self.jetson_source["name"]]["stft"].reset()
+        self.sink_dict[self.jetson_sink["name"]]["istft"].reset()
+
+        return output, target
+
+
 
     def start_app(self):
         """

@@ -46,6 +46,7 @@ class Stft(Module):
     def __init__(self, channels, frame_size, window, device):
         self._channels = channels
         self._frame_size = frame_size
+        self.device = device
         self._xs = torch.zeros((self._channels, self._frame_size), device=device, dtype=torch.float32)
 
         # Get the window
@@ -94,4 +95,4 @@ class Stft(Module):
         This resets the memory of the stft. This can be used in a
         context where you are using this recursively.
         """
-        self._xs = torch.zeros((self._channels, self._frame_size), dtype=torch.float32)
+        self._xs = torch.zeros((self._channels, self._frame_size), device=self.device, dtype=torch.float32)
